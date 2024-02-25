@@ -1,5 +1,7 @@
 # TSSV  (TypeScript SystemVerilog)
 
+**DISCLAIMER:  This work si currently a demonstration and  not read for production HDL development yet!**
+
 TSSV is a meta-HDL language written in TypeScript for creating highly parameterized and configurable synthesizable
 SystemVerilog components improving productivity of hardware designers. It is intended to serve a similar role as
 Chisel(Scala) but has a focus on trying to have a design paradigm and syntax that will be more familar to a
@@ -10,7 +12,7 @@ hardware design engineer familar with SystemVerilog.
 
 Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
 
-```
+```bash
 $ git clone https://github.com/avonancken/TSSV.git
 $ cd TSSV
 $ npm init
@@ -19,6 +21,131 @@ $ node out/test_FIR.js
 ```
 
 ## Output
+### Example #1
+```verilog
+odule myFIR 
+   (
+   input  clk,
+   input  rst_b,
+   input  en,
+   input signed [7:0] data_in,
+   output reg signed [8:0] data_out
+   )
+
+   reg signed [7:0] tap_0;
+   reg signed [7:0] data_in_q;
+   wire signed [8:0] prod_tap_0x1d1;
+   reg signed [7:0] tap_1;
+   reg signed [7:0] tap_0_q;
+   wire signed [9:0] prod_tap_1x2d2;
+   reg signed [7:0] tap_2;
+   reg signed [7:0] tap_1_q;
+   wire signed [9:0] prod_tap_2x2d3;
+   reg signed [7:0] tap_3;
+   reg signed [7:0] tap_2_q;
+   wire signed [10:0] prod_tap_3x3d4;
+   reg signed [11:0] sum;
+   wire signed [10:0] rounded;
+   wire signed [8:0] saturated;
+
+   assign prod_tap_0x1d1 = tap_0 * 1'd1;
+   assign prod_tap_1x2d2 = tap_1 * 2'd2;
+   assign prod_tap_2x2d3 = tap_2 * 2'd3;
+   assign prod_tap_3x3d4 = tap_3 * 3'd4;
+   assign rounded = (sum + (1'd1<<(2-1)))>>>2;
+   assign saturated = (sum > 9'sd255) ? 9'sd255 :
+                       ((sum < -9'sd256) ? -9'sd256 : sum);
+
+   always @( posedge clk  or negedge rst_b )
+     if(!rst_b)
+        begin
+           data_in_q <= 'd0;
+           tap_0_q <= 'd0;
+           tap_1_q <= 'd0;
+           tap_2_q <= 'd0;
+           sum <= 'd0;
+           data_out <= 'd0;
+        end
+      else if(en)
+        begin
+           data_in_q <= data_in;
+           tap_0_q <= tap_0;
+           tap_1_q <= tap_1;
+           tap_2_q <= tap_2;
+           sum <= prod_tap_0x1d1 + prod_tap_1x2d2 + prod_tap_2x2d3 + prod_tap_3x3d4;
+           data_out <= saturated;
+        end
+
+
+endmodule
+```
+
+### Example #2
+```verilog
+module FIR_1pmlbrs_5_8_9_2 
+   (
+   input  clk,
+   input  rst_b,
+   input  en,
+   input signed [7:0] data_in,
+   output reg signed [8:0] data_out
+   )
+
+   reg signed [7:0] tap_0;
+   reg signed [7:0] data_in_q;
+   wire signed [9:0] prod_tap_0x2d2;
+   reg signed [7:0] tap_1;
+   reg signed [7:0] tap_0_q;
+   wire signed [9:0] prod_tap_1xm2sd2;
+   reg signed [7:0] tap_2;
+   reg signed [7:0] tap_1_q;
+   wire signed [10:0] prod_tap_2x3d4;
+   reg signed [7:0] tap_3;
+   reg signed [7:0] tap_2_q;
+   wire signed [10:0] prod_tap_3xm3sd4;
+   reg signed [7:0] tap_4;
+   reg signed [7:0] tap_3_q;
+   wire signed [11:0] prod_tap_4x4d8;
+   reg signed [12:0] sum;
+   wire signed [11:0] rounded;
+   wire signed [8:0] saturated;
+
+   assign prod_tap_0x2d2 = tap_0 * 2'd2;
+   assign prod_tap_1xm2sd2 = tap_1 * -2'sd2;
+   assign prod_tap_2x3d4 = tap_2 * 3'd4;
+   assign prod_tap_3xm3sd4 = tap_3 * -3'sd4;
+   assign prod_tap_4x4d8 = tap_4 * 4'd8;
+   assign rounded = (sum + (1'd1<<(2-1)))>>>2;
+   assign saturated = (sum > 9'sd255) ? 9'sd255 :
+                       ((sum < -9'sd256) ? -9'sd256 : sum);
+
+   always @( posedge clk  or negedge rst_b )
+     if(!rst_b)
+        begin
+           data_in_q <= 'd0;
+           tap_0_q <= 'd0;
+           tap_1_q <= 'd0;
+           tap_2_q <= 'd0;
+           tap_3_q <= 'd0;
+           sum <= 'd0;
+           data_out <= 'd0;
+        end
+      else if(en)
+        begin
+           data_in_q <= data_in;
+           tap_0_q <= tap_0;
+           tap_1_q <= tap_1;
+           tap_2_q <= tap_2;
+           tap_3_q <= tap_3;
+           sum <= prod_tap_0x2d2 + prod_tap_1xm2sd2 + prod_tap_2x3d4 + prod_tap_3xm3sd4 + prod_tap_4x4d8;
+           data_out <= saturated;
+        end
+
+
+endmodule
+```
+
+### Example #3
 ```verilog
 module myFIR3 
    (
