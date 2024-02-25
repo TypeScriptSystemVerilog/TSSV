@@ -92,7 +92,7 @@ let TSSV = () => {
             } else {
                 let mapFunc = (p: any) => {
                     if(typeof p === 'object') {
-                        return 'HASH' //FIXME
+                        return this.simpleHash(p.toString())
                     }
                     return p
                 }
@@ -102,6 +102,16 @@ let TSSV = () => {
             this.IOs = IOs
             this.signals = signals
             this.body = body
+        }
+
+        simpleHash(str: string): string {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+              const char = str.charCodeAt(i);
+              hash = (hash << 5) - hash + char;
+            }
+            // Convert to 32bit unsigned integer in base 36 and pad with "0" to ensure length is 7.
+            return (hash >>> 0).toString(36).padStart(7, '0');
         }
 
         findSignal(sig:Sig|string, throwOnFalse: boolean = false, caller:any = null): Signal | IOSignal {
@@ -262,13 +272,30 @@ let TSSV = () => {
             return new Sig(io.out)
         }
 
-        addOperation(op: BinaryOp, io : OperationIO): Sig {
+        addOperation(
+            op: BinaryOp, 
+            io : OperationIO): Sig {
             const nameMap = {
-                '*' : 'prod',
-                '-' : 'diff',
-                '+' : 'sum',
-                '&' : 'mask',
-                '|' : 'bitset'               
+                '*' : {
+                    name: 'prod',
+                    autoWidth: (a:number,b:number) => {return a + b}
+                },
+                '-' : {
+                    name: 'diff',
+                    autoWidth: (a:number,b:number) => {return Math.max(a,b) + 1}
+                },
+                '+' : {
+                    name:'sum',
+                    autoWidth: (a:number,b:number) => {return Math.max(a,b) + 1}
+                },
+                '&' : {
+                    name:'mask',
+                    autoWidth: (a:number,b:number) => {return Math.max(a,b)}
+                },
+                '|' : {
+                    name:'bitset',
+                    autoWidth: (a:number,b:number) => {return Math.max(a,b)}
+                }               
             }
             let aOperand: string | undefined = undefined
             let bOperand: string | undefined = undefined
@@ -278,9 +305,8 @@ let TSSV = () => {
             let bWidth = 0
             let aSigned = false
             let bSigned = false
-            if(typeof io.a === 'string') {
-                const aSig = this.signals[io.a] || this.IOs[io.a]
-                if(!aSig) throw Error(`${io.a} signal not found`)
+            if(typeof io.a !== 'bigint') {
+                const aSig = this.findSignal(io.a, true, this.addOperation)
                 aOperand = io.a
                 aWidth = Number(aSig.width)
                 aSigned = aSig.isSigned || false
@@ -290,9 +316,8 @@ let TSSV = () => {
                 aOperand = (aSigned) ? `-${aWidth}'sd${Math.abs(Number(io.a))}` : `${aWidth}'d${io.a}`
                 aAuto = aOperand.replace('-','m').replace("'","")
             }
-            if(typeof io.b === 'string') {
-                const bSig = this.signals[io.b] || this.IOs[io.b]
-                if(!bSig) throw Error(`${io.b} signal not found`)
+            if(typeof io.b !== 'bigint') {
+                const bSig = this.findSignal(io.b, true, this.addOperation)
                 bOperand = io.b
                 bWidth = Number(bSig.width)
                 bSigned = bSig.isSigned || false
@@ -303,9 +328,8 @@ let TSSV = () => {
                 bAuto = bOperand.replace('-','m').replace("'","")
             }
             let result = "#NONE#"
-            if(typeof io.result === 'string') {
-                const resultSig =  this.signals[io.result] || this.IOs[io.result]
-                if(!resultSig) throw Error(`${io.result} signal not found`)
+            if(io.result !== undefined) {
+                const resultSig = this.findSignal(io.result, true, this.addOperation)
                 if(resultSig.isSigned === undefined) {
                     resultSig.isSigned = (aSigned || bSigned)
                 }
@@ -313,8 +337,12 @@ let TSSV = () => {
                 if((resultSig.width||0) < (aWidth + bWidth)) console.warn(`${io.result} truncted output`)
                 result =  io.result
             } else {
-                result = `${nameMap[op]}_${aAuto}x${bAuto}`
-                this.signals[result] = {type:'wire', isSigned:(aSigned || bSigned), width:(aWidth + bWidth)}
+                result = `${nameMap[op].name}_${aAuto}x${bAuto}`
+                this.signals[result] = {
+                    type:'wire', 
+                    isSigned:(aSigned || bSigned), 
+                    width:nameMap[op].autoWidth(aWidth,bWidth)
+                }
             }
             this.body +=`   assign ${result} = ${aOperand} ${op} ${bOperand};\n`
             return new Sig(result)
@@ -362,6 +390,8 @@ let TSSV = () => {
             // assemble parameters
             let paramsArray: string[] = []
             if(this.params) {
+                //FIXME - need separate SV Verilog parameter container
+                /*
                 for (var key of Object.keys(this.params)) {
                     let param = this.params[key]
                     // console.log(`${key}: ${param} ${typeof param}`)
@@ -369,6 +399,7 @@ let TSSV = () => {
                         paramsArray.push(`parameter ${key} = ${param.toString()}`) 
                     }
                 }
+                */
             }
             let paramsString = ""
             if(paramsArray.length > 0) {
@@ -444,9 +475,7 @@ ${functionalAssigments.join('\n')}
 
             let verilog: string = 
 `
-module ${this.name} 
-${paramsString}
-
+module ${this.name} ${paramsString}
    (
 ${IOString}
    )
