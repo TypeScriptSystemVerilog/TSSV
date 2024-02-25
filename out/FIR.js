@@ -5,7 +5,7 @@ const TSSV_1 = require("./TSSV");
 class FIR extends TSSV_1.Module {
     constructor(params) {
         super({
-            //default parameter values
+            // define the default parameter values
             name: params.name,
             coefficients: params.coefficients,
             numTaps: params.numTaps || 10,
@@ -13,7 +13,7 @@ class FIR extends TSSV_1.Module {
             outWidth: params.outWidth || 9,
             rShift: params.rShift || 2
         });
-        // define IO
+        // define IO signals
         this.IOs = {
             clk: { type: 'input', isClock: 'posedge' },
             rst_b: { type: 'input', isReset: 'lowasync' },
@@ -28,9 +28,9 @@ class FIR extends TSSV_1.Module {
         for (var i = 0; i < (this.params.numTaps || 0); i++) {
             // construct tap delay line
             const thisTap = this.addSignal(`tap_${i}`, { type: 'reg', width: this.params.inWidth, isSigned: true });
-            this.addRegister({ d: nextTapIn.toString(), clk: 'clk', reset: 'rst_b', en: 'en' });
-            // construct tap moultipliers
-            products.push(this.addMultiplier({ a: thisTap.toString(), b: this.params.coefficients[i] }));
+            this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en' });
+            // construct tap multipliers
+            products.push(this.addMultiplier({ a: thisTap, b: this.params.coefficients[i] }));
             coeffSum += Math.abs(Number(this.params.coefficients[i]));
             nextTapIn = thisTap;
         }

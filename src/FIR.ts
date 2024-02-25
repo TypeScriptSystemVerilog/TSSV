@@ -1,5 +1,7 @@
 import {Module, TSSVParameters, IntRange, Sig, Expr} from './TSSV'
 
+
+// define the parameters of the FIR module
 export interface FIR_Parameters extends TSSVParameters {
     coefficients: Array<bigint>
     numTaps?:   IntRange<1,100>
@@ -13,7 +15,7 @@ export class FIR extends Module {
     declare params: FIR_Parameters
     constructor(params: FIR_Parameters) {            
         super({
-            //default parameter values
+            // define the default parameter values
             name: params.name,
             coefficients: params.coefficients,
             numTaps: params.numTaps || 10,
@@ -22,7 +24,7 @@ export class FIR extends Module {
             rShift: params.rShift || 2
         })
 
-        // define IO
+        // define IO signals
         this.IOs = {
             clk:      { type: 'input', isClock: 'posedge' },
             rst_b:    { type: 'input', isReset: 'lowasync'},
@@ -38,10 +40,10 @@ export class FIR extends Module {
         for(var i = 0; i < (this.params.numTaps||0); i++) {
             // construct tap delay line
             const thisTap = this.addSignal(`tap_${i}`, {type:'reg', width:this.params.inWidth, isSigned: true})
-            this.addRegister({d:nextTapIn.toString(), clk:'clk', reset:'rst_b', en:'en'})
+            this.addRegister({d:nextTapIn, clk:'clk', reset:'rst_b', en:'en'})
 
-            // construct tap moultipliers
-            products.push(this.addMultiplier({a:thisTap.toString(), b:this.params.coefficients[i]}))
+            // construct tap multipliers
+            products.push(this.addMultiplier({a:thisTap, b:this.params.coefficients[i]}))
             coeffSum += Math.abs(Number(this.params.coefficients[i]))
 
             nextTapIn = thisTap
