@@ -7,3 +7,7 @@ console.log(myFir.writeSystemVerilog())
 let myFir2 = new FIR({numTaps: 5, coefficients: [2n, -2n, 4n, -4n, 8n]})
 console.log('\n\n\nExample #2\n\n')
 console.log(myFir2.writeSystemVerilog())
+
+let myFir3 = new FIR({name: 'myFIR3', numTaps: 10, inWidth: 6, outWidth: 10, coefficients: [1n,-2n,3n,-4n,5n,-6n,7n,-8n,9n,-10n], rShift: 3})
+console.log('\n\n\nExample #3\n\n')
+console.log(myFir3.writeSystemVerilog())
