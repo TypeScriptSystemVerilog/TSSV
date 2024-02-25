@@ -64,6 +64,20 @@ let TSSV = () => {
 
     type exprFunc = () => string
 
+    interface OperationIO  {
+        a : string | bigint,
+        b : string | bigint,
+        result?: string
+    }
+
+    enum BinaryOp  {
+        MULTIPLY= '*',
+        ADD= '+',
+        SUBTRACT= '-',
+        BITWISE_AND= '&',
+        BITWISE_OR= '|'
+    }
+
     class Module {
 
         name: string
@@ -248,11 +262,14 @@ let TSSV = () => {
             return new Sig(io.out)
         }
 
-        addMultiplier(io : {
-            a : string | bigint,
-            b : string | bigint,
-            result?: string
-        }): Sig {
+        addOperation(op: BinaryOp, io : OperationIO): Sig {
+            const nameMap = {
+                '*' : 'prod',
+                '-' : 'diff',
+                '+' : 'sum',
+                '&' : 'mask',
+                '|' : 'bitset'               
+            }
             let aOperand: string | undefined = undefined
             let bOperand: string | undefined = undefined
             let aAuto = io.a
@@ -296,11 +313,23 @@ let TSSV = () => {
                 if((resultSig.width||0) < (aWidth + bWidth)) console.warn(`${io.result} truncted output`)
                 result =  io.result
             } else {
-                result = `prod_${aAuto}x${bAuto}`
+                result = `${nameMap[op]}_${aAuto}x${bAuto}`
                 this.signals[result] = {type:'wire', isSigned:(aSigned || bSigned), width:(aWidth + bWidth)}
             }
-            this.body +=`   assign ${result} = ${aOperand} * ${bOperand};\n`
+            this.body +=`   assign ${result} = ${aOperand} ${op} ${bOperand};\n`
             return new Sig(result)
+        }
+
+        addMultiplier(io: OperationIO):Sig {
+            return this.addOperation(BinaryOp.MULTIPLY, io)
+        }
+
+        addAdder(io: OperationIO):Sig {
+            return this.addOperation(BinaryOp.ADD, io)
+        }
+
+        addSubstractor(io: OperationIO):Sig {
+            return this.addOperation(BinaryOp.SUBTRACT, io)
         }
 
         addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): Sig {
