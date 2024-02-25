@@ -28,7 +28,7 @@ class FIR extends TSSV_1.Module {
         for (var i = 0; i < (this.params.numTaps || 0); i++) {
             // construct tap delay line
             const thisTap = this.addSignal(`tap_${i}`, { type: 'reg', width: this.params.inWidth, isSigned: true });
-            this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en' });
+            this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en', q: thisTap });
             // construct tap multipliers
             products.push(this.addMultiplier({ a: thisTap, b: this.params.coefficients[i] }));
             coeffSum += Math.abs(Number(this.params.coefficients[i]));
