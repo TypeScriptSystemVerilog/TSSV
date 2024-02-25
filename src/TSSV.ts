@@ -1,4 +1,4 @@
-let TSSV = () => {
+export default function TSSV() {
     type IntRange<
     START extends number,
     END extends number,
@@ -587,5 +587,5 @@ endmodule
     
 }
 
-TSSV()
+//TSSV()
 
