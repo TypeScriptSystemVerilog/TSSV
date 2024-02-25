@@ -34,7 +34,7 @@ let TSSV = () => {
             return this.name
         }
         protected name: string
-        protected type: 'Sig'
+        readonly type: 'Sig'
     }
 
     class Expr  {
@@ -46,7 +46,7 @@ let TSSV = () => {
             return this.name
         }
         protected name: string
-        protected type: 'Expr'
+        readonly type: 'Expr'
     }
 
     interface Signal extends baseSignal {
@@ -62,12 +62,12 @@ let TSSV = () => {
         [name: string]: ParameterValue | undefined 
     }
 
-    type exprFunc = () => string
+    //type exprFunc = () => string
 
     interface OperationIO  {
-        a : string | bigint,
-        b : string | bigint,
-        result?: string
+        a : string | Sig | bigint,
+        b : string | Sig | bigint,
+        result?: string | Sig
     }
 
     enum BinaryOp  {
@@ -135,17 +135,16 @@ let TSSV = () => {
         }
 
         addRegister(io: {
-            d : string | exprFunc,
-            clk: string, 
-            reset?: string,
+            d : string | Sig | Expr,
+            clk: string | Sig, 
+            reset?: string | Sig,
             resetVal?: bigint,
-            en?: string | exprFunc,
-            q?: string
+            en?: string | Sig | Expr,
+            q?: string | Sig
         }): Sig {
-            let qName: string | undefined = io.q
-            if(typeof io.d === 'string') {
-                const dSig = this.IOs[io.d] || this.signals[io.d]
-                if(!dSig) throw Error(`${io.d} signal not found`)
+            let qName: string | Sig | undefined = io.q
+            if((typeof io.d === 'string') || (io.d.type === 'Sig')) {
+                const dSig = this.findSignal(io.d, true, this.addRegister)
                 if(io.q === undefined) {
                     qName = `${io.d}_q`
                     if(this.signals[qName] || this.IOs[qName]) throw Error(`${qName} signal already exists`)
@@ -153,11 +152,7 @@ let TSSV = () => {
                 }
             }            
             if(io.q) {
-                let qSig: Signal | IOSignal = this.signals[io.q]
-                if(!qSig) {
-                    qSig =this.IOs[io.q]
-                }
-                if(!io.q) throw Error(`${io.q} signal not found`)
+               let qSig = this.findSignal(io.q, true, this.addRegister)
                 switch(qSig.type) {
                 case 'wire':
                     qSig.type = 'reg'
@@ -176,7 +171,7 @@ let TSSV = () => {
             if(qName === undefined) {
                 throw Error(`addRegister(${JSON.stringify(io)}) auto q naming only allowed when d is a simple signal, not an expression`)
             }
-            const d = (typeof io.d === 'string') ? io.d : io.d()
+            const d = io.d.toString()
             const clkSig = this.findSignal(io.clk, true, this.addRegister)
             if(!clkSig.isClock) throw Error('${io.clk} is not a clock signal')
             let resetSensitivity = '' 
@@ -204,8 +199,8 @@ let TSSV = () => {
             }
             const sensitivityList = `@( ${clkSig.isClock} ${io.clk} ${resetSensitivity} )`
             let enableExpr = "#NONE#" 
-            if(io.en !== undefined) {
-                enableExpr = (typeof io.en === 'string') ? io.en : io.en()
+            if(io.en !== undefined) {                
+                enableExpr = io.en.toString()
             }
             //console.log(`d: ${d}`)
             //console.log(`sensitivity: ${sensitivityList}`)
@@ -218,8 +213,11 @@ let TSSV = () => {
             if(!this.registerBlocks[sensitivityList][resetCondition][enableExpr]) {
                 this.registerBlocks[sensitivityList][resetCondition][enableExpr] = {}
             }
-            this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName] = {d: d, resetVal: io.resetVal}
-            return new Sig(qName)
+            this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName.toString()] = {d: d, resetVal: io.resetVal}
+            if(typeof qName === 'string') {
+                return new Sig(qName)
+            }
+            return qName
         }
 
         bitWidth(a: number | bigint, isSigned: boolean = false) : number {
@@ -227,28 +225,30 @@ let TSSV = () => {
         }
 
         addRound(io: {
-            in: string,
-            out: string,
-            rShift: string | number
+            in: string|Sig,
+            out: string|Sig,
+            rShift: string | Sig | number
         }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp'): Sig {
             if(roundMode !== 'roundUp') throw Error(`FIXME: ${roundMode} not implemented yet`)
             const inSig = this.findSignal(io.in, true, this.addRound)
             const outSig = this.findSignal(io.out, true, this.addRound)
             let rShiftString = io.rShift.toString()
-            if(typeof io.rShift === 'string') {
-                const rShiftSig = this.signals[io.rShift] || this.IOs[io.rShift]
-                if(!rShiftSig) throw Error(`${io.rShift} signal not found`)
+            if(typeof io.rShift !== 'number') {
+                const rShiftSig = this.findSignal(io.rShift, true, this.addRound)
                 if(rShiftSig.isSigned) throw Error(`right shift signal ${io.rShift} must be unsigned`)                    
             }
             if(inSig.isSigned != outSig.isSigned) throw Error(`sign mode must match ${io.in}, ${io.out}`)
             this.body += `   assign ${io.out} = (${io.in} + (1'd1<<(${rShiftString }-1)))>>>${rShiftString};\n`
-            return new Sig(io.out)
+            if(typeof io.out === 'string') {
+                return new Sig(io.out)
+            }
+            return io.out
         }
 
 
         addSaturate(io: {
-            in: string,
-            out: string
+            in: string | Sig,
+            out: string | Sig
         }, satMode: 'simple' | 'balanced' | 'none' = 'simple'): Sig {
             if(satMode !== 'simple') throw Error(`FIXME: ${satMode} not implemented yet`)
             const inSig = this.findSignal(io.in, true, this.addSaturate)
@@ -269,7 +269,10 @@ let TSSV = () => {
 `   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} : ${io.in});
 `
             }
-            return new Sig(io.out)
+            if(typeof io.out === 'string') {
+                return new Sig(io.out)
+            }
+            return io.out
         }
 
         addOperation(
@@ -297,8 +300,8 @@ let TSSV = () => {
                     autoWidth: (a:number,b:number) => {return Math.max(a,b)}
                 }               
             }
-            let aOperand: string | undefined = undefined
-            let bOperand: string | undefined = undefined
+            let aOperand: string | Sig | undefined = undefined
+            let bOperand: string | Sig | undefined = undefined
             let aAuto = io.a
             let bAuto = io.b
             let aWidth = 0
@@ -327,7 +330,7 @@ let TSSV = () => {
                 bOperand = (bSigned) ? `-${bWidth}'sd${Math.abs(Number(io.b))}` : `${bWidth}'d${io.b}`
                 bAuto = bOperand.replace('-','m').replace("'","")
             }
-            let result = "#NONE#"
+            let result : string | Sig = "#NONE#"
             if(io.result !== undefined) {
                 const resultSig = this.findSignal(io.result, true, this.addOperation)
                 if(resultSig.isSigned === undefined) {
@@ -344,8 +347,11 @@ let TSSV = () => {
                     width:nameMap[op].autoWidth(aWidth,bWidth)
                 }
             }
-            this.body +=`   assign ${result} = ${aOperand} ${op} ${bOperand};\n`
-            return new Sig(result)
+            this.body +=`   assign ${result.toString()} = ${aOperand} ${op} ${bOperand};\n`
+            if(typeof result === 'string') {
+                return new Sig(result)
+            }
+            return result
         }
 
         addMultiplier(io: OperationIO):Sig {
@@ -538,7 +544,7 @@ endmodule
             for(var i = 0; i < (this.params.numTaps||0); i++) {
                 // construct tap delay line
                 const thisTap = this.addSignal(`tap_${i}`, {type:'reg', width:this.params.inWidth, isSigned: true})
-                this.addRegister({d:nextTapIn.toString(), clk:"clk", reset:"rst_b", en:"en"})
+                this.addRegister({d:nextTapIn.toString(), clk:'clk', reset:'rst_b', en:'en'})
 
                 // construct tap moultipliers
                 products.push(this.addMultiplier({a:thisTap.toString(), b:this.params.coefficients[i]}))
@@ -551,24 +557,24 @@ endmodule
             const sumWidth = (this.params.inWidth||0) + this.bitWidth(coeffSum)
             this.addSignal('sum', { type: 'reg', width: sumWidth,  isSigned: true })
             this.addRegister({
-                d: () => { return `${products.join(' + ')}`},
-                clk: "clk",
-                reset: "rst_b",
-                en: "en",
-                q: "sum"
+                d: new Expr(`${products.join(' + ')}`),
+                clk: 'clk',
+                reset: 'rst_b',
+                en: 'en',
+                q: 'sum'
             })
 
             // round and saturate to final output
             this.addSignal('rounded',{ type: 'wire', width: sumWidth - (this.params.rShift||0) + 1,  isSigned: true })
-            this.addRound({in:"sum", out:"rounded", rShift:this.params.rShift||1})
+            this.addRound({in: 'sum', out:'rounded', rShift:this.params.rShift||1})
             this.addSignal('saturated',{ type: 'wire', width: this.params.outWidth,  isSigned: true })
-            this.addSaturate({in:"sum", out:"saturated"})
+            this.addSaturate({in:'sum', out:'saturated'})
             this.addRegister({
-                d: "saturated",
-                clk: "clk",
-                reset: "rst_b",
-                en: "en",
-                q: "data_out"
+                d: 'saturated',
+                clk: 'clk',
+                reset: 'rst_b',
+                en: 'en',
+                q: 'data_out'
             })
 
         }
