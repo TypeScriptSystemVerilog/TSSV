@@ -15,7 +15,7 @@ Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
 ```bash
 $ git clone https://github.com/avonancken/TSSV.git
 $ cd TSSV
-$ npm init
+$ npm install
 $ npx tsc
 $ node out/test_FIR.js
 ```
