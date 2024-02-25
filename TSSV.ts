@@ -7,12 +7,9 @@ let TSSV = () => {
     ? ACC | START | END
     : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
-    type OptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
-    type Defaults<T> = Required<Pick<T, OptionalKeys<T>>>
+    //type OptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
+    //type Defaults<T> = Required<Pick<T, OptionalKeys<T>>>
 
-    interface scalarConst {
-
-    }
     interface baseSignal {
         width?: IntRange<0,512> | number
         isClock?: 'posedge' | 'negedge'
@@ -28,6 +25,18 @@ let TSSV = () => {
 
     interface IOSignals {[name: string] : IOSignal}
 
+    class SignalRef  {
+        constructor(name: string) {
+           this.name = name
+           this.type = 'SignalRef' 
+        }
+        toString = ():string => {
+            return this.name
+        }
+        protected name: string
+        protected type: 'SignalRef'
+    }
+
     interface Signal extends baseSignal {
         type: 'wire' | 'reg' | 'const', 
         value?: bigint | Array<bigint>
@@ -35,14 +44,15 @@ let TSSV = () => {
 
     interface Signals {[name: string] : Signal}
 
+    type ParameterValue = string | bigint | IntRange<number,number> | Array<bigint> 
     interface Parameters { 
         name?: string | undefined
-        [name: string]: string | bigint | IntRange<number,number> | Array<bigint> | undefined 
+        [name: string]: ParameterValue | undefined 
     }
 
     type exprFunc = () => string
 
-    class module {
+    class Module {
 
         name: string
         params: Parameters
@@ -68,8 +78,9 @@ let TSSV = () => {
             this.body = body
         }
 
-        addSignal(name: string, signal: Signal) {
+        addSignal(name: string, signal: Signal):SignalRef {
             this.signals[name] = signal
+            return new SignalRef(name)
         }
 
         addRegister(io: {
@@ -118,19 +129,27 @@ let TSSV = () => {
             const clkSig = this.IOs[io.clk] || this.signals[io.clk]
             if(!clkSig || !clkSig.isClock) throw Error('${io.clk} is not a clock signal')
             let resetSensitivity = '' 
-            let resetStyle = '#NONE#'
+            let resetCondition = '#NONE#'
             if(io.reset) {
                 const rstSig = this.IOs[io.reset] || this.signals[io.reset]
                 if(!rstSig || !rstSig.isReset) throw Error(`${io.reset} is not a reset signal`)
                 switch(rstSig.isReset) {
                     case 'highasync' :
                         resetSensitivity = ` or posedge ${io.reset}`
+                        resetCondition = `${io.reset}`
                         break
                     case 'lowasync' :
                         resetSensitivity = ` or negedge ${io.reset}`
+                        resetCondition = `!${io.reset}`
                         break
-                }
-                resetStyle = rstSig.isReset
+                    case 'lowsync' :
+                        resetCondition = `!${io.reset}`
+                        break
+                    case 'highsync' :
+                        resetCondition = `${io.reset}`
+                        break
+                    default:
+                    }
             }
             const sensitivityList = `@( ${clkSig.isClock} ${io.clk} ${resetSensitivity} )`
             let enableExpr = "#NONE#" 
@@ -142,23 +161,72 @@ let TSSV = () => {
             if(!this.registerBlocks[sensitivityList]) {
                 this.registerBlocks[sensitivityList] = {}
             }
-            if(!this.registerBlocks[sensitivityList][resetStyle]) {
-                this.registerBlocks[sensitivityList][resetStyle] = {}
+            if(!this.registerBlocks[sensitivityList][resetCondition]) {
+                this.registerBlocks[sensitivityList][resetCondition] = {}
             }
-            if(!this.registerBlocks[sensitivityList][resetStyle][enableExpr]) {
-                this.registerBlocks[sensitivityList][resetStyle][enableExpr] = {q: d}
+            if(!this.registerBlocks[sensitivityList][resetCondition][enableExpr]) {
+                this.registerBlocks[sensitivityList][resetCondition][enableExpr] = {}
             }
+            this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName] = {d: d, resetVal: io.resetVal}
         }
 
         bitWidth(a: number | bigint, isSigned: boolean = false) : number {
             return (Math.ceil(Math.log2( Math.abs(Number(a)) + Number(a >= 0) ) + Number(isSigned || (a<0))))
         }
 
+        addRound(io: {
+            in: string,
+            out: string,
+            rShift: string | number
+        }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp') {
+            if(roundMode !== 'roundUp') throw Error(`FIXME: ${roundMode} not implemented yet`)
+            const inSig = this.signals[io.in] || this.IOs[io.in]
+            if(!inSig) throw Error(`${io.in} signal not found`)
+            const outSig = this.signals[io.out] || this.IOs[io.out]
+            if(!outSig) throw Error(`${io.out} signal not found`)
+            let rShiftString = io.rShift.toString()
+            if(typeof io.rShift === 'string') {
+                const rShiftSig = this.signals[io.rShift] || this.IOs[io.rShift]
+                if(!rShiftSig) throw Error(`${io.rShift} signal not found`)
+                if(rShiftSig.isSigned) throw Error(`right shift signal ${io.rShift} must be unsigned`)                    
+            }
+            if(inSig.isSigned != outSig.isSigned) throw Error(`sign mode must match ${io.in}, ${io.out}`)
+            this.body += `   assign ${io.out} = (${io.in} + (1'd1<<(${rShiftString }-1)))>>>${rShiftString};\n`
+        }
+
+
+        addSaturate(io: {
+            in: string,
+            out: string
+        }, satMode: 'simple' | 'balanced' | 'none' = 'simple') {
+            if(satMode !== 'simple') throw Error(`FIXME: ${satMode} not implemented yet`)
+            const inSig = this.signals[io.in] || this.IOs[io.in]
+            if(!inSig) throw Error(`${io.in} signal not found`)
+            const outSig = this.signals[io.out] || this.IOs[io.out]
+            if(!outSig) throw Error(`${io.out} signal not found`)
+            if(inSig.isSigned != outSig.isSigned) throw Error(`sign mode must match ${io.in}, ${io.out}`)
+            if(inSig.isSigned) {
+                const sat = 1<<((outSig.width||1) - 1)
+                const maxSatString = `${outSig.width}'sd${sat-1}`
+                const minSatString = `-${outSig.width}'sd${sat}`
+                this.body += 
+`   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} :
+                       ((${io.in} < ${minSatString}) ? ${minSatString} : ${io.in});
+`
+            } else {
+                const sat = (1<<((outSig.width||1) - 1)) - 1
+                const maxSatString = `${outSig.width}'d${sat}`
+                this.body += 
+`   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} : ${io.in});
+`
+            }
+        }
+
         addMultiplier(io : {
             a : string | bigint,
             b : string | bigint,
             result?: string
-        }): string {
+        }): SignalRef {
             let aOperand: string | undefined = undefined
             let bOperand: string | undefined = undefined
             let aAuto = io.a
@@ -199,16 +267,14 @@ let TSSV = () => {
                     resultSig.isSigned = (aSigned || bSigned)
                 }
                 if((aSigned || bSigned) && (!(resultSig.isSigned))) throw Error(`${io.result} must be signed`)
-                if(resultSig.width||0 < (aWidth + bWidth)) console.warn(`${io.result} truncted output`)
+                if((resultSig.width||0) < (aWidth + bWidth)) console.warn(`${io.result} truncted output`)
                 result =  io.result
             } else {
                 result = `prod_${aAuto}x${bAuto}`
                 this.signals[result] = {type:'wire', isSigned:(aSigned || bSigned), width:(aWidth + bWidth)}
             }
-            this.body +=
-`   assign ${result} = ${aOperand} * ${bOperand};
-`
-            return result
+            this.body +=`   assign ${result} = ${aOperand} * ${bOperand};\n`
+            return new SignalRef(result)
         }
 
         addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined) {
@@ -236,9 +302,99 @@ let TSSV = () => {
         }
 
         writeSystemVerilog(): string {
+            // assemble parameters
+            let paramsArray: string[] = []
+            if(this.params) {
+                for (var key of Object.keys(this.params)) {
+                    let param = this.params[key]
+                    // console.log(`${key}: ${param} ${typeof param}`)
+                    if(typeof param === 'number') {
+                        paramsArray.push(`parameter ${key} = ${param.toString()}`) 
+                    }
+                }
+            }
+            let paramsString = ""
+            if(paramsArray.length > 0) {
+                paramsString = `    #(${paramsArray.join(',\n    ')})`
+            }
+
+            // construct IO definition
+            let IOArray: string[] = []
+            Object.keys(this.IOs).map((key) => {
+                let rangeString = ""
+                let signString = (this.IOs[key].isSigned) ? " signed" : ""
+                if((this.IOs[key].width || 0) > 1) {
+                    rangeString = `[${Number(this.IOs[key].width)-1}:0]`
+                }
+                IOArray.push(`${this.IOs[key].type}${signString} ${rangeString} ${key}`)
+            })
+            let IOString: string = `   ${IOArray.join(',\n   ')}`
+
+            // construct signal list
+            let signalArray: string[] = []
+            Object.keys(this.signals).map((key) => {
+                let rangeString = ""
+                let signString = (this.signals[key].isSigned) ? " signed" : ""
+                if((this.signals[key].width || 0) > 1) {
+                    rangeString = `[${Number(this.signals[key].width) - 1}:0]`
+                }
+                signalArray.push(`${this.signals[key].type}${signString} ${rangeString} ${key}`)
+            })
+            let signalString: string = `   ${signalArray.join(';\n   ')}`
+
+            for(var sensitivity in this.registerBlocks) {
+                for(var resetCondition in this.registerBlocks[sensitivity]) {
+                    for(var enable in this.registerBlocks[sensitivity][resetCondition]) {
+                        const regs = this.registerBlocks[sensitivity][resetCondition][enable]
+                        let resetString = "   "                        
+                        if(resetCondition != "#NONE#") {
+                            let resetAssignments: string[] = []
+                            Object.keys(regs).map((key) => {
+                                const reg = regs[key]
+                                console.log(reg)
+                                resetAssignments.push(`           ${key} <= ${reg.resetVal||0};`)
+                            })
+                            resetString =
+`     if(${resetCondition})
+        begin
+${resetAssignments.join('\n')}
+        end
+      else `      
+                        }                        
+
+                        let enableString = (enable == "#NONE#") ? "" : `if(${enable})`
+
+                        let functionalAssigments : string[] = []
+                        Object.keys(regs).map((key) => {
+                            const reg = regs[key]
+                            console.log(reg)
+                            functionalAssigments.push(`           ${key} <= ${reg.d};`)
+                        })
+
+
+                        this.body +=
+`
+   always ${sensitivity}
+${resetString}${enableString}
+        begin
+${functionalAssigments.join('\n')}
+        end
+`
+
+                    }
+                }
+            }
+
             let verilog: string = 
 `
-module ${this.name} ()
+module ${this.name} 
+${paramsString}
+
+   (
+${IOString}
+   )
+
+${signalString};
 
 ${this.body}
 
@@ -250,9 +406,9 @@ endmodule
         protected body: string
         protected registerBlocks: {
             [sensitivity:string] : {
-                [resetStyle:string] : {
+                [resetCondition:string] : {
                     [enable:string] : {
-                        [q:string] : string
+                        [q:string] : {d: string, resetVal?: bigint}
                     }
                 }
             }
@@ -267,7 +423,7 @@ endmodule
         rShift?:    IntRange<0,32>
     }
 
-    class FIR extends module {
+    class FIR extends Module {
         declare params: FIR_Parameters
         constructor(params: FIR_Parameters) {            
             super({
@@ -290,25 +446,24 @@ endmodule
             }
             
             // constructor logic
-            let nextTapIn = "data_in"
-            let products: string[] = []
+            let nextTapIn:SignalRef = new SignalRef("data_in")
+            let products: SignalRef[] = []
             let coeffSum = 0;
             for(var i = 0; i < (this.params.numTaps||0); i++) {
                 // construct tap delay line
-                const thisTap = `tap_${i}`
-                this.addSignal(thisTap, {type:'reg', width:this.params.inWidth})
-                this.addRegister({d:nextTapIn, clk:"clk", reset:"rst_b", en:"en"})
+                const thisTap = this.addSignal(`tap_${i}`, {type:'reg', width:this.params.inWidth, isSigned: true})
+                this.addRegister({d:nextTapIn.toString(), clk:"clk", reset:"rst_b", en:"en"})
 
                 // construct tap moultipliers
-                products.push(this.addMultiplier({a:thisTap, b:this.params.coefficients[i]}))
+                products.push(this.addMultiplier({a:thisTap.toString(), b:this.params.coefficients[i]}))
                 coeffSum += Math.abs(Number(this.params.coefficients[i]))
 
                 nextTapIn = thisTap
             }
 
             // construct final vector sum
-            const sumWidth = params.inWidth||0 + this.bitWidth(coeffSum)
-            this.signals.sum = { type: 'reg', width: sumWidth,  isSigned: true }
+            const sumWidth = (this.params.inWidth||0) + this.bitWidth(coeffSum)
+            this.addSignal('sum', { type: 'reg', width: sumWidth,  isSigned: true })
             this.addRegister({
                 d: () => { return `${products.join(' + ')}`},
                 clk: "clk",
@@ -316,6 +471,20 @@ endmodule
                 en: "en",
                 q: "sum"
             })
+
+            // round and saturate to final output
+            this.addSignal('rounded',{ type: 'wire', width: sumWidth - (this.params.rShift||0) + 1,  isSigned: true })
+            this.addRound({in:"sum", out:"rounded", rShift:this.params.rShift||1})
+            this.addSignal('saturated',{ type: 'wire', width: this.params.outWidth,  isSigned: true })
+            this.addSaturate({in:"sum", out:"saturated"})
+            this.addRegister({
+                d: "saturated",
+                clk: "clk",
+                reset: "rst_b",
+                en: "en",
+                q: "data_out"
+            })
+
         }
     }
 
