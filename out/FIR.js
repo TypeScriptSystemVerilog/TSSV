@@ -21,7 +21,7 @@ class FIR extends TSSV_1.Module {
             data_in: { type: 'input', width: this.params.inWidth, isSigned: true },
             data_out: { type: 'output', width: this.params.outWidth, isSigned: true }
         };
-        // constructor logic
+        // construct logic
         let nextTapIn = new TSSV_1.Sig("data_in");
         let products = [];
         let coeffSum = 0;

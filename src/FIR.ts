@@ -33,7 +33,7 @@ export class FIR extends Module {
             data_out: { type: 'output', width: this.params.outWidth, isSigned: true }            
         }
         
-        // constructor logic
+        // construct logic
         let nextTapIn:Sig = new Sig("data_in")
         let products: Sig[] = []
         let coeffSum = 0;
