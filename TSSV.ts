@@ -25,16 +25,28 @@ let TSSV = () => {
 
     interface IOSignals {[name: string] : IOSignal}
 
-    class SignalRef  {
+    class Sig  {
         constructor(name: string) {
            this.name = name
-           this.type = 'SignalRef' 
+           this.type = 'Sig' 
         }
         toString = ():string => {
             return this.name
         }
         protected name: string
-        protected type: 'SignalRef'
+        protected type: 'Sig'
+    }
+
+    class Expr  {
+        constructor(name: string) {
+           this.name = name
+           this.type = 'Expr' 
+        }
+        toString = ():string => {
+            return this.name
+        }
+        protected name: string
+        protected type: 'Expr'
     }
 
     interface Signal extends baseSignal {
@@ -78,9 +90,24 @@ let TSSV = () => {
             this.body = body
         }
 
-        addSignal(name: string, signal: Signal):SignalRef {
+        findSignal(sig:Sig|string, throwOnFalse: boolean = false, caller:any = null): Signal | IOSignal {
+            const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()]
+            if(!thisSig && throwOnFalse) {
+                let errString = ""
+                if(typeof caller === 'function') {
+                    errString = `${sig.toString()} signal not found in ${caller.name}()`
+                } else {
+                    errString = `${caller.toString()}: ${sig.toString()} signal not found`
+                }
+                throw Error(errString)
+            }
+            return thisSig
+        }
+
+        addSignal(name: string, signal: Signal):Sig {
+            if(this.findSignal(name)) throw Error(`${name} signal already exists`)
             this.signals[name] = signal
-            return new SignalRef(name)
+            return new Sig(name)
         }
 
         addRegister(io: {
@@ -90,7 +117,7 @@ let TSSV = () => {
             resetVal?: bigint,
             en?: string | exprFunc,
             q?: string
-        }): SignalRef {
+        }): Sig {
             let qName: string | undefined = io.q
             if(typeof io.d === 'string') {
                 const dSig = this.IOs[io.d] || this.signals[io.d]
@@ -126,13 +153,13 @@ let TSSV = () => {
                 throw Error(`addRegister(${JSON.stringify(io)}) auto q naming only allowed when d is a simple signal, not an expression`)
             }
             const d = (typeof io.d === 'string') ? io.d : io.d()
-            const clkSig = this.IOs[io.clk] || this.signals[io.clk]
-            if(!clkSig || !clkSig.isClock) throw Error('${io.clk} is not a clock signal')
+            const clkSig = this.findSignal(io.clk, true, this.addRegister)
+            if(!clkSig.isClock) throw Error('${io.clk} is not a clock signal')
             let resetSensitivity = '' 
             let resetCondition = '#NONE#'
             if(io.reset) {
-                const rstSig = this.IOs[io.reset] || this.signals[io.reset]
-                if(!rstSig || !rstSig.isReset) throw Error(`${io.reset} is not a reset signal`)
+                const rstSig = this.findSignal(io.reset, true, this.addRegister)
+                if(!rstSig.isReset) throw Error(`${io.reset} is not a reset signal`)
                 switch(rstSig.isReset) {
                     case 'highasync' :
                         resetSensitivity = ` or posedge ${io.reset}`
@@ -168,7 +195,7 @@ let TSSV = () => {
                 this.registerBlocks[sensitivityList][resetCondition][enableExpr] = {}
             }
             this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName] = {d: d, resetVal: io.resetVal}
-            return new SignalRef(qName)
+            return new Sig(qName)
         }
 
         bitWidth(a: number | bigint, isSigned: boolean = false) : number {
@@ -179,12 +206,10 @@ let TSSV = () => {
             in: string,
             out: string,
             rShift: string | number
-        }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp'): SignalRef {
+        }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp'): Sig {
             if(roundMode !== 'roundUp') throw Error(`FIXME: ${roundMode} not implemented yet`)
-            const inSig = this.signals[io.in] || this.IOs[io.in]
-            if(!inSig) throw Error(`${io.in} signal not found`)
-            const outSig = this.signals[io.out] || this.IOs[io.out]
-            if(!outSig) throw Error(`${io.out} signal not found`)
+            const inSig = this.findSignal(io.in, true, this.addRound)
+            const outSig = this.findSignal(io.out, true, this.addRound)
             let rShiftString = io.rShift.toString()
             if(typeof io.rShift === 'string') {
                 const rShiftSig = this.signals[io.rShift] || this.IOs[io.rShift]
@@ -193,19 +218,17 @@ let TSSV = () => {
             }
             if(inSig.isSigned != outSig.isSigned) throw Error(`sign mode must match ${io.in}, ${io.out}`)
             this.body += `   assign ${io.out} = (${io.in} + (1'd1<<(${rShiftString }-1)))>>>${rShiftString};\n`
-            return new SignalRef(io.out)
+            return new Sig(io.out)
         }
 
 
         addSaturate(io: {
             in: string,
             out: string
-        }, satMode: 'simple' | 'balanced' | 'none' = 'simple'): SignalRef {
+        }, satMode: 'simple' | 'balanced' | 'none' = 'simple'): Sig {
             if(satMode !== 'simple') throw Error(`FIXME: ${satMode} not implemented yet`)
-            const inSig = this.signals[io.in] || this.IOs[io.in]
-            if(!inSig) throw Error(`${io.in} signal not found`)
-            const outSig = this.signals[io.out] || this.IOs[io.out]
-            if(!outSig) throw Error(`${io.out} signal not found`)
+            const inSig = this.findSignal(io.in, true, this.addSaturate)
+            const outSig = this.findSignal(io.out, true, this.addSaturate)
             if(inSig.isSigned != outSig.isSigned) throw Error(`sign mode must match ${io.in}, ${io.out}`)
             if(inSig.isSigned) {
                 const sat = 1<<((outSig.width||1) - 1)
@@ -222,14 +245,14 @@ let TSSV = () => {
 `   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} : ${io.in});
 `
             }
-            return new SignalRef(io.out)
+            return new Sig(io.out)
         }
 
         addMultiplier(io : {
             a : string | bigint,
             b : string | bigint,
             result?: string
-        }): SignalRef {
+        }): Sig {
             let aOperand: string | undefined = undefined
             let bOperand: string | undefined = undefined
             let aAuto = io.a
@@ -277,20 +300,20 @@ let TSSV = () => {
                 this.signals[result] = {type:'wire', isSigned:(aSigned || bSigned), width:(aWidth + bWidth)}
             }
             this.body +=`   assign ${result} = ${aOperand} * ${bOperand};\n`
-            return new SignalRef(result)
+            return new Sig(result)
         }
 
-        addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): SignalRef {
+        addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): Sig {
             const minWidth = this.bitWidth(value, isSigned)
             const resolvedWidth = (width === undefined) ?  minWidth : width
             if(resolvedWidth < minWidth) throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`)
             this.signals[name] = {type:'const', value: value, isSigned: isSigned, width: resolvedWidth}
-            return new SignalRef(name)
+            return new Sig(name)
         }
 
-        addConstSignals(name: string, values: Array<bigint>, isSigned: boolean = false, width: number | undefined = undefined) : Array<SignalRef> {
+        addConstSignals(name: string, values: Array<bigint>, isSigned: boolean = false, width: number | undefined = undefined) : Array<Sig> {
             let signalNames = [...Array(values.length).keys()].map((p:number)=>{ return `${name}_${p}`})
-            let retVal : Array<SignalRef> = []
+            let retVal : Array<Sig> = []
             signalNames.forEach((p,i) => {
                 retVal.push(this.addConstSignal(p, values[i], isSigned || (values[i] < 0), width))
             })
@@ -357,7 +380,7 @@ let TSSV = () => {
                             Object.keys(regs).map((key) => {
                                 const reg = regs[key]
                                 console.log(reg)
-                                resetAssignments.push(`           ${key} <= ${reg.resetVal||0};`)
+                                resetAssignments.push(`           ${key} <= 'd${reg.resetVal||0};`)
                             })
                             resetString =
 `     if(${resetCondition})
@@ -451,8 +474,8 @@ endmodule
             }
             
             // constructor logic
-            let nextTapIn:SignalRef = new SignalRef("data_in")
-            let products: SignalRef[] = []
+            let nextTapIn:Sig = new Sig("data_in")
+            let products: Sig[] = []
             let coeffSum = 0;
             for(var i = 0; i < (this.params.numTaps||0); i++) {
                 // construct tap delay line
