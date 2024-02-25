@@ -12,6 +12,11 @@ hardware design engineer familar with SystemVerilog.
 
 Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
 
+For MacBook M1/M2/M3 NodeJS installation: see link
+https://dev.to/themodernpk/install-node-on-macos-m1-274d
+
+
+
 ```bash
 $ git clone https://github.com/avonancken/TSSV.git
 $ cd TSSV
