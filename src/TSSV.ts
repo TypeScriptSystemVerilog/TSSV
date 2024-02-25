@@ -1,5 +1,5 @@
-export default function TSSV() {
-    type IntRange<
+//export default function TSSV() {
+    export type IntRange<
     START extends number,
     END extends number,
     ARR extends unknown[] = [],
@@ -20,9 +20,9 @@ export default function TSSV() {
         type: 'input' | 'output' | 'inout' | 'output reg', 
     }
 
-    interface IOSignals {[name: string] : IOSignal}
+    export interface IOSignals {[name: string] : IOSignal}
 
-    class Sig  {
+    export class Sig  {
         constructor(name: string) {
            this.name = name
            this.type = 'Sig' 
@@ -34,7 +34,7 @@ export default function TSSV() {
         readonly type: 'Sig'
     }
 
-    class Expr  {
+    export class Expr  {
         constructor(name: string) {
            this.name = name
            this.type = 'Expr' 
@@ -54,7 +54,7 @@ export default function TSSV() {
     interface Signals {[name: string] : Signal}
 
     type ParameterValue = string | bigint | IntRange<number,number> | Array<bigint> 
-    interface Parameters { 
+    export interface TSSVParameters { 
         name?: string | undefined
         [name: string]: ParameterValue | undefined 
     }
@@ -75,14 +75,14 @@ export default function TSSV() {
         BITWISE_OR= '|'
     }
 
-    class Module {
+    export class Module {
 
         name: string
-        params: Parameters
+        params: TSSVParameters
         IOs : IOSignals
         signals: Signals
         
-        constructor(params: Parameters = {}, IOs: IOSignals = {}, signals = {}, body= "") {
+        constructor(params: TSSVParameters = {}, IOs: IOSignals = {}, signals = {}, body= "") {
             this.params = params
             if(typeof params.name === 'string') {
                 this.name = params.name
@@ -390,7 +390,7 @@ export default function TSSV() {
         }
 
         writeSystemVerilog(): string {
-            // assemble parameters
+            // assemble TSSVParameters
             let paramsArray: string[] = []
             if(this.params) {
                 //FIXME - need separate SV Verilog parameter container
@@ -442,7 +442,7 @@ export default function TSSV() {
                             let resetAssignments: string[] = []
                             Object.keys(regs).map((key) => {
                                 const reg = regs[key]
-                                console.log(reg)
+                                //console.log(reg)
                                 resetAssignments.push(`           ${key} <= 'd${reg.resetVal||0};`)
                             })
                             resetString =
@@ -458,7 +458,7 @@ ${resetAssignments.join('\n')}
                         let functionalAssigments : string[] = []
                         Object.keys(regs).map((key) => {
                             const reg = regs[key]
-                            console.log(reg)
+                            //console.log(reg)
                             functionalAssigments.push(`           ${key} <= ${reg.d};`)
                         })
 
@@ -504,88 +504,8 @@ endmodule
         } = {}
     }
 
-    interface FIR_Parameters extends Parameters {
-        coefficients: Array<bigint>
-        numTaps?:   IntRange<1,100>
-        inWidth?:   IntRange<1,32> 
-        outWidth?:  IntRange<1,32> 
-        rShift?:    IntRange<0,32>
-    }
-
-    class FIR extends Module {
-        declare params: FIR_Parameters
-        constructor(params: FIR_Parameters) {            
-            super({
-                //default parameter values
-                name: params.name,
-                coefficients: params.coefficients,
-                numTaps: params.numTaps || 10,
-                inWidth: params.inWidth || 8,
-                outWidth: params.outWidth || 9,
-                rShift: params.rShift || 2
-            })
-
-            // define IO
-            this.IOs = {
-                clk:      { type: 'input', isClock: 'posedge' },
-                rst_b:    { type: 'input', isReset: 'lowasync'},
-                en:       { type: 'input', },
-                data_in:  { type: 'input', width: this.params.inWidth, isSigned: true },
-                data_out: { type: 'output', width: this.params.outWidth, isSigned: true }            
-            }
-            
-            // constructor logic
-            let nextTapIn:Sig = new Sig("data_in")
-            let products: Sig[] = []
-            let coeffSum = 0;
-            for(var i = 0; i < (this.params.numTaps||0); i++) {
-                // construct tap delay line
-                const thisTap = this.addSignal(`tap_${i}`, {type:'reg', width:this.params.inWidth, isSigned: true})
-                this.addRegister({d:nextTapIn.toString(), clk:'clk', reset:'rst_b', en:'en'})
-
-                // construct tap moultipliers
-                products.push(this.addMultiplier({a:thisTap.toString(), b:this.params.coefficients[i]}))
-                coeffSum += Math.abs(Number(this.params.coefficients[i]))
-
-                nextTapIn = thisTap
-            }
-
-            // construct final vector sum
-            const sumWidth = (this.params.inWidth||0) + this.bitWidth(coeffSum)
-            this.addSignal('sum', { type: 'reg', width: sumWidth,  isSigned: true })
-            this.addRegister({
-                d: new Expr(`${products.join(' + ')}`),
-                clk: 'clk',
-                reset: 'rst_b',
-                en: 'en',
-                q: 'sum'
-            })
-
-            // round and saturate to final output
-            this.addSignal('rounded',{ type: 'wire', width: sumWidth - (this.params.rShift||0) + 1,  isSigned: true })
-            this.addRound({in: 'sum', out:'rounded', rShift:this.params.rShift||1})
-            this.addSignal('saturated',{ type: 'wire', width: this.params.outWidth,  isSigned: true })
-            this.addSaturate({in:'sum', out:'saturated'})
-            this.addRegister({
-                d: 'saturated',
-                clk: 'clk',
-                reset: 'rst_b',
-                en: 'en',
-                q: 'data_out'
-            })
-
-        }
-    }
-
-    let myFir = new FIR({name: 'myFIR', numTaps: 4, coefficients: [1n, 2n, 3n, 4n]})
-    myFir.debug()
-    console.log(myFir.writeSystemVerilog())
-
-    let myFir2 = new FIR({numTaps: 5, coefficients: [2n, -2n, 4n, -4n, 8n]})
-    myFir2.debug()
-    console.log(myFir2.writeSystemVerilog())
-    
-}
+    export default {Module, Sig, Expr}
+//}
 
 //TSSV()
 
