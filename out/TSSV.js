@@ -330,13 +330,13 @@ class Module {
         if (this.params) {
             //FIXME - need separate SV Verilog parameter container
             /*
-            for (var key of Object.keys(this.params)) {
-                let param = this.params[key]
-                // console.log(`${key}: ${param} ${typeof param}`)
-                if(typeof param === 'number') {
-                    paramsArray.push(`parameter ${key} = ${param.toString()}`)
-                }
-            }
+              for (var key of Object.keys(this.params)) {
+              let param = this.params[key]
+              // console.log(`${key}: ${param} ${typeof param}`)
+              if(typeof param === 'number') {
+              paramsArray.push(`parameter ${key} = ${param.toString()}`)
+              }
+              }
             */
         }
         let paramsString = "";
@@ -419,5 +419,3 @@ endmodule
 }
 exports.Module = Module;
 exports.default = { Module, Sig, Expr };
-//}
-//TSSV()
