@@ -1,6 +1,6 @@
 # TSSV  (TypeScript SystemVerilog)
 
-**DISCLAIMER:  This work is currently a demonstration and  not read for production HDL development yet!**
+**DISCLAIMER:  This work is currently a demonstration and  not ready for production HDL development yet!**
 
 TSSV is a meta-HDL language written in TypeScript for creating highly parameterized and configurable synthesizable
 SystemVerilog components improving productivity of hardware designers. It is intended to serve a similar role as
