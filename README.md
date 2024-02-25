@@ -339,5 +339,12 @@ endmodule
 
 ```
 
-
-```
+### Next Steps
+- implement addAssign()
+- implement addCombinationalAlways()
+- implement addSeqentialAlways()
+- implement addMux
+- implement submodule instantiation and binding
+- implement standard interfaces and signal bundles
+- implement Control Register generator
+- Decide approach to Bus fabrics and standardized interconnect
