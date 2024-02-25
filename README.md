@@ -8,7 +8,7 @@ Chisel(Scala) but has a focus on trying to have a design paradigm and syntax tha
 hardware design engineer familar with SystemVerilog.
 
 
-## Run the demo  (FIR Module)
+### Run the demo  (FIR Module)
 
 Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
 
@@ -20,10 +20,108 @@ $ npx tsc
 $ node out/test_FIR.js
 ```
 
-## Output
-### Example #1
+### The Implementation of the example simple FIR Filter module
+
+```typescript
+import {Module, TSSVParameters, IntRange, Sig, Expr} from './TSSV'
+
+// define the parameters of the FIR module
+export interface FIR_Parameters extends TSSVParameters {
+    coefficients: Array<bigint>
+    numTaps?:   IntRange<1,100>
+    inWidth?:   IntRange<1,32> 
+    outWidth?:  IntRange<1,32> 
+    rShift?:    IntRange<0,32>
+}
+
+export class FIR extends Module {
+    declare params: FIR_Parameters
+    constructor(params: FIR_Parameters) {            
+        super({
+            // define the default parameter values
+            name: params.name,
+            coefficients: params.coefficients,
+            numTaps: params.numTaps || 10,
+            inWidth: params.inWidth || 8,
+            outWidth: params.outWidth || 9,
+            rShift: params.rShift || 2
+        })
+
+        // define IO signals
+        this.IOs = {
+            clk:      { type: 'input', isClock: 'posedge' },
+            rst_b:    { type: 'input', isReset: 'lowasync'},
+            en:       { type: 'input', },
+            data_in:  { type: 'input', width: this.params.inWidth, isSigned: true },
+            data_out: { type: 'output', width: this.params.outWidth, isSigned: true }            
+        }
+        
+        // constructor logic
+        let nextTapIn:Sig = new Sig("data_in")
+        let products: Sig[] = []
+        let coeffSum = 0;
+        for(var i = 0; i < (this.params.numTaps||0); i++) {
+            // construct tap delay line
+            const thisTap = this.addSignal(`tap_${i}`, {type:'reg', width:this.params.inWidth, isSigned: true})
+            this.addRegister({d:nextTapIn, clk:'clk', reset:'rst_b', en:'en'})
+
+            // construct tap multipliers
+            products.push(this.addMultiplier({a:thisTap, b:this.params.coefficients[i]}))
+            coeffSum += Math.abs(Number(this.params.coefficients[i]))
+
+            nextTapIn = thisTap
+        }
+
+        // construct final vector sum
+        const sumWidth = (this.params.inWidth||0) + this.bitWidth(coeffSum)
+        this.addSignal('sum', { type: 'reg', width: sumWidth,  isSigned: true })
+        this.addRegister({
+            d: new Expr(`${products.join(' + ')}`),
+            clk: 'clk',
+            reset: 'rst_b',
+            en: 'en',
+            q: 'sum'
+        })
+
+        // round and saturate to final output
+        this.addSignal('rounded',{ type: 'wire', width: sumWidth - (this.params.rShift||0) + 1,  isSigned: true })
+        this.addRound({in: 'sum', out:'rounded', rShift:this.params.rShift||1})
+        this.addSignal('saturated',{ type: 'wire', width: this.params.outWidth,  isSigned: true })
+        this.addSaturate({in:'sum', out:'saturated'})
+        this.addRegister({
+            d: 'saturated',
+            clk: 'clk',
+            reset: 'rst_b',
+            en: 'en',
+            q: 'data_out'
+        })
+
+    }
+}
+```
+
+### The test program to use the example FIR filter module to generate 3 example SystemVerilog FIR filter modules
+
+```typescript
+import {FIR, FIR_Parameters} from './FIR'
+
+let myFir = new FIR({name: 'myFIR', numTaps: 4, coefficients: [1n, 2n, 3n, 4n]})
+console.log('Example #1\n\n')
+console.log(myFir.writeSystemVerilog())
+
+let myFir2 = new FIR({numTaps: 5, coefficients: [2n, -2n, 4n, -4n, 8n]})
+console.log('\n\n\nExample #2\n\n')
+console.log(myFir2.writeSystemVerilog())
+
+let myFir3 = new FIR({name: 'myFIR3', numTaps: 10, inWidth: 6, outWidth: 10, coefficients: [1n,-2n,3n,-4n,5n,-6n,7n,-8n,9n,-10n], rShift: 3})
+console.log('\n\n\nExample #3\n\n')
+console.log(myFir3.writeSystemVerilog())
+```
+
+### The output of the test program  (3 SystemVerilog FIR filter modules)
+#### Example #1
 ```verilog
-odule myFIR 
+module myFIR 
    (
    input  clk,
    input  rst_b,
@@ -80,7 +178,7 @@ odule myFIR
 endmodule
 ```
 
-### Example #2
+#### Example #2
 ```verilog
 module FIR_1pmlbrs_5_8_9_2 
    (
@@ -145,7 +243,7 @@ module FIR_1pmlbrs_5_8_9_2
 endmodule
 ```
 
-### Example #3
+#### Example #3
 ```verilog
 module myFIR3 
    (
