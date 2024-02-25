@@ -7,15 +7,12 @@ let TSSV = () => {
     ? ACC | START | END
     : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
-    //type OptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
-    //type Defaults<T> = Required<Pick<T, OptionalKeys<T>>>
-
     interface baseSignal {
-        width?: IntRange<0,512> | number
+        width?: number
         isClock?: 'posedge' | 'negedge'
         isReset?: 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
         isSigned?: boolean
-        isVector?: IntRange<0,512> | number
+        isVector?: number
         description?: string
     }
 
