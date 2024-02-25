@@ -90,7 +90,7 @@ let TSSV = () => {
             resetVal?: bigint,
             en?: string | exprFunc,
             q?: string
-        }) {
+        }): SignalRef {
             let qName: string | undefined = io.q
             if(typeof io.d === 'string') {
                 const dSig = this.IOs[io.d] || this.signals[io.d]
@@ -156,8 +156,8 @@ let TSSV = () => {
             if(io.en !== undefined) {
                 enableExpr = (typeof io.en === 'string') ? io.en : io.en()
             }
-            console.log(`d: ${d}`)
-            console.log(`sensitivity: ${sensitivityList}`)
+            //console.log(`d: ${d}`)
+            //console.log(`sensitivity: ${sensitivityList}`)
             if(!this.registerBlocks[sensitivityList]) {
                 this.registerBlocks[sensitivityList] = {}
             }
@@ -168,6 +168,7 @@ let TSSV = () => {
                 this.registerBlocks[sensitivityList][resetCondition][enableExpr] = {}
             }
             this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName] = {d: d, resetVal: io.resetVal}
+            return new SignalRef(qName)
         }
 
         bitWidth(a: number | bigint, isSigned: boolean = false) : number {
@@ -178,7 +179,7 @@ let TSSV = () => {
             in: string,
             out: string,
             rShift: string | number
-        }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp') {
+        }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp'): SignalRef {
             if(roundMode !== 'roundUp') throw Error(`FIXME: ${roundMode} not implemented yet`)
             const inSig = this.signals[io.in] || this.IOs[io.in]
             if(!inSig) throw Error(`${io.in} signal not found`)
@@ -192,13 +193,14 @@ let TSSV = () => {
             }
             if(inSig.isSigned != outSig.isSigned) throw Error(`sign mode must match ${io.in}, ${io.out}`)
             this.body += `   assign ${io.out} = (${io.in} + (1'd1<<(${rShiftString }-1)))>>>${rShiftString};\n`
+            return new SignalRef(io.out)
         }
 
 
         addSaturate(io: {
             in: string,
             out: string
-        }, satMode: 'simple' | 'balanced' | 'none' = 'simple') {
+        }, satMode: 'simple' | 'balanced' | 'none' = 'simple'): SignalRef {
             if(satMode !== 'simple') throw Error(`FIXME: ${satMode} not implemented yet`)
             const inSig = this.signals[io.in] || this.IOs[io.in]
             if(!inSig) throw Error(`${io.in} signal not found`)
@@ -220,6 +222,7 @@ let TSSV = () => {
 `   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} : ${io.in});
 `
             }
+            return new SignalRef(io.out)
         }
 
         addMultiplier(io : {
@@ -277,19 +280,21 @@ let TSSV = () => {
             return new SignalRef(result)
         }
 
-        addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined) {
+        addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): SignalRef {
             const minWidth = this.bitWidth(value, isSigned)
             const resolvedWidth = (width === undefined) ?  minWidth : width
             if(resolvedWidth < minWidth) throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`)
             this.signals[name] = {type:'const', value: value, isSigned: isSigned, width: resolvedWidth}
+            return new SignalRef(name)
         }
 
-        addConstSignals(name: string, values: Array<bigint>, isSigned: boolean = false, width: number | undefined = undefined) : Array<string> {
+        addConstSignals(name: string, values: Array<bigint>, isSigned: boolean = false, width: number | undefined = undefined) : Array<SignalRef> {
             let signalNames = [...Array(values.length).keys()].map((p:number)=>{ return `${name}_${p}`})
+            let retVal : Array<SignalRef> = []
             signalNames.forEach((p,i) => {
-                this.addConstSignal(p, values[i], isSigned || (values[i] < 0), width)
+                retVal.push(this.addConstSignal(p, values[i], isSigned || (values[i] < 0), width))
             })
-            return signalNames
+            return retVal
         }
 
         debug() {
