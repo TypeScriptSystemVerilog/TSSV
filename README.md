@@ -12,6 +12,18 @@ hardware design engineer familar with SystemVerilog.
 
 Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
 
+For MacBook M1/M2/M3 NodeJS installation: see link
+https://dev.to/themodernpk/install-node-on-macos-m1-274d
+
+For Ubuntu 22.04 NodeJS installation:
+```bash
+$ curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
+$ sudo bash nodesource_setup.sh
+$ sudo apt install nodejs
+$ node -v
+```
+
+
 ```bash
 $ git clone https://github.com/avonancken/TSSV.git
 $ cd TSSV
