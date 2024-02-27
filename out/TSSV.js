@@ -316,6 +316,58 @@ class Module {
         });
         return retVal;
     }
+    addAssign(io) {
+        const outSig = this.findSignal(io.out, true, this.addAssign);
+        if (!(outSig.type === 'wire' || outSig.type === 'output')) {
+            throw Error(`${io.out.toString()} signal must be either wire or output in assign statement`);
+        }
+        this.body += `  assign ${io.out.toString()} = ${io.in.toString()}`;
+        if (typeof io.out === 'string') {
+            return new Sig(io.out);
+        }
+        return io.out;
+    }
+    addMux(io) {
+        const selWidth = Math.ceil(Math.log2(io.in.length));
+        let selString = io.sel.toString();
+        if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
+            const selSig = this.findSignal(io.sel, true, this.addMux);
+            if (selSig.width || 1 < selWidth)
+                throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select`);
+            if (selSig.width || 1 > selWidth) {
+                selString = `${io.sel.toString()}[${selWidth - 1}:0]`;
+            }
+        }
+        const outSig = this.findSignal(io.out, true, this.addMux);
+        switch (outSig.type) {
+            case 'wire':
+                outSig.type = 'reg';
+                break;
+            case 'output':
+                outSig.type = 'output reg';
+                break;
+            case 'reg':
+            case 'output reg':
+                break;
+            default:
+                throw Error(`${io.out} is unsupported signal type ${outSig.type}`);
+        }
+        let caseAssignments = '';
+        for (var i in io.in) {
+            const rhExpr = `${io.in[i].toString()}`;
+            caseAssignments += `     case ${selWidth}'d{i}: ${io.out} = ${rhExpr}`;
+        }
+        this.body +=
+            `  always_comb
+    switch(${selString})
+${caseAssignments}
+      default: {${outSig.width}{1'bx}}
+`;
+        if (typeof io.out === 'string') {
+            return new Sig(io.out);
+        }
+        return io.out;
+    }
     debug() {
         console.log(this.name);
         console.log(this.params);
