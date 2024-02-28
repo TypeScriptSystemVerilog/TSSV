@@ -73,12 +73,18 @@ enum BinaryOp  {
     BITWISE_OR= '|'
 }
 
-export class Module {
 
+export class Module {
+    
     name: string
     params: TSSVParameters
     IOs : IOSignals
     signals: Signals
+    submodules: {[key:string] : {
+        module: Module
+        bindings: {[port:string]: string|Sig}
+    }}
+
     
     constructor(params: TSSVParameters = {}, IOs: IOSignals = {}, signals = {}, body= "") {
         this.params = params
@@ -97,7 +103,51 @@ export class Module {
         this.IOs = IOs
         this.signals = signals
         this.body = body
+        this.submodules = {}
     }
+
+    bindingRules = {
+        'input' : ['input', 'wire', 'reg', 'const'],
+        'output' : ['output','wire'],
+        'output reg' : ['output','wire'],
+        'inout' : ['inout', 'wire']
+    }
+
+    addSubmodule(
+        instanceName:string, 
+        submodule:Module, 
+        bindings: {[port:string]: string|Sig}, 
+        autoBind:boolean=true):Module {
+        if(this.submodules.instanceName !== undefined) throw Error(`submodule with instance name ${instanceName} already exists`)
+        let thisModule = {
+            module: submodule,
+            bindings: bindings
+        }
+        this.submodules[instanceName] = thisModule
+        if(autoBind) {
+            for(var port in submodule.IOs) {
+                if(!thisModule.bindings[port]) {
+                    if(this.IOs[port]) {
+                        thisModule.bindings[port] = port
+                    } else if(this.signals[port]) {
+                        thisModule.bindings[port] = port
+                    } else if(submodule.IOs[port].type === 'input' || submodule.IOs[port].type === 'input'){
+                        throw  Error(`unbound input on ${submodule.name}: ${port}`)
+                    }
+                }
+            }
+        }
+
+        for(var port in thisModule.bindings) {
+            const thisPort = submodule.IOs[port]
+            if(!thisPort) throw Error(`${port} not found on module ${submodule.name}`)
+            let thisSig = this.findSignal(bindings[port], true, this.addSubmodule)            
+            if(!(this.bindingRules[thisPort.type].includes(thisSig.type))) throw Error(`illegal binding ${port}(${bindings[port]})`)
+        }
+        
+        return thisModule.module
+    }
+
 
     simpleHash(str: string): string {
         let hash = 0;
@@ -525,6 +575,22 @@ ${functionalAssigments.join('\n')}
 
                 }
             }
+        }
+
+
+        for(var moduleInstance in this.submodules) {
+            const thisSubmodule = this.submodules[moduleInstance]
+            let bindingsArray:Array<string> = []
+            for(var binding in thisSubmodule.bindings) {
+                bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding]})`)
+            }
+            this.body+=
+`
+    ${thisSubmodule.module.name} ${moduleInstance}
+      (
+${bindingsArray.join(',\n')}        
+      );
+`
         }
 
         let verilog: string = 
