@@ -382,7 +382,8 @@ export class Module {
                     resultSig.isSigned = (aSigned || bSigned)
                 }
                 if((aSigned || bSigned) && (!(resultSig.isSigned))) throw Error(`${io.result} must be signed`)
-                if((resultSig.width||0) < (aWidth + bWidth)) console.warn(`${io.result} truncted output`)
+                console.log()
+                if((resultSig.width||0) < nameMap[op].autoWidth(aWidth,bWidth)) console.warn(`${io.result} truncated output`)
                 result =  io.result
             } else {
                 result = `${nameMap[op].name}_${aAuto}x${bAuto}`
@@ -580,6 +581,11 @@ ${functionalAssigments.join('\n')}
 
         for(var moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance]
+            let printed : {[key:string]:boolean}= {}
+            if(!printed[thisSubmodule.module.name]) {
+                printed[thisSubmodule.module.name] = true
+                console.log(thisSubmodule.module.writeSystemVerilog())
+            }
             let bindingsArray:Array<string> = []
             for(var binding in thisSubmodule.bindings) {
                 bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding]})`)
