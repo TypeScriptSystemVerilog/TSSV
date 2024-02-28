@@ -407,7 +407,7 @@ export class Module {
         return this.addOperation(BinaryOp.ADD, io)
     }
 
-    addSubstractor(io: OperationIO):Sig {
+    addSubtractor(io: OperationIO):Sig {
         return this.addOperation(BinaryOp.SUBTRACT, io)
     }
 
