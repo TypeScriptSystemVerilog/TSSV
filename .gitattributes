@@ -1,0 +1,4 @@
+*.sv linguist-detectable
+*.svh linguist-detectable
+*.v linguist-detectable
+*.vh linguist-detectable
