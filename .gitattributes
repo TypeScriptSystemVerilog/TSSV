@@ -2,3 +2,4 @@
 *.svh linguist-detectable
 *.v linguist-detectable
 *.vh linguist-detectable
+out/** linguist-generated
