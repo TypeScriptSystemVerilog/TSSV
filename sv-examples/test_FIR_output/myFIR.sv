@@ -1,3 +1,5 @@
+
+/* verilator lint_off WIDTH */        
 module myFIR 
    (
    input  clk,
@@ -5,7 +7,7 @@ module myFIR
    input  en,
    input signed [7:0] data_in,
    output reg signed [8:0] data_out
-   )
+   );
 
    reg signed [7:0] tap_0;
    wire signed [8:0] prod_tap_0x1d1;
@@ -23,9 +25,9 @@ module myFIR
    assign prod_tap_1x2d2 = tap_1 * 2'd2;
    assign prod_tap_2x2d3 = tap_2 * 2'd3;
    assign prod_tap_3x3d4 = tap_3 * 3'd4;
-   assign rounded = (sum + (1'd1<<(2-1)))>>>2;
-   assign saturated = (sum > 9'sd255) ? 9'sd255 :
-                       ((sum < -9'sd256) ? -9'sd256 : sum);
+   assign rounded = 11'((sum + (12'd1<<(2-1)))>>>2);
+   assign saturated = (rounded > 11'sd255) ? 9'sd255 :
+                       ((rounded < -11'sd256) ? -9'sd256 : 9'(rounded));
 
    always @( posedge clk  or negedge rst_b )
      if(!rst_b)
@@ -43,10 +45,10 @@ module myFIR
            tap_1 <= tap_0;
            tap_2 <= tap_1;
            tap_3 <= tap_2;
-           sum <= prod_tap_0x1d1 + prod_tap_1x2d2 + prod_tap_2x2d3 + prod_tap_3x3d4;
+           sum <= 12'(prod_tap_0x1d1) + 12'(prod_tap_1x2d2) + 12'(prod_tap_2x2d3) + 12'(prod_tap_3x3d4);
            data_out <= saturated;
         end
 
 
 endmodule
-
+/* verilator lint_on WIDTH */        

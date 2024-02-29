@@ -36,9 +36,10 @@ class FIR extends TSSV_1.Module {
         }
         // construct final vector sum
         const sumWidth = (this.params.inWidth || 0) + this.bitWidth(coeffSum);
+        const productsExt = products.map((p) => `${sumWidth}'(${p})`);
         this.addSignal('sum', { type: 'reg', width: sumWidth, isSigned: true });
         this.addRegister({
-            d: new TSSV_1.Expr(`${products.join(' + ')}`),
+            d: new TSSV_1.Expr(`${productsExt.join(' + ')}`),
             clk: 'clk',
             reset: 'rst_b',
             en: 'en',
@@ -48,7 +49,7 @@ class FIR extends TSSV_1.Module {
         this.addSignal('rounded', { type: 'wire', width: sumWidth - (this.params.rShift || 0) + 1, isSigned: true });
         this.addRound({ in: 'sum', out: 'rounded', rShift: this.params.rShift || 1 });
         this.addSignal('saturated', { type: 'wire', width: this.params.outWidth, isSigned: true });
-        this.addSaturate({ in: 'sum', out: 'saturated' });
+        this.addSaturate({ in: 'rounded', out: 'saturated' });
         this.addRegister({
             d: 'saturated',
             clk: 'clk',

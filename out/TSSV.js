@@ -216,7 +216,7 @@ class Module {
         }
         if (inSig.isSigned != outSig.isSigned)
             throw Error(`sign mode must match ${io.in}, ${io.out}`);
-        this.body += `   assign ${io.out} = (${io.in} + (1'd1<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        this.body += `   assign ${io.out} = ${outSig.width}'((${io.in} + (${inSig.width}'d1<<(${rShiftString}-1)))>>>${rShiftString});\n`;
         if (typeof io.out === 'string') {
             return new Sig(io.out);
         }
@@ -231,18 +231,21 @@ class Module {
             throw Error(`sign mode must match ${io.in}, ${io.out}`);
         if (inSig.isSigned) {
             const sat = 1 << ((outSig.width || 1) - 1);
+            const maxSatStringIn = `${inSig.width}'sd${sat - 1}`;
+            const minSatStringIn = `-${inSig.width}'sd${sat}`;
             const maxSatString = `${outSig.width}'sd${sat - 1}`;
             const minSatString = `-${outSig.width}'sd${sat}`;
             this.body +=
-                `   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} :
-                       ((${io.in} < ${minSatString}) ? ${minSatString} : ${io.in});
+                `   assign ${io.out} = (${io.in} > ${maxSatStringIn}) ? ${maxSatString} :
+                       ((${io.in} < ${minSatStringIn}) ? ${minSatString} : ${outSig.width}'(${io.in}));
 `;
         }
         else {
             const sat = (1 << ((outSig.width || 1) - 1)) - 1;
+            const maxSatStringIn = `${outSig.width}'d${sat}`;
             const maxSatString = `${outSig.width}'d${sat}`;
             this.body +=
-                `   assign ${io.out} = (${io.in} > ${maxSatString}) ? ${maxSatString} : ${io.in});
+                `   assign ${io.out} = (${io.in} > ${maxSatStringIn}) ? ${maxSatString} : ${outSig.width}'(${io.in});
 `;
         }
         if (typeof io.out === 'string') {
@@ -400,7 +403,7 @@ class Module {
         }
         this.body +=
             `  always_comb
-    switch(${selString})
+    unique case(${selString})
 ${caseAssignments}
       default: {${outSig.width}{1'bx}}
 `;
@@ -515,16 +518,18 @@ ${bindingsArray.join(',\n')}
 `;
         }
         let verilog = `
+/* verilator lint_off WIDTH */        
 module ${this.name} ${paramsString}
    (
 ${IOString}
-   )
+   );
 
 ${signalString};
 
 ${this.body}
 
 endmodule
+/* verilator lint_on WIDTH */        
 `;
         return verilog;
     }
