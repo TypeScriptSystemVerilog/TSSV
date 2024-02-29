@@ -581,13 +581,13 @@ ${functionalAssigments.join('\n')}
             }
         }
 
-
+        let subModulesString = ""
         for(var moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance]
             let printed : {[key:string]:boolean}= {}
             if(!printed[thisSubmodule.module.name]) {
                 printed[thisSubmodule.module.name] = true
-                console.log(thisSubmodule.module.writeSystemVerilog())
+                subModulesString += thisSubmodule.module.writeSystemVerilog()
             }
             let bindingsArray:Array<string> = []
             for(var binding in thisSubmodule.bindings) {
@@ -604,6 +604,8 @@ ${bindingsArray.join(',\n')}
 
         let verilog: string = 
 	    `
+${subModulesString}
+        
 /* verilator lint_off WIDTH */        
 module ${this.name} ${paramsString}
    (

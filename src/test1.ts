@@ -1,4 +1,5 @@
 import {Module, TSSVParameters, IntRange, Sig, Expr} from './TSSV'
+import { writeFileSync } from 'fs';
 
 
 export interface Adder_Parameters extends TSSVParameters {
@@ -59,5 +60,9 @@ export class Adder3 extends Module {
 }
 
 
-let test = new Adder3({aWidth: 8, bWidth:8, cWidth:8})
-console.log(test.writeSystemVerilog())
+let test1 = new Adder3({aWidth: 8, bWidth:8, cWidth:8})
+try {
+  writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog());
+} catch (err) {
+  console.error(err);
+}

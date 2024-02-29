@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Adder3 = exports.Adder = void 0;
 const TSSV_1 = require("./TSSV");
+const fs_1 = require("fs");
 class Adder extends TSSV_1.Module {
     constructor(params) {
         super({
@@ -42,5 +43,10 @@ class Adder3 extends TSSV_1.Module {
     }
 }
 exports.Adder3 = Adder3;
-let test = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
-console.log(test.writeSystemVerilog());
+let test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
+try {
+    (0, fs_1.writeFileSync)('sv-examples/test1.sv', test1.writeSystemVerilog());
+}
+catch (err) {
+    console.error(err);
+}

@@ -1,4 +1,6 @@
 
+
+        
 /* verilator lint_off WIDTH */        
 module myFIR 
    (
