@@ -2,4 +2,3 @@
 *.svh linguist-detectable
 *.v linguist-detectable
 *.vh linguist-detectable
-examples -linguist-documentation
