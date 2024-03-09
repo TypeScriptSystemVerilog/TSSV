@@ -32,9 +32,8 @@ var BinaryOp;
 class Module {
     constructor(params = {}, IOs = {}, signals = {}, body = "") {
         this.bindingRules = {
-            'input': ['input', 'wire', 'reg', 'const'],
-            'output': ['output', 'wire'],
-            'output reg': ['output', 'wire'],
+            'input': ['input', 'wire', 'reg', 'const', 'logic'],
+            'output': ['output', 'wire', 'logic'],
             'inout': ['inout', 'wire']
         };
         this.registerBlocks = {};
@@ -74,7 +73,7 @@ class Module {
                     else if (this.signals[port]) {
                         thisModule.bindings[port] = port;
                     }
-                    else if (submodule.IOs[port].type === 'input' || submodule.IOs[port].type === 'input') {
+                    else if (submodule.IOs[port].direction === 'input') {
                         throw Error(`unbound input on ${submodule.name}: ${port}`);
                     }
                 }
@@ -85,7 +84,7 @@ class Module {
             if (!thisPort)
                 throw Error(`${port} not found on module ${submodule.name}`);
             let thisSig = this.findSignal(bindings[port], true, this.addSubmodule);
-            if (!(this.bindingRules[thisPort.type].includes(thisSig.type)))
+            if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
                 throw Error(`illegal binding ${port}(${bindings[port]})`);
         }
         return thisModule.module;
@@ -127,20 +126,18 @@ class Module {
                 qName = `${io.d}_q`;
                 if (this.signals[qName] || this.IOs[qName])
                     throw Error(`${qName} signal already exists`);
-                this.signals[qName] = { ...dSig, type: 'reg' };
+                this.signals[qName] = { ...dSig, type: 'logic' };
             }
         }
         if (io.q) {
             let qSig = this.findSignal(io.q, true, this.addRegister);
             switch (qSig.type) {
+                case undefined:
                 case 'wire':
-                    qSig.type = 'reg';
-                    break;
-                case 'output':
-                    qSig.type = 'output reg';
+                    qSig.type = 'logic';
                     break;
                 case 'reg':
-                case 'output reg':
+                case 'logic':
                     break;
                 default:
                     throw Error(`${io.q} is unsupported signal type ${qSig.type}`);
@@ -324,7 +321,7 @@ class Module {
         else {
             result = `${nameMap[op].name}_${aAuto}x${bAuto}`;
             this.signals[result] = {
-                type: 'wire',
+                type: 'logic',
                 isSigned: (aSigned || bSigned),
                 width: nameMap[op].autoWidth(aWidth, bWidth)
             };
@@ -362,8 +359,8 @@ class Module {
     }
     addAssign(io) {
         const outSig = this.findSignal(io.out, true, this.addAssign);
-        if (!(outSig.type === 'wire' || outSig.type === 'output')) {
-            throw Error(`${io.out.toString()} signal must be either wire or output in assign statement`);
+        if (!(outSig.type === 'wire' || outSig.type === 'logic')) {
+            throw Error(`${io.out.toString()} signal must be either wire or logic in assign statement`);
         }
         this.body += `  assign ${io.out.toString()} = ${io.in.toString()}`;
         if (typeof io.out === 'string') {
@@ -384,14 +381,12 @@ class Module {
         }
         const outSig = this.findSignal(io.out, true, this.addMux);
         switch (outSig.type) {
+            case undefined:
             case 'wire':
-                outSig.type = 'reg';
-                break;
-            case 'output':
-                outSig.type = 'output reg';
+                outSig.type = 'logic';
                 break;
             case 'reg':
-            case 'output reg':
+            case 'logic':
                 break;
             default:
                 throw Error(`${io.out} is unsupported signal type ${outSig.type}`);
@@ -447,7 +442,7 @@ ${caseAssignments}
             if ((this.IOs[key].width || 0) > 1) {
                 rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
             }
-            IOArray.push(`${this.IOs[key].type}${signString} ${rangeString} ${key}`);
+            IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
         let IOString = `   ${IOArray.join(',\n   ')}`;
         // construct signal list
@@ -458,7 +453,7 @@ ${caseAssignments}
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
             }
-            signalArray.push(`${this.signals[key].type}${signString} ${rangeString} ${key}`);
+            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
         for (var sensitivity in this.registerBlocks) {
@@ -489,7 +484,7 @@ ${resetAssignments.join('\n')}
                     });
                     this.body +=
                         `
-   always ${sensitivity}
+   always_ff ${sensitivity}
 ${resetString}${enableString}
         begin
 ${functionalAssigments.join('\n')}

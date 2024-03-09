@@ -7,6 +7,7 @@ ACC extends number = never> = ARR['length'] extends END
     : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
 interface baseSignal {
+    type?: 'wire' | 'reg' | 'const' | 'logic', 
     width?: number
     isClock?: 'posedge' | 'negedge'
     isReset?: 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
@@ -16,7 +17,7 @@ interface baseSignal {
 }
 
 interface IOSignal  extends baseSignal {
-    type: 'input' | 'output' | 'inout' | 'output reg', 
+    direction: 'input' | 'output' | 'inout', 
 }
 
 export interface IOSignals {[name: string] : IOSignal}
@@ -46,7 +47,6 @@ export class Expr  {
 }
 
 interface Signal extends baseSignal {
-    type: 'wire' | 'reg' | 'const', 
     value?: bigint | Array<bigint>
 }
 
@@ -107,9 +107,8 @@ export class Module {
     }
 
     bindingRules = {
-        'input' : ['input', 'wire', 'reg', 'const'],
-        'output' : ['output','wire'],
-        'output reg' : ['output','wire'],
+        'input' : ['input', 'wire', 'reg', 'const', 'logic'],
+        'output' : ['output','wire', 'logic'],
         'inout' : ['inout', 'wire']
     }
 
@@ -131,7 +130,7 @@ export class Module {
                         thisModule.bindings[port] = port
                     } else if(this.signals[port]) {
                         thisModule.bindings[port] = port
-                    } else if(submodule.IOs[port].type === 'input' || submodule.IOs[port].type === 'input'){
+                    } else if(submodule.IOs[port].direction === 'input'){
                         throw  Error(`unbound input on ${submodule.name}: ${port}`)
                     }
                 }
@@ -142,7 +141,7 @@ export class Module {
             const thisPort = submodule.IOs[port]
             if(!thisPort) throw Error(`${port} not found on module ${submodule.name}`)
             let thisSig = this.findSignal(bindings[port], true, this.addSubmodule)            
-            if(!(this.bindingRules[thisPort.type].includes(thisSig.type))) throw Error(`illegal binding ${port}(${bindings[port]})`)
+            if(!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic'))) throw Error(`illegal binding ${port}(${bindings[port]})`)
         }
         
         return thisModule.module
@@ -193,20 +192,18 @@ export class Module {
             if(io.q === undefined) {
                 qName = `${io.d}_q`
                 if(this.signals[qName] || this.IOs[qName]) throw Error(`${qName} signal already exists`)
-                this.signals[qName] = {...dSig, type:'reg'}
+                this.signals[qName] = {...dSig, type:'logic'}
             }
         }            
         if(io.q) {
             let qSig = this.findSignal(io.q, true, this.addRegister)
             switch(qSig.type) {
+            case undefined:    
             case 'wire':
-                qSig.type = 'reg'
-                break
-            case 'output':
-                qSig.type = 'output reg'
+                qSig.type = 'logic'
                 break
             case 'reg':
-            case 'output reg':
+            case 'logic':
                 break
             default:
                 throw Error(`${io.q} is unsupported signal type ${qSig.type}`)
@@ -391,7 +388,7 @@ export class Module {
             } else {
                 result = `${nameMap[op].name}_${aAuto}x${bAuto}`
                 this.signals[result] = {
-                    type:'wire', 
+                    type:'logic', 
                     isSigned:(aSigned || bSigned), 
                     width:nameMap[op].autoWidth(aWidth,bWidth)
                 }
@@ -434,8 +431,8 @@ export class Module {
 
     addAssign(io:{in:Expr, out:string|Sig}) : Sig {
         const outSig = this.findSignal(io.out, true, this.addAssign)
-        if(!(outSig.type === 'wire' || outSig.type === 'output')) {
-            throw Error(`${io.out.toString()} signal must be either wire or output in assign statement`)
+        if(!(outSig.type === 'wire' || outSig.type === 'logic')) {
+            throw Error(`${io.out.toString()} signal must be either wire or logic in assign statement`)
         }
         this.body += `  assign ${io.out.toString()} = ${io.in.toString()}`
         if(typeof io.out === 'string') {
@@ -456,14 +453,12 @@ export class Module {
         }
         const outSig = this.findSignal(io.out, true, this.addMux)
         switch(outSig.type) {
+            case undefined:
             case 'wire':
-                outSig.type = 'reg'
-                break
-            case 'output':
-                outSig.type = 'output reg'
+                outSig.type = 'logic'
                 break
             case 'reg':
-            case 'output reg':
+            case 'logic':
                 break
             default:
                 throw Error(`${io.out} is unsupported signal type ${outSig.type}`)
@@ -522,7 +517,7 @@ ${caseAssignments}
             if((this.IOs[key].width || 0) > 1) {
                 rangeString = `[${Number(this.IOs[key].width)-1}:0]`
             }
-            IOArray.push(`${this.IOs[key].type}${signString} ${rangeString} ${key}`)
+            IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`)
         })
         let IOString: string = `   ${IOArray.join(',\n   ')}`
 
@@ -534,7 +529,7 @@ ${caseAssignments}
             if((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`
             }
-            signalArray.push(`${this.signals[key].type}${signString} ${rangeString} ${key}`)
+            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`)
         })
         let signalString: string = `   ${signalArray.join(';\n   ')}`
 
@@ -570,7 +565,7 @@ ${resetAssignments.join('\n')}
 
                     this.body +=
 			`
-   always ${sensitivity}
+   always_ff ${sensitivity}
 ${resetString}${enableString}
         begin
 ${functionalAssigments.join('\n')}

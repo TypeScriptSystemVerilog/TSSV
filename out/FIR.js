@@ -15,11 +15,11 @@ class FIR extends TSSV_1.Module {
         });
         // define IO signals
         this.IOs = {
-            clk: { type: 'input', isClock: 'posedge' },
-            rst_b: { type: 'input', isReset: 'lowasync' },
-            en: { type: 'input', },
-            data_in: { type: 'input', width: this.params.inWidth, isSigned: true },
-            data_out: { type: 'output', width: this.params.outWidth, isSigned: true }
+            clk: { direction: 'input', isClock: 'posedge' },
+            rst_b: { direction: 'input', isReset: 'lowasync' },
+            en: { direction: 'input', },
+            data_in: { direction: 'input', width: this.params.inWidth, isSigned: true },
+            data_out: { direction: 'output', width: this.params.outWidth, isSigned: true }
         };
         // construct logic
         let nextTapIn = new TSSV_1.Sig("data_in");
@@ -27,7 +27,7 @@ class FIR extends TSSV_1.Module {
         let coeffSum = 0;
         for (var i = 0; i < (this.params.numTaps || 0); i++) {
             // construct tap delay line
-            const thisTap = this.addSignal(`tap_${i}`, { type: 'reg', width: this.params.inWidth, isSigned: true });
+            const thisTap = this.addSignal(`tap_${i}`, { width: this.params.inWidth, isSigned: true });
             this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en', q: thisTap });
             // construct tap multipliers
             products.push(this.addMultiplier({ a: thisTap, b: this.params.coefficients[i] }));
@@ -37,7 +37,7 @@ class FIR extends TSSV_1.Module {
         // construct final vector sum
         const sumWidth = (this.params.inWidth || 0) + this.bitWidth(coeffSum);
         const productsExt = products.map((p) => `${sumWidth}'(${p})`);
-        this.addSignal('sum', { type: 'reg', width: sumWidth, isSigned: true });
+        this.addSignal('sum', { width: sumWidth, isSigned: true });
         this.addRegister({
             d: new TSSV_1.Expr(`${productsExt.join(' + ')}`),
             clk: 'clk',
@@ -46,9 +46,9 @@ class FIR extends TSSV_1.Module {
             q: 'sum'
         });
         // round and saturate to final output
-        this.addSignal('rounded', { type: 'wire', width: sumWidth - (this.params.rShift || 0) + 1, isSigned: true });
+        this.addSignal('rounded', { width: sumWidth - (this.params.rShift || 0) + 1, isSigned: true });
         this.addRound({ in: 'sum', out: 'rounded', rShift: this.params.rShift || 1 });
-        this.addSignal('saturated', { type: 'wire', width: this.params.outWidth, isSigned: true });
+        this.addSignal('saturated', { width: this.params.outWidth, isSigned: true });
         this.addSaturate({ in: 'rounded', out: 'saturated' });
         this.addRegister({
             d: 'saturated',

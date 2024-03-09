@@ -12,9 +12,9 @@ class Adder extends TSSV_1.Module {
         });
         // define IO signals
         this.IOs = {
-            a: { type: 'input', width: this.params.aWidth, isSigned: true },
-            b: { type: 'input', width: this.params.bWidth, isSigned: true },
-            sum: { type: 'output', width: Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1, isSigned: true }
+            a: { direction: 'input', width: this.params.aWidth, isSigned: true },
+            b: { direction: 'input', width: this.params.bWidth, isSigned: true },
+            sum: { direction: 'output', width: Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1, isSigned: true }
         };
         this.addAdder({ a: 'a', b: 'b', result: 'sum' });
     }
@@ -31,13 +31,13 @@ class Adder3 extends TSSV_1.Module {
         // define IO signals
         const sumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1, (this.params.cWidth || 1))) + 2;
         this.IOs = {
-            a: { type: 'input', width: this.params.aWidth, isSigned: true },
-            b: { type: 'input', width: this.params.bWidth, isSigned: true },
-            c: { type: 'input', width: this.params.bWidth, isSigned: true },
-            sum: { type: 'output', width: sumWidth, isSigned: true }
+            a: { direction: 'input', width: this.params.aWidth, isSigned: true },
+            b: { direction: 'input', width: this.params.bWidth, isSigned: true },
+            c: { direction: 'input', width: this.params.bWidth, isSigned: true },
+            sum: { direction: 'output', width: sumWidth, isSigned: true }
         };
         const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1;
-        let psum = this.addSignal('psum', { type: 'wire', width: psumWidth });
+        let psum = this.addSignal('psum', { width: psumWidth });
         this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: 'psum' });
         this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum' });
     }
