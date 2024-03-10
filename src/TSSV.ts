@@ -1,3 +1,5 @@
+import { runInThisContext } from "vm"
+
 export type IntRange<
     START extends number,
 END extends number,
@@ -6,19 +8,37 @@ ACC extends number = never> = ARR['length'] extends END
     ? ACC | START | END
     : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
+
+type ParameterValue = string | bigint | IntRange<number,number> | Array<bigint>
+export interface TSSVParameters { 
+        name?: string | undefined
+        [name: string]: ParameterValue | undefined 
+}
+    
+interface SVEnum {
+    typeName: string
+    width: number
+    values: {[key:string] : bigint }
+}
+
 interface baseSignal {
-    type?: 'wire' | 'reg' | 'const' | 'logic', 
+    type?: 'wire' | 'reg' | 'const' | 'logic' | 'enum'
     width?: number
     isClock?: 'posedge' | 'negedge'
     isReset?: 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
     isSigned?: boolean
     isVector?: number
     description?: string
+    enum?: SVEnum
 }
 
+type PortDirection = 'input' | 'output' | 'inout'
+
+
 interface IOSignal  extends baseSignal {
-    direction: 'input' | 'output' | 'inout', 
+    direction: PortDirection 
 }
+
 
 export interface IOSignals {[name: string] : IOSignal}
 
@@ -52,11 +72,6 @@ interface Signal extends baseSignal {
 
 interface Signals {[name: string] : Signal}
 
-type ParameterValue = string | bigint | IntRange<number,number> | Array<bigint>
-export interface TSSVParameters { 
-    name?: string | undefined
-    [name: string]: ParameterValue | undefined 
-}
 
 
 interface OperationIO  {
@@ -73,18 +88,32 @@ enum BinaryOp  {
     BITWISE_OR= '|'
 }
 
+export class Interface {
+    name: string
+    params: TSSVParameters
+    signals: Signals
+    role?: string
+    modports?: {[key:string] : PortDirection }
+    constructor(name: string, params: TSSVParameters = {}, role: string | undefined  = undefined, signals = {} ) {
+        this.name = name
+        this.params = params
+        this.role = role
+        this.signals = signals
+    }    
+}
+
 
 export class Module {
     
-    name: string
-    params: TSSVParameters
-    IOs : IOSignals
-    signals: Signals
-    submodules: {[key:string] : {
+    readonly name: string
+    protected params: TSSVParameters
+    protected IOs : IOSignals
+    protected signals: Signals
+    protected submodules: {[key:string] : {
         module: Module
         bindings: {[port:string]: string|Sig}
     }}
-
+    protected interfaces: {[key:string]:  Interface }
     
     constructor(params: TSSVParameters = {}, IOs: IOSignals = {}, signals = {}, body= "") {
         this.params = params
@@ -104,12 +133,21 @@ export class Module {
         this.signals = signals
         this.body = body
         this.submodules = {}
+        this.interfaces = {}
     }
 
     bindingRules = {
-        'input' : ['input', 'wire', 'reg', 'const', 'logic'],
-        'output' : ['output','wire', 'logic'],
+        'input' : ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
+        'output' : ['output','wire', 'logic', 'enum'],
         'inout' : ['inout', 'wire']
+    }
+
+    addInterface( 
+        instanceName:string,
+        _interface: Interface) {
+        if(this.interfaces[instanceName]) throw Error(`${instanceName} interface already exists`)
+        this.interfaces[instanceName] = _interface
+        return _interface
     }
 
     addSubmodule(
@@ -518,6 +556,26 @@ ${caseAssignments}
                 rangeString = `[${Number(this.IOs[key].width)-1}:0]`
             }
             IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`)
+        })
+        Object.keys(this.interfaces).map((key) => {
+            let thisInterface = this.interfaces[key]
+            if(thisInterface.role) {
+                if(thisInterface.modports) {
+                    let thisModports = thisInterface.modports
+                    Object.keys(thisInterface.modports).map((name) => {
+                        let thisSignal = thisInterface.signals[name] 
+                        if(!thisSignal) `${thisInterface.name}: modport missing signal ${name}`
+                        let rangeString = ""
+                        let signString = (thisSignal.isSigned) ? " signed" : ""
+                        if((thisSignal.width || 0) > 1) {
+                            rangeString = `[${Number(thisSignal.width)-1}:0]`
+                        }
+                        IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
+                    })
+                } else {
+                    throw Error(`${thisInterface.name} has role/modport inconsistency`)
+                }
+            }
         })
         let IOString: string = `   ${IOArray.join(',\n   ')}`
 

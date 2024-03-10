@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Adder3 = exports.Adder = void 0;
 const TSSV_1 = require("./TSSV");
+const TL_UL_1 = require("./TL_UL");
 const fs_1 = require("fs");
 class Adder extends TSSV_1.Module {
     constructor(params) {
@@ -28,6 +29,8 @@ class Adder3 extends TSSV_1.Module {
             bWidth: params.bWidth || 8,
             cWidth: params.bWidth || 8
         });
+        // add Tilelink UL responder interface
+        this.addInterface('regs', new TL_UL_1.TL_UL({}, 'responder'));
         // define IO signals
         const sumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1, (this.params.cWidth || 1))) + 2;
         this.IOs = {

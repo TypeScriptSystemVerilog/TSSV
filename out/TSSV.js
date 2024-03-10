@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Module = exports.Expr = exports.Sig = void 0;
+exports.Module = exports.Interface = exports.Expr = exports.Sig = void 0;
 class Sig {
     constructor(name) {
         this.toString = () => {
@@ -29,11 +29,20 @@ var BinaryOp;
     BinaryOp["BITWISE_AND"] = "&";
     BinaryOp["BITWISE_OR"] = "|";
 })(BinaryOp || (BinaryOp = {}));
+class Interface {
+    constructor(name, params = {}, role = undefined, signals = {}) {
+        this.name = name;
+        this.params = params;
+        this.role = role;
+        this.signals = signals;
+    }
+}
+exports.Interface = Interface;
 class Module {
     constructor(params = {}, IOs = {}, signals = {}, body = "") {
         this.bindingRules = {
-            'input': ['input', 'wire', 'reg', 'const', 'logic'],
-            'output': ['output', 'wire', 'logic'],
+            'input': ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
+            'output': ['output', 'wire', 'logic', 'enum'],
             'inout': ['inout', 'wire']
         };
         this.registerBlocks = {};
@@ -55,6 +64,13 @@ class Module {
         this.signals = signals;
         this.body = body;
         this.submodules = {};
+        this.interfaces = {};
+    }
+    addInterface(instanceName, _interface) {
+        if (this.interfaces[instanceName])
+            throw Error(`${instanceName} interface already exists`);
+        this.interfaces[instanceName] = _interface;
+        return _interface;
     }
     addSubmodule(instanceName, submodule, bindings, autoBind = true) {
         if (this.submodules.instanceName !== undefined)
@@ -443,6 +459,28 @@ ${caseAssignments}
                 rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
             }
             IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`);
+        });
+        Object.keys(this.interfaces).map((key) => {
+            let thisInterface = this.interfaces[key];
+            if (thisInterface.role) {
+                if (thisInterface.modports) {
+                    let thisModports = thisInterface.modports;
+                    Object.keys(thisInterface.modports).map((name) => {
+                        let thisSignal = thisInterface.signals[name];
+                        if (!thisSignal)
+                            `${thisInterface.name}: modport missing signal ${name}`;
+                        let rangeString = "";
+                        let signString = (thisSignal.isSigned) ? " signed" : "";
+                        if ((thisSignal.width || 0) > 1) {
+                            rangeString = `[${Number(thisSignal.width) - 1}:0]`;
+                        }
+                        IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`);
+                    });
+                }
+                else {
+                    throw Error(`${thisInterface.name} has role/modport inconsistency`);
+                }
+            }
         });
         let IOString = `   ${IOArray.join(',\n   ')}`;
         // construct signal list

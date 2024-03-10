@@ -1,4 +1,5 @@
 import {Module, TSSVParameters, IntRange, Sig, Expr} from './TSSV'
+import {TL_UL, TL_UL_Role, TL_UL_Parameters} from './TL_UL'
 import { writeFileSync } from 'fs';
 
 
@@ -40,6 +41,9 @@ export class Adder3 extends Module {
             bWidth: params.bWidth || 8,
             cWidth: params.bWidth || 8
         })
+
+        // add Tilelink UL responder interface
+        this.addInterface('regs', new TL_UL({},'responder'))
 
         // define IO signals
         const sumWidth = Math.max((this.params.aWidth||1),(this.params.bWidth||1,(this.params.cWidth||1)))+2
