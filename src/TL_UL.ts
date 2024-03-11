@@ -45,9 +45,8 @@ export class TL_UL extends Interface {
                 d_sink : { width: this.params.DIW }
             }
 
-        switch(role) {
-            case 'producer': 
-            this.modports = {
+        this.modports = {
+            producer :  {
                 a_valid : 'output',
                 a_ready : 'input',
                 a_opcode : 'output',
@@ -65,10 +64,8 @@ export class TL_UL extends Interface {
                 d_data : 'input',
                 d_source : 'input',
                 d_sink : 'input'
-            }
-            break
-            case 'responder':
-            this.modports = {
+            },
+            responder : {
                 a_valid : 'input',
                 a_ready : 'output',
                 a_opcode : 'input',
@@ -87,7 +84,6 @@ export class TL_UL extends Interface {
                 d_source : 'output',
                 d_sink : 'output'
             }
-            break
         }
     }
 }

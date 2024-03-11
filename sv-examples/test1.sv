@@ -1,5 +1,69 @@
 
+        
 
+
+interface TL_UL_3_8_32_8_8_32;
+
+   logic  a_valid;
+   logic  a_ready;
+   logic [2:0] a_opcode;
+   logic [31:0] a_address;
+   logic [31:0] a_data;
+   logic [7:0] a_source;
+   logic [2:0] a_size;
+   logic [7:0] a_mask;
+   logic  d_valid;
+   logic  d_ready;
+   logic [2:0] d_opcode;
+   logic  d_error;
+   logic [2:0] d_size;
+   logic [31:0] d_data;
+   logic [7:0] d_source;
+   logic [7:0] d_sink;
+
+
+    modport producer (
+      output a_valid,
+      input a_ready,
+      output a_opcode,
+      output a_address,
+      output a_data,
+      output a_source,
+      output a_size,
+      output a_mask,
+      input d_valid,
+      output d_ready,
+      input d_opcode,
+      input d_error,
+      input d_size,
+      input d_data,
+      input d_source,
+      input d_sink
+    );           
+
+    modport responder (
+      input a_valid,
+      output a_ready,
+      input a_opcode,
+      input a_address,
+      input a_data,
+      input a_source,
+      input a_size,
+      input a_mask,
+      output d_valid,
+      input d_ready,
+      output d_opcode,
+      output d_error,
+      output d_size,
+      output d_data,
+      output d_source,
+      output d_sink
+    );           
+
+
+endinterface
+        
+        
 
         
 /* verilator lint_off WIDTH */        
@@ -7,10 +71,11 @@ module Adder_8_8
    (
    input logic signed [7:0] a,
    input logic signed [7:0] b,
-   output logic signed [8:0] sum
+   output logic signed [8:0] sum,
+   TL_UL_3_8_32_8_8_32.responder regs
    );
 
-   ;
+   
 
    assign sum = a + b;
 
@@ -18,6 +83,7 @@ module Adder_8_8
 endmodule
 /* verilator lint_on WIDTH */        
 
+        
 
         
 /* verilator lint_off WIDTH */        
@@ -25,10 +91,11 @@ module Adder_8_9
    (
    input logic signed [7:0] a,
    input logic signed [8:0] b,
-   output logic signed [9:0] sum
+   output logic signed [9:0] sum,
+   TL_UL_3_8_32_8_8_32.responder regs
    );
 
-   ;
+   
 
    assign sum = a + b;
 
@@ -43,31 +110,18 @@ module Adder3_8_8_8
    input logic signed [7:0] a,
    input logic signed [7:0] b,
    input logic signed [7:0] c,
-   output logic signed [9:0] sum,
-   input logic  a_valid,
-   output logic  a_ready,
-   input logic [2:0] a_opcode,
-   input logic [31:0] a_address,
-   input logic [31:0] a_data,
-   input logic [7:0] a_source,
-   input logic [2:0] a_size,
-   input logic [7:0] a_mask,
-   output logic  d_valid,
-   input logic  d_ready,
-   output logic [2:0] d_opcode,
-   output logic  d_error,
-   output logic [2:0] d_size,
-   output logic [31:0] d_data,
-   output logic [7:0] d_source,
-   output logic [7:0] d_sink
+   output logic signed [9:0] sum
    );
 
+   TL_UL_3_8_32_8_8_32 regs1;
+   TL_UL_3_8_32_8_8_32 regs2;
    logic [8:0] psum;
 
 
     Adder_8_8 add1
       (
         .sum(psum),
+        .regs(regs1),
         .a(a),
         .b(b)        
       );
@@ -76,7 +130,8 @@ module Adder3_8_8_8
       (
         .a(c),
         .b(psum),
-        .sum(sum)        
+        .sum(sum),
+        .regs(regs2)        
       );
 
 

@@ -31,48 +31,44 @@ class TL_UL extends TSSV_1.Interface {
                 d_source: { width: this.params.AIW },
                 d_sink: { width: this.params.DIW }
             };
-        switch (role) {
-            case 'producer':
-                this.modports = {
-                    a_valid: 'output',
-                    a_ready: 'input',
-                    a_opcode: 'output',
-                    a_address: 'output',
-                    a_data: 'output',
-                    a_source: 'output',
-                    a_size: 'output',
-                    a_mask: 'output',
-                    d_valid: 'input',
-                    d_ready: 'output',
-                    d_opcode: 'input',
-                    d_error: 'input',
-                    d_size: 'input',
-                    d_data: 'input',
-                    d_source: 'input',
-                    d_sink: 'input'
-                };
-                break;
-            case 'responder':
-                this.modports = {
-                    a_valid: 'input',
-                    a_ready: 'output',
-                    a_opcode: 'input',
-                    a_address: 'input',
-                    a_data: 'input',
-                    a_source: 'input',
-                    a_size: 'input',
-                    a_mask: 'input',
-                    d_valid: 'output',
-                    d_ready: 'input',
-                    d_opcode: 'output',
-                    d_error: 'output',
-                    d_size: 'output',
-                    d_data: 'output',
-                    d_source: 'output',
-                    d_sink: 'output'
-                };
-                break;
-        }
+        this.modports = {
+            producer: {
+                a_valid: 'output',
+                a_ready: 'input',
+                a_opcode: 'output',
+                a_address: 'output',
+                a_data: 'output',
+                a_source: 'output',
+                a_size: 'output',
+                a_mask: 'output',
+                d_valid: 'input',
+                d_ready: 'output',
+                d_opcode: 'input',
+                d_error: 'input',
+                d_size: 'input',
+                d_data: 'input',
+                d_source: 'input',
+                d_sink: 'input'
+            },
+            responder: {
+                a_valid: 'input',
+                a_ready: 'output',
+                a_opcode: 'input',
+                a_address: 'input',
+                a_data: 'input',
+                a_source: 'input',
+                a_size: 'input',
+                a_mask: 'input',
+                d_valid: 'output',
+                d_ready: 'input',
+                d_opcode: 'output',
+                d_error: 'output',
+                d_size: 'output',
+                d_data: 'output',
+                d_source: 'output',
+                d_sink: 'output'
+            }
+        };
     }
 }
 exports.TL_UL = TL_UL;

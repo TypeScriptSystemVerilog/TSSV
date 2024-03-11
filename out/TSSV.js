@@ -36,6 +36,46 @@ class Interface {
         this.role = role;
         this.signals = signals;
     }
+    interfaceName() {
+        let vName = `${this.name}_${Object.values(this.params).join('_')}`;
+        return vName;
+    }
+    writeSystemVerilog() {
+        let signalArray = [];
+        Object.keys(this.signals).map((key) => {
+            let rangeString = "";
+            let signString = (this.signals[key].isSigned) ? " signed" : "";
+            if ((this.signals[key].width || 0) > 1) {
+                rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
+            }
+            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`);
+        });
+        let signalString = `   ${signalArray.join(';\n   ')}`;
+        let modportsString = '';
+        for (var modport in this.modports) {
+            let thisModport = this.modports[modport];
+            let modportArray = [];
+            Object.keys(thisModport).map((name) => {
+                modportArray.push(`      ${thisModport[name]} ${name}`);
+            });
+            modportsString += `
+    modport ${modport} (
+${modportArray.join(',\n')}
+    );           
+`;
+        }
+        let verilog = `
+interface ${this.interfaceName()};
+
+${signalString};
+
+${modportsString}
+
+endinterface
+        
+`;
+        return verilog;
+    }
 }
 exports.Interface = Interface;
 class Module {
@@ -94,14 +134,38 @@ class Module {
                     }
                 }
             }
+            for (var _interface in submodule.interfaces) {
+                let thisInterface = submodule.interfaces[_interface];
+                if (thisInterface.role && thisInterface.modports) {
+                    if (!thisModule.bindings[_interface]) {
+                        if (this.interfaces[_interface]) {
+                            thisModule.bindings[_interface] = _interface;
+                        }
+                        else {
+                            throw Error(`unbound interface on ${submodule.name}: ${_interface}`);
+                        }
+                    }
+                }
+            }
         }
         for (var port in thisModule.bindings) {
             const thisPort = submodule.IOs[port];
-            if (!thisPort)
+            const thisInterface = submodule.interfaces[port];
+            if (thisPort) {
+                let thisSig = this.findSignal(bindings[port], true, this.addSubmodule);
+                if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
+                    throw Error(`illegal binding ${port}(${bindings[port]})`);
+            }
+            else if (thisInterface && (typeof port === 'string')) {
+                let thisInt = this.interfaces[bindings[port].toString()];
+                if (thisInt.role) {
+                    if (thisInt.role !== thisInterface.role)
+                        throw Error(`${port} interface role mismatch on ${submodule.name}`);
+                }
+            }
+            else {
                 throw Error(`${port} not found on module ${submodule.name}`);
-            let thisSig = this.findSignal(bindings[port], true, this.addSubmodule);
-            if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
-                throw Error(`illegal binding ${port}(${bindings[port]})`);
+            }
         }
         return thisModule.module;
     }
@@ -452,6 +516,8 @@ ${caseAssignments}
         }
         // construct IO definition
         let IOArray = [];
+        let signalArray = [];
+        let interfacesString = '';
         Object.keys(this.IOs).map((key) => {
             let rangeString = "";
             let signString = (this.IOs[key].isSigned) ? " signed" : "";
@@ -464,27 +530,37 @@ ${caseAssignments}
             let thisInterface = this.interfaces[key];
             if (thisInterface.role) {
                 if (thisInterface.modports) {
-                    let thisModports = thisInterface.modports;
-                    Object.keys(thisInterface.modports).map((name) => {
-                        let thisSignal = thisInterface.signals[name];
-                        if (!thisSignal)
-                            `${thisInterface.name}: modport missing signal ${name}`;
-                        let rangeString = "";
-                        let signString = (thisSignal.isSigned) ? " signed" : "";
-                        if ((thisSignal.width || 0) > 1) {
-                            rangeString = `[${Number(thisSignal.width) - 1}:0]`;
+                    let thisModports = thisInterface.modports[thisInterface.role];
+                    if (!thisModports)
+                        throw Error(`${thisInterface.name} : inconsistent modports`);
+                    /*
+                    Object.keys(thisModports).map((name) => {
+                        let thisSignal = thisInterface.signals[name]
+                        if(!thisSignal) `${thisInterface.name}: modport missing signal ${name}`
+                        let rangeString = ""
+                        let signString = (thisSignal.isSigned) ? " signed" : ""
+                        if((thisSignal.width || 0) > 1) {
+                            rangeString = `[${Number(thisSignal.width)-1}:0]`
                         }
-                        IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`);
-                    });
+                        IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
+                    })
+                    */
+                    if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
+                        interfacesString += thisInterface.writeSystemVerilog();
+                        Module.printedInterfaces[thisInterface.interfaceName()] = true;
+                    }
+                    IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`);
                 }
                 else {
                     throw Error(`${thisInterface.name} has role/modport inconsistency`);
                 }
             }
+            else {
+                signalArray.push(`${thisInterface.interfaceName()} ${key}`);
+            }
         });
         let IOString = `   ${IOArray.join(',\n   ')}`;
         // construct signal list
-        let signalArray = [];
         Object.keys(this.signals).map((key) => {
             let rangeString = "";
             let signString = (this.signals[key].isSigned) ? " signed" : "";
@@ -494,6 +570,8 @@ ${caseAssignments}
             signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
+        if (signalArray.length)
+            signalString += ';';
         for (var sensitivity in this.registerBlocks) {
             for (var resetCondition in this.registerBlocks[sensitivity]) {
                 for (var enable in this.registerBlocks[sensitivity][resetCondition]) {
@@ -552,6 +630,7 @@ ${bindingsArray.join(',\n')}
 `;
         }
         let verilog = `
+${interfacesString}        
 ${subModulesString}
         
 /* verilator lint_off WIDTH */        
@@ -560,7 +639,7 @@ module ${this.name} ${paramsString}
 ${IOString}
    );
 
-${signalString};
+${signalString}
 
 ${this.body}
 
@@ -571,4 +650,5 @@ endmodule
     }
 }
 exports.Module = Module;
+Module.printedInterfaces = {};
 exports.default = { Module, Sig, Expr };

@@ -93,13 +93,57 @@ export class Interface {
     params: TSSVParameters
     signals: Signals
     role?: string
-    modports?: {[key:string] : PortDirection }
+    modports?: {[role:string] : {[key:string] : PortDirection }}
     constructor(name: string, params: TSSVParameters = {}, role: string | undefined  = undefined, signals = {} ) {
         this.name = name
         this.params = params
         this.role = role
         this.signals = signals
-    }    
+    }
+    
+    interfaceName():string {
+        let vName = `${this.name}_${Object.values(this.params).join('_')}`
+        return vName
+    }
+
+    writeSystemVerilog(): string {
+        let signalArray: string[] = []
+        Object.keys(this.signals).map((key) => {
+            let rangeString = ""
+            let signString = (this.signals[key].isSigned) ? " signed" : ""
+            if((this.signals[key].width || 0) > 1) {
+                rangeString = `[${Number(this.signals[key].width) - 1}:0]`
+            }
+            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`)
+        })
+        let signalString: string = `   ${signalArray.join(';\n   ')}`
+
+        let modportsString: string = ''
+        for(var modport in this.modports) {
+            let thisModport = this.modports[modport]
+            let modportArray: string[] = []
+            Object.keys(thisModport).map((name) => {
+                modportArray.push(`      ${thisModport[name]} ${name}`)
+            })
+            modportsString += `
+    modport ${modport} (
+${modportArray.join(',\n')}
+    );           
+`
+        }
+        let verilog = `
+interface ${this.interfaceName()};
+
+${signalString};
+
+${modportsString}
+
+endinterface
+        
+`
+
+        return verilog
+    }
 }
 
 
@@ -144,7 +188,7 @@ export class Module {
 
     addInterface( 
         instanceName:string,
-        _interface: Interface) {
+        _interface: Interface):Interface  {
         if(this.interfaces[instanceName]) throw Error(`${instanceName} interface already exists`)
         this.interfaces[instanceName] = _interface
         return _interface
@@ -173,13 +217,34 @@ export class Module {
                     }
                 }
             }
+            for(var _interface in submodule.interfaces) {
+                let thisInterface = submodule.interfaces[_interface]
+                if(thisInterface.role  && thisInterface.modports) {
+                    if(!thisModule.bindings[_interface]) {
+                        if(this.interfaces[_interface]) {
+                            thisModule.bindings[_interface] = _interface
+                        } else {
+                            throw Error(`unbound interface on ${submodule.name}: ${_interface}`)
+                        }
+                    }
+                }
+            }
         }
 
         for(var port in thisModule.bindings) {
             const thisPort = submodule.IOs[port]
-            if(!thisPort) throw Error(`${port} not found on module ${submodule.name}`)
-            let thisSig = this.findSignal(bindings[port], true, this.addSubmodule)            
-            if(!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic'))) throw Error(`illegal binding ${port}(${bindings[port]})`)
+            const thisInterface = submodule.interfaces[port]
+            if(thisPort) {
+                let thisSig = this.findSignal(bindings[port], true, this.addSubmodule)            
+                if(!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic'))) throw Error(`illegal binding ${port}(${bindings[port]})`)
+            } else if(thisInterface && (typeof port === 'string')) {
+                let thisInt = this.interfaces[bindings[port].toString()]
+                if(thisInt.role) {
+                    if(thisInt.role !== thisInterface.role) throw Error(`${port} interface role mismatch on ${submodule.name}`)
+                }
+            } else {
+                throw Error(`${port} not found on module ${submodule.name}`)
+            }
         }
         
         return thisModule.module
@@ -549,6 +614,8 @@ ${caseAssignments}
 
         // construct IO definition
         let IOArray: string[] = []
+        let signalArray: string[] = []
+        let interfacesString = ''
         Object.keys(this.IOs).map((key) => {
             let rangeString = ""
             let signString = (this.IOs[key].isSigned) ? " signed" : ""
@@ -561,8 +628,10 @@ ${caseAssignments}
             let thisInterface = this.interfaces[key]
             if(thisInterface.role) {
                 if(thisInterface.modports) {
-                    let thisModports = thisInterface.modports
-                    Object.keys(thisInterface.modports).map((name) => {
+                    let thisModports = thisInterface.modports[thisInterface.role]
+                    if(!thisModports) throw Error(`${thisInterface.name} : inconsistent modports`)
+                    /*
+                    Object.keys(thisModports).map((name) => {
                         let thisSignal = thisInterface.signals[name] 
                         if(!thisSignal) `${thisInterface.name}: modport missing signal ${name}`
                         let rangeString = ""
@@ -572,15 +641,22 @@ ${caseAssignments}
                         }
                         IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
                     })
+                    */
+                   if(!Module.printedInterfaces[thisInterface.interfaceName()]) {
+                       interfacesString += thisInterface.writeSystemVerilog()
+                       Module.printedInterfaces[thisInterface.interfaceName()] = true
+                   }
+                   IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`)
                 } else {
                     throw Error(`${thisInterface.name} has role/modport inconsistency`)
                 }
+            } else {
+                signalArray.push(`${thisInterface.interfaceName()} ${key}`)
             }
         })
         let IOString: string = `   ${IOArray.join(',\n   ')}`
 
         // construct signal list
-        let signalArray: string[] = []
         Object.keys(this.signals).map((key) => {
             let rangeString = ""
             let signString = (this.signals[key].isSigned) ? " signed" : ""
@@ -590,6 +666,7 @@ ${caseAssignments}
             signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`)
         })
         let signalString: string = `   ${signalArray.join(';\n   ')}`
+        if(signalArray.length) signalString += ';'
 
         for(var sensitivity in this.registerBlocks) {
             for(var resetCondition in this.registerBlocks[sensitivity]) {
@@ -657,6 +734,7 @@ ${bindingsArray.join(',\n')}
 
         let verilog: string = 
 	    `
+${interfacesString}        
 ${subModulesString}
         
 /* verilator lint_off WIDTH */        
@@ -665,7 +743,7 @@ module ${this.name} ${paramsString}
 ${IOString}
    );
 
-${signalString};
+${signalString}
 
 ${this.body}
 
@@ -685,6 +763,7 @@ endmodule
             }
         }
     } = {}
+    protected static printedInterfaces : {[key:string]: boolean} = {}
 }
 
 export default {Module, Sig, Expr}

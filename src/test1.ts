@@ -16,6 +16,9 @@ export class Adder extends Module {
             bWidth: params.bWidth || 8
         })
 
+        // add Tilelink UL responder interface
+        this.addInterface('regs', new TL_UL({},'responder'))
+
         // define IO signals
         this.IOs = {
             a:  { direction: 'input', width: this.params.aWidth, isSigned: true },
@@ -42,8 +45,8 @@ export class Adder3 extends Module {
             cWidth: params.bWidth || 8
         })
 
-        // add Tilelink UL responder interface
-        this.addInterface('regs', new TL_UL({},'responder'))
+        this.addInterface('regs1', new TL_UL({}))
+        this.addInterface('regs2', new TL_UL({}))
 
         // define IO signals
         const sumWidth = Math.max((this.params.aWidth||1),(this.params.bWidth||1,(this.params.cWidth||1)))+2
@@ -56,9 +59,9 @@ export class Adder3 extends Module {
 
         const psumWidth = Math.max((this.params.aWidth||1),(this.params.bWidth||1))+1 as IntRange<1,32>
         let psum = this.addSignal('psum',{width:psumWidth})
-        this.addSubmodule('add1', new Adder({aWidth:this.params.aWidth,bWidth:this.params.bWidth}), {sum: 'psum'})
+        this.addSubmodule('add1', new Adder({aWidth:this.params.aWidth,bWidth:this.params.bWidth}), {sum: 'psum', regs: 'regs1'})
 
-        this.addSubmodule('add2', new Adder({aWidth:this.params.cWidth,bWidth:psumWidth}), {a:"c", b:"psum", sum: 'sum'})
+        this.addSubmodule('add2', new Adder({aWidth:this.params.cWidth,bWidth:psumWidth}), {a:"c", b:"psum", sum: 'sum', regs: 'regs2'})
 
     }
 }
