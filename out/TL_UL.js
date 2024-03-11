@@ -5,11 +5,9 @@ const TSSV_1 = require("./TSSV");
 class TL_UL extends TSSV_1.Interface {
     constructor(params = {}, role = undefined) {
         super('TL_UL', {
-            SZW: params.SZW || 3,
             AIW: params.AIW || 8,
             AW: params.AW || 32,
             DIW: params.DIW || 8,
-            DBW: params.DBW || 8,
             DW: params.DW || 32
         }, role);
         this.signals =
@@ -20,13 +18,13 @@ class TL_UL extends TSSV_1.Interface {
                 a_address: { width: this.params.AW },
                 a_data: { width: this.params.DW },
                 a_source: { width: this.params.AIW },
-                a_size: { width: this.params.SZW },
-                a_mask: { width: this.params.DBW },
+                a_size: { width: 2 },
+                a_mask: { width: (this.params.DW == 64) ? 8 : 4 },
                 d_valid: { width: 1 },
                 d_ready: { width: 1 },
                 d_opcode: { width: 3 },
                 d_error: { width: 1 },
-                d_size: { width: this.params.SZW },
+                d_size: { width: 2 },
                 d_data: { width: this.params.DW },
                 d_source: { width: this.params.AIW },
                 d_sink: { width: this.params.DIW }
