@@ -1,4 +1,4 @@
-import { Interface } from 'TSSV/lib/TSSV';
+import { Interface } from 'TSSV/lib/core/TSSV';
 export class TL_UL extends Interface {
     constructor(params = {}, role = undefined) {
         super('TL_UL', {

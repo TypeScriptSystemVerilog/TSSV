@@ -15,4 +15,10 @@
   "allowSyntheticDefaultImports": true, // (C)
   //
   "declaration": true,
+  "include" : [
+    "ts/**/*.ts"
+  ],
+  "exclude" : [
+    "node_modules"
+  ]
 }

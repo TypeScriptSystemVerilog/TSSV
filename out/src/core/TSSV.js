@@ -1,4 +1,3 @@
-//import { runInThisContext } from "vm"
 export class Sig {
     constructor(name) {
         this.toString = () => {

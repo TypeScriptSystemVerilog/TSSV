@@ -1,4 +1,4 @@
-import {Module, TSSVParameters, IntRange, Sig, Expr} from 'TSSV/lib/TSSV'
+import {Module, TSSVParameters, IntRange, Sig, Expr} from 'TSSV/lib/core/TSSV'
 
 
 // define the parameters of the FIR module
