@@ -164,7 +164,7 @@ export class Module {
         if(typeof params.name === 'string') {
             this.name = params.name
         } else {
-            const mapFunc = (p: any) => {
+            const mapFunc = (p: ParameterValue | undefined) => {
                 if(typeof p === 'object') {
                     return this.simpleHash(p.toString())
                 }
@@ -206,7 +206,7 @@ export class Module {
         }
         this.submodules[instanceName] = thisModule
         if(autoBind) {
-            for(var thisPort in submodule.IOs) {
+            for(const thisPort in submodule.IOs) {
                 if(!thisModule.bindings[thisPort]) {
                     if(this.IOs[thisPort]) {
                         thisModule.bindings[thisPort] = thisPort
@@ -231,7 +231,7 @@ export class Module {
             }
         }
 
-        for(var port in thisModule.bindings) {
+        for(const port in thisModule.bindings) {
             const thisPort = submodule.IOs[port]
             const thisInterface = submodule.interfaces[port]
             if(thisPort) {
@@ -261,13 +261,16 @@ export class Module {
         return (hash >>> 0).toString(36).padStart(7, '0');
     }
 
-    findSignal(sig:Sig|string, throwOnFalse: boolean = false, caller:any = null): Signal | IOSignal {
+    // we do not call the caller, we just grab the name for an error message
+    // so the explicit anys are fine
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+    findSignal(sig:Sig|string, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null): Signal | IOSignal {
         const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()]
         if(!thisSig && throwOnFalse) {
             let errString = ""
             if(typeof caller === 'function') {
                 errString = `${sig.toString()} signal not found in ${caller.name}()`
-            } else {
+            } else if (caller !== null) {
                 errString = `${caller.toString()}: ${sig.toString()} signal not found`
             }
             throw Error(errString)

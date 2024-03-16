@@ -116,7 +116,7 @@ export class Module {
         };
         this.submodules[instanceName] = thisModule;
         if (autoBind) {
-            for (var thisPort in submodule.IOs) {
+            for (const thisPort in submodule.IOs) {
                 if (!thisModule.bindings[thisPort]) {
                     if (this.IOs[thisPort]) {
                         thisModule.bindings[thisPort] = thisPort;
@@ -143,7 +143,7 @@ export class Module {
                 }
             }
         }
-        for (var port in thisModule.bindings) {
+        for (const port in thisModule.bindings) {
             const thisPort = submodule.IOs[port];
             const thisInterface = submodule.interfaces[port];
             if (thisPort) {
@@ -173,6 +173,9 @@ export class Module {
         // Convert to 32bit unsigned integer in base 36 and pad with "0" to ensure length is 7.
         return (hash >>> 0).toString(36).padStart(7, '0');
     }
+    // we do not call the caller, we just grab the name for an error message
+    // so the explicit anys are fine
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     findSignal(sig, throwOnFalse = false, caller = null) {
         const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()];
         if (!thisSig && throwOnFalse) {
@@ -180,7 +183,7 @@ export class Module {
             if (typeof caller === 'function') {
                 errString = `${sig.toString()} signal not found in ${caller.name}()`;
             }
-            else {
+            else if (caller !== null) {
                 errString = `${caller.toString()}: ${sig.toString()} signal not found`;
             }
             throw Error(errString);
