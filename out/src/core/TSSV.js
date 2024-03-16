@@ -76,6 +76,13 @@ endinterface
 * The Module class is the base class for all TSSV modules.
 */
 export class Module {
+    /**
+     * base constructor
+     * @param params parameter value bundle
+     * @param IOs IO port bundle
+     * @param signals signal bundle
+     * @param body SystemVerilog body text
+     */
     constructor(params = {}, IOs = {}, signals = {}, body = "") {
         this.bindingRules = {
             'input': ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
@@ -103,12 +110,26 @@ export class Module {
         this.submodules = {};
         this.interfaces = {};
     }
+    /**
+     * adds an interface signal bundle
+     * @param instanceName the name for this instance of the signal bundle
+     * @param _interface the type of interface to add
+     * @returns the resulting interface for connecting to modules and add* primitives
+     */
     addInterface(instanceName, _interface) {
         if (this.interfaces[instanceName])
             throw Error(`${instanceName} interface already exists`);
         this.interfaces[instanceName] = _interface;
         return _interface;
     }
+    /**
+     * instantiate another module a a submodule
+     * @param instanceName sets the instance mane
+     * @param submodule the module to instantiate
+     * @param bindings define the connections of the submodule
+     * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
+     * @returns returns the resulting submodule instance
+     */
     addSubmodule(instanceName, submodule, bindings, autoBind = true) {
         if (this.submodules.instanceName !== undefined)
             throw Error(`submodule with instance name ${instanceName} already exists`);
@@ -192,12 +213,23 @@ export class Module {
         }
         return thisSig;
     }
+    /**
+     * add a signal to the SystemVerilog module
+     * @param name name of the signal
+     * @param signal parameters of the signal
+     * @returns signal that can be passed to other add* functions to make connections
+     */
     addSignal(name, signal) {
         if (this.findSignal(name))
             throw Error(`${name} signal already exists`);
         this.signals[name] = signal;
         return new Sig(name);
     }
+    /**
+     * add a DFF register(can be multi-bit) to the d input
+     * @param io the input/output of the register
+     * @returns return the q output signal
+     */
     addRegister(io) {
         let qName = io.q;
         if ((typeof io.d === 'string') || (io.d.type === 'Sig')) {
@@ -277,9 +309,24 @@ export class Module {
         }
         return qName;
     }
+    /**
+     * get the number of bits need to represent an integer value
+     * @param a the value to determine the bit width of
+     * @param isSigned whether the value should be treated as a signed number
+     * @returns the minimum bit width needed to represent the value
+     */
     bitWidth(a, isSigned = false) {
         return (Math.ceil(Math.log2(Math.abs(Number(a)) + Number(a >= 0)) + Number(isSigned || (a < 0))));
     }
+    /**
+     * add a rounding operation to scale down and reduce the bit width of a signal
+     * @param io the input/output signals of the round operation the rShift signal determines
+     * the number of LSBs to round away.  The rShift signal can be either a liternal constant or a variable
+     * shift.  When using a variable shift,  care should be taken to minimize the number of bits to
+     * minimize the impact on the timing path of the resulting logic.
+     * @param roundMode determines the type of rounding to apply
+     * @returns the signal of the rounded result
+     */
     addRound(io, roundMode = 'roundUp') {
         if (roundMode !== 'roundUp')
             throw Error(`FIXME: ${roundMode} not implemented yet`);
@@ -299,6 +346,12 @@ export class Module {
         }
         return io.out;
     }
+    /**
+     * add a Saturate operation to limit the bit width of a signal without overflow
+     * @param io the input and output signals of the saturation operation
+     * @param satMode determines the behavior of the saturation
+     * @returns signal of the result of the saturation
+     */
     addSaturate(io, satMode = 'simple') {
         if (satMode !== 'simple')
             throw Error(`FIXME: ${satMode} not implemented yet`);
