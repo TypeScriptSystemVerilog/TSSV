@@ -60,7 +60,7 @@ A example of a simple FIR Filter TSSV Module can be found [here](docs/example.md
 #### Generating
 ```bash
 $ cd ~/TSSV
-$ npx typedoc --plugin typedoc-plugin-missing-exports --out docs ts/src/**/*.ts
+$ npx typedoc --plugin typedoc-plugin-missing-exports --out docs/typedoc ts/src/**/*.ts
 ```
 #### Viewing the TypeDoc Documentation
 [The TSSV TypeDoc generated Github Page can be accessed here](https://avonancken.github.io/TSSV/index.html)
