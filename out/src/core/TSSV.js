@@ -72,6 +72,9 @@ endinterface
         return verilog;
     }
 }
+/**
+* The Module class is the base class for all TSSV modules.
+*/
 export class Module {
     constructor(params = {}, IOs = {}, signals = {}, body = "") {
         this.bindingRules = {
@@ -412,6 +415,11 @@ export class Module {
     addMultiplier(io) {
         return this.addOperation(BinaryOp.MULTIPLY, io);
     }
+    /**
+     * adds an arithmetic adder to the generated SystemVerilog module
+     * @param io the input/output interface of the adder
+     * @returns the sum result
+     */
     addAdder(io) {
         return this.addOperation(BinaryOp.ADD, io);
     }

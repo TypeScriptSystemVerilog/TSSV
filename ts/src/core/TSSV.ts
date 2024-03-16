@@ -145,10 +145,16 @@ endinterface
     }
 }
 
-
+/**
+* The Module class is the base class for all TSSV modules.
+*/
 export class Module {
     
+    /**
+    * name contains the resulting SystemVerilog module name
+    */
     readonly name: string
+
     protected params: TSSVParameters
     protected IOs : IOSignals
     protected signals: Signals
@@ -179,7 +185,7 @@ export class Module {
         this.interfaces = {}
     }
 
-    bindingRules = {
+    protected bindingRules = {
         'input' : ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
         'output' : ['output','wire', 'logic', 'enum'],
         'inout' : ['inout', 'wire']
@@ -250,7 +256,7 @@ export class Module {
     }
 
 
-    simpleHash(str: string): string {
+    protected simpleHash(str: string): string {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
@@ -509,6 +515,11 @@ export class Module {
         return this.addOperation(BinaryOp.MULTIPLY, io)
     }
 
+    /**
+     * adds an arithmetic adder to the generated SystemVerilog module
+     * @param io the input/output interface of the adder
+     * @returns the sum result
+     */
     addAdder(io: OperationIO):Sig {
         return this.addOperation(BinaryOp.ADD, io)
     }

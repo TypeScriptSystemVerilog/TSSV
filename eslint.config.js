@@ -8,6 +8,9 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    ignores : ["docs/**/*.js"]
+  },
+  {
     files: ["**/*.js"],
     languageOptions: {
         globals: {
