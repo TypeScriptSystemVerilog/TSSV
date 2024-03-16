@@ -212,11 +212,13 @@ endmodule
 ```
 
 ### How to generate the TypeDoc documentation
+#### Generating
 ```bash
 $ cd ~/TSSV
 $ npx typedoc --plugin typedoc-plugin-missing-exports --out docs ts/src/**/*.ts
 ```
-
+#### Viewing the TypeDoc Documentation
+[The TSSV TypeDoc generated Github Page can be accessed here](https://avonancken.github.io/TSSV/index.html)
 ### Next Steps
 - implement addCombinationalAlways()
 - implement addSeqentialAlways()
