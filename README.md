@@ -54,9 +54,9 @@ $ verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
 ```
 
 ### Example TSSV Module
-[Implementation of a simple FIR Filter module](https://github.com/avonancken/TSSV/blob/main/ts/src/modules/FIR.ts)
+- <a href="https://github.com/avonancken/TSSV/blob/main/ts/src/modules/FIR.ts">Implementation of a simple FIR Filter module</a>
 
-[Test program for the simple FIR Filter example](https://github.com/avonancken/TSSV/blob/main/ts/test/test_FIR.ts)
+- <a href="https://github.com/avonancken/TSSV/blob/main/ts/test/test_FIR.ts">Test program for the simple FIR Filter example</a>
 
 #### Generated SystemVerilog modules from the FIR Filter example
 - <a href="https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR.sv">Example 1</a>
