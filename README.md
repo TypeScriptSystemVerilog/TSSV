@@ -29,7 +29,13 @@ $ git clone https://github.com/avonancken/TSSV.git
 $ cd TSSV
 $ npm install
 $ npx tsc
-$ node out/test_FIR.js
+$ node out/test/test_FIR.js
+```
+### Run ESLint
+Run ESlint to for additional code quality checks beyond the type checking specified by Typescript.
+```bash
+$ cd ~/TSSV
+$ npx eslint .
 ```
 
 ### The Implementation of the example simple FIR Filter module
