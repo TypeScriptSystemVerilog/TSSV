@@ -116,16 +116,16 @@ export class Module {
         };
         this.submodules[instanceName] = thisModule;
         if (autoBind) {
-            for (var port in submodule.IOs) {
-                if (!thisModule.bindings[port]) {
-                    if (this.IOs[port]) {
-                        thisModule.bindings[port] = port;
+            for (var thisPort in submodule.IOs) {
+                if (!thisModule.bindings[thisPort]) {
+                    if (this.IOs[thisPort]) {
+                        thisModule.bindings[thisPort] = thisPort;
                     }
-                    else if (this.signals[port]) {
-                        thisModule.bindings[port] = port;
+                    else if (this.signals[thisPort]) {
+                        thisModule.bindings[thisPort] = thisPort;
                     }
-                    else if (submodule.IOs[port].direction === 'input') {
-                        throw Error(`unbound input on ${submodule.name}: ${port}`);
+                    else if (submodule.IOs[thisPort].direction === 'input') {
+                        throw Error(`unbound input on ${submodule.name}: ${thisPort}`);
                     }
                 }
             }
