@@ -68,7 +68,6 @@ $ npx typedoc --plugin typedoc-plugin-missing-exports --out docs/typedoc ts/src/
 - implement addCombinationalAlways()
 - implement addSeqentialAlways()
 - implement addMemory()
-- implement submodule instantiation and binding
-- implement standard interfaces and signal bundles
 - implement Control Register generator
+- implement Verilog/SystemVerilog import nodule
 - Decide approach to Bus fabrics and standardized interconnect
