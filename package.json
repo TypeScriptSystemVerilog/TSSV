@@ -1,6 +1,6 @@
 {
   "name": "TSSV",
-  "type": "module",  
+  "type": "module",
   "version": "1.0.0",
   "description": "Typescript based SystemVerilog meta-language and HDL design framework",
   "main": "./out/src/TSSV.js",
@@ -22,12 +22,14 @@
   "bugs": {
     "url": "https://github.com/avonancken/TSSV/issues"
   },
-    "exports" : {
-    "./lib/*" : "./out/src/*.js"
+  "exports": {
+    "./lib/*": "./out/src/*.js"
   },
-  "typesVersions" : {
-    "*" : {
-      "lib/*": ["out/src/*"]
+  "typesVersions": {
+    "*": {
+      "lib/*": [
+        "out/src/*"
+      ]
     }
   },
   "homepage": "https://github.com/avonancken/TSSV#readme",
@@ -36,5 +38,9 @@
     "eslint": "^8.57.0",
     "typescript": "^5.4.2",
     "typescript-eslint": "^7.2.0"
+  },
+  "dependencies": {
+    "typedoc": "^0.25.12",
+    "typedoc-plugin-missing-exports": "^2.2.0"
   }
 }

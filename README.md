@@ -211,6 +211,11 @@ endmodule
 
 ```
 
+### How to generate the TypeDoc documentation
+```bash
+$ cd ~/TSSV
+$ npx typedoc --plugin typedoc-plugin-missing-exports --out docs ts/src/**/*.ts
+```
 
 ### Next Steps
 - implement addCombinationalAlways()
