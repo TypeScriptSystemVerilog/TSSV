@@ -12,6 +12,7 @@ hardware design engineer familiar with SystemVerilog.
 
 Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
 
+#### Installation
 For MacBook M1/M2/M3 NodeJS installation: see link
 https://dev.to/themodernpk/install-node-on-macos-m1-274d
 
@@ -23,14 +24,35 @@ $ sudo apt install nodejs
 $ node -v
 ```
 
-
+#### Run Procedure
 ```bash
 $ git clone https://github.com/avonancken/TSSV.git
 $ cd TSSV
 $ npm install
 $ npx tsc
-$ node out/test_FIR.js
+$ node out/test/test_FIR.js
+$ cat sv-examples/test_FIR_output/myFIR.sv
 ```
+### Run ESLint
+Run ESlint to for additional code quality checks beyond the type checking specified by Typescript.
+```bash
+$ cd ~/TSSV
+$ npx eslint .
+```
+### Run Verilator
+Verilator is an open source Verilog/SystemVerilog simulator.   It can also be used as a lint check of Verilog/SystemVerilog code.   
+
+#### Installation
+For Ubuntu 22.04 NodeJS installation:
+```bash
+$ sudo apt install verilator
+```
+#### Run Procedure
+```bash
+$ cd ~/TSSV
+$ verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
+```
+
 
 ### The Implementation of the example simple FIR Filter module
 
