@@ -27,4 +27,5 @@ cat ../sv-examples/test_FIR_output/myFIR3.sv >> example.md
 echo "\`\`\`" >> example.md
 
 mkdir -p typedoc/docs
-cp example.md typedoc/docs
+markdown example.md > typedoc/docs/example.md
+
