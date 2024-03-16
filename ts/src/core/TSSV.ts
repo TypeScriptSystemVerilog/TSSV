@@ -431,7 +431,7 @@ export class Module {
         return io.out
     }
 
-    addOperation(
+    protected addOperation(
         op: BinaryOp, 
         io : OperationIO): Sig {
             const nameMap = {
@@ -641,7 +641,7 @@ ${caseAssignments}
 
     /**
      * write the generated SystemVerilog code to a string
-     * @returns stirng containing the generated SystemVerilog code for this module
+     * @returns string containing the generated SystemVerilog code for this module
      */
     writeSystemVerilog(): string {
         // assemble TSSVParameters
