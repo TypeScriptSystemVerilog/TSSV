@@ -269,7 +269,7 @@ export class Module {
     // we do not call the caller, we just grab the name for an error message
     // so the explicit anys are fine
     // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-    findSignal(sig:Sig|string, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null): Signal | IOSignal {
+    protected findSignal(sig:Sig|string, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null): Signal | IOSignal {
         const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()]
         if(!thisSig && throwOnFalse) {
             let errString = ""
@@ -524,10 +524,23 @@ export class Module {
         return this.addOperation(BinaryOp.ADD, io)
     }
 
+    /**
+     * adds an arithemetic subtractor to the generated SystemVerilog module
+     * @param io the input/output interface of the subtractor
+     * @returns the difference result
+     */
     addSubtractor(io: OperationIO):Sig {
         return this.addOperation(BinaryOp.SUBTRACT, io)
     }
 
+    /**
+     * add a constant literal signal to the generated SystemVerilog module
+     * @param name signal name
+     * @param value signal literal value
+     * @param isSigned whether the signal is signed or not
+     * @param width bit width of the resulting signal
+     * @returns 
+     */
     addConstSignal(name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): Sig {
         const minWidth = this.bitWidth(value, isSigned)
         const resolvedWidth = (width === undefined) ?  minWidth : width
@@ -536,6 +549,14 @@ export class Module {
         return new Sig(name)
     }
 
+    /**
+     * add an array of constant literal signals to the generated SystemVerilog module
+     * @param name signal name
+     * @param values the literal values of the array
+     * @param isSigned whether the signals are signed or not
+     * @param width bit width of the resulting signals
+     * @returns The array of signals
+     */
     addConstSignals(name: string, values: Array<bigint>, isSigned: boolean = false, width: number | undefined = undefined) : Array<Sig> {
         const signalNames = [...Array(values.length).keys()].map((p:number)=>{ return `${name}_${p}`})
         const retVal : Array<Sig> = []
@@ -545,6 +566,11 @@ export class Module {
         return retVal
     }
 
+    /**
+     * add a SystemVerilog continuous assign statement
+     * @param io expression that is the right hand side of the assigment
+     * @returns signal that is the left hand side of the assignment
+     */
     addAssign(io:{in:Expr, out:string|Sig}) : Sig {
         const outSig = this.findSignal(io.out, true, this.addAssign)
         if(!(outSig.type === 'wire' || outSig.type === 'logic')) {
@@ -557,6 +583,11 @@ export class Module {
         return io.out
     }
 
+    /**
+     * add a multiplexer to the TSSV module
+     * @param io The input/output signals connected to the multiplexer
+     * @returns signal of the multiplexer output
+     */
     addMux(io:{in:Array<string|Sig|Expr>, sel:string|Sig|Expr, out:string|Sig}):Sig {
         const selWidth = Math.ceil(Math.log2(io.in.length))
         let selString =  io.sel.toString()
@@ -596,6 +627,9 @@ ${caseAssignments}
         return io.out
     }
 
+    /**
+     * print some debug information to the console
+     */
     debug() {
         console.log(this.name)
         console.log(this.params)
@@ -605,6 +639,10 @@ ${caseAssignments}
         console.log(this.registerBlocks)
     }
 
+    /**
+     * write the generated SystemVerilog code to a string
+     * @returns stirng containing the generated SystemVerilog code for this module
+     */
     writeSystemVerilog(): string {
         // assemble TSSVParameters
         const paramsArray: string[] = []
