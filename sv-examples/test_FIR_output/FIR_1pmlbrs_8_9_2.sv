@@ -3,7 +3,7 @@
 
         
 /* verilator lint_off WIDTH */        
-module FIR_1pmlbrs_5_8_9_2 
+module FIR_1pmlbrs_8_9_2 
    (
    input logic  clk,
    input logic  rst_b,

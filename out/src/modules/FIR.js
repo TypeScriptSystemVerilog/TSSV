@@ -5,7 +5,6 @@ export class FIR extends Module {
             // define the default parameter values
             name: params.name,
             coefficients: params.coefficients,
-            numTaps: params.numTaps || 10,
             inWidth: params.inWidth || 8,
             outWidth: params.outWidth || 9,
             rShift: params.rShift || 2
@@ -22,7 +21,7 @@ export class FIR extends Module {
         let nextTapIn = new Sig("data_in");
         const products = [];
         let coeffSum = 0;
-        for (let i = 0; i < (this.params.numTaps || 0); i++) {
+        for (let i = 0; i < this.params.coefficients.length; i++) {
             // construct tap delay line
             const thisTap = this.addSignal(`tap_${i}`, { width: this.params.inWidth, isSigned: true });
             this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en', q: thisTap });
