@@ -20,9 +20,9 @@ export class FIR extends Module {
         };
         // construct logic
         let nextTapIn = new Sig("data_in");
-        let products = [];
+        const products = [];
         let coeffSum = 0;
-        for (var i = 0; i < (this.params.numTaps || 0); i++) {
+        for (let i = 0; i < (this.params.numTaps || 0); i++) {
             // construct tap delay line
             const thisTap = this.addSignal(`tap_${i}`, { width: this.params.inWidth, isSigned: true });
             this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en', q: thisTap });

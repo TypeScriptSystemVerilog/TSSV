@@ -38,12 +38,12 @@ export class Adder3 extends Module {
             sum: { direction: 'output', width: sumWidth, isSigned: true }
         };
         const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1;
-        let psum = this.addSignal('psum', { width: psumWidth });
+        const psum = this.addSignal('psum', { width: psumWidth });
         this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: 'psum', regs: 'regs1' });
         this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum', regs: 'regs2' });
     }
 }
-let test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
+const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
 try {
     writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog());
 }

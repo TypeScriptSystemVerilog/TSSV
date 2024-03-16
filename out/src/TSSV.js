@@ -33,24 +33,24 @@ export class Interface {
         this.signals = signals;
     }
     interfaceName() {
-        let vName = `${this.name}_${Object.values(this.params).join('_')}`;
+        const vName = `${this.name}_${Object.values(this.params).join('_')}`;
         return vName;
     }
     writeSystemVerilog() {
-        let signalArray = [];
+        const signalArray = [];
         Object.keys(this.signals).map((key) => {
             let rangeString = "";
-            let signString = (this.signals[key].isSigned) ? " signed" : "";
+            const signString = (this.signals[key].isSigned) ? " signed" : "";
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
             }
             signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
-        let signalString = `   ${signalArray.join(';\n   ')}`;
+        const signalString = `   ${signalArray.join(';\n   ')}`;
         let modportsString = '';
-        for (var modport in this.modports) {
-            let thisModport = this.modports[modport];
-            let modportArray = [];
+        for (const modport in this.modports) {
+            const thisModport = this.modports[modport];
+            const modportArray = [];
             Object.keys(thisModport).map((name) => {
                 modportArray.push(`      ${thisModport[name]} ${name}`);
             });
@@ -60,7 +60,7 @@ ${modportArray.join(',\n')}
     );           
 `;
         }
-        let verilog = `
+        const verilog = `
 interface ${this.interfaceName()};
 
 ${signalString};
@@ -86,7 +86,7 @@ export class Module {
             this.name = params.name;
         }
         else {
-            let mapFunc = (p) => {
+            const mapFunc = (p) => {
                 if (typeof p === 'object') {
                     return this.simpleHash(p.toString());
                 }
@@ -110,7 +110,7 @@ export class Module {
     addSubmodule(instanceName, submodule, bindings, autoBind = true) {
         if (this.submodules.instanceName !== undefined)
             throw Error(`submodule with instance name ${instanceName} already exists`);
-        let thisModule = {
+        const thisModule = {
             module: submodule,
             bindings: bindings
         };
@@ -129,8 +129,8 @@ export class Module {
                     }
                 }
             }
-            for (var _interface in submodule.interfaces) {
-                let thisInterface = submodule.interfaces[_interface];
+            for (const _interface in submodule.interfaces) {
+                const thisInterface = submodule.interfaces[_interface];
                 if (thisInterface.role && thisInterface.modports) {
                     if (!thisModule.bindings[_interface]) {
                         if (this.interfaces[_interface]) {
@@ -147,12 +147,12 @@ export class Module {
             const thisPort = submodule.IOs[port];
             const thisInterface = submodule.interfaces[port];
             if (thisPort) {
-                let thisSig = this.findSignal(bindings[port], true, this.addSubmodule);
+                const thisSig = this.findSignal(bindings[port], true, this.addSubmodule);
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
                     throw Error(`illegal binding ${port}(${bindings[port]})`);
             }
             else if (thisInterface && (typeof port === 'string')) {
-                let thisInt = this.interfaces[bindings[port].toString()];
+                const thisInt = this.interfaces[bindings[port].toString()];
                 if (thisInt.role) {
                     if (thisInt.role !== thisInterface.role)
                         throw Error(`${port} interface role mismatch on ${submodule.name}`);
@@ -205,7 +205,7 @@ export class Module {
             }
         }
         if (io.q) {
-            let qSig = this.findSignal(io.q, true, this.addRegister);
+            const qSig = this.findSignal(io.q, true, this.addRegister);
             switch (qSig.type) {
                 case undefined:
                 case 'wire':
@@ -280,7 +280,7 @@ export class Module {
             throw Error(`FIXME: ${roundMode} not implemented yet`);
         const inSig = this.findSignal(io.in, true, this.addRound);
         const outSig = this.findSignal(io.out, true, this.addRound);
-        let rShiftString = io.rShift.toString();
+        const rShiftString = io.rShift.toString();
         if (typeof io.rShift !== 'number') {
             const rShiftSig = this.findSignal(io.rShift, true, this.addRound);
             if (rShiftSig.isSigned)
@@ -425,8 +425,8 @@ export class Module {
         return new Sig(name);
     }
     addConstSignals(name, values, isSigned = false, width = undefined) {
-        let signalNames = [...Array(values.length).keys()].map((p) => { return `${name}_${p}`; });
-        let retVal = [];
+        const signalNames = [...Array(values.length).keys()].map((p) => { return `${name}_${p}`; });
+        const retVal = [];
         signalNames.forEach((p, i) => {
             retVal.push(this.addConstSignal(p, values[i], isSigned || (values[i] < 0), width));
         });
@@ -467,7 +467,7 @@ export class Module {
                 throw Error(`${io.out} is unsupported signal type ${outSig.type}`);
         }
         let caseAssignments = '';
-        for (var i in io.in) {
+        for (const i in io.in) {
             const rhExpr = `${io.in[i].toString()}`;
             caseAssignments += `     case ${selWidth}'d{i}: ${io.out} = ${rhExpr}`;
         }
@@ -492,7 +492,7 @@ ${caseAssignments}
     }
     writeSystemVerilog() {
         // assemble TSSVParameters
-        let paramsArray = [];
+        const paramsArray = [];
         if (this.params) {
             //FIXME - need separate SV Verilog parameter container
             /*
@@ -510,22 +510,22 @@ ${caseAssignments}
             paramsString = `    #(${paramsArray.join(',\n    ')})`;
         }
         // construct IO definition
-        let IOArray = [];
-        let signalArray = [];
+        const IOArray = [];
+        const signalArray = [];
         let interfacesString = '';
         Object.keys(this.IOs).map((key) => {
             let rangeString = "";
-            let signString = (this.IOs[key].isSigned) ? " signed" : "";
+            const signString = (this.IOs[key].isSigned) ? " signed" : "";
             if ((this.IOs[key].width || 0) > 1) {
                 rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
             }
             IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
         Object.keys(this.interfaces).map((key) => {
-            let thisInterface = this.interfaces[key];
+            const thisInterface = this.interfaces[key];
             if (thisInterface.role) {
                 if (thisInterface.modports) {
-                    let thisModports = thisInterface.modports[thisInterface.role];
+                    const thisModports = thisInterface.modports[thisInterface.role];
                     if (!thisModports)
                         throw Error(`${thisInterface.name} : inconsistent modports`);
                     /*
@@ -554,11 +554,11 @@ ${caseAssignments}
                 signalArray.push(`${thisInterface.interfaceName()} ${key}`);
             }
         });
-        let IOString = `   ${IOArray.join(',\n   ')}`;
+        const IOString = `   ${IOArray.join(',\n   ')}`;
         // construct signal list
         Object.keys(this.signals).map((key) => {
             let rangeString = "";
-            let signString = (this.signals[key].isSigned) ? " signed" : "";
+            const signString = (this.signals[key].isSigned) ? " signed" : "";
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
             }
@@ -567,13 +567,13 @@ ${caseAssignments}
         let signalString = `   ${signalArray.join(';\n   ')}`;
         if (signalArray.length)
             signalString += ';';
-        for (var sensitivity in this.registerBlocks) {
-            for (var resetCondition in this.registerBlocks[sensitivity]) {
-                for (var enable in this.registerBlocks[sensitivity][resetCondition]) {
+        for (const sensitivity in this.registerBlocks) {
+            for (const resetCondition in this.registerBlocks[sensitivity]) {
+                for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
                     const regs = this.registerBlocks[sensitivity][resetCondition][enable];
                     let resetString = "   ";
                     if (resetCondition != "#NONE#") {
-                        let resetAssignments = [];
+                        const resetAssignments = [];
                         Object.keys(regs).map((key) => {
                             const reg = regs[key];
                             //console.log(reg)
@@ -586,8 +586,8 @@ ${resetAssignments.join('\n')}
         end
       else `;
                     }
-                    let enableString = (enable == "#NONE#") ? "" : `if(${enable})`;
-                    let functionalAssigments = [];
+                    const enableString = (enable == "#NONE#") ? "" : `if(${enable})`;
+                    const functionalAssigments = [];
                     Object.keys(regs).map((key) => {
                         const reg = regs[key];
                         //console.log(reg)
@@ -605,15 +605,15 @@ ${functionalAssigments.join('\n')}
             }
         }
         let subModulesString = "";
-        for (var moduleInstance in this.submodules) {
+        for (const moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance];
-            let printed = {};
+            const printed = {};
             if (!printed[thisSubmodule.module.name]) {
                 printed[thisSubmodule.module.name] = true;
                 subModulesString += thisSubmodule.module.writeSystemVerilog();
             }
-            let bindingsArray = [];
-            for (var binding in thisSubmodule.bindings) {
+            const bindingsArray = [];
+            for (const binding in thisSubmodule.bindings) {
                 bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding]})`);
             }
             this.body +=
@@ -624,7 +624,7 @@ ${bindingsArray.join(',\n')}
       );
 `;
         }
-        let verilog = `
+        const verilog = `
 ${interfacesString}        
 ${subModulesString}
         
