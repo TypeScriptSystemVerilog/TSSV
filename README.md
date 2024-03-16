@@ -54,14 +54,14 @@ $ verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
 ```
 
 ### Example TSSV Module
-[Implementation of a simple FIR Filter module](https://github.com/avonancken/TSSV/blob/main/ts/src/modules/FIR.ts)
+- <a href="https://github.com/avonancken/TSSV/blob/main/ts/src/modules/FIR.ts">Implementation of a simple FIR Filter module</a>
 
-[Test program for the simple FIR Filter example](https://github.com/avonancken/TSSV/blob/main/ts/test/test_FIR.ts)
+- <a href="https://github.com/avonancken/TSSV/blob/main/ts/test/test_FIR.ts">Test program for the simple FIR Filter example</a>
 
 #### Generated SystemVerilog modules from the FIR Filter example
-- [Example 1](https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR.sv)
-- [Example 2](https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/FIR_1pmlbrs_8_9_2.sv)
-- [Example 3](https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR3.sv)
+- <a href="https://github.com/avonancken/TSSV/blob/ebfebd1a4039c70e3c421d0ede336e12124344a2/sv-examples/test_FIR_output/myFIR.sv#L1-L57">Example 1</a>
+- <a href="https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/FIR_1pmlbrs_8_9_2.sv">Example 2</a>
+- <a href="https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR3.sv">Example 3</a>
 
 ### How to generate the TypeDoc documentation
 #### Generating
