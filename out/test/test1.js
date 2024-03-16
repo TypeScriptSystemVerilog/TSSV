@@ -39,7 +39,7 @@ export class Adder3 extends Module {
         };
         const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1;
         const psum = this.addSignal('psum', { width: psumWidth });
-        this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: 'psum', regs: 'regs1' });
+        this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: psum, regs: 'regs1' });
         this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum', regs: 'regs2' });
     }
 }

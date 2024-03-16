@@ -681,7 +681,7 @@ ${caseAssignments}
                             resetAssignments.push(`           ${key} <= 'd${reg.resetVal||0};`)
                         })
                         resetString =
-			    `     if(${resetCondition})
+`     if(${resetCondition})
         begin
 ${resetAssignments.join('\n')}
         end
@@ -699,7 +699,7 @@ ${resetAssignments.join('\n')}
 
 
                     this.body +=
-			`
+`
    always_ff ${sensitivity}
 ${resetString}${enableString}
         begin
@@ -733,7 +733,7 @@ ${bindingsArray.join(',\n')}
         }
 
         const verilog: string = 
-	    `
+`
 ${interfacesString}        
 ${subModulesString}
         

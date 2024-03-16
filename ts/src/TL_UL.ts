@@ -1,4 +1,4 @@
-import {Module, TSSVParameters, IntRange, Sig, Expr, Interface} from 'TSSV/lib/TSSV'
+import {TSSVParameters, IntRange, Interface} from 'TSSV/lib/TSSV'
 
 export interface TL_UL_Parameters extends TSSVParameters {
     AIW?:   IntRange<1,32>
