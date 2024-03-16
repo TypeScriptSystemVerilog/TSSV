@@ -1,4 +1,4 @@
-import {FIR, FIR_Parameters} from './FIR'
+import {FIR, FIR_Parameters} from 'TSSV/lib/FIR'
 import { writeFileSync } from 'fs';
 
 let myFir = new FIR({name: 'myFIR', numTaps: 4, coefficients: [1n, 2n, 3n, 4n]})

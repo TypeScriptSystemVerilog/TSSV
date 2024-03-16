@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TL_UL = void 0;
-const TSSV_1 = require("./TSSV");
-class TL_UL extends TSSV_1.Interface {
+import { Interface } from 'TSSV/lib/TSSV';
+export class TL_UL extends Interface {
     constructor(params = {}, role = undefined) {
         super('TL_UL', {
             AIW: params.AIW || 8,
@@ -19,7 +16,7 @@ class TL_UL extends TSSV_1.Interface {
                 a_data: { width: this.params.DW },
                 a_source: { width: this.params.AIW },
                 a_size: { width: 2 },
-                a_mask: { width: (this.params.DW == 64) ? 8 : 4 },
+                a_mask: { width: (this.params.DW || 32) / 8 },
                 d_valid: { width: 1 },
                 d_ready: { width: 1 },
                 d_opcode: { width: 3 },
@@ -69,4 +66,3 @@ class TL_UL extends TSSV_1.Interface {
         };
     }
 }
-exports.TL_UL = TL_UL;

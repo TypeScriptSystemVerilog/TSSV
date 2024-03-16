@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FIR = void 0;
-const TSSV_1 = require("./TSSV");
-class FIR extends TSSV_1.Module {
+import { Module, Sig, Expr } from 'TSSV/lib/TSSV';
+export class FIR extends Module {
     constructor(params) {
         super({
             // define the default parameter values
@@ -22,7 +19,7 @@ class FIR extends TSSV_1.Module {
             data_out: { direction: 'output', width: this.params.outWidth, isSigned: true }
         };
         // construct logic
-        let nextTapIn = new TSSV_1.Sig("data_in");
+        let nextTapIn = new Sig("data_in");
         let products = [];
         let coeffSum = 0;
         for (var i = 0; i < (this.params.numTaps || 0); i++) {
@@ -39,7 +36,7 @@ class FIR extends TSSV_1.Module {
         const productsExt = products.map((p) => `${sumWidth}'(${p})`);
         this.addSignal('sum', { width: sumWidth, isSigned: true });
         this.addRegister({
-            d: new TSSV_1.Expr(`${productsExt.join(' + ')}`),
+            d: new Expr(`${productsExt.join(' + ')}`),
             clk: 'clk',
             reset: 'rst_b',
             en: 'en',
@@ -59,4 +56,3 @@ class FIR extends TSSV_1.Module {
         });
     }
 }
-exports.FIR = FIR;

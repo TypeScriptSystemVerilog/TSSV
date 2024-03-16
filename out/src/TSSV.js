@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Module = exports.Interface = exports.Expr = exports.Sig = void 0;
-class Sig {
+//import { runInThisContext } from "vm"
+export class Sig {
     constructor(name) {
         this.toString = () => {
             return this.name;
@@ -10,8 +8,7 @@ class Sig {
         this.type = 'Sig';
     }
 }
-exports.Sig = Sig;
-class Expr {
+export class Expr {
     constructor(name) {
         this.toString = () => {
             return this.name;
@@ -20,7 +17,6 @@ class Expr {
         this.type = 'Expr';
     }
 }
-exports.Expr = Expr;
 var BinaryOp;
 (function (BinaryOp) {
     BinaryOp["MULTIPLY"] = "*";
@@ -29,7 +25,7 @@ var BinaryOp;
     BinaryOp["BITWISE_AND"] = "&";
     BinaryOp["BITWISE_OR"] = "|";
 })(BinaryOp || (BinaryOp = {}));
-class Interface {
+export class Interface {
     constructor(name, params = {}, role = undefined, signals = {}) {
         this.name = name;
         this.params = params;
@@ -77,8 +73,7 @@ endinterface
         return verilog;
     }
 }
-exports.Interface = Interface;
-class Module {
+export class Module {
     constructor(params = {}, IOs = {}, signals = {}, body = "") {
         this.bindingRules = {
             'input': ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
@@ -649,6 +644,5 @@ endmodule
         return verilog;
     }
 }
-exports.Module = Module;
 Module.printedInterfaces = {};
-exports.default = { Module, Sig, Expr };
+export default { Module, Sig, Expr };

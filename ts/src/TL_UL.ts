@@ -1,10 +1,9 @@
-import {Module, TSSVParameters, IntRange, Sig, Expr, Interface} from './TSSV'
+import {Module, TSSVParameters, IntRange, Sig, Expr, Interface} from 'TSSV/lib/TSSV'
 
 export interface TL_UL_Parameters extends TSSVParameters {
     AIW?:   IntRange<1,32>
     AW?:   IntRange<8,64> 
     DIW?:  IntRange<1,32> 
-    DBW?:  IntRange<1,32> 
     DW?:   32 | 64
 }
 export type TL_UL_Role = 'producer' | 'responder' | undefined
@@ -30,7 +29,7 @@ export class TL_UL extends Interface {
                 a_data : { width: this.params.DW },
                 a_source : { width: this.params.AIW },
                 a_size : { width: 2 },
-                a_mask: { width: (this.params.DW == 64) ? 8 : 4 },
+                a_mask: { width: (this.params.DW || 32)/8 },
 
                 d_valid : { width: 1},
                 d_ready : { width : 1 },

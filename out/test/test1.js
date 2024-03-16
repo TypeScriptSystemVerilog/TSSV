@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Adder3 = exports.Adder = void 0;
-const TSSV_1 = require("./TSSV");
-const TL_UL_1 = require("./TL_UL");
-const fs_1 = require("fs");
-class Adder extends TSSV_1.Module {
+import { Module } from 'TSSV/lib/TSSV';
+import { TL_UL } from 'TSSV/lib/TL_UL';
+import { writeFileSync } from 'fs';
+export class Adder extends Module {
     constructor(params) {
         super({
             // define the default parameter values
@@ -12,7 +9,7 @@ class Adder extends TSSV_1.Module {
             bWidth: params.bWidth || 8
         });
         // add Tilelink UL responder interface
-        this.addInterface('regs', new TL_UL_1.TL_UL({}, 'responder'));
+        this.addInterface('regs', new TL_UL({}, 'responder'));
         // define IO signals
         this.IOs = {
             a: { direction: 'input', width: this.params.aWidth, isSigned: true },
@@ -22,8 +19,7 @@ class Adder extends TSSV_1.Module {
         this.addAdder({ a: 'a', b: 'b', result: 'sum' });
     }
 }
-exports.Adder = Adder;
-class Adder3 extends TSSV_1.Module {
+export class Adder3 extends Module {
     constructor(params) {
         super({
             // define the default parameter values
@@ -31,8 +27,8 @@ class Adder3 extends TSSV_1.Module {
             bWidth: params.bWidth || 8,
             cWidth: params.bWidth || 8
         });
-        this.addInterface('regs1', new TL_UL_1.TL_UL({}));
-        this.addInterface('regs2', new TL_UL_1.TL_UL({}));
+        this.addInterface('regs1', new TL_UL({}));
+        this.addInterface('regs2', new TL_UL({}));
         // define IO signals
         const sumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1, (this.params.cWidth || 1))) + 2;
         this.IOs = {
@@ -47,10 +43,9 @@ class Adder3 extends TSSV_1.Module {
         this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum', regs: 'regs2' });
     }
 }
-exports.Adder3 = Adder3;
 let test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
 try {
-    (0, fs_1.writeFileSync)('sv-examples/test1.sv', test1.writeSystemVerilog());
+    writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);
