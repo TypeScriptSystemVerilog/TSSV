@@ -1,4 +1,7 @@
-
+/**
+ * IntRange type allows specifify a type that allows a range of integer values
+ * Used in Parameter types on TSSV modules where the parameters have range restrictions
+ */
 export type IntRange<
     START extends number,
 END extends number,
@@ -33,14 +36,23 @@ interface baseSignal {
 
 type PortDirection = 'input' | 'output' | 'inout'
 
-
+/**
+ * defines an IO signal (a.k.a port of the the TSSV module)
+ */
 interface IOSignal  extends baseSignal {
     direction: PortDirection 
 }
 
-
+/**
+ * The IO interface bundle of a TSSV Module
+ */
 export interface IOSignals {[name: string] : IOSignal}
 
+
+/**
+ * container class of a TSSV signal used to pass signals
+ * among add* primtives and submodules to define interconnections
+ */
 export class Sig  {
     constructor(name: string) {
         this.name = name
@@ -53,6 +65,10 @@ export class Sig  {
     readonly type: 'Sig'
 }
 
+/**
+ * container class of a TSSV expression, or a RHS assignment in the
+ * generated output
+ */
 export class Expr  {
     constructor(name: string) {
         this.name = name

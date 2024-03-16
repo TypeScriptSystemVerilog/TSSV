@@ -1,3 +1,7 @@
+/**
+ * container class of a TSSV signal used to pass signals
+ * among add* primtives and submodules to define interconnections
+ */
 export class Sig {
     constructor(name) {
         this.toString = () => {
@@ -7,6 +11,10 @@ export class Sig {
         this.type = 'Sig';
     }
 }
+/**
+ * container class of a TSSV expression, or a RHS assignment in the
+ * generated output
+ */
 export class Expr {
     constructor(name) {
         this.toString = () => {
