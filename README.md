@@ -59,9 +59,9 @@ $ verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
 [Test program for the simple FIR Filter example](https://github.com/avonancken/TSSV/blob/main/ts/test/test_FIR.ts)
 
 #### Generated SystemVerilog modules from the FIR Filter example
-- [Example 1](https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR.sv)
-- [Example 2](https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/FIR_1pmlbrs_8_9_2.sv)
-- [Example 3](https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR3.sv)
+- <a href="https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR.sv">Example 1</a>
+- <a href="https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/FIR_1pmlbrs_8_9_2.sv">Example 2</a>[
+- <a href="https://github.com/avonancken/TSSV/blob/main/sv-examples/test_FIR_output/myFIR3.sv">Example 3</a>
 
 ### How to generate the TypeDoc documentation
 #### Generating
