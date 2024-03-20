@@ -391,6 +391,55 @@ export class Module {
         }
         return io.out;
     }
+    addSequentialAlways(io, body) {
+        for (const name in io.outputs) {
+            const thisSig = this.findSignal(io.outputs[name], true, this.addSequentialAlways);
+            switch (thisSig.type) {
+                case undefined:
+                case 'wire':
+                    thisSig.type = 'logic';
+                    break;
+                case 'reg':
+                case 'logic':
+                    break;
+                default:
+                    throw Error(`${name} is unsupported signal type ${thisSig.type}`);
+            }
+        }
+        const clkSig = this.findSignal(io.clk, true, this.addRegister);
+        if (!clkSig.isClock)
+            throw Error('${io.clk} is not a clock signal');
+        let resetSensitivity = '';
+        if (io.reset) {
+            const rstSig = this.findSignal(io.reset, true, this.addRegister);
+            if (!rstSig.isReset)
+                throw Error(`${io.reset} is not a reset signal`);
+            switch (rstSig.isReset) {
+                case 'highasync':
+                    resetSensitivity = `or posedge ${io.reset}`;
+                    break;
+                case 'lowasync':
+                    resetSensitivity = `or negedge ${io.reset}`;
+                    break;
+                default:
+            }
+        }
+        const sensitivityList = `@( ${clkSig.isClock} ${io.clk} ${resetSensitivity} )`;
+        if (body.includes('always_ff')) {
+            const clkSenseMatch = body.replace(/\s+/g, ' ').includes(`${clkSig.isClock} ${io.clk}`);
+            const resetSenseMatch = (resetSensitivity === '') || body.replace(/\s+/g, ' ').includes(resetSensitivity);
+            if (clkSenseMatch && resetSenseMatch) {
+                this.body += body;
+            }
+            else {
+                throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`);
+            }
+        }
+        else {
+            this.body += `always_ff ${sensitivityList}\n`;
+            this.body += body;
+        }
+    }
     addOperation(op, io) {
         const nameMap = {
             '*': {

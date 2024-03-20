@@ -35,12 +35,26 @@ export class Adder3 extends Module {
             a: { direction: 'input', width: this.params.aWidth, isSigned: true },
             b: { direction: 'input', width: this.params.bWidth, isSigned: true },
             c: { direction: 'input', width: this.params.bWidth, isSigned: true },
+            clk: { direction: 'input', isClock: 'posedge' },
+            rst_b: { direction: 'input', isReset: 'lowasync' },
             sum: { direction: 'output', width: sumWidth, isSigned: true }
         };
         const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1;
         const psum = this.addSignal('psum', { width: psumWidth });
         this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: psum, regs: 'regs1' });
-        this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum', regs: 'regs2' });
+        this.addSignal("sum_d", { width: sumWidth });
+        this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum_d', regs: 'regs2' });
+        this.addSequentialAlways({
+            clk: 'clk',
+            reset: 'rst_b',
+            outputs: ['sum']
+        }, `
+    always_ff @(posedge clk or negedge rst_b)
+      if(!rst_b)
+        sum <= '0;
+      else
+        sum <= sum_d;
+`);
     }
 }
 const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });

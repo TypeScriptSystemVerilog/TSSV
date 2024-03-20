@@ -110,13 +110,22 @@ module Adder3_8_8_8
    input logic signed [7:0] a,
    input logic signed [7:0] b,
    input logic signed [7:0] c,
+   input logic  clk,
+   input logic  rst_b,
    output logic signed [9:0] sum
    );
 
    TL_UL_8_32_8_32 regs1;
    TL_UL_8_32_8_32 regs2;
    logic [8:0] psum;
+   logic [9:0] sum_d;
 
+
+    always_ff @(posedge clk or negedge rst_b)
+      if(!rst_b)
+        sum <= '0;
+      else
+        sum <= sum_d;
 
     Adder_8_8 add1
       (
@@ -130,7 +139,7 @@ module Adder3_8_8_8
       (
         .a(c),
         .b(psum),
-        .sum(sum),
+        .sum(sum_d),
         .regs(regs2)        
       );
 
