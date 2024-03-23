@@ -1,4 +1,4 @@
-import { Interface } from 'TSSV/lib/core/TSSV';
+import { Interface } from 'tssv/lib/core/TSSV';
 /**
  * TSSV Interface bundle for the Tilelink Uncached Lightweight (TL-UL) protocol
  */

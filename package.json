@@ -1,5 +1,5 @@
 {
-  "name": "TSSV",
+  "name": "tssv",
   "type": "module",
   "version": "1.0.0",
   "description": "Typescript based SystemVerilog meta-language and HDL design framework",

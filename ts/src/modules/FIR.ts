@@ -1,4 +1,4 @@
-import {Module, TSSVParameters, IntRange, Sig, Expr} from 'TSSV/lib/core/TSSV'
+import {Module, TSSVParameters, IntRange, Sig, Expr} from 'tssv/lib/core/TSSV'
 
 
 /**

@@ -1,5 +1,5 @@
 //import library
-import { Module } from 'TSSV/lib/core/TSSV';
+import { Module } from 'tssv/lib/core/TSSV';
 export class addAlways extends Module {
     constructor(params) {
         super({

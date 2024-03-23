@@ -1,5 +1,5 @@
-import { Module, TSSVParameters, IntRange } from 'TSSV/lib/core/TSSV'
-import { TL_UL } from 'TSSV/lib/interfaces/TL_UL'
+import { Module, TSSVParameters, IntRange } from 'tssv/lib/core/TSSV'
+import { TL_UL } from 'tssv/lib/interfaces/TL_UL'
 import { writeFileSync } from 'fs';
 
 

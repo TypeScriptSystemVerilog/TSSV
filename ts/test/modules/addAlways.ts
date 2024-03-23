@@ -1,5 +1,5 @@
 //import library
-import {Module, TSSVParameters, IntRange} from 'TSSV/lib/core/TSSV'
+import {Module, TSSVParameters, IntRange} from 'tssv/lib/core/TSSV'
 
 
 export interface seq_Parameters extends TSSVParameters {

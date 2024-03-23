@@ -1,4 +1,4 @@
-import { Module, Sig, Expr } from 'TSSV/lib/core/TSSV';
+import { Module, Sig, Expr } from 'tssv/lib/core/TSSV';
 export class FIR extends Module {
     constructor(params) {
         super({

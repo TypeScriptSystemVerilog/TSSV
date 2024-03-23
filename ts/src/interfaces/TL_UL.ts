@@ -1,4 +1,4 @@
-import {TSSVParameters, IntRange, Interface} from 'TSSV/lib/core/TSSV'
+import {TSSVParameters, IntRange, Interface} from 'tssv/lib/core/TSSV'
 
 /**
  * interface defining the parameters of the TL_UL TSSV Interface bundle
