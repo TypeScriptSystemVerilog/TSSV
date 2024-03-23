@@ -65,7 +65,6 @@ $ npx typedoc --plugin typedoc-plugin-missing-exports --out docs/typedoc ts/src/
 #### Viewing the TypeDoc Documentation
 [The TSSV TypeDoc generated Github Page can be accessed here](https://avonancken.github.io/TSSV/index.html)
 ### Next Steps
-- implement addSeqentialAlways()
 - implement addMemory()
 - implement Control Register generator
 - implement Verilog/SystemVerilog import module
