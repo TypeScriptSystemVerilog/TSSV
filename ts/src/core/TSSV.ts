@@ -503,7 +503,7 @@ export class Module {
         io: {      
             clk: string | Sig, 
             reset?: string | Sig,
-            outputs: [string| Sig]
+            outputs: (string| Sig)[]
         },
         body: string
     ) : void {
@@ -548,6 +548,44 @@ export class Module {
             }
         } else {
             this.body += `always_ff ${sensitivityList}\n`
+            this.body += body
+        }
+    }
+
+    addCombAlways(
+        io: {      
+            inputs: (string | Sig)[], 
+            outputs: (string| Sig)[]
+        },
+        body: string
+    ) : void {
+        for(const name in io.outputs) {
+            const thisSig = this.findSignal(io.outputs[name], true, this.addCombAlways)
+            switch(thisSig.type) {
+                case undefined:    
+                case 'wire':
+                    thisSig.type = 'logic'
+                    break
+                case 'reg':
+                case 'logic':
+                    break
+                default:
+                    throw Error(`${name} is unsupported signal type ${thisSig.type}`)
+                }
+        }
+        for(const name in io.inputs) {
+           this.findSignal(io.inputs[name], true, this.addSequentialAlways)
+        }
+        const sensitivityList = `@( ${io.inputs.join(' or ')} )`
+        if(body.includes('always_comb')) {
+            const SenseMatch = body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)          
+            if(SenseMatch) {
+                this.body += body    
+            } else {
+                throw Error (`Sensitivity mismatch: ${sensitivityList} : ${body}`)
+            }
+        } else {
+            this.body += `always_comb ${sensitivityList}\n`
             this.body += body
         }
     }
