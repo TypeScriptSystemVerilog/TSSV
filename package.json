@@ -23,12 +23,16 @@
     "url": "https://github.com/avonancken/TSSV/issues"
   },
   "exports": {
-    "./lib/*": "./out/src/*.js"
+    "./lib/*": "./out/src/*.js",
+    "./test/*": "./out/test/*.js"
   },
   "typesVersions": {
     "*": {
       "lib/*": [
         "out/src/*"
+      ],
+      "test/*": [
+        "out/test/*"
       ]
     }
   },

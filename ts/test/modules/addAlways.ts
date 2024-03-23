@@ -29,20 +29,20 @@ export class addAlways extends Module {
     
 //always_ff test 
  //exclude sensitivityList
-        let seq_body1 : string = 
+        const seq_body1 : string = 
         `
         begin
-          ${'data_in'} <= ${'data_out'};  
+          ${'data_out'} <= ${'data_in'};  
         end \n
         `
         this.addSequentialAlways({clk: 'clk', reset: 'rst_b', outputs: ['data_out'] }, seq_body1)
  
 //include correct sensitivityList
-        let seq_body2 : string = 
+        const  seq_body2 : string = 
         `
         always_ff @( posedge clk or negedge rst_b )
             begin
-              ${'data_in'} <= ${'data_out'};  
+              ${'data_out'} <= ${'data_in'};  
             end
         `
         this.addSequentialAlways({clk: 'clk', reset: 'rst_b', outputs: ['data_out'] }, seq_body2)
@@ -52,18 +52,17 @@ export class addAlways extends Module {
 //always_comb test
 
 //exclude sensitivityList
-        let comb_body1 : string = 
-        `
-            begin
+        const  comb_body1 : string = 
+`            begin
               c = a & b;  
             end
         `
         this.addCombAlways({inputs: ['a', 'b'], outputs: ['c'] }, comb_body1)
 
 //include correct sensitivityList
-        let comb_body2 : string = 
+        const comb_body2 : string = 
         `
-        always_comb @( a or b )
+        always @( a or b )
             begin
               c = a & b;  
             end

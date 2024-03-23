@@ -1,4 +1,4 @@
-import { addAlways } from 'TSSV/lib/modules/addAlways';
+import { addAlways } from 'TSSV/test/modules/addAlways';
 import { writeFileSync } from 'fs';
 const my_addAlways_test = new addAlways({ name: 'comb_seq_test', data_Width: 5 });
 try {

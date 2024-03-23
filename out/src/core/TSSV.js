@@ -455,11 +455,14 @@ export class Module {
                     throw Error(`${name} is unsupported signal type ${thisSig.type}`);
             }
         }
-        for (const name in io.inputs) {
-            this.findSignal(io.inputs[name], true, this.addSequentialAlways);
+        let sensitivityList = null;
+        if (io.inputs) {
+            for (const name in io.inputs) {
+                this.findSignal(io.inputs[name], true, this.addSequentialAlways);
+            }
+            sensitivityList = `@( ${io.inputs.join(' or ')} )`;
         }
-        const sensitivityList = `@( ${io.inputs.join(' or ')} )`;
-        if (body.includes('always_comb')) {
+        if (body.includes('always')) {
             const SenseMatch = body.replace(/\s+/g, ' ').includes(`${sensitivityList}`);
             if (SenseMatch) {
                 this.body += body;
@@ -468,8 +471,12 @@ export class Module {
                 throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`);
             }
         }
+        else if (sensitivityList) {
+            this.body += `always ${sensitivityList}\n`;
+            this.body += body;
+        }
         else {
-            this.body += `always_comb ${sensitivityList}\n`;
+            this.body += `always_comb\n`;
             this.body += body;
         }
     }
