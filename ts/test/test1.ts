@@ -79,9 +79,44 @@ export class Adder3 extends Module {
         sum <= sum_d;
 `
         )
+
+
     }
 }
 
+export interface testMem_Parameters extends TSSVParameters {
+    dataWidth:  IntRange<1,32>
+    depth: number
+}
+
+export class testMem extends Module {
+    declare params: testMem_Parameters
+    constructor(params: testMem_Parameters) {
+        super(params)
+        this.IOs = {
+            data_in:  { direction: 'input', width: this.params.dataWidth },
+            addr:  { direction: 'input', width: this.bitWidth(this.params.depth) },
+            we:  { direction: 'input' },
+            re:  { direction: 'input' },
+            clk: { direction: 'input', isClock: 'posedge' },
+            data_out: { direction: 'output', width: this.params.dataWidth }            
+        }
+
+        this.addSignal("mem", {width: this.params.dataWidth, isArray: this.params.depth})
+
+        this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'data_out']},
+`
+  always_ff @(posedge clk)
+    begin
+      if(we)
+        mem[addr] <= data_in;
+      if(re)
+        data_out <= mem[addr];
+    end          
+` 
+        )
+    }
+}
 
 const test1 = new Adder3({aWidth: 8, bWidth:8, cWidth:8})
 try {
@@ -89,3 +124,11 @@ try {
 } catch (err) {
   console.error(err);
 }
+
+const testMem1 = new testMem({dataWidth:8, depth: 32})
+try {
+    writeFileSync('sv-examples/testMem1.sv', testMem1.writeSystemVerilog());
+} catch (err) {
+    console.error(err);
+}
+

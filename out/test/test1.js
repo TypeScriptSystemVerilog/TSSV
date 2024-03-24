@@ -57,9 +57,39 @@ export class Adder3 extends Module {
 `);
     }
 }
+export class testMem extends Module {
+    constructor(params) {
+        super(params);
+        this.IOs = {
+            data_in: { direction: 'input', width: this.params.dataWidth },
+            addr: { direction: 'input', width: this.bitWidth(this.params.depth) },
+            we: { direction: 'input' },
+            re: { direction: 'input' },
+            clk: { direction: 'input', isClock: 'posedge' },
+            data_out: { direction: 'output', width: this.params.dataWidth, isSigned: true }
+        };
+        this.addSignal("mem", { width: this.params.dataWidth, isArray: this.params.depth });
+        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'data_out'] }, `
+  always_ff @(posedge clk)
+    begin
+      if(we)
+        mem[addr] <= data_in;
+      if(re)
+        data_out <= mem[addr];
+    end          
+`);
+    }
+}
 const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
 try {
     writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog());
+}
+catch (err) {
+    console.error(err);
+}
+const testMem1 = new testMem({ dataWidth: 8, depth: 32 });
+try {
+    writeFileSync('sv-examples/testMem1.sv', testMem1.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);

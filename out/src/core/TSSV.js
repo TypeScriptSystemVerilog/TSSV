@@ -178,7 +178,7 @@ export class Module {
             const thisPort = submodule.IOs[port];
             const thisInterface = submodule.interfaces[port];
             if (thisPort) {
-                const thisSig = this.findSignal(bindings[port], true, this.addSubmodule);
+                const thisSig = this.findSignal(bindings[port], true, this.addSubmodule, true);
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
                     throw Error(`illegal binding ${port}(${bindings[port]})`);
             }
@@ -207,7 +207,7 @@ export class Module {
     // we do not call the caller, we just grab the name for an error message
     // so the explicit anys are fine
     // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-    findSignal(sig, throwOnFalse = false, caller = null) {
+    findSignal(sig, throwOnFalse = false, caller = null, throwOnArray) {
         const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()];
         if (!thisSig && throwOnFalse) {
             let errString = "";
@@ -216,6 +216,16 @@ export class Module {
             }
             else if (caller !== null) {
                 errString = `${caller.toString()}: ${sig.toString()} signal not found`;
+            }
+            throw Error(errString);
+        }
+        if (throwOnArray && thisSig.isArray) {
+            let errString = "";
+            if (typeof caller === 'function') {
+                errString = `${sig.toString()} array signal used as normal signal in ${caller.name}()`;
+            }
+            else if (caller !== null) {
+                errString = `${caller.toString()}: ${sig.toString()} array signal used as normal signal`;
             }
             throw Error(errString);
         }
@@ -241,7 +251,7 @@ export class Module {
     addRegister(io) {
         let qName = io.q;
         if ((typeof io.d === 'string') || (io.d.type === 'Sig')) {
-            const dSig = this.findSignal(io.d, true, this.addRegister);
+            const dSig = this.findSignal(io.d, true, this.addRegister, true);
             if (io.q === undefined) {
                 qName = `${io.d}_q`;
                 if (this.signals[qName] || this.IOs[qName])
@@ -250,7 +260,7 @@ export class Module {
             }
         }
         if (io.q) {
-            const qSig = this.findSignal(io.q, true, this.addRegister);
+            const qSig = this.findSignal(io.q, true, this.addRegister, true);
             switch (qSig.type) {
                 case undefined:
                 case 'wire':
@@ -268,13 +278,13 @@ export class Module {
             throw Error(`addRegister(${JSON.stringify(io)}) auto q naming only allowed when d is a simple signal, not an expression`);
         }
         const d = io.d.toString();
-        const clkSig = this.findSignal(io.clk, true, this.addRegister);
+        const clkSig = this.findSignal(io.clk, true, this.addRegister, true);
         if (!clkSig.isClock)
             throw Error('${io.clk} is not a clock signal');
         let resetSensitivity = '';
         let resetCondition = '#NONE#';
         if (io.reset) {
-            const rstSig = this.findSignal(io.reset, true, this.addRegister);
+            const rstSig = this.findSignal(io.reset, true, this.addRegister, true);
             if (!rstSig.isReset)
                 throw Error(`${io.reset} is not a reset signal`);
             switch (rstSig.isReset) {
@@ -338,11 +348,11 @@ export class Module {
     addRound(io, roundMode = 'roundUp') {
         if (roundMode !== 'roundUp')
             throw Error(`FIXME: ${roundMode} not implemented yet`);
-        const inSig = this.findSignal(io.in, true, this.addRound);
-        const outSig = this.findSignal(io.out, true, this.addRound);
+        const inSig = this.findSignal(io.in, true, this.addRound, true);
+        const outSig = this.findSignal(io.out, true, this.addRound, true);
         const rShiftString = io.rShift.toString();
         if (typeof io.rShift !== 'number') {
-            const rShiftSig = this.findSignal(io.rShift, true, this.addRound);
+            const rShiftSig = this.findSignal(io.rShift, true, this.addRound, true);
             if (rShiftSig.isSigned)
                 throw Error(`right shift signal ${io.rShift} must be unsigned`);
         }
@@ -363,8 +373,8 @@ export class Module {
     addSaturate(io, satMode = 'simple') {
         if (satMode !== 'simple')
             throw Error(`FIXME: ${satMode} not implemented yet`);
-        const inSig = this.findSignal(io.in, true, this.addSaturate);
-        const outSig = this.findSignal(io.out, true, this.addSaturate);
+        const inSig = this.findSignal(io.in, true, this.addSaturate, true);
+        const outSig = this.findSignal(io.out, true, this.addSaturate, true);
         if (inSig.isSigned != outSig.isSigned)
             throw Error(`sign mode must match ${io.in}, ${io.out}`);
         if (inSig.isSigned) {
@@ -406,12 +416,12 @@ export class Module {
                     throw Error(`${name} is unsupported signal type ${thisSig.type}`);
             }
         }
-        const clkSig = this.findSignal(io.clk, true, this.addRegister);
+        const clkSig = this.findSignal(io.clk, true, this.addRegister, true);
         if (!clkSig.isClock)
             throw Error('${io.clk} is not a clock signal');
         let resetSensitivity = '';
         if (io.reset) {
-            const rstSig = this.findSignal(io.reset, true, this.addRegister);
+            const rstSig = this.findSignal(io.reset, true, this.addRegister, true);
             if (!rstSig.isReset)
                 throw Error(`${io.reset} is not a reset signal`);
             switch (rstSig.isReset) {
@@ -512,7 +522,7 @@ export class Module {
         let aSigned = false;
         let bSigned = false;
         if (typeof io.a !== 'bigint') {
-            const aSig = this.findSignal(io.a, true, this.addOperation);
+            const aSig = this.findSignal(io.a, true, this.addOperation, true);
             aOperand = io.a;
             aWidth = Number(aSig.width);
             aSigned = aSig.isSigned || false;
@@ -524,7 +534,7 @@ export class Module {
             aAuto = aOperand.replace('-', 'm').replace("'", "");
         }
         if (typeof io.b !== 'bigint') {
-            const bSig = this.findSignal(io.b, true, this.addOperation);
+            const bSig = this.findSignal(io.b, true, this.addOperation, true);
             bOperand = io.b;
             bWidth = Number(bSig.width);
             bSigned = bSig.isSigned || false;
@@ -537,7 +547,7 @@ export class Module {
         }
         let result = "#NONE#";
         if (io.result !== undefined) {
-            const resultSig = this.findSignal(io.result, true, this.addOperation);
+            const resultSig = this.findSignal(io.result, true, this.addOperation, true);
             if (resultSig.isSigned === undefined) {
                 resultSig.isSigned = (aSigned || bSigned);
             }
@@ -619,7 +629,7 @@ export class Module {
      * @returns signal that is the left hand side of the assignment
      */
     addAssign(io) {
-        const outSig = this.findSignal(io.out, true, this.addAssign);
+        const outSig = this.findSignal(io.out, true, this.addAssign, true);
         if (!(outSig.type === 'wire' || outSig.type === 'logic')) {
             throw Error(`${io.out.toString()} signal must be either wire or logic in assign statement`);
         }
@@ -638,14 +648,14 @@ export class Module {
         const selWidth = Math.ceil(Math.log2(io.in.length));
         let selString = io.sel.toString();
         if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
-            const selSig = this.findSignal(io.sel, true, this.addMux);
+            const selSig = this.findSignal(io.sel, true, this.addMux, true);
             if (selSig.width || 1 < selWidth)
                 throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select`);
             if (selSig.width || 1 > selWidth) {
                 selString = `${io.sel.toString()}[${selWidth - 1}:0]`;
             }
         }
-        const outSig = this.findSignal(io.out, true, this.addMux);
+        const outSig = this.findSignal(io.out, true, this.addMux, true);
         switch (outSig.type) {
             case undefined:
             case 'wire':
@@ -714,6 +724,8 @@ ${caseAssignments}
         Object.keys(this.IOs).map((key) => {
             let rangeString = "";
             const signString = (this.IOs[key].isSigned) ? " signed" : "";
+            if (this.IOs[key].isArray)
+                throw Error(`${key}: Array IOs not supported`);
             if ((this.IOs[key].width || 0) > 1) {
                 rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
             }
@@ -756,11 +768,15 @@ ${caseAssignments}
         // construct signal list
         Object.keys(this.signals).map((key) => {
             let rangeString = "";
+            let arrayString = "";
             const signString = (this.signals[key].isSigned) ? " signed" : "";
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
             }
-            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`);
+            if (this.signals[key].isArray && ((this.signals[key].isArray || 0) > 1)) {
+                arrayString = ` [0:${(this.signals[key].isArray || 0) - 1}]`;
+            }
+            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}`);
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
         if (signalArray.length)
