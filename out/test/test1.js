@@ -1,4 +1,4 @@
-import { Module } from 'tssv/lib/core/TSSV';
+import { Module, Expr } from 'tssv/lib/core/TSSV';
 import { TL_UL } from 'tssv/lib/interfaces/TL_UL';
 import { writeFileSync } from 'fs';
 export class Adder extends Module {
@@ -66,7 +66,7 @@ export class testMem extends Module {
             we: { direction: 'input' },
             re: { direction: 'input' },
             clk: { direction: 'input', isClock: 'posedge' },
-            data_out: { direction: 'output', width: this.params.dataWidth, isSigned: true }
+            data_out: { direction: 'output', width: this.params.dataWidth }
         };
         this.addSignal("mem", { width: this.params.dataWidth, isArray: this.params.depth });
         this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'data_out'] }, `
@@ -80,6 +80,37 @@ export class testMem extends Module {
 `);
     }
 }
+export class testAddrDecode extends Module {
+    constructor(params) {
+        super(params);
+        this.IOs = {
+            addr: { direction: 'input', width: this.params.addrWidth },
+            we: { direction: 'input' },
+            re: { direction: 'input' }
+        };
+        const zerosWidth = this.bitWidth(this.params.blockSize - 1n) + 2;
+        const mask = `'b${'1'.repeat(this.params.addrWidth - zerosWidth)}${'0'.repeat(zerosWidth)}`;
+        const decodeFuncRe = (p) => {
+            return `(addr & ${mask} == 'h${p.match.toString(16)}) && re`;
+        };
+        const decodeFuncWe = (p) => {
+            return `(addr & ${mask} == 'h${p.match.toString(16)}) && we`;
+        };
+        const indexes = [...Array(this.params.numBlocks).keys()];
+        indexes.forEach(element => {
+            this.IOs[`blk_${element}_re`] = { direction: 'output' };
+            this.IOs[`blk_${element}_we`] = { direction: 'output' };
+            this.addAssign({
+                in: new Expr(decodeFuncRe, { match: this.params.baseAddr + BigInt(element * 4) * this.params.blockSize }),
+                out: `blk_${element}_re`
+            });
+            this.addAssign({
+                in: new Expr(decodeFuncWe, { match: this.params.baseAddr + BigInt(element * 4) * this.params.blockSize }),
+                out: `blk_${element}_we`
+            });
+        });
+    }
+}
 const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
 try {
     writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog());
@@ -87,9 +118,16 @@ try {
 catch (err) {
     console.error(err);
 }
-const testMem1 = new testMem({ dataWidth: 8, depth: 32 });
+const testMem1 = new testMem({ dataWidth: 8, depth: 32n });
 try {
     writeFileSync('sv-examples/testMem1.sv', testMem1.writeSystemVerilog());
+}
+catch (err) {
+    console.error(err);
+}
+const testAddrDecode1 = new testAddrDecode({ numBlocks: 5, blockSize: 16n, addrWidth: 32, baseAddr: BigInt('0xabcdef00') });
+try {
+    writeFileSync('sv-examples/testAddrDecode1.sv', testAddrDecode1.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);

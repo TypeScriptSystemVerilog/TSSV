@@ -29,7 +29,7 @@ interface baseSignal {
     isClock?: 'posedge' | 'negedge'
     isReset?: 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
     isSigned?: boolean
-    isArray?: number
+    isArray?: bigint
     description?: string
     enum?: SVEnum
 }
@@ -65,19 +65,40 @@ export class Sig  {
     readonly type: 'Sig'
 }
 
+export type ExprParams = {[p:string]: string | number | bigint}
 /**
  * container class of a TSSV expression, or a RHS assignment in the
  * generated output
  */
 export class Expr  {
-    constructor(name: string) {
-        this.name = name
+    constructor(def: string | ((p:ExprParams) => string), params?: ExprParams) {
+        if(typeof def === 'string') {
+            this.text = def
+            this.func = null
+            if(params) throw Error(`Expr params can only be used with func() type expressions`)
+            this.params = null
+        } else {
+            this.text = null
+            this.func = def
+            if(params) {
+                this.params = params
+            } else {
+                this.params = {}
+            }
+        }
         this.type = 'Expr' 
     }
     toString = ():string => {
-        return this.name
+        if(this.text) {
+            return this.text
+        } else if(this.func) {
+            return this.func(this.params || {})
+        }
+        return ''
     }
-    protected name: string
+    params : ExprParams | null
+    protected text: string | null
+    protected func: ((p:ExprParams) => string) | null
     readonly type: 'Expr'
 }
 
@@ -747,10 +768,10 @@ export class Module {
      */
     addAssign(io:{in:Expr, out:string|Sig}) : Sig {
         const outSig = this.findSignal(io.out, true, this.addAssign, true)
-        if(!(outSig.type === 'wire' || outSig.type === 'logic')) {
+        if(outSig.type && (!(outSig.type === 'wire' || outSig.type === 'logic'))) {
             throw Error(`${io.out.toString()} signal must be either wire or logic in assign statement`)
         }
-        this.body += `  assign ${io.out.toString()} = ${io.in.toString()}`
+        this.body += `  assign ${io.out.toString()} = ${io.in.toString()};\n`
         if(typeof io.out === 'string') {
             return new Sig(io.out)
         }
@@ -891,7 +912,7 @@ ${caseAssignments}
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`
             }
             if(this.signals[key].isArray  && ((this.signals[key].isArray||0) > 1)) {
-                arrayString = ` [0:${(this.signals[key].isArray||0) - 1}]`
+                arrayString = ` [0:${(this.signals[key].isArray||0n) - 1n}]`
             }
             signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}`)
         })

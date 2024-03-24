@@ -10,7 +10,7 @@ module testMem_8_32
    input logic  we,
    input logic  re,
    input logic  clk,
-   output logic signed [7:0] data_out
+   output logic [7:0] data_out
    );
 
    logic [7:0] mem [0:31];
