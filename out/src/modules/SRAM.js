@@ -1,4 +1,9 @@
 import { Module } from 'tssv/lib/core/TSSV';
+/**
+ * Static Random Access Memory (SRAM) module
+ * supports FPGA inference with generated behavioral model SRAM library
+ * ASIC macro library can be swapped in for ASIC synthesis/implemenation
+ */
 export class SRAM extends Module {
     constructor(params) {
         super({

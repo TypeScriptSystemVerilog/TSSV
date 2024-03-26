@@ -48,7 +48,11 @@ export interface SRAM_Parameters extends TSSVParameters {
     
 }
 
-
+/**
+ * Static Random Access Memory (SRAM) module
+ * supports FPGA inference with generated behavioral model SRAM library
+ * ASIC macro library can be swapped in for ASIC synthesis/implemenation
+ */
 export class SRAM extends Module {
     declare params: SRAM_Parameters
     constructor(params: SRAM_Parameters) {            

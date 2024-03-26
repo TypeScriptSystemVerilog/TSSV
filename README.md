@@ -63,7 +63,7 @@ $ cd ~/TSSV
 $ npx typedoc --plugin typedoc-plugin-missing-exports --out docs/typedoc ts/src/**/*.ts
 ```
 #### Viewing the TypeDoc Documentation
-[The TSSV TypeDoc generated Github Page can be accessed here](https://avonancken.github.io/TSSV/index.html)
+[The TSSV TypeDoc generated Github Page can be accessed here](https://TypeScriptSystemVerilog.github.io/TSSV/index.html)
 ### Next Steps
 - implement addMemory()
 - implement Control Register generator
