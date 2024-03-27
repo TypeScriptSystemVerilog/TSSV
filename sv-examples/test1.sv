@@ -103,6 +103,29 @@ module Adder_8_9
 endmodule
 /* verilator lint_on WIDTH */        
 
+/* verilator lint_off WIDTH */        
+module testImport
+  #(
+   parameter aWidth = 8,
+   parameter bWidth = 9,
+   parameter sumWidth = 10
+    )   
+  (
+   input logic signed [aWidth-1:0]  a,
+   input logic signed [bWidth-1:0]  b,
+   output logic signed [sumWidth-1:0] sum
+   );
+
+   
+   assign sum = a + b;
+
+
+endmodule
+/* verilator lint_on WIDTH */        
+
+   
+       
+
         
 /* verilator lint_off WIDTH */        
 module Adder3_8_8_8 
@@ -119,6 +142,7 @@ module Adder3_8_8_8
    TL_UL_8_32_8_32 regs2;
    logic [8:0] psum;
    logic [9:0] sum_d;
+   logic [9:0] sum_d3;
 
 
     always_ff @(posedge clk or negedge rst_b)
@@ -141,6 +165,13 @@ module Adder3_8_8_8
         .b(psum),
         .sum(sum_d),
         .regs(regs2)        
+      );
+
+    testImport #(.aWidth(8),.bWidth(9),.sumWidth(10)) add3
+      (
+        .a(c),
+        .b(psum),
+        .sum(sum_d3)        
       );
 
 

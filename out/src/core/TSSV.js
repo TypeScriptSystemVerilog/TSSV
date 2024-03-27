@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 /**
  * container class of a TSSV signal used to pass signals
  * among add* primtives and submodules to define interconnections
@@ -54,6 +55,13 @@ var BinaryOp;
     BinaryOp["BITWISE_AND"] = "&";
     BinaryOp["BITWISE_OR"] = "|";
 })(BinaryOp || (BinaryOp = {}));
+/**
+ * Interface is a class to define a signal bundle for a standardized
+ * interface.  It wraps the modport functionality of an SV interface
+ * allowing different port views of the signal bundle as well as
+ * just a bundle of wires.   Interfaces simpilfy interface signal binding
+ * by combining all signals into a single bundled bind.
+ */
 export class Interface {
     constructor(name, params = {}, role = undefined, signals = {}) {
         this.name = name;
@@ -139,6 +147,21 @@ export class Module {
         this.body = body;
         this.submodules = {};
         this.interfaces = {};
+        this.verilogParams = {};
+    }
+    setVerilogParameter(param) {
+        if (!this.params[param]) {
+            throw Error(`${param} does not exist!`);
+        }
+        else {
+            const thisParam = this.params[param];
+            if ((typeof thisParam === 'string') || (typeof thisParam === 'number') || (typeof thisParam === 'bigint')) {
+                this.verilogParams[param] = true;
+            }
+            else {
+                throw Error(`unsupported type of parameter ${param} in setVerilogParameter()`);
+            }
+        }
     }
     /**
      * adds an interface signal bundle
@@ -216,6 +239,31 @@ export class Module {
             }
         }
         return thisModule.module;
+    }
+    addSystemVerilogSubmodule(instanceName, SVFilePath, params, bindings, autoBind = true) {
+        const SVString = readFileSync(SVFilePath, { encoding: 'utf8', flag: 'r' }).toString();
+        const vIOs = {};
+        for (const port in bindings) {
+            const thisSignal = this.findSignal(bindings[port]);
+            const re = new RegExp(`input\\s*${port}[;\\s,]`);
+            if (re.test(SVString))
+                vIOs[port] = { direction: 'input', ...thisSignal };
+            else
+                vIOs[port] = { direction: 'output', ...thisSignal };
+        }
+        let vModuleName = 'IMPORT';
+        const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s]/;
+        const match = SVString.match(re2);
+        if (match && match.length >= 2) {
+            vModuleName = match[1];
+        }
+        const vModule = new Module({ name: vModuleName, ...params }, vIOs, {}, SVString);
+        for (const p in vModule.params) {
+            if (p !== 'name')
+                vModule.setVerilogParameter(p);
+        }
+        vModule.writeSystemVerilog = () => { return SVString; };
+        return this.addSubmodule(instanceName, vModule, bindings, autoBind);
     }
     simpleHash(str) {
         let hash = 0;
@@ -844,6 +892,7 @@ ${functionalAssigments.join('\n')}
         for (const moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance];
             const printed = {};
+            let paramsBind = '';
             if (!printed[thisSubmodule.module.name]) {
                 printed[thisSubmodule.module.name] = true;
                 subModulesString += thisSubmodule.module.writeSystemVerilog();
@@ -852,9 +901,16 @@ ${functionalAssigments.join('\n')}
             for (const binding in thisSubmodule.bindings) {
                 bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding]})`);
             }
+            const vParamsArray = [];
+            for (const p in thisSubmodule.module.verilogParams) {
+                vParamsArray.push(`.${p}(${(thisSubmodule.module.params[p] || '').toString()})`);
+            }
+            if (vParamsArray.length) {
+                paramsBind = `#(${vParamsArray.join(',')}) `;
+            }
             this.body +=
                 `
-    ${thisSubmodule.module.name} ${moduleInstance}
+    ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
       (
 ${bindingsArray.join(',\n')}        
       );

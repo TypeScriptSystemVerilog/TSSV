@@ -67,5 +67,4 @@ $ npx typedoc --plugin typedoc-plugin-missing-exports --out docs/typedoc ts/src/
 ### Next Steps
 - implement addMemory()
 - implement Control Register generator
-- implement Verilog/SystemVerilog import module
 - Decide approach to Bus fabrics and standardized interconnect

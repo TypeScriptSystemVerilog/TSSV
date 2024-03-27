@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+
+
 /**
  * IntRange type allows specifify a type that allows a range of integer values
  * Used in Parameter types on TSSV modules where the parameters have range restrictions
@@ -23,6 +26,9 @@ interface SVEnum {
     values: {[key:string] : bigint }
 }
 
+/**
+ * signal parameters
+ */
 interface baseSignal {
     type?: 'wire' | 'reg' | 'const' | 'logic' | 'enum'
     width?: number
@@ -124,6 +130,13 @@ enum BinaryOp  {
     BITWISE_OR= '|'
 }
 
+/**
+ * Interface is a class to define a signal bundle for a standardized
+ * interface.  It wraps the modport functionality of an SV interface
+ * allowing different port views of the signal bundle as well as
+ * just a bundle of wires.   Interfaces simpilfy interface signal binding
+ * by combining all signals into a single bundled bind.
+ */
 export class Interface {
     name: string
     params: TSSVParameters
@@ -227,6 +240,20 @@ export class Module {
         this.body = body
         this.submodules = {}
         this.interfaces = {}
+        this.verilogParams = {}
+    }
+
+    setVerilogParameter(param: string) : void {
+        if(!this.params[param]) {
+            throw Error(`${param} does not exist!`)
+        } else {
+            const thisParam = this.params[param]
+            if((typeof thisParam === 'string') || (typeof thisParam === 'number') || (typeof thisParam === 'bigint')) {
+                this.verilogParams[param] = true
+            } else {
+                throw Error(`unsupported type of parameter ${param} in setVerilogParameter()`)
+            }
+        }        
     }
 
     protected bindingRules = {
@@ -313,6 +340,42 @@ export class Module {
         return thisModule.module
     }
 
+
+    addSystemVerilogSubmodule(
+        instanceName:string, 
+        SVFilePath:string,
+        params: TSSVParameters,
+        bindings: {[port:string]: string|Sig}, 
+        autoBind:boolean=true) : Module {
+            const SVString = readFileSync(SVFilePath, {encoding: 'utf8', flag: 'r'}).toString()
+            const vIOs: IOSignals = {}
+            for(const port in bindings) {
+                const thisSignal = this.findSignal(bindings[port])
+                const re = new RegExp(`input\\s*${port}[;\\s,]`)
+                if(re.test(SVString))
+                    vIOs[port] = { direction: 'input', ...thisSignal}
+                else
+                    vIOs[port] = { direction: 'output', ...thisSignal}
+            }
+            let vModuleName = 'IMPORT'
+            const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s]/            
+            const match = SVString.match(re2)
+            if(match && match.length >= 2 ) {
+                vModuleName = match[1]
+            }
+            const vModule = new Module(
+                {name:vModuleName, ...params},
+                vIOs,
+                {},
+                SVString
+                )
+            for(const p in vModule.params) {
+                if(p !== 'name')
+                    vModule.setVerilogParameter(p)
+            }
+            vModule.writeSystemVerilog = ():string => { return SVString }
+            return this.addSubmodule(instanceName,vModule,bindings,autoBind)
+    }
 
     protected simpleHash(str: string): string {
         let hash = 0;
@@ -966,6 +1029,7 @@ ${functionalAssigments.join('\n')}
         for(const moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance]
             const printed : {[key:string]:boolean}= {}
+            let paramsBind = ''
             if(!printed[thisSubmodule.module.name]) {
                 printed[thisSubmodule.module.name] = true
                 subModulesString += thisSubmodule.module.writeSystemVerilog()
@@ -974,9 +1038,16 @@ ${functionalAssigments.join('\n')}
             for(const binding in thisSubmodule.bindings) {
                 bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding]})`)
             }
+            const vParamsArray:Array<string> = []
+            for(const p in thisSubmodule.module.verilogParams) {
+                vParamsArray.push(`.${p}(${(thisSubmodule.module.params[p]||'').toString()})`)
+            }
+            if(vParamsArray.length) {
+                paramsBind = `#(${vParamsArray.join(',')}) `
+            }
             this.body+=
 `
-    ${thisSubmodule.module.name} ${moduleInstance}
+    ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
       (
 ${bindingsArray.join(',\n')}        
       );
@@ -1015,6 +1086,8 @@ endmodule
         }
     } = {}
     protected static printedInterfaces : {[key:string]: boolean} = {}
+
+    protected verilogParams : {[key:string]: boolean}
 }
 
 export default {Module, Sig, Expr}
