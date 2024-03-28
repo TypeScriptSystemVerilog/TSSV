@@ -1,4 +1,4 @@
-import {Module, TSSVParameters, IntRange} from 'tssv/lib/core/TSSV'
+import { Module, TSSVParameters, IntRange } from 'tssv/lib/core/TSSV'
 
 
 /**
@@ -8,7 +8,7 @@ export interface SRAM_Parameters extends TSSVParameters {
     /**
      * bit width of SRAM data
      */
-    dataWidth: IntRange<1,256> 
+    dataWidth: IntRange<1, 256>
     /**
      * number of data words in the SRAM
      */
@@ -16,7 +16,7 @@ export interface SRAM_Parameters extends TSSVParameters {
     /**
      * SRAM port configuration
      */
-    ports: '1rw' | '1r_1w' | '2rw' 
+    ports: '1rw' | '1r_1w' | '2rw'
     /**
      * select write enable mask control among 'none', 'bit', 'byte'
      * defaults to 'none'
@@ -30,7 +30,7 @@ export interface SRAM_Parameters extends TSSVParameters {
      * logic requires simultaneous read of existing value and write of a new value
      * in the same clock cycle
      */
-    readBehavior?:  'undefOnWrite' | 'readBeforeWrite'
+    readBehavior?: 'undefOnWrite' | 'readBeforeWrite'
     /**
      * macroConfig is a free form string parameter that allows selection of technology
      * specific SRAM macro generator parameters such as high-speed, high-density,
@@ -45,7 +45,7 @@ export interface SRAM_Parameters extends TSSVParameters {
      * ASIC view SRAM library for the design   
      */
     macroConfig?: string
-    
+
 }
 
 /**
@@ -55,23 +55,23 @@ export interface SRAM_Parameters extends TSSVParameters {
  */
 export class SRAM extends Module {
     declare params: SRAM_Parameters
-    constructor(params: SRAM_Parameters) {            
+    constructor(params: SRAM_Parameters) {
         super({
             // define the default parameter values
             dataWidth: params.dataWidth,
             depth: params.depth,
             ports: params.ports,
             writeEnableMask: params.writeEnableMask || 'none',
-            readBehavior:  params.readBehavior || 'undefOnWrite',
+            readBehavior: params.readBehavior || 'undefOnWrite',
             macroConfig: params.macroConfig || 'default'
         })
-        
+
         // add tmp register 'mem'
-        this.addSignal("mem", {width: this.params.dataWidth, isArray: this.params.depth})
-        
+        this.addSignal("mem", { width: this.params.dataWidth, isArray: this.params.depth })
+
         // define IO signals
         switch (this.params.ports) {
-            case '1rw':
+            case '1rw': {
                 this.IOs = {
                     clk: { direction: 'input', isClock: 'posedge' },
                     a_re: { direction: 'input' },
@@ -86,8 +86,8 @@ export class SRAM extends Module {
                     if ((this.params.dataWidth % 8) != 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
                     this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
                 }
-                let body_1rw = 
-    `
+                const body_1rw =
+                    `
      always_ff @(posedge clk)
        begin 
          if(a_we) begin
@@ -98,9 +98,10 @@ export class SRAM extends Module {
            end
        end          
     `
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'a_data_out']},body_1rw)
+                this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_1rw)
                 break;
-            case '2rw':
+            }
+            case '2rw': {
                 this.IOs = {
                     clk: { direction: 'input', isClock: 'posedge' },
                     a_re: { direction: 'input' },
@@ -122,8 +123,8 @@ export class SRAM extends Module {
                     this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
                     this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
                 }
-                let body_2rw_a = 
-                `
+                const body_2rw_a =
+                    `
     always_ff @ (posedge clk) begin
      if(a_we) begin
        mem[a_addr] <= a_data_in;
@@ -132,11 +133,11 @@ export class SRAM extends Module {
        a_data_out <= mem[a_addr];
      end
     end
-                `                
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'a_data_out']},body_2rw_a)
-                
-                let body_2rw_b = 
                 `
+                this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_2rw_a)
+
+                const body_2rw_b =
+                    `
     always_ff @ (posedge clk) begin
      if(b_we) begin
        mem[b_addr] <= b_data_in;
@@ -145,10 +146,11 @@ export class SRAM extends Module {
        b_data_out <= mem[b_addr];
      end
     end
-                `                
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'b_data_out']},body_2rw_b)
+                `
+                this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'b_data_out'] }, body_2rw_b)
                 break;
-            case '1r_1w':
+            }
+            case '1r_1w': {
                 this.IOs = {
                     clk: { direction: 'input', isClock: 'posedge' },
                     a_re: { direction: 'input' },
@@ -164,28 +166,29 @@ export class SRAM extends Module {
                     if ((this.params.dataWidth % 8) != 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
                     this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
                 }
-                let body_1r_1w_w = 
-                `
+                const body_1r_1w_w =
+                    `
     always_ff @ (posedge clk) begin
      if(b_we) begin
        mem[b_addr] <= b_data_in;
      end 
     end
-                `                
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem']},body_1r_1w_w)
-                
-                let body_1r_1w_r = 
                 `
+                this.addSequentialAlways({ clk: 'clk', outputs: ['mem'] }, body_1r_1w_w)
+
+                const body_1r_1w_r =
+                    `
     always_ff @ (posedge clk) begin
      if(a_re) begin
        a_data_out <= mem[a_addr];
      end
     end
-                `                
-                this.addSequentialAlways({clk: 'clk', outputs : ['a_data_out']},body_1r_1w_r)
+                `
+                this.addSequentialAlways({ clk: 'clk', outputs: ['a_data_out'] }, body_1r_1w_r)
                 break;
+            }
         }
 
-        
+
     }
 }
