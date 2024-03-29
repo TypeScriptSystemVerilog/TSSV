@@ -70,14 +70,15 @@ export class SRAM extends Module {
         this.addSignal("mem", { width: this.params.dataWidth, isArray: this.params.depth })
 
         // add variables for the "mask" operation
-        let mask_cnt 
-        let mask_w
+        let mask_cnt = 0
+        let mask_w = 0
         if (this.params.writeEnableMask == 'bit') {
           mask_cnt = this.params.dataWidth
           mask_w = 1 
-      } else if (this.params.writeEnableMask == 'byte') {
+        } else if (this.params.writeEnableMask == 'byte') {
           mask_cnt = this.params.dataWidth / 8
-          mask_w = 8 }      
+          mask_w = 8 
+        }      
 
         // define IO signals
         switch (this.params.ports) {
@@ -286,7 +287,7 @@ export class SRAM extends Module {
     ` 
                 }
                 
-                let body_1r_1w_r = 
+                const body_1r_1w_r = 
                 `
     always_ff @ (posedge clk) begin
         if(a_re) begin
