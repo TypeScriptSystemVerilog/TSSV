@@ -10,18 +10,21 @@ hardware design engineer familiar with SystemVerilog.
 
 ### Run the demo  (FIR Module)
 
-Prerequite:  A modern version of NodeJS installed  (perhaps v18 or greater)
+Prerequite:  A modern version of NodeJS installed  (Recommend Node.js v20.12.0 LTS)
 
 #### Installation
-For MacBook M1/M2/M3 NodeJS installation: see link
-https://dev.to/themodernpk/install-node-on-macos-m1-274d
-
-For Ubuntu 22.04 NodeJS installation:
+For MacBook M1/M2/M3 Node.js installation: 
+download and double click to install https://nodejs.org/dist/v20.12.0/node-v20.12.0.pkg
 ```bash
-$ curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
-$ sudo bash nodesource_setup.sh
-$ sudo apt install nodejs
-$ node -v
+node -v #v20.12.0
+npm -v  #10.5.0
+```
+For Ubuntu 22.04 Node.js installation:
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&\
+sudo apt-get install -y nodejs
+node -v #v20.12.0
+npm -v  #10.5.0
 ```
 
 #### Run Procedure
