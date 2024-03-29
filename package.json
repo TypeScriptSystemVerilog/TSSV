@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/avonancken/TSSV.git"
+    "url": "git+https://github.com/TypeScriptSystemVerilog/TSSV.git"
   },
   "keywords": [
     "Typescript",
@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/avonancken/TSSV/issues"
+    "url": "https://github.com/TypeScriptSystemVerilog/TSSV/issues"
   },
   "exports": {
     "./lib/*": "./out/src/*.js",
@@ -36,14 +36,16 @@
       ]
     }
   },
-  "homepage": "https://github.com/avonancken/TSSV#readme",
+  "homepage": "https://github.com/TypeScriptSystemVerilog/TSSV#readme",
   "devDependencies": {
     "@types/node": "^20.11.22",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.2",
-    "typescript-eslint": "^7.2.0"
+    "typescript": "^5.4.2"
+    "typescript-eslint": "^7.4.0"
   },
   "dependencies": {
+    "eslint-config-love": "^43.1.0",
+    "eslint-config-standard-with-typescript": "^43.0.1",
     "typedoc": "^0.25.12",
     "typedoc-plugin-missing-exports": "^2.2.0"
   }
