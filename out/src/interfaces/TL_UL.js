@@ -4,12 +4,12 @@ import { Interface } from 'tssv/lib/core/TSSV';
  */
 export class TL_UL extends Interface {
     /**
-     * create a new TL_UL Interface bundle with either producer or responder port interface
-     * or just a bundle of interconnect wires
-     * @param params param value set
-     * @param role sets the role of this instance to choose producer or responder port interface
-     * or just a bundle of interconnect wires
-     */
+       * create a new TL_UL Interface bundle with either producer or responder port interface
+       * or just a bundle of interconnect wires
+       * @param params param value set
+       * @param role sets the role of this instance to choose producer or responder port interface
+       * or just a bundle of interconnect wires
+       */
     constructor(params = {}, role = undefined) {
         super('TL_UL', {
             AIW: params.AIW || 8,

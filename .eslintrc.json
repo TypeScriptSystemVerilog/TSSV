@@ -1,12 +1,16 @@
 {
-    "env": {
-        "es2021": true,
-        "node": true
-    },
-    "extends": "standard-with-typescript",
-    "parserOptions": {
-        "ecmaVersion": "latest"
-    },
-    "rules": {
-    }
+    "overrides": [
+	{
+	    "files": ["ts/**/*.ts", "ts/**/*.tsx"],
+	    "extends": "love",
+	    "rules" : {
+		"@typescript-eslint/strict-boolean-expressions": "off",
+		"@typescript-eslint/prefer-nullish-coalescing" : "off",
+		"new-cap" : "off",
+		"@typescript-eslint/naming-convention" : "off",
+		"@typescript-eslint/unbound-method": "off"
+	    }
+	}
+    ],
+    "ignorePatterns" : ["**/*.js"]
 }

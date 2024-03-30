@@ -13,12 +13,12 @@ export class FIR extends Module {
         this.IOs = {
             clk: { direction: 'input', isClock: 'posedge' },
             rst_b: { direction: 'input', isReset: 'lowasync' },
-            en: { direction: 'input', },
+            en: { direction: 'input' },
             data_in: { direction: 'input', width: this.params.inWidth, isSigned: true },
             data_out: { direction: 'output', width: this.params.outWidth, isSigned: true }
         };
         // construct logic
-        let nextTapIn = new Sig("data_in");
+        let nextTapIn = new Sig('data_in');
         const products = [];
         let coeffSum = 0;
         for (let i = 0; i < this.params.coefficients.length; i++) {
@@ -32,7 +32,7 @@ export class FIR extends Module {
         }
         // construct final vector sum
         const sumWidth = (this.params.inWidth || 0) + this.bitWidth(coeffSum);
-        const productsExt = products.map((p) => `${sumWidth}'(${p})`);
+        const productsExt = products.map((p) => `${sumWidth}'(${p.toString()})`);
         this.addSignal('sum', { width: sumWidth, isSigned: true });
         this.addRegister({
             d: new Expr(`${productsExt.join(' + ')}`),

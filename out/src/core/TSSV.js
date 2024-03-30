@@ -31,7 +31,7 @@ export class Expr {
             this.text = def;
             this.func = null;
             if (params)
-                throw Error(`Expr params can only be used with func() type expressions`);
+                throw Error('Expr params can only be used with func() type expressions');
             this.params = null;
         }
         else {
@@ -75,9 +75,9 @@ export class Interface {
     }
     writeSystemVerilog() {
         const signalArray = [];
-        Object.keys(this.signals).map((key) => {
-            let rangeString = "";
-            const signString = (this.signals[key].isSigned) ? " signed" : "";
+        Object.keys(this.signals).forEach((key) => {
+            let rangeString = '';
+            const signString = (this.signals[key].isSigned) ? ' signed' : '';
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
             }
@@ -88,7 +88,7 @@ export class Interface {
         for (const modport in this.modports) {
             const thisModport = this.modports[modport];
             const modportArray = [];
-            Object.keys(thisModport).map((name) => {
+            Object.keys(thisModport).forEach((name) => {
                 modportArray.push(`      ${thisModport[name]} ${name}`);
             });
             modportsString += `
@@ -115,17 +115,17 @@ endinterface
 */
 export class Module {
     /**
-     * base constructor
-     * @param params parameter value bundle
-     * @param IOs IO port bundle
-     * @param signals signal bundle
-     * @param body SystemVerilog body text
-     */
-    constructor(params = {}, IOs = {}, signals = {}, body = "") {
+       * base constructor
+       * @param params parameter value bundle
+       * @param IOs IO port bundle
+       * @param signals signal bundle
+       * @param body SystemVerilog body text
+       */
+    constructor(params = {}, IOs = {}, signals = {}, body = '') {
         this.bindingRules = {
-            'input': ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
-            'output': ['output', 'wire', 'logic', 'enum'],
-            'inout': ['inout', 'wire']
+            input: ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
+            output: ['output', 'wire', 'logic', 'enum'],
+            inout: ['inout', 'wire']
         };
         this.registerBlocks = {};
         this.params = params;
@@ -164,11 +164,11 @@ export class Module {
         }
     }
     /**
-     * adds an interface signal bundle
-     * @param instanceName the name for this instance of the signal bundle
-     * @param _interface the type of interface to add
-     * @returns the resulting interface for connecting to modules and add* primitives
-     */
+       * adds an interface signal bundle
+       * @param instanceName the name for this instance of the signal bundle
+       * @param _interface the type of interface to add
+       * @returns the resulting interface for connecting to modules and add* primitives
+       */
     addInterface(instanceName, _interface) {
         if (this.interfaces[instanceName])
             throw Error(`${instanceName} interface already exists`);
@@ -176,19 +176,19 @@ export class Module {
         return _interface;
     }
     /**
-     * instantiate another module a a submodule
-     * @param instanceName sets the instance mane
-     * @param submodule the module to instantiate
-     * @param bindings define the connections of the submodule
-     * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
-     * @returns returns the resulting submodule instance
-     */
+       * instantiate another module a a submodule
+       * @param instanceName sets the instance mane
+       * @param submodule the module to instantiate
+       * @param bindings define the connections of the submodule
+       * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
+       * @returns returns the resulting submodule instance
+       */
     addSubmodule(instanceName, submodule, bindings, autoBind = true) {
         if (this.submodules.instanceName !== undefined)
             throw Error(`submodule with instance name ${instanceName} already exists`);
         const thisModule = {
             module: submodule,
-            bindings: bindings
+            bindings
         };
         this.submodules[instanceName] = thisModule;
         if (autoBind) {
@@ -225,7 +225,7 @@ export class Module {
             if (thisPort) {
                 const thisSig = this.findSignal(bindings[port], true, this.addSubmodule, true);
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
-                    throw Error(`illegal binding ${port}(${bindings[port]})`);
+                    throw Error(`illegal binding ${port}(${bindings[port].toString()})`);
             }
             else if (thisInterface && (typeof port === 'string')) {
                 const thisInt = this.interfaces[bindings[port].toString()];
@@ -246,10 +246,12 @@ export class Module {
         for (const port in bindings) {
             const thisSignal = this.findSignal(bindings[port]);
             const re = new RegExp(`input\\s*${port}[;\\s,]`);
-            if (re.test(SVString))
+            if (re.test(SVString)) {
                 vIOs[port] = { direction: 'input', ...thisSignal };
-            else
+            }
+            else {
                 vIOs[port] = { direction: 'output', ...thisSignal };
+            }
         }
         let vModuleName = 'IMPORT';
         const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s]/;
@@ -259,8 +261,9 @@ export class Module {
         }
         const vModule = new Module({ name: vModuleName, ...params }, vIOs, {}, SVString);
         for (const p in vModule.params) {
-            if (p !== 'name')
+            if (p !== 'name') {
                 vModule.setVerilogParameter(p);
+            }
         }
         vModule.writeSystemVerilog = () => { return SVString; };
         return this.addSubmodule(instanceName, vModule, bindings, autoBind);
@@ -280,7 +283,7 @@ export class Module {
     findSignal(sig, throwOnFalse = false, caller = null, throwOnArray) {
         const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()];
         if (!thisSig && throwOnFalse) {
-            let errString = "";
+            let errString = '';
             if (typeof caller === 'function') {
                 errString = `${sig.toString()} signal not found in ${caller.name}()`;
             }
@@ -290,7 +293,7 @@ export class Module {
             throw Error(errString);
         }
         if (throwOnArray && thisSig.isArray) {
-            let errString = "";
+            let errString = '';
             if (typeof caller === 'function') {
                 errString = `${sig.toString()} array signal used as normal signal in ${caller.name}()`;
             }
@@ -302,11 +305,11 @@ export class Module {
         return thisSig;
     }
     /**
-     * add a signal to the SystemVerilog module
-     * @param name name of the signal
-     * @param signal parameters of the signal
-     * @returns signal that can be passed to other add* functions to make connections
-     */
+       * add a signal to the SystemVerilog module
+       * @param name name of the signal
+       * @param signal parameters of the signal
+       * @returns signal that can be passed to other add* functions to make connections
+       */
     addSignal(name, signal) {
         if (this.findSignal(name))
             throw Error(`${name} signal already exists`);
@@ -314,16 +317,16 @@ export class Module {
         return new Sig(name);
     }
     /**
-     * add a DFF register(can be multi-bit) to the d input
-     * @param io the input/output of the register
-     * @returns return the q output signal
-     */
+       * add a DFF register(can be multi-bit) to the d input
+       * @param io the input/output of the register
+       * @returns return the q output signal
+       */
     addRegister(io) {
         let qName = io.q;
         if ((typeof io.d === 'string') || (io.d.type === 'Sig')) {
             const dSig = this.findSignal(io.d, true, this.addRegister, true);
             if (io.q === undefined) {
-                qName = `${io.d}_q`;
+                qName = `${io.d.toString()}_q`;
                 if (this.signals[qName] || this.IOs[qName])
                     throw Error(`${qName} signal already exists`);
                 this.signals[qName] = { ...dSig, type: 'logic' };
@@ -340,7 +343,7 @@ export class Module {
                 case 'logic':
                     break;
                 default:
-                    throw Error(`${io.q} is unsupported signal type ${qSig.type}`);
+                    throw Error(`${io.q.toString()} is unsupported signal type ${qSig.type}`);
             }
             qName = io.q;
         }
@@ -350,38 +353,38 @@ export class Module {
         const d = io.d.toString();
         const clkSig = this.findSignal(io.clk, true, this.addRegister, true);
         if (!clkSig.isClock)
-            throw Error('${io.clk} is not a clock signal');
+            throw Error(`${io.clk.toString()} is not a clock signal`);
         let resetSensitivity = '';
         let resetCondition = '#NONE#';
         if (io.reset) {
             const rstSig = this.findSignal(io.reset, true, this.addRegister, true);
             if (!rstSig.isReset)
-                throw Error(`${io.reset} is not a reset signal`);
+                throw Error(`${io.reset.toString()} is not a reset signal`);
             switch (rstSig.isReset) {
                 case 'highasync':
-                    resetSensitivity = ` or posedge ${io.reset}`;
-                    resetCondition = `${io.reset}`;
+                    resetSensitivity = ` or posedge ${io.reset.toString()}`;
+                    resetCondition = `${io.reset.toString()}`;
                     break;
                 case 'lowasync':
-                    resetSensitivity = ` or negedge ${io.reset}`;
-                    resetCondition = `!${io.reset}`;
+                    resetSensitivity = ` or negedge ${io.reset.toString()}`;
+                    resetCondition = `!${io.reset.toString()}`;
                     break;
                 case 'lowsync':
-                    resetCondition = `!${io.reset}`;
+                    resetCondition = `!${io.reset.toString()}`;
                     break;
                 case 'highsync':
-                    resetCondition = `${io.reset}`;
+                    resetCondition = `${io.reset.toString()}`;
                     break;
                 default:
             }
         }
-        const sensitivityList = `@( ${clkSig.isClock} ${io.clk} ${resetSensitivity} )`;
-        let enableExpr = "#NONE#";
+        const sensitivityList = `@( ${clkSig.isClock} ${io.clk.toString()} ${resetSensitivity} )`;
+        let enableExpr = '#NONE#';
         if (io.en !== undefined) {
             enableExpr = io.en.toString();
         }
-        //console.log(`d: ${d}`)
-        //console.log(`sensitivity: ${sensitivityList}`)
+        // console.log(`d: ${d}`)
+        // console.log(`sensitivity: ${sensitivityList}`)
         if (!this.registerBlocks[sensitivityList]) {
             this.registerBlocks[sensitivityList] = {};
         }
@@ -391,30 +394,30 @@ export class Module {
         if (!this.registerBlocks[sensitivityList][resetCondition][enableExpr]) {
             this.registerBlocks[sensitivityList][resetCondition][enableExpr] = {};
         }
-        this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName.toString()] = { d: d, resetVal: io.resetVal };
+        this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName.toString()] = { d, resetVal: io.resetVal };
         if (typeof qName === 'string') {
             return new Sig(qName);
         }
         return qName;
     }
     /**
-     * get the number of bits need to represent an integer value
-     * @param a the value to determine the bit width of
-     * @param isSigned whether the value should be treated as a signed number
-     * @returns the minimum bit width needed to represent the value
-     */
+       * get the number of bits need to represent an integer value
+       * @param a the value to determine the bit width of
+       * @param isSigned whether the value should be treated as a signed number
+       * @returns the minimum bit width needed to represent the value
+       */
     bitWidth(a, isSigned = false) {
         return (Math.ceil(Math.log2(Math.abs(Number(a)) + Number(a >= 0)) + Number(isSigned || (a < 0))));
     }
     /**
-     * add a rounding operation to scale down and reduce the bit width of a signal
-     * @param io the input/output signals of the round operation the rShift signal determines
-     * the number of LSBs to round away.  The rShift signal can be either a liternal constant or a variable
-     * shift.  When using a variable shift,  care should be taken to minimize the number of bits to
-     * minimize the impact on the timing path of the resulting logic.
-     * @param roundMode determines the type of rounding to apply
-     * @returns the signal of the rounded result
-     */
+       * add a rounding operation to scale down and reduce the bit width of a signal
+       * @param io the input/output signals of the round operation the rShift signal determines
+       * the number of LSBs to round away.  The rShift signal can be either a liternal constant or a variable
+       * shift.  When using a variable shift,  care should be taken to minimize the number of bits to
+       * minimize the impact on the timing path of the resulting logic.
+       * @param roundMode determines the type of rounding to apply
+       * @returns the signal of the rounded result
+       */
     addRound(io, roundMode = 'roundUp') {
         if (roundMode !== 'roundUp')
             throw Error(`FIXME: ${roundMode} not implemented yet`);
@@ -424,29 +427,29 @@ export class Module {
         if (typeof io.rShift !== 'number') {
             const rShiftSig = this.findSignal(io.rShift, true, this.addRound, true);
             if (rShiftSig.isSigned)
-                throw Error(`right shift signal ${io.rShift} must be unsigned`);
+                throw Error(`right shift signal ${io.rShift.toString()} must be unsigned`);
         }
-        if (inSig.isSigned != outSig.isSigned)
-            throw Error(`sign mode must match ${io.in}, ${io.out}`);
-        this.body += `   assign ${io.out} = ${outSig.width}'((${io.in} + (${inSig.width}'d1<<(${rShiftString}-1)))>>>${rShiftString});\n`;
+        if (inSig.isSigned !== outSig.isSigned)
+            throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`);
+        this.body += `   assign ${io.out.toString()} = ${outSig.width}'((${io.in.toString()} + (${inSig.width}'d1<<(${rShiftString}-1)))>>>${rShiftString});\n`;
         if (typeof io.out === 'string') {
             return new Sig(io.out);
         }
         return io.out;
     }
     /**
-     * add a Saturate operation to limit the bit width of a signal without overflow
-     * @param io the input and output signals of the saturation operation
-     * @param satMode determines the behavior of the saturation
-     * @returns signal of the result of the saturation
-     */
+       * add a Saturate operation to limit the bit width of a signal without overflow
+       * @param io the input and output signals of the saturation operation
+       * @param satMode determines the behavior of the saturation
+       * @returns signal of the result of the saturation
+       */
     addSaturate(io, satMode = 'simple') {
         if (satMode !== 'simple')
             throw Error(`FIXME: ${satMode} not implemented yet`);
         const inSig = this.findSignal(io.in, true, this.addSaturate, true);
         const outSig = this.findSignal(io.out, true, this.addSaturate, true);
-        if (inSig.isSigned != outSig.isSigned)
-            throw Error(`sign mode must match ${io.in}, ${io.out}`);
+        if (inSig.isSigned !== outSig.isSigned)
+            throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`);
         if (inSig.isSigned) {
             const sat = 1 << ((outSig.width || 1) - 1);
             const maxSatStringIn = `${inSig.width}'sd${sat - 1}`;
@@ -454,8 +457,8 @@ export class Module {
             const maxSatString = `${outSig.width}'sd${sat - 1}`;
             const minSatString = `-${outSig.width}'sd${sat}`;
             this.body +=
-                `   assign ${io.out} = (${io.in} > ${maxSatStringIn}) ? ${maxSatString} :
-                       ((${io.in} < ${minSatStringIn}) ? ${minSatString} : ${outSig.width}'(${io.in}));
+                `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
+                       ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString} : ${outSig.width}'(${io.in.toString()}));
 `;
         }
         else {
@@ -463,7 +466,7 @@ export class Module {
             const maxSatStringIn = `${outSig.width}'d${sat}`;
             const maxSatString = `${outSig.width}'d${sat}`;
             this.body +=
-                `   assign ${io.out} = (${io.in} > ${maxSatStringIn}) ? ${maxSatString} : ${outSig.width}'(${io.in});
+                `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : ${outSig.width}'(${io.in.toString()});
 `;
         }
         if (typeof io.out === 'string') {
@@ -472,8 +475,8 @@ export class Module {
         return io.out;
     }
     addSequentialAlways(io, body) {
-        for (const name in io.outputs) {
-            const thisSig = this.findSignal(io.outputs[name], true, this.addSequentialAlways);
+        for (const output of io.outputs) {
+            const thisSig = this.findSignal(output, true, this.addSequentialAlways);
             switch (thisSig.type) {
                 case undefined:
                 case 'wire':
@@ -483,30 +486,30 @@ export class Module {
                 case 'logic':
                     break;
                 default:
-                    throw Error(`${name} is unsupported signal type ${thisSig.type}`);
+                    throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`);
             }
         }
         const clkSig = this.findSignal(io.clk, true, this.addRegister, true);
         if (!clkSig.isClock)
-            throw Error('${io.clk} is not a clock signal');
+            throw Error(`${io.clk.toString()} is not a clock signal`);
         let resetSensitivity = '';
         if (io.reset) {
             const rstSig = this.findSignal(io.reset, true, this.addRegister, true);
             if (!rstSig.isReset)
-                throw Error(`${io.reset} is not a reset signal`);
+                throw Error(`${io.reset.toString()} is not a reset signal`);
             switch (rstSig.isReset) {
                 case 'highasync':
-                    resetSensitivity = `or posedge ${io.reset}`;
+                    resetSensitivity = `or posedge ${io.reset.toString()}`;
                     break;
                 case 'lowasync':
-                    resetSensitivity = `or negedge ${io.reset}`;
+                    resetSensitivity = `or negedge ${io.reset.toString()}`;
                     break;
                 default:
             }
         }
-        const sensitivityList = `@( ${clkSig.isClock} ${io.clk} ${resetSensitivity} )`;
+        const sensitivityList = `@( ${clkSig.isClock} ${io.clk.toString()} ${resetSensitivity} )`;
         if (body.includes('always_ff')) {
-            const clkSenseMatch = body.replace(/\s+/g, ' ').includes(`${clkSig.isClock} ${io.clk}`);
+            const clkSenseMatch = body.replace(/\s+/g, ' ').includes(`${clkSig.isClock} ${io.clk.toString()}`);
             const resetSenseMatch = (resetSensitivity === '') || body.replace(/\s+/g, ' ').includes(resetSensitivity);
             if (clkSenseMatch && resetSenseMatch) {
                 this.body += body;
@@ -521,8 +524,8 @@ export class Module {
         }
     }
     addCombAlways(io, body) {
-        for (const name in io.outputs) {
-            const thisSig = this.findSignal(io.outputs[name], true, this.addCombAlways);
+        for (const output of io.outputs) {
+            const thisSig = this.findSignal(output, true, this.addCombAlways);
             switch (thisSig.type) {
                 case undefined:
                 case 'wire':
@@ -532,13 +535,13 @@ export class Module {
                 case 'logic':
                     break;
                 default:
-                    throw Error(`${name} is unsupported signal type ${thisSig.type}`);
+                    throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`);
             }
         }
         let sensitivityList = null;
         if (io.inputs) {
-            for (const name in io.inputs) {
-                this.findSignal(io.inputs[name], true, this.addSequentialAlways);
+            for (const input of io.inputs) {
+                this.findSignal(input, true, this.addSequentialAlways);
             }
             sensitivityList = `@( ${io.inputs.join(' or ')} )`;
         }
@@ -556,7 +559,7 @@ export class Module {
             this.body += body;
         }
         else {
-            this.body += `always_comb\n`;
+            this.body += 'always_comb\n';
             this.body += body;
         }
     }
@@ -583,8 +586,8 @@ export class Module {
                 autoWidth: (a, b) => { return Math.max(a, b); }
             }
         };
-        let aOperand = undefined;
-        let bOperand = undefined;
+        let aOperand;
+        let bOperand;
         let aAuto = io.a;
         let bAuto = io.b;
         let aWidth = 0;
@@ -601,7 +604,7 @@ export class Module {
             aWidth = this.bitWidth(io.a);
             aSigned = (io.a < 0);
             aOperand = (aSigned) ? `-${aWidth}'sd${Math.abs(Number(io.a))}` : `${aWidth}'d${io.a}`;
-            aAuto = aOperand.replace('-', 'm').replace("'", "");
+            aAuto = aOperand.replace('-', 'm').replace("'", '');
         }
         if (typeof io.b !== 'bigint') {
             const bSig = this.findSignal(io.b, true, this.addOperation, true);
@@ -613,30 +616,30 @@ export class Module {
             bWidth = this.bitWidth(io.b);
             bSigned = (io.b < 0);
             bOperand = (bSigned) ? `-${bWidth}'sd${Math.abs(Number(io.b))}` : `${bWidth}'d${io.b}`;
-            bAuto = bOperand.replace('-', 'm').replace("'", "");
+            bAuto = bOperand.replace('-', 'm').replace("'", '');
         }
-        let result = "#NONE#";
+        let result = '#NONE#';
         if (io.result !== undefined) {
             const resultSig = this.findSignal(io.result, true, this.addOperation, true);
             if (resultSig.isSigned === undefined) {
                 resultSig.isSigned = (aSigned || bSigned);
             }
             if ((aSigned || bSigned) && (!(resultSig.isSigned)))
-                throw Error(`${io.result} must be signed`);
+                throw Error(`${io.result.toString()} must be signed`);
             console.log();
             if ((resultSig.width || 0) < nameMap[op].autoWidth(aWidth, bWidth))
-                console.warn(`${io.result} truncated output`);
+                console.warn(`${io.result.toString()} truncated output`);
             result = io.result;
         }
         else {
-            result = `${nameMap[op].name}_${aAuto}x${bAuto}`;
+            result = `${nameMap[op].name}_${aAuto.toString()}x${bAuto.toString()}`;
             this.signals[result] = {
                 type: 'logic',
                 isSigned: (aSigned || bSigned),
                 width: nameMap[op].autoWidth(aWidth, bWidth)
             };
         }
-        this.body += `   assign ${result.toString()} = ${aOperand} ${op} ${bOperand};\n`;
+        this.body += `   assign ${result.toString()} = ${aOperand.toString()} ${op} ${bOperand.toString()};\n`;
         if (typeof result === 'string') {
             return new Sig(result);
         }
@@ -646,45 +649,45 @@ export class Module {
         return this.addOperation(BinaryOp.MULTIPLY, io);
     }
     /**
-     * adds an arithmetic adder to the generated SystemVerilog module
-     * @param io the input/output interface of the adder
-     * @returns the sum result
-     */
+       * adds an arithmetic adder to the generated SystemVerilog module
+       * @param io the input/output interface of the adder
+       * @returns the sum result
+       */
     addAdder(io) {
         return this.addOperation(BinaryOp.ADD, io);
     }
     /**
-     * adds an arithemetic subtractor to the generated SystemVerilog module
-     * @param io the input/output interface of the subtractor
-     * @returns the difference result
-     */
+       * adds an arithemetic subtractor to the generated SystemVerilog module
+       * @param io the input/output interface of the subtractor
+       * @returns the difference result
+       */
     addSubtractor(io) {
         return this.addOperation(BinaryOp.SUBTRACT, io);
     }
     /**
-     * add a constant literal signal to the generated SystemVerilog module
-     * @param name signal name
-     * @param value signal literal value
-     * @param isSigned whether the signal is signed or not
-     * @param width bit width of the resulting signal
-     * @returns
-     */
+       * add a constant literal signal to the generated SystemVerilog module
+       * @param name signal name
+       * @param value signal literal value
+       * @param isSigned whether the signal is signed or not
+       * @param width bit width of the resulting signal
+       * @returns
+       */
     addConstSignal(name, value, isSigned = false, width = undefined) {
         const minWidth = this.bitWidth(value, isSigned);
         const resolvedWidth = (width === undefined) ? minWidth : width;
         if (resolvedWidth < minWidth)
             throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`);
-        this.signals[name] = { type: 'const', value: value, isSigned: isSigned, width: resolvedWidth };
+        this.signals[name] = { type: 'const', value, isSigned, width: resolvedWidth };
         return new Sig(name);
     }
     /**
-     * add an array of constant literal signals to the generated SystemVerilog module
-     * @param name signal name
-     * @param values the literal values of the array
-     * @param isSigned whether the signals are signed or not
-     * @param width bit width of the resulting signals
-     * @returns The array of signals
-     */
+       * add an array of constant literal signals to the generated SystemVerilog module
+       * @param name signal name
+       * @param values the literal values of the array
+       * @param isSigned whether the signals are signed or not
+       * @param width bit width of the resulting signals
+       * @returns The array of signals
+       */
     addConstSignals(name, values, isSigned = false, width = undefined) {
         const signalNames = [...Array(values.length).keys()].map((p) => { return `${name}_${p}`; });
         const retVal = [];
@@ -694,10 +697,10 @@ export class Module {
         return retVal;
     }
     /**
-     * add a SystemVerilog continuous assign statement
-     * @param io expression that is the right hand side of the assigment
-     * @returns signal that is the left hand side of the assignment
-     */
+       * add a SystemVerilog continuous assign statement
+       * @param io expression that is the right hand side of the assigment
+       * @returns signal that is the left hand side of the assignment
+       */
     addAssign(io) {
         const outSig = this.findSignal(io.out, true, this.addAssign, true);
         if (outSig.type && (!(outSig.type === 'wire' || outSig.type === 'logic'))) {
@@ -710,18 +713,18 @@ export class Module {
         return io.out;
     }
     /**
-     * add a multiplexer to the TSSV module
-     * @param io The input/output signals connected to the multiplexer
-     * @returns signal of the multiplexer output
-     */
+       * add a multiplexer to the TSSV module
+       * @param io The input/output signals connected to the multiplexer
+       * @returns signal of the multiplexer output
+       */
     addMux(io) {
         const selWidth = Math.ceil(Math.log2(io.in.length));
         let selString = io.sel.toString();
         if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
             const selSig = this.findSignal(io.sel, true, this.addMux, true);
-            if (selSig.width || 1 < selWidth)
+            if (selSig.width || selWidth > 1)
                 throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select`);
-            if (selSig.width || 1 > selWidth) {
+            if (selSig.width || selWidth < 1) {
                 selString = `${io.sel.toString()}[${selWidth - 1}:0]`;
             }
         }
@@ -735,12 +738,12 @@ export class Module {
             case 'logic':
                 break;
             default:
-                throw Error(`${io.out} is unsupported signal type ${outSig.type}`);
+                throw Error(`${io.out.toString()} is unsupported signal type ${outSig.type}`);
         }
         let caseAssignments = '';
-        for (const i in io.in) {
-            const rhExpr = `${io.in[i].toString()}`;
-            caseAssignments += `     case ${selWidth}'d{i}: ${io.out} = ${rhExpr}`;
+        for (const input of io.in) {
+            const rhExpr = `${input.toString()}`;
+            caseAssignments += `     case ${selWidth}'d{i}: ${io.out.toString()} = ${rhExpr}`;
         }
         this.body +=
             `  always_comb
@@ -754,8 +757,8 @@ ${caseAssignments}
         return io.out;
     }
     /**
-     * print some debug information to the console
-     */
+       * print some debug information to the console
+       */
     debug() {
         console.log(this.name);
         console.log(this.params);
@@ -765,25 +768,25 @@ ${caseAssignments}
         console.log(this.registerBlocks);
     }
     /**
-     * write the generated SystemVerilog code to a string
-     * @returns string containing the generated SystemVerilog code for this module
-     */
+       * write the generated SystemVerilog code to a string
+       * @returns string containing the generated SystemVerilog code for this module
+       */
     writeSystemVerilog() {
         // assemble TSSVParameters
         const paramsArray = [];
         if (this.params) {
-            //FIXME - need separate SV Verilog parameter container
+            // FIXME - need separate SV Verilog parameter container
             /*
-              for (var key of Object.keys(this.params)) {
-              let param = this.params[key]
-              // console.log(`${key}: ${param} ${typeof param}`)
-              if(typeof param === 'number') {
-              paramsArray.push(`parameter ${key} = ${param.toString()}`)
-              }
-              }
-            */
+                    for (var key of Object.keys(this.params)) {
+                    let param = this.params[key]
+                    // console.log(`${key}: ${param} ${typeof param}`)
+                    if(typeof param === 'number') {
+                    paramsArray.push(`parameter ${key} = ${param.toString()}`)
+                    }
+                    }
+                  */
         }
-        let paramsString = "";
+        let paramsString = '';
         if (paramsArray.length > 0) {
             paramsString = `    #(${paramsArray.join(',\n    ')})`;
         }
@@ -791,9 +794,9 @@ ${caseAssignments}
         const IOArray = [];
         const signalArray = [];
         let interfacesString = '';
-        Object.keys(this.IOs).map((key) => {
-            let rangeString = "";
-            const signString = (this.IOs[key].isSigned) ? " signed" : "";
+        Object.keys(this.IOs).forEach((key) => {
+            let rangeString = '';
+            const signString = (this.IOs[key].isSigned) ? ' signed' : '';
             if (this.IOs[key].isArray)
                 throw Error(`${key}: Array IOs not supported`);
             if ((this.IOs[key].width || 0) > 1) {
@@ -801,7 +804,7 @@ ${caseAssignments}
             }
             IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
-        Object.keys(this.interfaces).map((key) => {
+        Object.keys(this.interfaces).forEach((key) => {
             const thisInterface = this.interfaces[key];
             if (thisInterface.role) {
                 if (thisInterface.modports) {
@@ -809,17 +812,17 @@ ${caseAssignments}
                     if (!thisModports)
                         throw Error(`${thisInterface.name} : inconsistent modports`);
                     /*
-                    Object.keys(thisModports).map((name) => {
-                        let thisSignal = thisInterface.signals[name]
-                        if(!thisSignal) `${thisInterface.name}: modport missing signal ${name}`
-                        let rangeString = ""
-                        let signString = (thisSignal.isSigned) ? " signed" : ""
-                        if((thisSignal.width || 0) > 1) {
-                            rangeString = `[${Number(thisSignal.width)-1}:0]`
-                        }
-                        IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
-                    })
-                    */
+                              Object.keys(thisModports).map((name) => {
+                                  let thisSignal = thisInterface.signals[name]
+                                  if(!thisSignal) `${thisInterface.name}: modport missing signal ${name}`
+                                  let rangeString = ""
+                                  let signString = (thisSignal.isSigned) ? " signed" : ""
+                                  if((thisSignal.width || 0) > 1) {
+                                      rangeString = `[${Number(thisSignal.width)-1}:0]`
+                                  }
+                                  IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
+                              })
+                              */
                     if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
                         interfacesString += thisInterface.writeSystemVerilog();
                         Module.printedInterfaces[thisInterface.interfaceName()] = true;
@@ -836,10 +839,10 @@ ${caseAssignments}
         });
         const IOString = `   ${IOArray.join(',\n   ')}`;
         // construct signal list
-        Object.keys(this.signals).map((key) => {
-            let rangeString = "";
-            let arrayString = "";
-            const signString = (this.signals[key].isSigned) ? " signed" : "";
+        Object.keys(this.signals).forEach((key) => {
+            let rangeString = '';
+            let arrayString = '';
+            const signString = (this.signals[key].isSigned) ? ' signed' : '';
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
             }
@@ -849,18 +852,18 @@ ${caseAssignments}
             signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}`);
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
-        if (signalArray.length)
+        if (signalArray.length > 0)
             signalString += ';';
         for (const sensitivity in this.registerBlocks) {
             for (const resetCondition in this.registerBlocks[sensitivity]) {
                 for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
                     const regs = this.registerBlocks[sensitivity][resetCondition][enable];
-                    let resetString = "   ";
-                    if (resetCondition != "#NONE#") {
+                    let resetString = '   ';
+                    if (resetCondition !== '#NONE#') {
                         const resetAssignments = [];
-                        Object.keys(regs).map((key) => {
+                        Object.keys(regs).forEach((key) => {
                             const reg = regs[key];
-                            //console.log(reg)
+                            // console.log(reg)
                             resetAssignments.push(`           ${key} <= 'd${reg.resetVal || 0};`);
                         });
                         resetString =
@@ -870,11 +873,11 @@ ${resetAssignments.join('\n')}
         end
       else `;
                     }
-                    const enableString = (enable == "#NONE#") ? "" : `if(${enable})`;
+                    const enableString = (enable === '#NONE#') ? '' : `if(${enable})`;
                     const functionalAssigments = [];
-                    Object.keys(regs).map((key) => {
+                    Object.keys(regs).forEach((key) => {
                         const reg = regs[key];
-                        //console.log(reg)
+                        // console.log(reg)
                         functionalAssigments.push(`           ${key} <= ${reg.d};`);
                     });
                     this.body +=
@@ -888,7 +891,7 @@ ${functionalAssigments.join('\n')}
                 }
             }
         }
-        let subModulesString = "";
+        let subModulesString = '';
         for (const moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance];
             const printed = {};
@@ -899,13 +902,13 @@ ${functionalAssigments.join('\n')}
             }
             const bindingsArray = [];
             for (const binding in thisSubmodule.bindings) {
-                bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding]})`);
+                bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding].toString()})`);
             }
             const vParamsArray = [];
             for (const p in thisSubmodule.module.verilogParams) {
                 vParamsArray.push(`.${p}(${(thisSubmodule.module.params[p] || '').toString()})`);
             }
-            if (vParamsArray.length) {
+            if (vParamsArray.length > 0) {
                 paramsBind = `#(${vParamsArray.join(',')}) `;
             }
             this.body +=

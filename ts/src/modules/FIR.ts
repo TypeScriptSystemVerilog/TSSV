@@ -62,7 +62,7 @@ export class FIR extends Module {
 
     // construct final vector sum
     const sumWidth = (this.params.inWidth || 0) + this.bitWidth(coeffSum)
-    const productsExt = products.map((p) => `${sumWidth}'(${p})`)
+    const productsExt = products.map((p) => `${sumWidth}'(${p.toString()})`)
     this.addSignal('sum', { width: sumWidth, isSigned: true })
     this.addRegister({
       d: new Expr(`${productsExt.join(' + ')}`),

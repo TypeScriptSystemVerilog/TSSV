@@ -16,15 +16,15 @@ export class SRAM extends Module {
             macroConfig: params.macroConfig || 'default'
         });
         // add tmp register 'mem'
-        this.addSignal("mem", { width: this.params.dataWidth, isArray: this.params.depth });
+        this.addSignal('mem', { width: this.params.dataWidth, isArray: this.params.depth });
         // add variables for the "mask" operation
         let mask_cnt = 0;
         let mask_w = 0;
-        if (this.params.writeEnableMask == 'bit') {
+        if (this.params.writeEnableMask === 'bit') {
             mask_cnt = this.params.dataWidth;
             mask_w = 1;
         }
-        else if (this.params.writeEnableMask == 'byte') {
+        else if (this.params.writeEnableMask === 'byte') {
             mask_cnt = this.params.dataWidth / 8;
             mask_w = 8;
         }
@@ -39,16 +39,16 @@ export class SRAM extends Module {
                     a_data_out: { direction: 'output', width: this.params.dataWidth },
                     a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
                 };
-                if (this.params.writeEnableMask == 'bit') {
+                if (this.params.writeEnableMask === 'bit') {
                     this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth };
                 }
-                else if (this.params.writeEnableMask == 'byte') {
-                    if ((this.params.dataWidth % 8) != 0)
+                else if (this.params.writeEnableMask === 'byte') {
+                    if ((this.params.dataWidth % 8) !== 0)
                         throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask');
                     this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 };
                 }
                 let body_1rw = '';
-                if (this.params.writeEnableMask == 'none') {
+                if (this.params.writeEnableMask === 'none') {
                     body_1rw =
                         `
     always_ff @(posedge clk) begin 
@@ -61,7 +61,7 @@ export class SRAM extends Module {
     end          
     `;
                 }
-                else if (mask_cnt == 1) {
+                else if (mask_cnt === 1) {
                     body_1rw =
                         `
     always_ff @(posedge clk) begin
@@ -104,19 +104,19 @@ export class SRAM extends Module {
                     b_data_out: { direction: 'output', width: this.params.dataWidth },
                     b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
                 };
-                if (this.params.writeEnableMask == 'bit') {
+                if (this.params.writeEnableMask === 'bit') {
                     this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth };
                     this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth };
                 }
-                else if (this.params.writeEnableMask == 'byte') {
-                    if ((this.params.dataWidth % 8) != 0)
+                else if (this.params.writeEnableMask === 'byte') {
+                    if ((this.params.dataWidth % 8) !== 0)
                         throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask');
                     this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 };
                     this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 };
                 }
                 let body_2rw_a = '';
                 let body_2rw_b = '';
-                if (this.params.writeEnableMask == 'none') {
+                if (this.params.writeEnableMask === 'none') {
                     body_2rw_a =
                         `
     always_ff @ (posedge clk) begin
@@ -140,7 +140,7 @@ export class SRAM extends Module {
     end
     `;
                 }
-                else if (mask_cnt == 1) {
+                else if (mask_cnt === 1) {
                     body_2rw_a =
                         `
     always_ff @(posedge clk) begin
@@ -202,16 +202,16 @@ export class SRAM extends Module {
                     b_data_in: { direction: 'input', width: this.params.dataWidth },
                     b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
                 };
-                if (this.params.writeEnableMask == 'bit') {
+                if (this.params.writeEnableMask === 'bit') {
                     this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth };
                 }
-                else if (this.params.writeEnableMask == 'byte') {
-                    if ((this.params.dataWidth % 8) != 0)
+                else if (this.params.writeEnableMask === 'byte') {
+                    if ((this.params.dataWidth % 8) !== 0)
                         throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask');
                     this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 };
                 }
                 let body_1r_1w_w = '';
-                if (this.params.writeEnableMask == 'none') {
+                if (this.params.writeEnableMask === 'none') {
                     body_1r_1w_w =
                         `
     always_ff @ (posedge clk) begin
@@ -221,7 +221,7 @@ export class SRAM extends Module {
     end
     `;
                 }
-                else if (mask_cnt == 1) {
+                else if (mask_cnt === 1) {
                     body_1r_1w_w =
                         `
     always_ff @(posedge clk) begin

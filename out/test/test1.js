@@ -42,10 +42,10 @@ export class Adder3 extends Module {
         const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1;
         const psum = this.addSignal('psum', { width: psumWidth });
         this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: psum, regs: 'regs1' });
-        this.addSignal("sum_d", { width: sumWidth });
-        this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: "c", b: "psum", sum: 'sum_d', regs: 'regs2' });
-        this.addSignal("sum_d3", { width: sumWidth });
-        this.addSystemVerilogSubmodule('add3', 'ts/test/testImport.sv', { aWidth: 8, bWidth: 9, sumWidth: 10 }, { a: "c", b: "psum", sum: 'sum_d3' });
+        this.addSignal('sum_d', { width: sumWidth });
+        this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: 'c', b: 'psum', sum: 'sum_d', regs: 'regs2' });
+        this.addSignal('sum_d3', { width: sumWidth });
+        this.addSystemVerilogSubmodule('add3', 'ts/test/testImport.sv', { aWidth: 8, bWidth: 9, sumWidth: 10 }, { a: 'c', b: 'psum', sum: 'sum_d3' });
         this.addSequentialAlways({
             clk: 'clk',
             reset: 'rst_b',
@@ -70,7 +70,7 @@ export class testMem extends Module {
             clk: { direction: 'input', isClock: 'posedge' },
             data_out: { direction: 'output', width: this.params.dataWidth }
         };
-        this.addSignal("mem", { width: this.params.dataWidth, isArray: this.params.depth });
+        this.addSignal('mem', { width: this.params.dataWidth, isArray: this.params.depth });
         this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'data_out'] }, `
   always_ff @(posedge clk)
     begin
