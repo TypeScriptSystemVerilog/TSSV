@@ -29,7 +29,7 @@ npm -v  #10.5.0
 
 #### Run Procedure
 ```bash
-$ git clone https://github.com/avonancken/TSSV.git
+$ git clone https://github.com/TypeScriptSystemVerilog/TSSV.git
 $ cd TSSV
 $ npm install
 $ npx tsc
