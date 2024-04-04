@@ -42,6 +42,8 @@ Run ESlint to for additional code quality checks beyond the type checking specif
 $ cd ~/TSSV
 $ npx eslint .
 ```
+For Visual Studio Code GUI based linting, make sure install extensioin ESLint from Microsoft v2.4.4 or above.
+
 ### Run Verilator
 Verilator is an open source Verilog/SystemVerilog simulator.   It can also be used as a lint check of Verilog/SystemVerilog code.   
 
