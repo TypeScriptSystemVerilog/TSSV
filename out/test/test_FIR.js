@@ -1,5 +1,9 @@
 import { FIR } from 'tssv/lib/modules/FIR';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
+try {
+    mkdirSync('sv-examples/test_FIR_output');
+}
+catch (e) { }
 const myFir = new FIR({ name: 'myFIR', numTaps: 4, coefficients: [1n, 2n, 3n, 4n] });
 try {
     writeFileSync('sv-examples/test_FIR_output/myFIR.sv', myFir.writeSystemVerilog());

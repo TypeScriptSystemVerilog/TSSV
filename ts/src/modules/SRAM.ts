@@ -1,28 +1,27 @@
 import { Module, type TSSVParameters, type IntRange, Expr } from 'tssv/lib/core/TSSV'
 
-
 /**
  * configuration parameters of the SRAM module
  */
 export interface SRAM_Parameters extends TSSVParameters {
-    /**
+  /**
      * bit width of SRAM data
      */
-    dataWidth: IntRange<1, 256>
-    /**
+  dataWidth: IntRange<1, 256>
+  /**
      * number of data words in the SRAM
      */
-    depth: bigint
-    /**
+  depth: bigint
+  /**
      * SRAM port configuration
      */
-    ports: '1rw' | '1r_1w' | '2rw'
-    /**
+  ports: '1rw' | '1r_1w' | '2rw'
+  /**
      * select write enable mask control among 'none', 'bit', 'byte'
      * defaults to 'none'
      */
-    writeEnableMask?: 'none' | 'bit' | 'byte'
-    /**
+  writeEnableMask?: 'none' | 'bit' | 'byte'
+  /**
      * define the behavior of the read data when writing during the same clock cycle
      * defaults to 'undefOnWrite' meaning the read data bus will be undefined after
      * writes until the next read. This gives the maximum flexibility for selecting
@@ -30,21 +29,21 @@ export interface SRAM_Parameters extends TSSVParameters {
      * logic requires simultaneous read of existing value and write of a new value
      * in the same clock cycle
      */
-    readBehavior?: 'undefOnWrite' | 'readBeforeWrite'
-    /**
+  readBehavior?: 'undefOnWrite' | 'readBeforeWrite'
+  /**
      * macroConfig is a free form string parameter that allows selection of technology
      * specific SRAM macro generator parameters such as high-speed, high-density,
      * mux configuration,  leakage selection, etc.
      * This parameter has no influence on the behavior of the SRAM behavioral model and
-     * is meant only to choose macro generation settings that effect the size, speed, and 
+     * is meant only to choose macro generation settings that effect the size, speed, and
      * power performance of the resulting macro
-     * 
-     * TSSV will only write out an SRAM library of behavioral models for each SRAM for the 
+     *
+     * TSSV will only write out an SRAM library of behavioral models for each SRAM for the
      * purpose of simulation and FPGA implementation. The user should run a separate SRAM
      * library generation tool for the ASIC target technology to create the necessary
-     * ASIC view SRAM library for the design   
+     * ASIC view SRAM library for the design
      */
-    macroConfig?: string
+  macroConfig?: string
 
 }
 
@@ -54,17 +53,17 @@ export interface SRAM_Parameters extends TSSVParameters {
  * ASIC macro library can be swapped in for ASIC synthesis/implemenation
  */
 export class SRAM extends Module {
-    declare params: SRAM_Parameters
-    constructor(params: SRAM_Parameters) {
-        super({
-            // define the default parameter values
-            dataWidth: params.dataWidth,
-            depth: params.depth,
-            ports: params.ports,
-            writeEnableMask: params.writeEnableMask || 'none',
-            readBehavior: params.readBehavior || 'undefOnWrite',
-            macroConfig: params.macroConfig || 'default'
-        })
+  declare params: SRAM_Parameters
+  constructor (params: SRAM_Parameters) {
+    super({
+      // define the default parameter values
+      dataWidth: params.dataWidth,
+      depth: params.depth,
+      ports: params.ports,
+      writeEnableMask: params.writeEnableMask || 'none',
+      readBehavior: params.readBehavior || 'undefOnWrite',
+      macroConfig: params.macroConfig || 'default'
+    })
 
     // add tmp register 'mem'
     this.addSignal('mem', { width: this.params.dataWidth, isArray: this.params.depth })
@@ -80,39 +79,39 @@ export class SRAM extends Module {
       mask_w = 8
     }
 
-        // define IO signals
-        switch (this.params.ports) {
-//=================================== 1rw ===========================================
-            case '1rw': {
-                this.IOs = {
-                    clk: { direction: 'input', isClock: 'posedge' },
-                    a_re: { direction: 'input' },
-                    a_we: { direction: 'input' },
-                    a_data_in: { direction: 'input', width: this.params.dataWidth },
-                    a_data_out: { direction: 'output', width: this.params.dataWidth },
-                    a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
-                }
-                if (this.params.writeEnableMask === 'bit') {
-                    this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth }
-                } else if (this.params.writeEnableMask === 'byte') {
-                    if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-                    this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
-                }
-                //Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
-                let read_enable = 'a_re'
-                let rw_conflict_out_MaskNone = ''  //for Mask: none mode
-                let rw_conflict_out_MaskWidthEqual1 = '' //for Mask: bit/byte mode while mask width equal to 1
-                let rw_conflict_out_MaskWidthGreater1 = '' //for Mask: bit/byte mode while mask width greater than 1
-                if (this.params.readBehavior === 'undefOnWrite') {
-                    read_enable = 'a_re & ~a_we'
-                    rw_conflict_out_MaskNone = 
+    // define IO signals
+    switch (this.params.ports) {
+      //= ================================== 1rw ===========================================
+      case '1rw': {
+        this.IOs = {
+          clk: { direction: 'input', isClock: 'posedge' },
+          a_re: { direction: 'input' },
+          a_we: { direction: 'input' },
+          a_data_in: { direction: 'input', width: this.params.dataWidth },
+          a_data_out: { direction: 'output', width: this.params.dataWidth },
+          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
+        }
+        if (this.params.writeEnableMask === 'bit') {
+          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth }
+        } else if (this.params.writeEnableMask === 'byte') {
+          if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
+          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+        }
+        // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
+        let read_enable = 'a_re'
+        let rw_conflict_out_MaskNone = '' // for Mask: none mode
+        let rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
+        let rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
+        if (this.params.readBehavior === 'undefOnWrite') {
+          read_enable = 'a_re & ~a_we'
+          rw_conflict_out_MaskNone =
         `\`ifndef SYNTHESIS
         else if(a_re & a_we ) begin //output is X after reading and writing the same address at the same time
             a_data_out <= 'hx;
         end 
         \`endif`
 
-                    rw_conflict_out_MaskWidthEqual1 = 
+          rw_conflict_out_MaskWidthEqual1 =
         `else if(a_re & a_we & ~a_wmask) begin
             a_data_out <= mem[a_addr];
         end
@@ -122,7 +121,7 @@ export class SRAM extends Module {
         end
         \`endif`
 
-                    rw_conflict_out_MaskWidthGreater1 = 
+          rw_conflict_out_MaskWidthGreater1 =
             `else if(a_re & a_we & ~a_wmask[i]) begin
                 a_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
             end
@@ -131,11 +130,11 @@ export class SRAM extends Module {
                 a_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
             end 
             \`endif`
-                }
-                //define always block
-                let body_1rw = ''
-                if ( this.params.writeEnableMask === 'none' ){
-                 body_1rw = 
+        }
+        // define always block
+        let body_1rw = ''
+        if (this.params.writeEnableMask === 'none') {
+          body_1rw =
     `
     always_ff @(posedge clk) begin 
         if(a_we) begin
@@ -147,8 +146,8 @@ export class SRAM extends Module {
         ${rw_conflict_out_MaskNone}
     end          
     `
-                } else if( mask_cnt === 1 ){
-                 body_1rw = 
+        } else if (mask_cnt === 1) {
+          body_1rw =
     `
     always_ff @(posedge clk) begin
         if(a_we & a_wmask) begin
@@ -160,8 +159,8 @@ export class SRAM extends Module {
         ${rw_conflict_out_MaskWidthEqual1}
     end
     `
-                } else {
-                 body_1rw = 
+        } else {
+          body_1rw =
     `
     always_ff @(posedge clk) begin
         for(integer i=0; i<${mask_cnt}; i=i+1) begin
@@ -177,53 +176,53 @@ export class SRAM extends Module {
         end
     end
     `
-                }
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'a_data_out']},body_1rw)
-                break
-            }
-//=================================== 2rw ===========================================                        
-            case '2rw': {
-                this.IOs = {
-                    clk: { direction: 'input', isClock: 'posedge' },
-                    a_re: { direction: 'input' },
-                    a_we: { direction: 'input' },
-                    a_data_in: { direction: 'input', width: this.params.dataWidth },
-                    a_data_out: { direction: 'output', width: this.params.dataWidth },
-                    a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
-                    b_re: { direction: 'input' },
-                    b_we: { direction: 'input' },
-                    b_data_in: { direction: 'input', width: this.params.dataWidth },
-                    b_data_out: { direction: 'output', width: this.params.dataWidth },
-                    b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
-                }
-                if (this.params.writeEnableMask === 'bit') {
-                    this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth }
-                    this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth }
-                } else if (this.params.writeEnableMask === 'byte') {
-                    if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-                    this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
-                    this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
-                }
-                //Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
-                let a_read_enable = 'a_re'
-                let b_read_enable = 'b_re'
-                let a_rw_conflict_out_MaskNone = ''  //for Mask: none mode
-                let a_rw_conflict_out_MaskWidthEqual1 = '' //for Mask: bit/byte mode while mask width equal to 1
-                let a_rw_conflict_out_MaskWidthGreater1 = '' //for Mask: bit/byte mode while mask width greater than 1
-                let b_rw_conflict_out_MaskNone = ''  //for Mask: none mode
-                let b_rw_conflict_out_MaskWidthEqual1 = '' //for Mask: bit/byte mode while mask width equal to 1
-                let b_rw_conflict_out_MaskWidthGreater1 = '' //for Mask: bit/byte mode while mask width greater than 1
-                if (this.params.readBehavior === 'undefOnWrite') {
-                    a_read_enable = 'a_re & ~a_rw_conflict'
-                    b_read_enable = 'b_re & ~b_rw_conflict'
-                    a_rw_conflict_out_MaskNone = 
+        }
+        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_1rw)
+        break
+      }
+      //= ================================== 2rw ===========================================
+      case '2rw': {
+        this.IOs = {
+          clk: { direction: 'input', isClock: 'posedge' },
+          a_re: { direction: 'input' },
+          a_we: { direction: 'input' },
+          a_data_in: { direction: 'input', width: this.params.dataWidth },
+          a_data_out: { direction: 'output', width: this.params.dataWidth },
+          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
+          b_re: { direction: 'input' },
+          b_we: { direction: 'input' },
+          b_data_in: { direction: 'input', width: this.params.dataWidth },
+          b_data_out: { direction: 'output', width: this.params.dataWidth },
+          b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
+        }
+        if (this.params.writeEnableMask === 'bit') {
+          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth }
+          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth }
+        } else if (this.params.writeEnableMask === 'byte') {
+          if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
+          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+        }
+        // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
+        let a_read_enable = 'a_re'
+        let b_read_enable = 'b_re'
+        let a_rw_conflict_out_MaskNone = '' // for Mask: none mode
+        let a_rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
+        let a_rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
+        let b_rw_conflict_out_MaskNone = '' // for Mask: none mode
+        let b_rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
+        let b_rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
+        if (this.params.readBehavior === 'undefOnWrite') {
+          a_read_enable = 'a_re & ~a_rw_conflict'
+          b_read_enable = 'b_re & ~b_rw_conflict'
+          a_rw_conflict_out_MaskNone =
         `\`ifndef SYNTHESIS
         else if(a_re & a_rw_conflict) begin //output is X after reading and writing the same address at the same time
             a_data_out <= 'hx;
         end
         \`endif`
-        
-                    a_rw_conflict_out_MaskWidthEqual1 = 
+
+          a_rw_conflict_out_MaskWidthEqual1 =
         `else if(a_re & a_rw_conflict & ~((a_we & a_wmask) | (b_write_at_same_addr & b_wmask))) begin
             a_data_out <= mem[a_addr];
         end
@@ -232,8 +231,8 @@ export class SRAM extends Module {
             a_data_out <= 'hx;
         end
         \`endif`
-        
-                    a_rw_conflict_out_MaskWidthGreater1 = 
+
+          a_rw_conflict_out_MaskWidthGreater1 =
             `else if(a_re & a_rw_conflict & ~((a_we & a_wmask[i]) | (b_write_at_same_addr & b_wmask[i]))) begin
                 a_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
             end
@@ -243,14 +242,14 @@ export class SRAM extends Module {
             end
             \`endif`
 
-                    b_rw_conflict_out_MaskNone = 
+          b_rw_conflict_out_MaskNone =
         `\`ifndef SYNTHESIS
         else if(b_re & b_rw_conflict) begin //output is X after reading and writing the same address at the same time
             b_data_out <= 'hx;
         end
         \`endif`
 
-                    b_rw_conflict_out_MaskWidthEqual1 = 
+          b_rw_conflict_out_MaskWidthEqual1 =
         `else if(b_re & b_rw_conflict & ~((b_we & b_wmask) | (a_write_at_same_addr & a_wmask))) begin
             b_data_out <= mem[a_addr];
         end
@@ -260,7 +259,7 @@ export class SRAM extends Module {
         end
         \`endif`
 
-                    b_rw_conflict_out_MaskWidthGreater1 = 
+          b_rw_conflict_out_MaskWidthGreater1 =
             `else if(b_re & b_rw_conflict & ~((b_we & b_wmask[i]) | (a_write_at_same_addr & a_wmask[i]))) begin
                 b_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
             end
@@ -269,12 +268,12 @@ export class SRAM extends Module {
                 b_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
             end
             \`endif`
-                }
-                //define always block
-                let body_2rw_a = ''
-                let body_2rw_b = ''
-                if ( this.params.writeEnableMask === 'none' ){
-                body_2rw_a = 
+        }
+        // define always block
+        let body_2rw_a = ''
+        let body_2rw_b = ''
+        if (this.params.writeEnableMask === 'none') {
+          body_2rw_a =
     `
     always_ff @ (posedge clk) begin
         if(a_we & ~b_write_at_same_addr) begin
@@ -308,8 +307,8 @@ export class SRAM extends Module {
         ${b_rw_conflict_out_MaskNone}
     end
     `
-                } else if( mask_cnt === 1 ){
-                 body_2rw_a = 
+        } else if (mask_cnt === 1) {
+          body_2rw_a =
     `
     always_ff @(posedge clk) begin
         if(a_we & a_wmask & ~(b_write_at_same_addr & b_wmask)) begin
@@ -325,8 +324,8 @@ export class SRAM extends Module {
         end
         ${a_rw_conflict_out_MaskWidthEqual1}
     end
-    `                  
-                 body_2rw_b = 
+    `
+          body_2rw_b =
     `
     always_ff @(posedge clk) begin
         if(b_we & b_wmask & ~(a_write_at_same_addr & a_wmask)) begin
@@ -342,9 +341,9 @@ export class SRAM extends Module {
         end
         ${b_rw_conflict_out_MaskWidthEqual1}
     end
-    `               
-                } else {
-                 body_2rw_a = 
+    `
+        } else {
+          body_2rw_a =
     `
     always_ff @(posedge clk) begin
         for(integer i=0; i<${mask_cnt}; i=i+1) begin
@@ -365,8 +364,8 @@ export class SRAM extends Module {
         end
         
     end
-    `                  
-                 body_2rw_b = 
+    `
+          body_2rw_b =
     `
     always_ff @(posedge clk) begin
         for(integer i=0; i<${mask_cnt}; i=i+1) begin
@@ -387,55 +386,55 @@ export class SRAM extends Module {
         end
     end
     `
-                }
-                this.addSignal('addr_a_equal_b',{description:'//1 means a_addr === b_addr'})
-                this.addSignal('b_write_at_same_addr',{description:'//1 means port b write the same address as port a'})
-                this.addSignal('a_write_at_same_addr',{description:'//1 means port a write the same address as port b'})
-                this.addAssign({in: new Expr('~(|(a_addr ^ b_addr))'), out: 'addr_a_equal_b'})
-                this.addAssign({in: new Expr('b_we & addr_a_equal_b'), out: 'b_write_at_same_addr'})
-                this.addAssign({in: new Expr('a_we & addr_a_equal_b'), out: 'a_write_at_same_addr'})
-                if (this.params.readBehavior === 'undefOnWrite') {
-                this.addSignal('a_rw_conflict',{description:'//1 means that either a or b is writing to the same address, while port a is reading, used to determine read/write conflicts at port a'})
-                this.addSignal('b_rw_conflict',{description:'//1 means that either a or b is writing to the same address, while port b is reading, used to determine read/write conflicts at port b'})
-                this.addAssign({in: new Expr('a_we | b_write_at_same_addr'), out: 'a_rw_conflict'})
-                this.addAssign({in: new Expr('b_we | a_write_at_same_addr'), out: 'b_rw_conflict'})
-                }
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'a_data_out']},body_2rw_a)                
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'b_data_out']},body_2rw_b)
-                break;
-            }
-//=================================== 1r1w ===========================================
-            case '1r_1w': {
-                this.IOs = {
-                    clk: { direction: 'input', isClock: 'posedge' },
-                    a_re: { direction: 'input' },
-                    a_data_out: { direction: 'output', width: this.params.dataWidth },
-                    a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
-                    b_we: { direction: 'input' },
-                    b_data_in: { direction: 'input', width: this.params.dataWidth },
-                    b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
-                }
-                if (this.params.writeEnableMask === 'bit') {
-                    this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth }
-                } else if (this.params.writeEnableMask === 'byte') {
-                    if ((this.params.dataWidth % 8) != 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-                    this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
-                }
-                //Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
-                let read_enable = 'a_re'
-                let rw_conflict_out_MaskNone = ''  //for Mask: none mode
-                let rw_conflict_out_MaskWidthEqual1 = '' //for Mask: bit/byte mode while mask width equal to 1
-                let rw_conflict_out_MaskWidthGreater1 = '' //for Mask: bit/byte mode while mask width greater than 1
-                if (this.params.readBehavior === 'undefOnWrite') {
-                    read_enable = 'a_re & ~b_write_at_same_addr'
-                    rw_conflict_out_MaskNone = 
+        }
+        this.addSignal('addr_a_equal_b', { description: '//1 means a_addr === b_addr' })
+        this.addSignal('b_write_at_same_addr', { description: '//1 means port b write the same address as port a' })
+        this.addSignal('a_write_at_same_addr', { description: '//1 means port a write the same address as port b' })
+        this.addAssign({ in: new Expr('~(|(a_addr ^ b_addr))'), out: 'addr_a_equal_b' })
+        this.addAssign({ in: new Expr('b_we & addr_a_equal_b'), out: 'b_write_at_same_addr' })
+        this.addAssign({ in: new Expr('a_we & addr_a_equal_b'), out: 'a_write_at_same_addr' })
+        if (this.params.readBehavior === 'undefOnWrite') {
+          this.addSignal('a_rw_conflict', { description: '//1 means that either a or b is writing to the same address, while port a is reading, used to determine read/write conflicts at port a' })
+          this.addSignal('b_rw_conflict', { description: '//1 means that either a or b is writing to the same address, while port b is reading, used to determine read/write conflicts at port b' })
+          this.addAssign({ in: new Expr('a_we | b_write_at_same_addr'), out: 'a_rw_conflict' })
+          this.addAssign({ in: new Expr('b_we | a_write_at_same_addr'), out: 'b_rw_conflict' })
+        }
+        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_2rw_a)
+        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'b_data_out'] }, body_2rw_b)
+        break
+      }
+      //= ================================== 1r1w ===========================================
+      case '1r_1w': {
+        this.IOs = {
+          clk: { direction: 'input', isClock: 'posedge' },
+          a_re: { direction: 'input' },
+          a_data_out: { direction: 'output', width: this.params.dataWidth },
+          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
+          b_we: { direction: 'input' },
+          b_data_in: { direction: 'input', width: this.params.dataWidth },
+          b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
+        }
+        if (this.params.writeEnableMask === 'bit') {
+          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth }
+        } else if (this.params.writeEnableMask === 'byte') {
+          if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
+          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+        }
+        // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
+        let read_enable = 'a_re'
+        let rw_conflict_out_MaskNone = '' // for Mask: none mode
+        let rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
+        let rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
+        if (this.params.readBehavior === 'undefOnWrite') {
+          read_enable = 'a_re & ~b_write_at_same_addr'
+          rw_conflict_out_MaskNone =
         `\`ifndef SYNTHESIS
         else if(a_re & b_write_at_same_addr) begin //output is X after reading and writing the same address at the same time
             a_data_out <= 'hx;
         end
         \`endif`
 
-                   rw_conflict_out_MaskWidthEqual1 = 
+          rw_conflict_out_MaskWidthEqual1 =
         `else if (a_re & b_write_at_same_addr & ~b_wmask) begin
             a_data_out <= mem[a_addr];
         end
@@ -445,7 +444,7 @@ export class SRAM extends Module {
         end
         \`endif`
 
-                    rw_conflict_out_MaskWidthGreater1 = 
+          rw_conflict_out_MaskWidthGreater1 =
             `else if (a_re & b_write_at_same_addr & ~b_wmask[i]) begin
                 a_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
             end
@@ -454,11 +453,11 @@ export class SRAM extends Module {
                 a_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
             end
             \`endif`
-                }
-                //define always block
-                let body_1r_1w = ''
-                if ( this.params.writeEnableMask === 'none' ){
-                body_1r_1w = 
+        }
+        // define always block
+        let body_1r_1w = ''
+        if (this.params.writeEnableMask === 'none') {
+          body_1r_1w =
     `
     always_ff @ (posedge clk) begin
         if(b_we) begin
@@ -470,8 +469,8 @@ export class SRAM extends Module {
         ${rw_conflict_out_MaskNone}
     end
     `
-                } else if( mask_cnt === 1 ){
-                body_1r_1w = 
+        } else if (mask_cnt === 1) {
+          body_1r_1w =
     `
     always_ff @(posedge clk) begin
         if(b_we & b_wmask) begin
@@ -483,8 +482,8 @@ export class SRAM extends Module {
         ${rw_conflict_out_MaskWidthEqual1}
     end
     `
-                } else {
-                body_1r_1w = 
+        } else {
+          body_1r_1w =
     `
     always_ff @(posedge clk) begin
         for(integer i=0; i<${mask_cnt}; i=i+1) begin
@@ -499,18 +498,17 @@ export class SRAM extends Module {
             ${rw_conflict_out_MaskWidthGreater1}
         end
     end
-    ` 
-                }
-                if (this.params.readBehavior === 'undefOnWrite') {
-                this.addSignal('addr_a_equal_b',{description:'//1 means a_addr === b_addr'})
-                this.addSignal('b_write_at_same_addr',{description:'//1 means port b write the same address as port a'})
-                this.addAssign({in: new Expr('~(|(a_addr ^ b_addr))'), out: 'addr_a_equal_b'})
-                this.addAssign({in: new Expr('b_we & addr_a_equal_b'), out: 'b_write_at_same_addr'})
-                }
-                this.addSequentialAlways({clk: 'clk', outputs : ['mem', 'a_data_out']},body_1r_1w)
-                break
-            }
+    `
         }
-
+        if (this.params.readBehavior === 'undefOnWrite') {
+          this.addSignal('addr_a_equal_b', { description: '//1 means a_addr === b_addr' })
+          this.addSignal('b_write_at_same_addr', { description: '//1 means port b write the same address as port a' })
+          this.addAssign({ in: new Expr('~(|(a_addr ^ b_addr))'), out: 'addr_a_equal_b' })
+          this.addAssign({ in: new Expr('b_we & addr_a_equal_b'), out: 'b_write_at_same_addr' })
+        }
+        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_1r_1w)
+        break
+      }
     }
+  }
 }
