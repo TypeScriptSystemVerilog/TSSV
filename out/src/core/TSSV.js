@@ -183,7 +183,7 @@ export class Module {
        * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
        * @returns returns the resulting submodule instance
        */
-    addSubmodule(instanceName, submodule, bindings, autoBind = true) {
+    addSubmodule(instanceName, submodule, bindings, autoBind = true, createMissing = false) {
         if (this.submodules.instanceName !== undefined)
             throw Error(`submodule with instance name ${instanceName} already exists`);
         const thisModule = {
@@ -200,6 +200,17 @@ export class Module {
                     else if (this.signals[thisPort]) {
                         thisModule.bindings[thisPort] = thisPort;
                     }
+                    else if (createMissing) {
+                        const thisIO = submodule.IOs[thisPort];
+                        this.addSignal(thisPort, {
+                            width: thisIO.width,
+                            isSigned: thisIO.isSigned,
+                            isClock: thisIO.isClock,
+                            isReset: thisIO.isReset,
+                            isArray: thisIO.isArray
+                        });
+                        thisModule.bindings[thisPort] = thisPort;
+                    }
                     else if (submodule.IOs[thisPort].direction === 'input') {
                         throw Error(`unbound input on ${submodule.name}: ${thisPort}`);
                     }
@@ -210,6 +221,10 @@ export class Module {
                 if (thisInterface.role && thisInterface.modports) {
                     if (!thisModule.bindings[_interface]) {
                         if (this.interfaces[_interface]) {
+                            thisModule.bindings[_interface] = _interface;
+                        }
+                        else if (createMissing) {
+                            this.addInterface(_interface, new Interface(thisInterface.name, thisInterface.params, undefined, thisInterface.signals));
                             thisModule.bindings[_interface] = _interface;
                         }
                         else {

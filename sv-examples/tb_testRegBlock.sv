@@ -71,6 +71,16 @@ module testRegBlock
    (
    input logic  clk,
    input logic  rst_b,
+   output logic [31:0] REG0,
+   output logic signed [15:0] REG1,
+   output logic [15:0] REG2_field0,
+   output logic [15:0] REG2_field1,
+   input logic [31:0] MEM0_rdata,
+   output logic  MEM0_re,
+   output logic [31:0] MEM0_wdata,
+   output logic  MEM0_we,
+   input logic [31:0] MEM1_rdata,
+   output logic  MEM1_re,
    TL_UL_8_32_8_32.responder regs
    );
 
@@ -91,12 +101,32 @@ module tb_testRegBlock
    TL_UL_8_32_8_32 regs;
    logic  clk;
    logic  rst_b;
+   logic [31:0] REG0;
+   logic signed [15:0] REG1;
+   logic [15:0] REG2_field0;
+   logic [15:0] REG2_field1;
+   logic [31:0] MEM0_rdata;
+   logic  MEM0_re;
+   logic [31:0] MEM0_wdata;
+   logic  MEM0_we;
+   logic [31:0] MEM1_rdata;
+   logic  MEM1_re;
 
 
     testRegBlock dut
       (
         .clk(clk),
         .rst_b(rst_b),
+        .REG0(REG0),
+        .REG1(REG1),
+        .REG2_field0(REG2_field0),
+        .REG2_field1(REG2_field1),
+        .MEM0_rdata(MEM0_rdata),
+        .MEM0_re(MEM0_re),
+        .MEM0_wdata(MEM0_wdata),
+        .MEM0_we(MEM0_we),
+        .MEM1_rdata(MEM1_rdata),
+        .MEM1_re(MEM1_re),
         .regs(regs)        
       );
 
