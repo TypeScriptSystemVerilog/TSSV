@@ -3,7 +3,7 @@
 
         
 /* verilator lint_off WIDTH */        
-module ROM_16_6 
+module ROM_16 
    (
    input logic  clk,
    input logic  rd_en,

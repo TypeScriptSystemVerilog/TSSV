@@ -17,7 +17,7 @@ module myROM
     always_ff @(posedge clk) begin
         if (rd_en) begin
             case(addr)
-                3'd0: data_out <= 16'h457;
+                3'd0: data_out <= 16'h0457;
                 3'd1: data_out <= 16'h15B3;
                 3'd2: data_out <= 16'hAAAA;
                 3'd3: data_out <= 16'hFFFF;
