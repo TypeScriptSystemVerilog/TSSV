@@ -1,3 +1,11 @@
+/* 1.Support input files as arrays and files
+*  2.The initial data in the file can be binary('b), hexadecimal('h or 0x or 0X), or signed decimal('d or just number), which can contain '_' and spaces, which will be ignored after reading the content
+*  3.Arrays can be signed decimal arrays or Uint8Array
+*  4.RCF files can be output, just provide the RCF file path when instantiating ROMs, and an RCF with the same name as the ROM will be generated under this path
+*  5.Supports endianness('big' or 'little') function, requiring ROM width to be an integer multiple of 8, and initial data bit width to be less than or equal to 8
+*
+*  Note the range of signed decimal numbers, the highest bit should be the sign bit
+*/
 import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
 import * as fs from 'fs'
 
@@ -28,11 +36,35 @@ export class ROM extends Module {
     this.rcf_path = rcf_path || ''
     this.MemInitFile = MemInitFile
 
+    // Check if the string bit width is greater than the threshold
+    function checkBitWidth (valueStr: string, base: 'bin' | 'dec' | 'hex', bitWidthThreshold: number): void {
+      let value: number
+      switch (base) {
+        case 'bin':
+          value = parseInt(valueStr, 2)
+          break
+        case 'dec':
+          value = parseInt(valueStr, 10)
+          break
+        case 'hex':
+          value = parseInt(valueStr, 16)
+          break
+      }
+      // Check if the value is valid
+      if (isNaN(value)) {
+        throw new Error('Invalid value string provided. It cannot be converted to a number.')
+      }
+      // Calculate the binary bit width of data
+      const bitWidth = value === 0 ? 1 : value.toString(2).length
+      if (bitWidth > bitWidthThreshold) throw Error(`Initial data ${base}:${valueStr} exceeds the set ROM width ${bitWidthThreshold}`)
+    }
+
     // Extract a string by identifier and convert it to hexadecimal, returning an array in hexadecimal
     function getStringsAfterChars (strings: string[] | number[] | Uint8Array, data_width: number): string[] {
       // If the input is of type Uint8Array, first convert it to a string array
       let strings_array: string[] = []
-      if (strings instanceof Uint8Array) {
+      const isUint8Array = strings instanceof Uint8Array
+      if (isUint8Array) {
         strings_array = strings.join(' ').split(' ')
       } else {
         strings_array = strings.map(num => num.toString()) // Convert number array to string array
@@ -55,6 +87,7 @@ export class ROM extends Module {
           result += str2num.toString(16).toUpperCase() // dec to hex
         } else if (index_dec !== -1) { // Decimal, truncated to determine positive or negative and convert to hexadecimal output
           result_temp = result_temp.substring(index_dec + '\'d'.length)
+          checkBitWidth(result_temp, 'dec', data_width - 1) // Check if the signed decimal in the initial file is out of range
           if (str.startsWith('-')) { // Determine whether the decimal number is negative, if it is negative, take the inverse and add one to its absolute value
             const abs_dec2bin = (Number(result_temp).toString(2)).padStart(data_width, '0')
             const bin_inv = abs_dec2bin.split('').map(char => char === '0' ? '1' : '0').join('')
@@ -66,16 +99,22 @@ export class ROM extends Module {
         } else { // If there is no identifier, default to decimal number
           if (str.startsWith('-')) { // Determine whether the decimal number is negative, if it is negative, take the inverse and add one to its absolute value
             result_temp = result_temp.substring(1)
+            if (!isUint8Array) {
+              checkBitWidth(result_temp, 'dec', data_width - 1) // Check if the signed decimal in the normalArray is out of range
+            }
             const abs_dec2bin = (Number(result_temp).toString(2)).padStart(data_width, '0')
             const bin_inv = abs_dec2bin.split('').map(char => char === '0' ? '1' : '0').join('')
             const inv_add1 = (parseInt(bin_inv, 2) + 1).toString(2)
             result += parseInt(inv_add1, 2).toString(16).toUpperCase()
           } else {
+            if (!isUint8Array) {
+              checkBitWidth(result_temp, 'dec', data_width - 1) // Check if the signed decimal in the normalArray is out of range
+            }
             result += Number(result_temp).toString(16).toUpperCase()
           }
         }
         // initial file Data bit width check
-        if (result.length * 4 > data_width) throw Error(`The bit width of the initial data '${result}'is greater than the set width '${data_width}'`)
+        checkBitWidth(result, 'hex', data_width)
         return result
       })
     }
@@ -110,7 +149,7 @@ export class ROM extends Module {
     if (typeof this.MemInitFile === 'string') {
       let init_data: string[] = []
       try {
-        const data = fs.readFileSync(`${this.MemInitFile}`, 'utf8') // 将文件内容读取为UTF-8编码的字符串
+        const data = fs.readFileSync(`${this.MemInitFile}`, 'utf8') // Read file content to generate a string
         init_data = (data.split('\n')).map(item => (item.split('_').join('')).split(' ').join(''))// Convert the read file content into a string array by line, while removing '_' and spaces from the string
       } catch (err) {
         console.error(err)
@@ -194,8 +233,8 @@ export class ROM extends Module {
         let binaryString = ''
         for (let i = 0; i < hexString.length; i++) {
           const hexChar = hexString[i]
-          const binaryValue = parseInt(hexChar, 16).toString(2) // 将十六进制字符转换为十进制，然后转为二进制
-          binaryString += binaryValue.padStart(4, '0') // 确保每个十六进制字符转换为4位二进制字符串
+          const binaryValue = parseInt(hexChar, 16).toString(2) // Convert hexadecimal to decimal number, then convert to binary string
+          binaryString += binaryValue.padStart(4, '0') // Ensure that each hexadecimal string is converted to a 4-bit binary string
         }
         return binaryString
       })
