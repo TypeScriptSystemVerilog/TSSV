@@ -79,6 +79,7 @@ module testRegBlock
    output logic  MEM0_re,
    output logic [31:0] MEM0_wdata,
    output logic  MEM0_we,
+   output logic [3:0] MEM0_wstrb,
    input logic [31:0] MEM1_rdata,
    output logic  MEM1_re,
    TL_UL_8_32_8_32.responder regs
@@ -109,6 +110,7 @@ module tb_testRegBlock
    logic  MEM0_re;
    logic [31:0] MEM0_wdata;
    logic  MEM0_we;
+   logic [3:0] MEM0_wstrb;
    logic [31:0] MEM1_rdata;
    logic  MEM1_re;
 
@@ -125,6 +127,7 @@ module tb_testRegBlock
         .MEM0_re(MEM0_re),
         .MEM0_wdata(MEM0_wdata),
         .MEM0_we(MEM0_we),
+        .MEM0_wstrb(MEM0_wstrb),
         .MEM1_rdata(MEM1_rdata),
         .MEM1_re(MEM1_re),
         .regs(regs)        

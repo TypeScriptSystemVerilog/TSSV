@@ -143,6 +143,11 @@ export class RegisterBlock<T> extends Module {
           direction: 'output',
           width: 1
         }
+        this.IOs[`${regName.toString()}_wstrb`] =
+        {
+          direction: 'output',
+          width: Math.ceil((thisReg.width || regDefs.wordSize) / 8)
+        }
       }
     }
   }
