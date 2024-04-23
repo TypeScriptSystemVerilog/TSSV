@@ -3,10 +3,11 @@
 *  3.Arrays can be signed decimal arrays or Uint8Array
 *  4.RCF files can be output, just provide the RCF file path when instantiating ROMs, and an RCF with the same name as the ROM will be generated under this path
 *  5.Supports endianness('big' or 'little') function, requiring ROM width to be an integer multiple of 8, and initial data bit width to be less than or equal to 8
+*  6.Support initial data splitting into two ROMs implementation, simply configure 'split setting' to 'split2two'
 *
-*  Note the range of signed decimal numbers, the highest bit should be the sign bit
+*  Note the range of signed decimal numbers, the highest bit should be the signed bit
 */
-import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
+import { Module, type TSSVParameters, type IntRange, Expr } from 'tssv/lib/core/TSSV'
 import * as fs from 'fs'
 
 /**
@@ -21,6 +22,8 @@ export interface ROM_Parameters extends TSSVParameters {
      * endianness of ROM data
      */
   endianness?: 'big' | 'little'
+
+  split_setting?: 'interal' | 'split2two'
 }
 export class ROM extends Module {
   declare params: ROM_Parameters
@@ -31,13 +34,14 @@ export class ROM extends Module {
       // define the default parameter values
       name: params.name,
       dataWidth: params.dataWidth,
-      endianness: params.endianness || 'big'
+      endianness: params.endianness || 'big',
+      split_setting: params.split_setting || 'interal'
     })
     this.rcf_path = rcf_path || ''
     this.MemInitFile = MemInitFile
 
     // Check if the string bit width is greater than the threshold
-    function checkBitWidth (valueStr: string, base: 'bin' | 'dec' | 'hex', bitWidthThreshold: number): void {
+    const checkBitWidth = (valueStr: string, base: 'bin' | 'dec' | 'hex', bitWidthThreshold: number): void => {
       let value: number
       switch (base) {
         case 'bin':
@@ -56,7 +60,13 @@ export class ROM extends Module {
       }
       // Calculate the binary bit width of data
       const bitWidth = value === 0 ? 1 : value.toString(2).length
-      if (bitWidth > bitWidthThreshold) throw Error(`Initial data ${base}:${valueStr} exceeds the set ROM width ${bitWidthThreshold}`)
+
+      // if (bitWidth > bitWidthThreshold) throw Error(`${this.params.name} Initial data ${base}:${valueStr} exceeds the set ROM width ${bitWidthThreshold}`)
+      if (base === 'dec') {
+        if (bitWidth > bitWidthThreshold) console.log(`Error: ${this.params.name} Initial data ${base}:${valueStr} exceeds the set ROM width ${bitWidthThreshold + 1}`)
+      } else {
+        if (bitWidth > bitWidthThreshold) console.log(`Error: ${this.params.name} Initial data ${base}:${valueStr} exceeds the set ROM width ${bitWidthThreshold}`)
+      }
     }
 
     // Extract a string by identifier and convert it to hexadecimal, returning an array in hexadecimal
@@ -91,7 +101,7 @@ export class ROM extends Module {
           if (str.startsWith('-')) { // Determine whether the decimal number is negative, if it is negative, take the inverse and add one to its absolute value
             const abs_dec2bin = (Number(result_temp).toString(2)).padStart(data_width, '0')
             const bin_inv = abs_dec2bin.split('').map(char => char === '0' ? '1' : '0').join('')
-            const inv_add1 = (parseInt(bin_inv, 2) + 1).toString(2)
+            const inv_add1 = (parseInt(bin_inv, 2) + 1).toString(2).padStart(data_width, '0')
             result += parseInt(inv_add1, 2).toString(16).toUpperCase()
           } else {
             result += Number(result_temp).toString(16).toUpperCase()
@@ -104,7 +114,7 @@ export class ROM extends Module {
             }
             const abs_dec2bin = (Number(result_temp).toString(2)).padStart(data_width, '0')
             const bin_inv = abs_dec2bin.split('').map(char => char === '0' ? '1' : '0').join('')
-            const inv_add1 = (parseInt(bin_inv, 2) + 1).toString(2)
+            const inv_add1 = (parseInt(bin_inv, 2) + 1).toString(2).padStart(data_width, '0')
             result += parseInt(inv_add1, 2).toString(16).toUpperCase()
           } else {
             if (!isUint8Array) {
@@ -175,11 +185,13 @@ export class ROM extends Module {
       rom_depth = init_data_array.length
     }
 
+    const rom_addr_width = this.bitWidth(rom_depth - 1)
+
     // define IO signals
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
       rd_en: { direction: 'input' },
-      addr: { direction: 'input', width: this.bitWidth(rom_depth - 1) },
+      addr: { direction: 'input', width: rom_addr_width },
       data_out: { direction: 'output', width: this.params.dataWidth }
     }
 
@@ -204,28 +216,89 @@ export class ROM extends Module {
           }
         }
         point = point + byte_num
-        signalArray.push(`${this.bitWidth(rom_depth)}'d${i}: data_out <= ${this.params.dataWidth}'h${rom_data};\n`)
+        if (rom_depth > 1) {
+          signalArray.push(`${rom_addr_width}'d${i}: data_out <= ${this.params.dataWidth}'h${rom_data};\n`)
+        } else { // When depth is 1, the address bit width is also 1
+          signalArray.push(`1'd${i}: data_out <= ${this.params.dataWidth}'h${rom_data};\n`)
+        }
       }
     } else {
       for (let n = 0; n < rom_depth; n++) {
-        signalArray.push(`${this.bitWidth(rom_depth)}'d${n}: data_out <= ${this.params.dataWidth}'h${init_data_array_pad[n]};\n`)
+        if (rom_depth > 1) {
+          signalArray.push(`${rom_addr_width}'d${n}: data_out <= ${this.params.dataWidth}'h${init_data_array_pad[n]};\n`)
+        } else { // When depth is 1, the address bit width is also 1
+          signalArray.push(`1'd${n}: data_out <= ${this.params.dataWidth}'h${init_data_array_pad[n]};\n`)
+        }
       }
     }
 
-    // define rom`s body
-    const rom_body =
-    `
-    always_ff @(posedge clk) begin
-        if (rd_en) begin
-            case(addr)
-                ${signalArray.join('                ')}
-                default: data_out <= ${this.params.dataWidth}'hx;
-            endcase
-        end
-    end
-    `
-    this.addSequentialAlways({ clk: 'clk', outputs: ['data_out'] }, rom_body)
+    // depthSplit setting
+    if (this.params.split_setting === 'split2two') {
+      // Convert hexadecimal arrays to signed decimal arrays, as ROM only recognizes input signed decimal arrays
+      const init_data_array_dec: number[] = init_data_array_pad.map(item => {
+        const binaryStr = parseInt(item, 16).toString(2).padStart(this.params.dataWidth, '0') // Convert to binary string
+        const isNegative = binaryStr.charAt(0) === '1' // Check the first bit
+        let decimal_num = parseInt(binaryStr, 2) // Default to positive number
 
+        // If it is a negative number, perform the conversion from complement to original code
+        if (isNegative) {
+          const inverted = binaryStr.split('').map(bit => bit === '0' ? '1' : '0').join('') // invert
+          const inverted_add1 = (parseInt(inverted, 2) + 1) // Convert to decimal and add one
+          decimal_num = -inverted_add1 // Convert to negative number
+        }
+        return decimal_num
+      })
+      let depth_splitting = 1
+      while (depth_splitting < rom_depth) {
+        depth_splitting *= 2
+      }
+      if (depth_splitting >= rom_depth) {
+        depth_splitting = depth_splitting / 2
+      }
+      const addr_l_width = this.bitWidth(depth_splitting - 1)
+      const addr_u_width = this.bitWidth(rom_depth - depth_splitting - 1)
+      this.addSignal('rd_en_l', { width: 1 })
+      this.addSignal('rd_en_u', { width: 1 })
+      this.addSignal('rd_en_l_d1', { width: 1 })
+      this.addSignal('rd_en_u_d1', { width: 1 })
+      this.addSignal('data_out_l', { width: this.params.dataWidth })
+      this.addSignal('data_out_u', { width: this.params.dataWidth })
+      this.addSignal('addr_l', { width: addr_l_width })
+      this.addSignal('addr_u', { width: addr_u_width })
+      this.addAssign({ in: new Expr(`!addr[${rom_addr_width - 1}] && rd_en`), out: 'rd_en_l' })
+      this.addAssign({ in: new Expr(`addr[${rom_addr_width - 1}] && (addr < ${rom_depth}) && rd_en`), out: 'rd_en_u' })
+      this.addAssign({ in: new Expr('rd_en_l_d1? data_out_l : rd_en_u_d1? data_out_u : \'hx'), out: 'data_out' })
+      if (rom_depth > 1) {
+        this.addAssign({ in: new Expr(`addr[${addr_l_width - 1}:0]`), out: 'addr_l' })
+      } else {
+        this.addAssign({ in: new Expr(`addr[${addr_l_width}:0]`), out: 'addr_l' })
+      }
+      if (rom_depth - depth_splitting > 1) {
+        this.addAssign({ in: new Expr(`addr[${addr_u_width - 1}:0]`), out: 'addr_u' })
+      } else {
+        this.addAssign({ in: new Expr(`addr[${addr_u_width}:0]`), out: 'addr_u' })
+      }
+      this.addRegister({ d: 'rd_en_l', clk: 'clk', q: 'rd_en_l_d1' })
+      this.addRegister({ d: 'rd_en_u', clk: 'clk', q: 'rd_en_u_d1' })
+      this.addSubmodule(`u_${this.params.name}_lower`, new ROM({ name: `${this.params.name}_lower`, dataWidth: this.params.dataWidth, endianness: this.params.endianness },
+        init_data_array_dec.slice(0, depth_splitting), rcf_path), { clk: 'clk', rd_en: 'rd_en_l', addr: 'addr_l', data_out: 'data_out_l' })
+      this.addSubmodule(`u_${this.params.name}_upper`, new ROM({ name: `${this.params.name}_upper`, dataWidth: this.params.dataWidth, endianness: this.params.endianness },
+        init_data_array_dec.slice(depth_splitting), rcf_path), { clk: 'clk', rd_en: 'rd_en_u', addr: 'addr_u', data_out: 'data_out_u' })
+    } else {
+      // define rom`s body
+      const rom_body =
+      `
+      always_ff @(posedge clk) begin
+          if (rd_en) begin
+              case(addr)
+                  ${signalArray.join('                  ')}
+                  default: data_out <= ${this.params.dataWidth}'hx;
+              endcase
+          end
+      end
+      `
+      this.addSequentialAlways({ clk: 'clk', outputs: ['data_out'] }, rom_body)
+    }
     // write RCF file
     if (this.rcf_path) {
       // Hexadecimal to Binary conversion
