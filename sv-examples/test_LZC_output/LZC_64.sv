@@ -39,8 +39,6 @@ always_comb
         tmp_cnt[1] = (val4[3:2] == 2'd0);
         val2 = tmp_cnt[1] ? val4[1:0] : val4[3:2];
         tmp_cnt[0] = (val2[1:1] == 1'd0);
-        val1 = tmp_cnt[0] ? val2[0:0] : val2[1:1];
-
       end
     end
   assign zero_num = tmp_cnt;

@@ -62,7 +62,11 @@ export class LZC extends Module {
         const tmp_cnt_logic = `tmp_cnt[${i}] = (val${tmp_val_width * 2}[${tmp_val_width * 2 - 1}:${tmp_val_width}] == ${tmp_val_width}'d0);`
         this.addSignal(`val${tmp_val_width}`, { width: tmp_val_width })
         const tmp_val_logic = `val${tmp_val_width} = tmp_cnt[${i}] ? val${tmp_val_width * 2}[${tmp_val_width - 1}:0] : val${tmp_val_width * 2}[${tmp_val_width * 2 - 1}:${tmp_val_width}];`
-        cnt_body += `        ${tmp_cnt_logic}\n        ${tmp_val_logic}\n`
+        if (i > 0) {
+          cnt_body += `        ${tmp_cnt_logic}\n        ${tmp_val_logic}\n`
+        } else {
+          cnt_body += `        ${tmp_cnt_logic}`
+        }
       }
     }
 
