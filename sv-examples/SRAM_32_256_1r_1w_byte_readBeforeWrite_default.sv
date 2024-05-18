@@ -3,7 +3,7 @@
 
         
 /* verilator lint_off WIDTH */        
-module SRAM_32_256_1r_1w_byte_undefOnWrite_default 
+module SRAM_32_256_1r_1w_byte_readBeforeWrite_default 
    (
    input logic  clk,
    input logic  a_re,
@@ -22,16 +22,16 @@ module SRAM_32_256_1r_1w_byte_undefOnWrite_default
         for(integer i=0; i<4; i=i+1) begin
             if(b_we & b_wmask[i]) begin
                 mem[b_addr][i*8 +: 8] <= b_data_in[i*8 +: 8];
-            end 
+            end
+        end
+        for(integer i=0; i<4; i=i+1) begin
+            if(a_re) begin
+                a_data_out <= mem[a_addr][i*8 +: 8];
+            end
+            
         end
     end
     
-    always_ff @ (posedge clk) begin
-        if(a_re) begin
-          a_data_out <= mem[a_addr];
-        end
-    end
-                
 
 endmodule
 /* verilator lint_on WIDTH */        

@@ -8,6 +8,7 @@ export class SRAM extends Module {
     constructor(params) {
         super({
             // define the default parameter values
+            name: params.name,
             dataWidth: params.dataWidth,
             depth: params.depth,
             ports: params.ports,

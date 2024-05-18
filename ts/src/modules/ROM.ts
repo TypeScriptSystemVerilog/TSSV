@@ -197,12 +197,15 @@ export class ROM extends Module {
 
     // If the data bit width is uneven, fill the high bits of the data with 0
     const arry_width = Math.ceil(data_width / 4)
-    const init_data_array_pad = init_data_array.map(array => array.padStart(arry_width, '0'))
+    let init_data_array_pad = init_data_array.map(array => array.padStart(arry_width, '0'))
+    const byte_num = this.params.dataWidth / 8
+    while((init_data_array_pad.length % byte_num) !== 0) {
+      init_data_array_pad.push('0'.padStart(arry_width,'0'))
+    }
 
     // construct output signal list
     const signalArray: string[] = []
     if (isEndianMode) {
-      const byte_num = this.params.dataWidth / 8
       let point = 0
       for (let i = 0; i < rom_depth; i++) {
         let rom_data = ''

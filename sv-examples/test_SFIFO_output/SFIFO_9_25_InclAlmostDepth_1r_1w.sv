@@ -5,7 +5,7 @@
 
         
 /* verilator lint_off WIDTH */        
-module SRAM_9_25_1r_1w_none_undefOnWrite_default 
+module SFIFO_9_25_InclAlmostDepth_1r_1w_sram 
    (
    input logic  clk,
    input logic  a_re,
@@ -113,7 +113,7 @@ module SFIFO_9_25_InclAlmostDepth_1r_1w
         end
     end
     
-    SRAM_9_25_1r_1w_none_undefOnWrite_default u_SFIFO_9_25_InclAlmostDepth_1r_1w_sram
+    SFIFO_9_25_InclAlmostDepth_1r_1w_sram u_SFIFO_9_25_InclAlmostDepth_1r_1w_sram
       (
         .clk(clk),
         .a_re(sram_read_en),

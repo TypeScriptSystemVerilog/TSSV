@@ -54,8 +54,8 @@ try {
 // Input the uint8array array and test the endian's' little 'sorting function. The correct system verilog file should be output. Negative numbers should be represented in binary complement form with a bit width of 8
 // rom_width:32    array_data_width:less than 16    array_data_depth:4    signed decimal     Uint8Array   endiness:little
 console.log('test 5')
-const test_unit8array_dec = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 255, -255, 288])
-const testMem5 = new ROM({ name: 'ROM_32_4_unit8array_little_test', dataWidth: 32, endianness: 'little' }, test_unit8array_dec)
+const test_uint8array_dec = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 255, -255, 288])
+const testMem5 = new ROM({ name: 'ROM_32_4_uint8array_little_test', dataWidth: 32, endianness: 'little' }, test_uint8array_dec)
 try {
   writeFileSync(`sv-examples/test_ROM_output/${testMem5.name}.sv`, testMem5.writeSystemVerilog())
 } catch (err) {
@@ -66,7 +66,7 @@ try {
 // The input is a uint8array array, but the ROM bit width is a non integer multiple of 8. Check if the initial data is expanded in the generated ROM
 // rom_width:31    array_data_width:less than 32    array_data_depth:4    signed decimal     Uint8Array   endiness:little
 console.log('test 6')
-const testMem6 = new ROM({ name: 'ROM_31_16_unit8array_NonMul8_test', dataWidth: 31, endianness: 'little' }, test_unit8array_dec)
+const testMem6 = new ROM({ name: 'ROM_31_16_uint8array_NonMul8_test', dataWidth: 31, endianness: 'little' }, test_uint8array_dec)
 try {
   writeFileSync(`sv-examples/test_ROM_output/${testMem6.name}.sv`, testMem6.writeSystemVerilog())
 } catch (err) {

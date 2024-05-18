@@ -21,9 +21,20 @@ module SRAM_8_32_1rw_bit_undefOnWrite_default
         for(integer i=0; i<8; i=i+1) begin
             if(a_we & a_wmask[i]) begin
                 mem[a_addr][i*1 +: 1] <= a_data_in[i*1 +: 1];
-            end else if(a_re) begin
-                a_data_out <= mem[a_addr];
             end
+        end
+        for(integer i=0; i<8; i=i+1) begin
+            if(a_re & ~a_we & ~a_wmask[i]) begin
+                a_data_out <= mem[a_addr][i*1 +: 1];
+            end
+            else if(a_re & a_we & ~a_wmask[i]) begin
+                a_data_out[i*1 +: 1] <= mem[a_addr][i*1 +: 1];
+            end
+            `ifndef SYNTHESIS
+            else if(a_re & a_we & a_wmask[i]) begin //output is X after reading and writing the same address at the same time
+                a_data_out[i*1 +: 1] <= 'hx;
+            end 
+            `endif
         end
     end
     
