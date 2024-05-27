@@ -13,27 +13,27 @@ module FIR_1pmlbrs_8_9_2
    );
 
    logic signed [7:0] tap_0;
-   logic signed [9:0] prod_tap_0x2d2;
+   logic signed [9:0] prod_tap_0x3d2;
    logic signed [7:0] tap_1;
-   logic signed [9:0] prod_tap_1xm2sd2;
+   logic signed [9:0] prod_tap_1xm2d2;
    logic signed [7:0] tap_2;
-   logic signed [10:0] prod_tap_2x3d4;
+   logic signed [10:0] prod_tap_2x4d4;
    logic signed [7:0] tap_3;
-   logic signed [10:0] prod_tap_3xm3sd4;
+   logic signed [10:0] prod_tap_3xm3d4;
    logic signed [7:0] tap_4;
-   logic signed [11:0] prod_tap_4x4d8;
+   logic signed [11:0] prod_tap_4x5d8;
    logic signed [12:0] sum;
    logic signed [11:0] rounded;
    logic signed [8:0] saturated;
 
-   assign prod_tap_0x2d2 = tap_0 * 2'd2;
-   assign prod_tap_1xm2sd2 = tap_1 * -2'sd2;
-   assign prod_tap_2x3d4 = tap_2 * 3'd4;
-   assign prod_tap_3xm3sd4 = tap_3 * -3'sd4;
-   assign prod_tap_4x4d8 = tap_4 * 4'd8;
-   assign rounded = 12'((sum + (13'd1<<(2-1)))>>>2);
+   assign prod_tap_0x3d2 = tap_0 * $signed(3'd2);
+   assign prod_tap_1xm2d2 = tap_1 * $signed(-2'd2);
+   assign prod_tap_2x4d4 = tap_2 * $signed(4'd4);
+   assign prod_tap_3xm3d4 = tap_3 * $signed(-3'd4);
+   assign prod_tap_4x5d8 = tap_4 * $signed(5'd8);
+   assign rounded = (sum + (13'sd1<<<(2-1)))>>>2;
    assign saturated = (rounded > 12'sd255) ? 9'sd255 :
-                       ((rounded < -12'sd256) ? -9'sd256 : 9'(rounded));
+                       ((rounded < $signed(-12'd256)) ? -9'd256 : rounded);
 
    always_ff @( posedge clk  or negedge rst_b )
      if(!rst_b)
@@ -53,7 +53,7 @@ module FIR_1pmlbrs_8_9_2
            tap_2 <= tap_1;
            tap_3 <= tap_2;
            tap_4 <= tap_3;
-           sum <= 13'(prod_tap_0x2d2) + 13'(prod_tap_1xm2sd2) + 13'(prod_tap_2x3d4) + 13'(prod_tap_3xm3sd4) + 13'(prod_tap_4x4d8);
+           sum <= 13'(prod_tap_0x3d2) + 13'(prod_tap_1xm2d2) + 13'(prod_tap_2x4d4) + 13'(prod_tap_3xm3d4) + 13'(prod_tap_4x5d8);
            data_out <= saturated;
         end
 

@@ -197,10 +197,10 @@ export class ROM extends Module {
 
     // If the data bit width is uneven, fill the high bits of the data with 0
     const arry_width = Math.ceil(data_width / 4)
-    let init_data_array_pad = init_data_array.map(array => array.padStart(arry_width, '0'))
+    const init_data_array_pad = init_data_array.map(array => array.padStart(arry_width, '0'))
     const byte_num = this.params.dataWidth / 8
-    while((init_data_array_pad.length % byte_num) !== 0) {
-      init_data_array_pad.push('0'.padStart(arry_width,'0'))
+    while ((init_data_array_pad.length % byte_num) !== 0) {
+      init_data_array_pad.push('0'.padStart(arry_width, '0'))
     }
 
     // construct output signal list
