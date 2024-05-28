@@ -560,7 +560,7 @@ export class Module {
       if (rShiftSig.isSigned) throw Error(`right shift signal ${io.rShift.toString()} must be unsigned`)
     }
     if (inSig.isSigned !== outSig.isSigned) throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`)
-    this.body += `   assign ${io.out.toString()} = ${outSig.width}'((${io.in.toString()} + (${inSig.width}'d1<<(${rShiftString}-1)))>>>${rShiftString});\n`
+    this.body += `   assign ${io.out.toString()} = (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`
     if (typeof io.out === 'string') {
       return new Sig(io.out)
     }
@@ -584,19 +584,19 @@ export class Module {
     if (inSig.isSigned) {
       const sat = 1 << ((outSig.width || 1) - 1)
       const maxSatStringIn = `${inSig.width}'sd${sat - 1}`
-      const minSatStringIn = `-${inSig.width}'sd${sat}`
+      const minSatStringIn = `$signed(-${inSig.width}'d${sat})`
       const maxSatString = `${outSig.width}'sd${sat - 1}`
-      const minSatString = `-${outSig.width}'sd${sat}`
+      const minSatString = `-${outSig.width}'d${sat}`
       this.body +=
 `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
-                       ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString} : ${outSig.width}'(${io.in.toString()}));
+                       ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString} : ${io.in.toString()});
 `
     } else {
       const sat = (1 << ((outSig.width || 1) - 1)) - 1
       const maxSatStringIn = `${outSig.width}'d${sat}`
       const maxSatString = `${outSig.width}'d${sat}`
       this.body +=
-`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : ${outSig.width}'(${io.in.toString()});
+`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : (${io.in.toString()});
 `
     }
     if (typeof io.out === 'string') {
@@ -735,6 +735,7 @@ export class Module {
     let bWidth = 0
     let aSigned = false
     let bSigned = false
+    let aLiteral = false
     if (typeof io.a !== 'bigint') {
       const aSig = this.findSignal(io.a, true, this.addOperation, true)
       aOperand = io.a
@@ -743,8 +744,9 @@ export class Module {
     } else {
       aWidth = this.bitWidth(io.a)
       aSigned = (io.a < 0)
-      aOperand = (aSigned) ? `-${aWidth}'sd${Math.abs(Number(io.a))}` : `${aWidth}'d${io.a}`
+      aOperand = (aSigned) ? `-${aWidth}'d${Math.abs(Number(io.a))}` : `${aWidth + 1}'d${io.a}`
       aAuto = aOperand.replace('-', 'm').replace("'", '')
+      aLiteral = true
     }
     if (typeof io.b !== 'bigint') {
       const bSig = this.findSignal(io.b, true, this.addOperation, true)
@@ -754,8 +756,14 @@ export class Module {
     } else {
       bWidth = this.bitWidth(io.b)
       bSigned = (io.b < 0)
-      bOperand = (bSigned) ? `-${bWidth}'sd${Math.abs(Number(io.b))}` : `${bWidth}'d${io.b}`
+      bOperand = (bSigned) ? `-${bWidth}'d${Math.abs(Number(io.b))}` : `${bWidth + 1}'d${io.b}`
       bAuto = bOperand.replace('-', 'm').replace("'", '')
+      if (aSigned) {
+        bOperand = `$signed(${bOperand})`
+      }
+    }
+    if (aLiteral) {
+      aOperand = `$signed(${aOperand.toString()})`
     }
     let result: string | Sig = '#NONE#'
     if (io.result !== undefined) {
