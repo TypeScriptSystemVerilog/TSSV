@@ -477,7 +477,7 @@ export class Module {
 `;
         }
         else {
-            const sat = (1 << ((outSig.width || 1) - 1)) - 1;
+            const sat = (1 << ((outSig.width || 1))) - 1;
             const maxSatStringIn = `${outSig.width}'d${sat}`;
             const maxSatString = `${outSig.width}'d${sat}`;
             this.body +=
