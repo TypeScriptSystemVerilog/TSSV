@@ -22,23 +22,23 @@ const tbBody =
     case(count)
     'd0: begin
         in <= 8'b00000000;
-        assert(out == 4'b0000) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'b0000) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
     end
     'd1: begin
         in <= 8'b00000001;
-        assert(out == 4'b0001) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'b0001) else $fatal("Assertion failed: out should be 1 at time %0t", $time);
     end
     'd2: begin
         in <= 8'b00001111;
-        assert(out == 4'b1111) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'b1111) else $fatal("Assertion failed: out should be 15 at time %0t", $time);
     end
     'd3: begin
         in <= 8'b00100000;
-        assert(out == 4'd7) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'd15) else $fatal("Assertion failed: out should be 15 at time %0t", $time);
     end
     'd4: begin 
         in <= 8'b10000000;
-        assert(out == 4'd7) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'd15) else $fatal("Assertion failed: out should be 15 at time %0t", $time);
     end
     default: in <= 8'b00000000;
     endcase
@@ -87,23 +87,23 @@ const tbBodyS =
     case(count)
     'd0: begin
         in <= 8'b00000000;
-        assert(out == 4'b0000) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'b0000) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
     end
     'd1: begin
         in <= 8'b11110001;
-        assert(out == -4'd8) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == -4'd8) else $fatal("Assertion failed: out should be -8 at time %0t", $time);
     end
     'd2: begin
         in <= 8'b00010010;
-        assert(out == 4'd7) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'd7) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
     end
     'd3: begin
         in <= 8'b00100000;
-        assert(out == 4'd7) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'd7) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
     end
     'd4: begin 
         in <= 8'b10000000;
-        assert(out == 4'd7) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(out == 4'd7) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
     end
     default: in <= 8'b00000000;
     endcase

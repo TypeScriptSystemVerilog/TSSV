@@ -162,23 +162,23 @@ begin
 case(count)
 'd0: begin
   dSig3 <= 0;
-  assert(dSig3_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+  assert(dSig3_q == 0) else $fatal("Assertion failed: dSig3_q should be 0 at time %0t", $time);
 end
 'd1: begin
   dSig3 <= 1;
-  assert(dSig3_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+  assert(dSig3_q == 1) else $fatal("Assertion failed: dSig3_q should be 1 at time %0t", $time);
 end
 'd2: begin
   dSig3 <= 0;
-  assert(dSig3_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+  assert(dSig3_q == 0) else $fatal("Assertion failed: dSig3_q should be 0 at time %0t", $time);
 end
 'd3: begin
   dSig3 <= 1;
-  assert(dSig3_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+  assert(dSig3_q == 1) else $fatal("Assertion failed: dSig3_q should be 1 at time %0t", $time);
 end
 'd4: begin 
   dSig3 <= 1;
-  assert(dSig3_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+  assert(dSig3_q == 1) else $fatal("Assertion failed: dSig3_q should be 1 at time %0t", $time);
 end
 default: dSig3 <= 0;
 endcase
@@ -321,23 +321,23 @@ const tbBody5 =
     case (count)
     'd0: begin
       dSig5 <= 0;
-      assert(dSig5_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+      assert(dSig5_q == 1) else $fatal("Assertion failed: dSig5_q should be 1 at time %0t", $time);
     end
     'd1: begin
       dSig5 <= 1;
-      assert(dSig5_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(dSig5_q == 0) else $fatal("Assertion failed: dSig5_q should be 0 at time %0t", $time);
     end
     'd2: begin
       dSig5 <= 0;
-      assert(dSig5_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(dSig5_q == 0) else $fatal("Assertion failed: dSig5_q should be 0 at time %0t", $time);
     end
     'd3: begin
       dSig5 <= 1;
-      assert(dSig5_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+      assert(dSig5_q == 1) else $fatal("Assertion failed: dSig5_q should be 1 at time %0t", $time);
     end
     'd4: begin
       dSig5 <= 1;
-      assert(dSig5_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(dSig5_q == 0) else $fatal("Assertion failed: dSig5_q should be 0 at time %0t", $time);
     end
     default: dSig5 <= 0;
     endcase
@@ -396,23 +396,23 @@ begin
   case (count)
   'd0: begin
   d <= 0;
-  assert(d_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+  assert(d_q == 0) else $fatal("Assertion failed: d_q should be 0 at time %0t", $time);
   end
   'd1: begin
   d <= 1;
-  assert(d_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+  assert(d_q == 0) else $fatal("Assertion failed: d_q should be 0 at time %0t", $time);
   end
   'd2: begin
   d <= 0;
-  assert(d_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+  assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
   end
   'd3: begin
   d <= 1;
-  assert(d_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+  assert(d_q == 0) else $fatal("Assertion failed: d_q should be 0 at time %0t", $time);
   end
   'd4: begin
   d <= 1;
-  assert(d_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+  assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
   end
   default: d <= 0;
   endcase
@@ -469,23 +469,23 @@ const tbBody7 =
       case (count)
       'd0: begin
       d <= 0;
-      assert(d_q == 0) else $fatal("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(d_q == 0) else $fatal("Assertion failed: d_q should be 0 at time %0t", $time);
       end
       'd1: begin
       d <= 1;
-      assert(d_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+      assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
       end
       'd2: begin
       d <= 0;
-      assert(d_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+      assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
       end
       'd3: begin
       d <= 1;
-      assert(d_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+      assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
       end
       'd4: begin
       d <= 1;
-      assert(d_q == 1) else $fatal("Assertion failed: dSig_q should be 1 at time %0t", $time);
+      assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
       end
       default: d <= 0;
       endcase

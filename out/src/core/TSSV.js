@@ -434,8 +434,6 @@ export class Module {
        * @returns the signal of the rounded result
        */
     addRound(io, roundMode = 'roundUp') {
-        if (roundMode !== 'roundUp')
-            throw Error(`FIXME: ${roundMode} not implemented yet`);
         const inSig = this.findSignal(io.in, true, this.addRound, true);
         const outSig = this.findSignal(io.out, true, this.addRound, true);
         const rShiftString = io.rShift.toString();
@@ -446,7 +444,18 @@ export class Module {
         }
         if (inSig.isSigned !== outSig.isSigned)
             throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`);
-        this.body += `   assign ${io.out.toString()} = (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        if (roundMode === 'roundUp') {
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        }
+        else if (roundMode === 'roundDown') {
+            this.body += `   assign ${io.out.toString()} = ${io.in.toString()} >>> ${rShiftString};\n`;
+        }
+        else if (roundMode === 'roundToZero') {
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >= 0) ? (${io.in.toString()} >>> ${rShiftString}) : (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        }
+        else {
+            throw Error('roundMode not found');
+        }
         if (typeof io.out === 'string') {
             return new Sig(io.out);
         }
