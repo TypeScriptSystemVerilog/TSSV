@@ -5,7 +5,8 @@
     "rootDir": "./ts",
     "strict": true,
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"  
+    "moduleResolution": "NodeNext",  
+    "declaration": true
   },
   "module": "ES2020", // (A)
   "moduleResolution": "Node", // (B)
