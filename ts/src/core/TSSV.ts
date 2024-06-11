@@ -550,7 +550,7 @@ export class Module {
     in: string | Sig
     out: string | Sig
     rShift: string | Sig | number
-  }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' = 'roundUp'): Sig {
+  }, roundMode: 'roundUp' | 'roundDown' | 'roundToZero' | 'roundToNearestEven' = 'roundUp'): Sig {
     const inSig = this.findSignal(io.in, true, this.addRound, true)
     const outSig = this.findSignal(io.out, true, this.addRound, true)
     const rShiftString = io.rShift.toString()
@@ -565,6 +565,8 @@ export class Module {
       this.body += `   assign ${io.out.toString()} = ${io.in.toString()} >>> ${rShiftString};\n`
     } else if (roundMode === 'roundToZero') {
       this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >= 0) ? (${io.in.toString()} >>> ${rShiftString}) : (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`
+    } else if (roundMode === 'roundToNearestEven') {
+      this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >>> ${rShiftString}) + (((${io.in.toString()} >>> (${rShiftString} - 1)) & 1) & ((${io.in.toString()} >>> ${rShiftString}) & 1));\n`
     } else {
       throw Error('roundMode not found')
     }

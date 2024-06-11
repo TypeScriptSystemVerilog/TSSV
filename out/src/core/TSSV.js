@@ -453,6 +453,9 @@ export class Module {
         else if (roundMode === 'roundToZero') {
             this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >= 0) ? (${io.in.toString()} >>> ${rShiftString}) : (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
         }
+        else if (roundMode === 'roundToNearestEven') {
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >>> ${rShiftString}) + (((${io.in.toString()} >>> (${rShiftString} - 1)) & 1) & ((${io.in.toString()} >>> ${rShiftString}) & 1));\n`;
+        }
         else {
             throw Error('roundMode not found');
         }
