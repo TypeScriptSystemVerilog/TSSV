@@ -166,7 +166,7 @@ const roundRS_tb = new Module({ name: 'roundRS_tb' }, {
 roundRS_tb.addSignal('in', { width: 5 });
 roundRS_tb.addSignal('rounded', { width: 8 });
 roundRS_tb.addSignal('shift', { width: 4 });
-roundRS_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'roundUp');
+roundRS_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rp');
 try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
@@ -230,7 +230,7 @@ const roundD_tb = new Module({ name: 'roundD_tb' }, {
 roundD_tb.addSignal('in', { width: 8, isSigned: true });
 roundD_tb.addSignal('rounded', { width: 9, isSigned: true });
 roundD_tb.addSignal('shift', { width: 4 });
-roundD_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'roundDown');
+roundD_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rm');
 try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
@@ -294,7 +294,7 @@ const roundZ_tb = new Module({ name: 'roundZ_tb' }, {
 roundZ_tb.addSignal('in', { width: 8, isSigned: true });
 roundZ_tb.addSignal('rounded', { width: 9, isSigned: true });
 roundZ_tb.addSignal('shift', { width: 4 });
-roundZ_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'roundToZero');
+roundZ_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rz');
 try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
@@ -358,7 +358,7 @@ const roundU_tb = new Module({ name: 'roundU_tb' }, {
 roundU_tb.addSignal('in', { width: 8, isSigned: true });
 roundU_tb.addSignal('rounded', { width: 9, isSigned: true });
 roundU_tb.addSignal('shift', { width: 4 });
-roundU_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'roundUp');
+roundU_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rp');
 try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
@@ -432,7 +432,7 @@ const roundE_tb = new Module({ name: 'roundE_tb' }, {
 roundE_tb.addSignal('in', { width: 8, isSigned: true });
 roundE_tb.addSignal('rounded', { width: 9, isSigned: true });
 roundE_tb.addSignal('shift', { width: 4 });
-roundE_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'roundToNearestEven');
+roundE_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rn');
 try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
@@ -440,6 +440,80 @@ try {
 ${roundE_tb.writeSystemVerilog()}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundE_tb.sv', TB);
+}
+catch (err) {
+    console.error(err);
+}
+// round away from 0
+const tbBodyA = `
+logic [15:0] count;
+always @(posedge clk or negedge rst_b)
+if(!rst_b)
+begin
+count <= 'd0;
+end
+else
+begin
+count <= count + 1'b1;
+
+case(count)
+'d0: begin
+    in <= 8'd3;
+    shift <= 4'd1;
+    assert(rounded == 9'd2) else $fatal("Assertion failed: rounded should be 2 at time %0t", $time);
+end
+'d1: begin
+    in <= 8'd22;
+    shift <= 4'd2;
+    assert(rounded == 9'd6) else $fatal("Assertion failed: rounded should be 6 at time %0t", $time);
+end
+'d2: begin
+    in <= -8'd22; 
+    shift <= 4'd2;
+    assert(rounded == -9'd6) else $fatal("Assertion failed: rounded should be -6 at time %0t", $time);
+end
+'d3: begin
+    in <= 8'd124;
+    shift <= 4'd3;
+    assert(rounded == 9'd16) else $fatal("Assertion failed: rounded should be 16 at time %0t", $time);
+end
+'d4: begin  
+    in <= -8'd124; 
+    shift <= 4'd3;
+    assert(rounded == -9'd16) else $fatal("Assertion failed: rounded should be -16 at time %0t", $time);
+end
+'d5: begin
+    in <= 8'd25;
+    shift <= 4'd1;
+    assert(rounded == 9'd13) else $fatal("Assertion failed: rounded should be 13 at time %0t", $time);
+end
+'d6: begin
+    in <= -8'd25;
+    shift <= 4'd1;
+    assert(rounded == -9'd13) else $fatal("Assertion failed: rounded should be -13 at time %0t", $time);
+end
+default: begin
+    in <= 8'd0;
+    shift <= 4'd0;
+end
+endcase
+end
+`;
+const roundA_tb = new Module({ name: 'roundA_tb' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_b: { direction: 'input', isReset: 'lowasync' }
+}, {}, tbBodyA);
+roundA_tb.addSignal('in', { width: 8, isSigned: true });
+roundA_tb.addSignal('rounded', { width: 9, isSigned: true });
+roundA_tb.addSignal('shift', { width: 4 });
+roundA_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rna');
+try {
+    const TB = `
+/* verilator lint_off DECLFILENAME */
+/* verilator lint_off UNUSED */
+${roundA_tb.writeSystemVerilog()}
+`;
+    writeFileSync('sv-examples/test_addRound_output/roundA_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

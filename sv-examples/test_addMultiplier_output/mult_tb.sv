@@ -31,27 +31,27 @@ module mult_tb
     'd0: begin
         a <= 8'b00000001;
         b <= 4'b0001;
-        assert(prod_axb == 12'd1) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(prod_axb == 12'd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
     end
     'd1: begin
         a <= 8'b00000010;
         b <= 4'b0010;
-        assert(prod_axb == 12'd4) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(prod_axb == 12'd4) else $display("Assertion failed: prod_axb should be 4 at time %0t", $time);
     end
     'd2: begin
         a <= 8'd100;
         b <= 4'd5;
-        assert(prod_axb == 12'd500) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(prod_axb == 12'd500) else $display("Assertion failed: prod_axb should be 500 at time %0t", $time);
     end
     'd3: begin
         a <= 8'd89;
         b <= 4'd11;
-        assert(prod_axb == 12'd979) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(prod_axb == 12'd979) else $display("Assertion failed: prod_axb should be 979 at time %0t", $time);
     end
     'd4: begin 
         a <= 8'b11111111;
         b <= 4'b1111;
-        assert(prod_axb == 12'd3825) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(prod_axb == 12'd3825) else $display("Assertion failed: prod_axb should be 3825 at time %0t", $time);
     end
     default: begin
         a <= 8'b00000000;
