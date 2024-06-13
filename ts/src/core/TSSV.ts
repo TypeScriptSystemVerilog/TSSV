@@ -752,6 +752,9 @@ export class Module {
       aOperand = io.a
       aWidth = Number(aSig.width)
       aSigned = aSig.isSigned || false
+      // if (aSigned) {
+      //   aOperand = `$signed(${aOperand.toString()})`
+      // }
     } else {
       aWidth = this.bitWidth(io.a)
       aSigned = (io.a < 0)
@@ -764,6 +767,17 @@ export class Module {
       bOperand = io.b
       bWidth = Number(bSig.width)
       bSigned = bSig.isSigned || false
+      if (typeof io.a !== 'bigint') {
+        if (bSigned || aSigned) {
+          if (aSigned) {
+            bOperand = `{1'b0,${bOperand.toString()}}`
+          } else {
+            aOperand = `{1'b0,${aOperand.toString()}}`
+          }
+          aOperand = `$signed(${aOperand.toString()})`
+          bOperand = `$signed(${bOperand.toString()})`
+        }
+      }
     } else {
       bWidth = this.bitWidth(io.b)
       bSigned = (io.b < 0)
@@ -878,8 +892,8 @@ export class Module {
      * @param io The input/output signals connected to the multiplexer
      * @returns signal of the multiplexer output
      */
-  addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig }): Sig {
-    const selWidth = Math.ceil(Math.log2(io.in.length - 1))
+  addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig, default?: string | Sig | Expr }): Sig {
+    const selWidth = Math.ceil(Math.log2(io.in.length)) // remove -1
     let selString = io.sel.toString()
     if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
       const selSig = this.findSignal(io.sel, true, this.addMux, true)
@@ -900,6 +914,10 @@ export class Module {
       default:
         throw Error(`${io.out.toString()} is unsupported signal type ${outSig.type}`)
     }
+    let defaultString = `{${outSig.width}{1'bx}}`
+    if (io.default) {
+      defaultString = io.default.toString()
+    }
     let caseAssignments = ''
     let selIndex = 0
     for (const input of io.in) {
@@ -911,7 +929,7 @@ export class Module {
 `  always_comb
     unique case(${selString})
 ${caseAssignments}
-      default: ${io.out.toString()} = {${outSig.width}{1'bx}};
+      default: ${io.out.toString()} = ${defaultString};
     endcase
 `
     if (typeof io.out === 'string') {

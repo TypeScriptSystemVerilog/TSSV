@@ -31,27 +31,27 @@ module addSU_tb
   'd0: begin
       a <= 8'd1;
       b <= 8'd1;
-      assert(sum_axb == 16'd2) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(sum_axb == 16'd2) else $display("Assertion failed: sum_axb should be 2 at time %0t", $time);
   end
   'd1: begin
       a <= -8'd47;
       b <= 8'd29;
-      assert(sum_axb == -16'd18) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(sum_axb == -16'd18) else $display("Assertion failed: sum_axb should be -18 at time %0t", $time);
   end
   'd2: begin
       a <= -8'd115;
       b <= 8'd34;
-      assert(sum_axb == -16'd81) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(sum_axb == -16'd81) else $display("Assertion failed: sum_axb should be -81 at time %0t", $time);
   end
   'd3: begin
       a <= -8'd50;
       b <= 8'd50;
-      assert(sum_axb == 16'd0) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(sum_axb == 16'd0) else $display("Assertion failed: sum_axb should be 0 at time %0t", $time);
   end
   'd4: begin 
       a <= -8'd128;
       b <= 8'd127;
-      assert(sum_axb == -16'd1) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(sum_axb == -16'd1) else $display("Assertion failed: sum_axb should be -1 at time %0t", $time);
   end
   default: begin
       a <= 8'd0;
@@ -59,7 +59,7 @@ module addSU_tb
   end
   endcase
   end
-   assign sum_axb = a + b;
+   assign sum_axb = $signed(a) + $signed({1'b0,b});
 
 
 endmodule

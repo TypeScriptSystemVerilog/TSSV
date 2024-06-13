@@ -53,13 +53,18 @@ module multUS_tb
       b <= -8'd128;
       assert(prod_axb == -16'd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
   end
+  'd5: begin
+      a <= 8'd255;
+      b <= -8'd128;
+      assert(prod_axb == -16'd32640) else $display("Assertion failed: prod_axb should be -32640 at time %0t", $time);
+  end
   default: begin
       a <= 8'b00000000;
       b <= 4'b0000;
   end
   endcase
   end
-   assign prod_axb = a * b;
+   assign prod_axb = $signed({1'b0,a}) * $signed(b);
 
 
 endmodule

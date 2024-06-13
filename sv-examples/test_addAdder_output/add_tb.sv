@@ -31,27 +31,27 @@ module add_tb
     'd0: begin
         a <= 8'b00000001;
         b <= 4'b0001;
-        assert(sum_axb == 12'd2) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(sum_axb == 12'd2) else $display("Assertion failed: sum_axb should be 2 at time %0t", $time);
     end
     'd1: begin
         a <= 8'b00000010;
         b <= 4'b0010;
-        assert(sum_axb == 12'd4) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(sum_axb == 12'd4) else $display("Assertion failed: sum_axb should be 4 at time %0t", $time);
     end
     'd2: begin
         a <= 8'd100;
         b <= 4'd5;
-        assert(sum_axb == 12'd105) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(sum_axb == 12'd105) else $display("Assertion failed: sum_axb should be 105 at time %0t", $time);
     end
     'd3: begin
         a <= 8'd89;
         b <= 4'd11;
-        assert(sum_axb == 12'd100) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(sum_axb == 12'd100) else $display("Assertion failed: sum_axb should be 100 at time %0t", $time);
     end
     'd4: begin 
         a <= 8'b11111111;
         b <= 4'b1111;
-        assert(sum_axb == 12'd270) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+        assert(sum_axb == 12'd270) else $display("Assertion failed: sum_axb should be 270 at time %0t", $time);
     end
     default: begin
         a <= 8'b00000000;

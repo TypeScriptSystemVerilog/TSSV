@@ -281,8 +281,8 @@ const subSU_tb = new Module(
   {},
   tbBodySU
 )
-subSU_tb.addSignal('a', { width: 8, isSigned: false })
-subSU_tb.addSignal('b', { width: 8, isSigned: true })
+subSU_tb.addSignal('a', { width: 8, isSigned: true })
+subSU_tb.addSignal('b', { width: 8, isSigned: false })
 subSU_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {

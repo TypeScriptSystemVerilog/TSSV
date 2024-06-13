@@ -97,3 +97,4 @@ try {
 catch (err) {
     console.error(err);
 }
+// does not result in *, but instead will just give no always block

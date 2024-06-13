@@ -242,8 +242,8 @@ const subSU_tb = new Module({ name: 'subSU_tb' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
 }, {}, tbBodySU);
-subSU_tb.addSignal('a', { width: 8, isSigned: false });
-subSU_tb.addSignal('b', { width: 8, isSigned: true });
+subSU_tb.addSignal('a', { width: 8, isSigned: true });
+subSU_tb.addSignal('b', { width: 8, isSigned: false });
 subSU_tb.addSubtractor({ a: 'a', b: 'b' });
 try {
     const TB = `

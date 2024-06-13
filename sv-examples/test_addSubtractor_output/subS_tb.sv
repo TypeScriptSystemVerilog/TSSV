@@ -31,27 +31,27 @@ module subS_tb
   'd0: begin
       a <= 4'b0001;
       b <= 8'b0001;
-      assert(diff_axb == 9'd0) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(diff_axb == 9'd0) else $display("Assertion failed: diff_axb should be 0 at time %0t", $time);
   end
   'd1: begin
       a <= 4'd6;
       b <= -8'd20;
-      assert(diff_axb == 9'd26) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(diff_axb == 9'd26) else $display("Assertion failed: diff_axb should be 26 at time %0t", $time);
   end
   'd2: begin
       a <= 4'd4;
       b <= 8'd45;
-      assert(diff_axb == -9'd57) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(diff_axb == -9'd41) else $display("Assertion failed: diff_axb should be -41 at time %0t", $time);
   end
   'd3: begin
       a <= -4'd8;
       b <= -8'd128;
-      assert(diff_axb == -9'd120) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(diff_axb == 9'd120) else $display("Assertion failed: diff_axb should be 120 at time %0t", $time);
   end
   'd4: begin 
       a <= 4'd5;
       b <= 8'd15;
-      assert(diff_axb == -9'd10) else $display("Assertion failed: dSig_q should be 0 at time %0t", $time);
+      assert(diff_axb == -9'd10) else $display("Assertion failed: diff_axb should be -10 at time %0t", $time);
   end
   default: begin
       a <= 4'd0;
@@ -59,7 +59,7 @@ module subS_tb
   end
   endcase
   end
-   assign diff_axb = a - b;
+   assign diff_axb = $signed(a) - $signed({1'b0,b});
 
 
 endmodule

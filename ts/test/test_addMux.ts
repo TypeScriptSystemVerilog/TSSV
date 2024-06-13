@@ -250,3 +250,85 @@ try {
 } catch (err) {
   console.error(err)
 }
+
+// default and non power of 2 case
+
+const tbBodyD =
+`
+logic [15:0] count;
+always @(posedge clk or negedge rst_b)
+if(!rst_b)
+begin
+  count <= 'd0;
+end
+else
+begin
+  count <= count + 1'b1;
+
+a <= -5'd10;
+b <= -5'd5;
+c <= 5'd0;
+d <= 5'd5;
+e <= 5'd10;
+
+case(count)
+'d0: begin
+    sel <= 3'd0;
+    assert(out == -5'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+end
+'d1: begin
+    sel <= 3'd1;
+    assert(out == -5'd5) else $fatal("Assertion failed: out should be -5 at time %0t", $time);
+end
+'d2: begin
+    sel <= 3'd2;
+    assert(out == 5'd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
+end
+'d3: begin
+    sel <= 3'd3;
+    assert(out == 5'd5) else $fatal("Assertion failed: out should be 5 at time %0t", $time);
+end
+'d4: begin 
+    sel <= 3'd4;
+    assert(out == 5'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+end
+'d5: begin
+    sel <= 3'd5;
+    assert(out == 5'd11) else $fatal("Assertion failed: out should be 11 at time %0t", $time);
+end
+default: sel <= 3'd0;
+endcase
+end
+`
+
+const muxD_tb = new Module(
+  { name: 'muxE_tb' },
+  {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_b: { direction: 'input', isReset: 'lowasync' }
+  },
+  {},
+  tbBodyD
+)
+
+muxD_tb.addSignal('a', { width: 5, isSigned: true })
+muxD_tb.addSignal('b', { width: 5, isSigned: true })
+muxD_tb.addSignal('c', { width: 5, isSigned: true })
+muxD_tb.addSignal('d', { width: 5, isSigned: true })
+muxD_tb.addSignal('e', { width: 5, isSigned: true })
+const sigsD: string[] = ['a', 'b', 'c', 'd', 'e']
+muxD_tb.addSignal('sel', { width: 3, isSigned: false })
+muxD_tb.addSignal('out', { width: 5, isSigned: true })
+muxD_tb.addMux({ in: sigsD, sel: 'sel', out: 'out', default: new Expr('5\'d11') })
+
+try {
+  const TB =
+`
+  /* verilator lint_off DECLFILENAME */
+  /* verilator lint_off UNUSED */
+  ${muxD_tb.writeSystemVerilog()}
+`
+  writeFileSync('sv-examples/test_addMux_output/muxD_tb.sv', TB)
+} catch (err) {
+  console.error(err)
+}
