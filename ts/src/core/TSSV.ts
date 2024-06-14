@@ -1045,9 +1045,9 @@ ${functionalAssigments.join('\n')}
     }
 
     let subModulesString = ''
+    const printed: Record<string, boolean> = {}
     for (const moduleInstance in this.submodules) {
       const thisSubmodule = this.submodules[moduleInstance]
-      const printed: Record<string, boolean> = {}
       let paramsBind = ''
       if (!printed[thisSubmodule.module.name]) {
         printed[thisSubmodule.module.name] = true

@@ -915,9 +915,9 @@ ${functionalAssigments.join('\n')}
             }
         }
         let subModulesString = '';
+        const printed = {};
         for (const moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance];
-            const printed = {};
             let paramsBind = '';
             if (!printed[thisSubmodule.module.name]) {
                 printed[thisSubmodule.module.name] = true;
