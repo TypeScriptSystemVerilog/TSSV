@@ -474,8 +474,8 @@ export class Module {
        * @returns signal of the result of the saturation
        */
     addSaturate(io, satMode = 'simple') {
-        if (satMode !== 'simple')
-            throw Error(`FIXME: ${satMode} not implemented yet`);
+        if (satMode === 'balanced')
+            throw Error(`FIXME: ${satMode} not implemented yet`); // still have to add balanced
         const inSig = this.findSignal(io.in, true, this.addSaturate, true);
         const outSig = this.findSignal(io.out, true, this.addSaturate, true);
         if (inSig.isSigned !== outSig.isSigned)
@@ -486,18 +486,36 @@ export class Module {
             const minSatStringIn = `$signed(-${inSig.width}'d${sat})`;
             const maxSatString = `${outSig.width}'sd${sat - 1}`;
             const minSatString = `-${outSig.width}'d${sat}`;
-            this.body +=
-                `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
+            if (satMode === 'simple') {
+                this.body +=
+                    `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
                        ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString} : ${io.in.toString()});
 `;
+            }
+            else if (satMode === 'none') {
+                this.body +=
+                    `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? 
+                       {1'b0,(${io.in.toString()}[${outSig.width}-2:0])} : 
+                       ((${io.in.toString()} < ${minSatStringIn}) ? 
+                       {1'b1,(${io.in.toString()}[${outSig.width}-2:0])} : 
+                       ${io.in.toString()}[${outSig.width}-1:0]);
+`;
+            }
         }
         else {
             const sat = (1 << ((outSig.width || 1))) - 1;
             const maxSatStringIn = `${outSig.width}'d${sat}`;
             const maxSatString = `${outSig.width}'d${sat}`;
-            this.body +=
-                `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : (${io.in.toString()});
+            if (satMode === 'simple') {
+                this.body +=
+                    `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : (${io.in.toString()});
 `;
+            }
+            else if (satMode === 'none') {
+                this.body +=
+                    `   assign ${io.out.toString()} = ${io.in.toString()}[${outSig.width}:0];
+`;
+            }
         }
         if (typeof io.out === 'string') {
             return new Sig(io.out);
