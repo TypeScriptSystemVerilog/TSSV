@@ -182,7 +182,7 @@ export declare class Module {
         in: string | Sig;
         out: string | Sig;
         rShift: string | Sig | number;
-    }, roundMode?: 'roundUp' | 'roundDown' | 'roundToZero'): Sig;
+    }, roundMode?: 'rp' | 'rm' | 'rz' | 'rn' | 'rna'): Sig;
     /**
        * add a Saturate operation to limit the bit width of a signal without overflow
        * @param io the input and output signals of the saturation operation
@@ -252,6 +252,7 @@ export declare class Module {
         in: Array<string | Sig | Expr>;
         sel: string | Sig | Expr;
         out: string | Sig;
+        default?: string | Sig | Expr;
     }): Sig;
     /**
        * print some debug information to the console

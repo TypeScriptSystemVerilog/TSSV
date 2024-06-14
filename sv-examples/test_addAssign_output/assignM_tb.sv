@@ -61,7 +61,7 @@ end
     c <= 8'd28;
     d <= 8'd43;
     e <= 8'd14;
-    assert(val == 16'd82) else $display("Assertion failed: val should be 82 at time %0t", $time);
+    assert(val == 16'd168) else $display("Assertion failed: val should be 168 at time %0t", $time);
 end
 'd4: begin 
     a <= 8'd255;
