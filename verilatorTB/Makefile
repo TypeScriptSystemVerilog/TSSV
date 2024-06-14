@@ -6,7 +6,7 @@ run: obj_dir/$(TOP_MODULE)
 	obj_dir/$(TOP_MODULE)
 
 obj_dir/$(TOP_MODULE): $(VERILOG_FILE) sim_main.cpp
-	verilator -Wall --cc $(VERILOG_FILE) --exe --trace  sim_main.cpp
+	verilator --no-timing -Wall --cc $(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
 	make -C obj_dir TOP_MODULE=$(TOP_MODULE) -j -f $(TOP_MODULE).mk $(TOP_MODULE) 
 
 clean:
@@ -20,3 +20,6 @@ tsc: .FORCE
 
 ../sv-examples/test_FIR_output/tb_lpFIR.sv: tsc
 	cd ..; node out/test/test_FIR.js
+
+../sv-examples/test_addRegister_output/regMod.sv: tsc
+	cd ..; node out/test/test_addRegister.js

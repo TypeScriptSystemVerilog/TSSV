@@ -433,9 +433,7 @@ export class Module {
        * @param roundMode determines the type of rounding to apply
        * @returns the signal of the rounded result
        */
-    addRound(io, roundMode = 'roundUp') {
-        if (roundMode !== 'roundUp')
-            throw Error(`FIXME: ${roundMode} not implemented yet`);
+    addRound(io, roundMode = 'rp') {
         const inSig = this.findSignal(io.in, true, this.addRound, true);
         const outSig = this.findSignal(io.out, true, this.addRound, true);
         const rShiftString = io.rShift.toString();
@@ -446,7 +444,24 @@ export class Module {
         }
         if (inSig.isSigned !== outSig.isSigned)
             throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`);
-        this.body += `   assign ${io.out.toString()} = (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        if (roundMode === 'rp') { // roundUp
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        }
+        else if (roundMode === 'rm') { // roundDown
+            this.body += `   assign ${io.out.toString()} = ${io.in.toString()} >>> ${rShiftString};\n`;
+        }
+        else if (roundMode === 'rz') { // roundToZero
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >= 0) ? (${io.in.toString()} >>> ${rShiftString}) : (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`;
+        }
+        else if (roundMode === 'rn') { // roundToNearestEven
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >>> ${rShiftString}) + (((${io.in.toString()} >>> (${rShiftString} - 1)) & 1) & ((${io.in.toString()} >>> ${rShiftString}) & 1));\n`;
+        }
+        else if (roundMode === 'rna') { // roundAwayFromZero
+            this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >>> ${rShiftString}) + ((${io.in.toString()}[0] ^ ${io.in.toString()}[${rShiftString}]) ? 1 : 0);\n`;
+        }
+        else {
+            throw Error('roundMode not found');
+        }
         if (typeof io.out === 'string') {
             return new Sig(io.out);
         }
@@ -477,7 +492,7 @@ export class Module {
 `;
         }
         else {
-            const sat = (1 << ((outSig.width || 1) - 1)) - 1;
+            const sat = (1 << ((outSig.width || 1))) - 1;
             const maxSatStringIn = `${outSig.width}'d${sat}`;
             const maxSatString = `${outSig.width}'d${sat}`;
             this.body +=
@@ -615,6 +630,9 @@ export class Module {
             aOperand = io.a;
             aWidth = Number(aSig.width);
             aSigned = aSig.isSigned || false;
+            // if (aSigned) {
+            //   aOperand = `$signed(${aOperand.toString()})`
+            // }
         }
         else {
             aWidth = this.bitWidth(io.a);
@@ -628,6 +646,18 @@ export class Module {
             bOperand = io.b;
             bWidth = Number(bSig.width);
             bSigned = bSig.isSigned || false;
+            if (typeof io.a !== 'bigint') {
+                if (bSigned || aSigned) {
+                    if (aSigned) {
+                        bOperand = `{1'b0,${bOperand.toString()}}`;
+                    }
+                    else {
+                        aOperand = `{1'b0,${aOperand.toString()}}`;
+                    }
+                    aOperand = `$signed(${aOperand.toString()})`;
+                    bOperand = `$signed(${bOperand.toString()})`;
+                }
+            }
         }
         else {
             bWidth = this.bitWidth(io.b);
@@ -741,13 +771,13 @@ export class Module {
        * @returns signal of the multiplexer output
        */
     addMux(io) {
-        const selWidth = Math.ceil(Math.log2(io.in.length));
+        const selWidth = Math.ceil(Math.log2(io.in.length)); // remove -1
         let selString = io.sel.toString();
         if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
             const selSig = this.findSignal(io.sel, true, this.addMux, true);
-            if (selSig.width || selWidth > 1)
+            if ((selSig.width || 1) < selWidth)
                 throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select`);
-            if (selSig.width || selWidth < 1) {
+            if ((selSig.width || 1) > selWidth) {
                 selString = `${io.sel.toString()}[${selWidth - 1}:0]`;
             }
         }
@@ -763,16 +793,23 @@ export class Module {
             default:
                 throw Error(`${io.out.toString()} is unsupported signal type ${outSig.type}`);
         }
+        let defaultString = `{${outSig.width}{1'bx}}`;
+        if (io.default) {
+            defaultString = io.default.toString();
+        }
         let caseAssignments = '';
+        let selIndex = 0;
         for (const input of io.in) {
             const rhExpr = `${input.toString()}`;
-            caseAssignments += `     case ${selWidth}'d{i}: ${io.out.toString()} = ${rhExpr}`;
+            caseAssignments += `      ${selWidth}'d${selIndex}: ${io.out.toString()} = ${rhExpr};\n`;
+            selIndex++;
         }
         this.body +=
             `  always_comb
     unique case(${selString})
 ${caseAssignments}
-      default: {${outSig.width}{1'bx}}
+      default: ${io.out.toString()} = ${defaultString};
+    endcase
 `;
         if (typeof io.out === 'string') {
             return new Sig(io.out);
