@@ -106,7 +106,7 @@ export declare class Module {
     protected signals: Signals;
     protected submodules: Record<string, {
         module: Module;
-        bindings: Record<string, string | Sig>;
+        bindings: Record<string, string | Sig | bigint>;
     }>;
     protected interfaces: Record<string, Interface>;
     /**
@@ -138,10 +138,11 @@ export declare class Module {
        * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
        * @returns returns the resulting submodule instance
        */
-    addSubmodule(instanceName: string, submodule: Module, bindings: Record<string, string | Sig>, autoBind?: boolean, createMissing?: boolean): Module;
+    addSubmodule(instanceName: string, submodule: Module, bindings: Record<string, string | Sig | bigint>, autoBind?: boolean, createMissing?: boolean): Module;
     addSystemVerilogSubmodule(instanceName: string, SVFilePath: string, params: TSSVParameters, bindings: Record<string, string | Sig>, autoBind?: boolean): Module;
     protected simpleHash(str: string): string;
-    protected findSignal(sig: Sig | string, throwOnFalse?: boolean, caller?: ((...args: any[]) => any) | string | null, throwOnArray?: boolean): Signal | IOSignal;
+    protected bigintToSigName(value: bigint, isSigned?: boolean, width?: number): string;
+    protected findSignal(sig: Sig | string | bigint, throwOnFalse?: boolean, caller?: ((...args: any[]) => any) | string | null, throwOnArray?: boolean): Signal | IOSignal;
     /**
        * add a signal to the SystemVerilog module
        * @param name name of the signal

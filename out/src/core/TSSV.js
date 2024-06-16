@@ -238,7 +238,12 @@ export class Module {
             const thisPort = submodule.IOs[port];
             const thisInterface = submodule.interfaces[port];
             if (thisPort) {
-                const thisSig = this.findSignal(bindings[port], true, this.addSubmodule, true);
+                let thisBinding = bindings[port];
+                if (typeof thisBinding === 'bigint') {
+                    thisBinding = this.addConstSignal(undefined, thisBinding, (thisBinding < 0n), thisPort.width);
+                    bindings[port] = thisBinding;
+                }
+                const thisSig = this.findSignal(thisBinding, true, this.addSubmodule, true);
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
                     throw Error(`illegal binding ${port}(${bindings[port].toString()})`);
             }
@@ -292,11 +297,25 @@ export class Module {
         // Convert to 32bit unsigned integer in base 36 and pad with "0" to ensure length is 7.
         return (hash >>> 0).toString(36).padStart(7, '0');
     }
+    bigintToSigName(value, isSigned, width) {
+        if (isSigned === undefined) {
+            isSigned = (value < 0n);
+        }
+        if (width === undefined) {
+            width = this.bitWidth(value, isSigned);
+        }
+        if (width < this.bitWidth(value, isSigned)) {
+            throw Error(`${width} is not enougn bits to hold value ${value}`);
+        }
+        const absVal = (value < 0n) ? `m${-value.toString()}` : value.toString();
+        return `const_w${width}${isSigned ? 's' : 'u'}${absVal}`;
+    }
     // we do not call the caller, we just grab the name for an error message
     // so the explicit anys are fine
     // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     findSignal(sig, throwOnFalse = false, caller = null, throwOnArray) {
-        const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()];
+        const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString();
+        const thisSig = this.IOs[sigString] || this.signals[sigString];
         if (!thisSig && throwOnFalse) {
             let errString = '';
             if (typeof caller === 'function') {
@@ -733,8 +752,7 @@ export class Module {
         if (resolvedWidth < minWidth)
             throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`);
         if (name === undefined) {
-            const absVal = (value < 0n) ? `m${-value.toString()}` : value.toString();
-            name = `const_w${resolvedWidth}${isSigned ? 's' : 'u'}${absVal}`;
+            name = this.bigintToSigName(value, isSigned, resolvedWidth);
         }
         if (this.signals[name] === undefined) {
             this.signals[name] = { type: 'const logic', value, isSigned, width: resolvedWidth };

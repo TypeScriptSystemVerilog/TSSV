@@ -75,6 +75,9 @@ export class Adder3 extends Module {
     this.addSignal('sum_d4', { width: sumWidth })
     this.addSubmodule('add4', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: this.addConstSignal(undefined, -5n), b: 'psum', sum: 'sum_d', regs: 'regs2' })
 
+    this.addSignal('sum_d5', { width: sumWidth })
+    this.addSubmodule('add5', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: -32n, b: 'psum', sum: 'sum_d', regs: 'regs2' })
+
     this.addSequentialAlways({
       clk: 'clk',
       reset: 'rst_b',
