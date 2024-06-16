@@ -185,9 +185,13 @@ export class ROM extends Module {
         const arry_width = Math.ceil(data_width / 4);
         const init_data_array_pad = init_data_array.map(array => array.padStart(arry_width, '0'));
         const byte_num = this.params.dataWidth / 8;
+        /*
+        // WHY WAS THIS HERE?  IT ROUND THE DEPTH BASED ON THE WIDTH WHICH DOES NOT
+        // SEEM TO MAKE SENSE
         while ((init_data_array_pad.length % byte_num) !== 0) {
-            init_data_array_pad.push('0'.padStart(arry_width, '0'));
+          init_data_array_pad.push('0'.padStart(arry_width, '0'))
         }
+        */
         // construct output signal list
         const signalArray = [];
         if (isEndianMode) {

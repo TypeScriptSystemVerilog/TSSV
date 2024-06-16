@@ -138,7 +138,7 @@ export declare class Module {
        * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
        * @returns returns the resulting submodule instance
        */
-    addSubmodule(instanceName: string, submodule: Module, bindings: Record<string, string | Sig | bigint>, autoBind?: boolean, createMissing?: boolean): Module;
+    addSubmodule(instanceName: string, submodule: Module, bindings: Record<string, string | Sig | bigint>, autoBind?: boolean, createMissing?: boolean, autoWidthExtension?: boolean): Module;
     addSystemVerilogSubmodule(instanceName: string, SVFilePath: string, params: TSSVParameters, bindings: Record<string, string | Sig>, autoBind?: boolean): Module;
     protected simpleHash(str: string): string;
     protected bigintToSigName(value: bigint, isSigned?: boolean, width?: number): string;

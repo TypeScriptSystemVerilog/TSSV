@@ -40,14 +40,14 @@ export class Adder3 extends Module {
             sum: { direction: 'output', width: sumWidth, isSigned: true }
         };
         const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1;
-        const psum = this.addSignal('psum', { width: psumWidth });
+        const psum = this.addSignal('psum', { width: psumWidth, isSigned: true });
         this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: psum, regs: 'regs1' });
-        this.addSignal('sum_d', { width: sumWidth });
+        this.addSignal('sum_d', { width: sumWidth, isSigned: true });
         this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: 'c', b: 'psum', sum: 'sum_d', regs: 'regs2' });
         this.addSignal('sum_d3', { width: sumWidth });
         this.addSystemVerilogSubmodule('add3', 'ts/test/testImport.sv', { aWidth: 8, bWidth: 9, sumWidth: 10 }, { a: 'c', b: 'psum', sum: 'sum_d3' });
         this.addSignal('sum_d4', { width: sumWidth });
-        this.addSubmodule('add4', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: this.addConstSignal(undefined, -5n), b: 'psum', sum: 'sum_d', regs: 'regs2' });
+        this.addSubmodule('add4', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: this.addConstSignal(undefined, -5n, true, this.params.cWidth), b: 'psum', sum: 'sum_d', regs: 'regs2' });
         this.addSignal('sum_d5', { width: sumWidth });
         this.addSubmodule('add5', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: -32n, b: 'psum', sum: 'sum_d', regs: 'regs2' });
         this.addSequentialAlways({

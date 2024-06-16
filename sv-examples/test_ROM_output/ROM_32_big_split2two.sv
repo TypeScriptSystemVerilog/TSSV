@@ -45,7 +45,7 @@ module ROM_32_big_split2two_upper
    (
    input logic  clk,
    input logic  rd_en,
-   input logic [1:0] addr,
+   input logic  addr,
    output logic [31:0] data_out
    );
 
@@ -55,10 +55,8 @@ module ROM_32_big_split2two_upper
       always_ff @(posedge clk) begin
           if (rd_en) begin
               case(addr)
-                  2'd0: data_out <= 32'h00000055;
-                  2'd1: data_out <= 32'h00559ABC;
-                  2'd2: data_out <= 32'h00000000;
-                  2'd3: data_out <= 32'h00000000;
+                  1'd0: data_out <= 32'h00000055;
+                  1'd1: data_out <= 32'h00559ABC;
 
                   default: data_out <= 32'hx;
               endcase

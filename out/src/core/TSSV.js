@@ -183,7 +183,7 @@ export class Module {
        * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
        * @returns returns the resulting submodule instance
        */
-    addSubmodule(instanceName, submodule, bindings, autoBind = true, createMissing = false) {
+    addSubmodule(instanceName, submodule, bindings, autoBind = true, createMissing = false, autoWidthExtension = false) {
         if (this.submodules.instanceName !== undefined)
             throw Error(`submodule with instance name ${instanceName} already exists`);
         const thisModule = {
@@ -244,6 +244,34 @@ export class Module {
                     bindings[port] = thisBinding;
                 }
                 const thisSig = this.findSignal(thisBinding, true, this.addSubmodule, true);
+                if (thisSig.isSigned && (thisPort.isSigned !== true)) {
+                    throw Error(`Error: signed signals can only be connected to signed ports, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                }
+                if (thisSig.isSigned) {
+                    if ((thisSig.width || 1) > (thisPort.width || 1)) {
+                        throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                    }
+                }
+                else {
+                    if (thisPort.isSigned) {
+                        if (((thisSig.width || 1) + 1) > (thisPort.width || 1)) {
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                        }
+                    }
+                    else {
+                        if ((thisSig.width || 1) > (thisPort.width || 1)) {
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                        }
+                    }
+                }
+                if (autoWidthExtension) {
+                    console.log('Do WIDTH EXTENSION HERE!');
+                }
+                else {
+                    if ((thisSig.width || 1) !== (thisPort.width || 1)) {
+                        throw Error(`Error: binding signal width mismatch, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                    }
+                }
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
                     throw Error(`illegal binding ${port}(${bindings[port].toString()})`);
             }
