@@ -17,7 +17,7 @@ interface SVEnum {
  * signal parameters
  */
 interface baseSignal {
-    type?: 'wire' | 'reg' | 'const' | 'logic' | 'enum';
+    type?: 'wire' | 'reg' | 'const logic' | 'logic' | 'enum';
     width?: number;
     isClock?: 'posedge' | 'negedge';
     isReset?: 'lowasync' | 'highasync' | 'lowsync' | 'highsync';
@@ -224,7 +224,7 @@ export declare class Module {
        * @param width bit width of the resulting signal
        * @returns
        */
-    addConstSignal(name: string, value: bigint, isSigned?: boolean, width?: number | undefined): Sig;
+    addConstSignal(name: string | undefined, value: bigint, isSigned?: boolean, width?: number | undefined): Sig;
     /**
        * add an array of constant literal signals to the generated SystemVerilog module
        * @param name signal name

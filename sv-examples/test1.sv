@@ -143,6 +143,8 @@ module Adder3_8_8_8
    logic [8:0] psum;
    logic [9:0] sum_d;
    logic [9:0] sum_d3;
+   logic [9:0] sum_d4;
+   const logic signed [3:0] const_w4sm5 = -5;
 
 
     always_ff @(posedge clk or negedge rst_b)
@@ -172,6 +174,14 @@ module Adder3_8_8_8
         .a(c),
         .b(psum),
         .sum(sum_d3)        
+      );
+
+    Adder_8_9 add4
+      (
+        .a(const_w4sm5),
+        .b(psum),
+        .sum(sum_d),
+        .regs(regs2)        
       );
 
 

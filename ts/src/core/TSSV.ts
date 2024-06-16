@@ -28,7 +28,7 @@ interface SVEnum {
  * signal parameters
  */
 interface baseSignal {
-  type?: 'wire' | 'reg' | 'const' | 'logic' | 'enum'
+  type?: 'wire' | 'reg' | 'const logic' | 'logic' | 'enum'
   width?: number
   isClock?: 'posedge' | 'negedge'
   isReset?: 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
@@ -256,7 +256,7 @@ export class Module {
   }
 
   protected bindingRules = {
-    input: ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
+    input: ['input', 'wire', 'reg', 'const logic', 'logic', 'enum'],
     output: ['output', 'wire', 'logic', 'enum'],
     inout: ['inout', 'wire']
   }
@@ -845,11 +845,18 @@ export class Module {
      * @param width bit width of the resulting signal
      * @returns
      */
-  addConstSignal (name: string, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): Sig {
+  addConstSignal (name: string | undefined, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): Sig {
     const minWidth = this.bitWidth(value, isSigned)
     const resolvedWidth = (width === undefined) ? minWidth : width
+    if (value < 0) isSigned = true
     if (resolvedWidth < minWidth) throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`)
-    this.signals[name] = { type: 'const', value, isSigned, width: resolvedWidth }
+    if (name === undefined) {
+      const absVal = (value < 0n) ? `m${-value.toString()}` : value.toString()
+      name = `const_w${resolvedWidth}${isSigned ? 's' : 'u'}${absVal}`
+    }
+    if (this.signals[name] === undefined) {
+      this.signals[name] = { type: 'const logic', value, isSigned, width: resolvedWidth }
+    }
     return new Sig(name)
   }
 
@@ -1023,6 +1030,7 @@ ${caseAssignments}
     Object.keys(this.signals).forEach((key) => {
       let rangeString = ''
       let arrayString = ''
+      let valueString = ''
       const signString = (this.signals[key].isSigned) ? ' signed' : ''
       if ((this.signals[key].width || 0) > 1) {
         rangeString = `[${Number(this.signals[key].width) - 1}:0]`
@@ -1030,7 +1038,10 @@ ${caseAssignments}
       if (this.signals[key].isArray && ((this.signals[key].isArray || 0) > 1)) {
         arrayString = ` [0:${(this.signals[key].isArray || 0n) - 1n}]`
       }
-      signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}`)
+      if (this.signals[key].type === 'const logic') {
+        valueString = ` = ${(this.signals[key].value || 0n).toString()}`
+      }
+      signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
     })
     let signalString: string = `   ${signalArray.join(';\n   ')}`
     if (signalArray.length > 0) signalString += ';'
