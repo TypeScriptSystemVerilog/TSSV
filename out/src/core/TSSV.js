@@ -264,8 +264,30 @@ export class Module {
                         }
                     }
                 }
-                if (autoWidthExtension) {
-                    console.log('Do WIDTH EXTENSION HERE!');
+                if (autoWidthExtension && (thisPort.direction === 'input')) {
+                    // sign or zero extend input automatically
+                    if ((thisSig.width || 1) < (thisPort.width || 1)) {
+                        const extBits = (thisPort.width || 1) - (thisSig.width || 1);
+                        const s_or_u = (thisPort.isSigned) ? 's' : 'u';
+                        const extSigName = `ext_w${extBits}${s_or_u}_${thisBinding.toString()}`;
+                        if (this.findSignal(extSigName) === undefined) {
+                            const extSig = this.addSignal(extSigName, thisPort);
+                            if (thisSig.isSigned) {
+                                const signBit = (thisSig.width || 1) - 1;
+                                this.addAssign({
+                                    in: new Expr(`{{${extBits}{${thisBinding.toString()}[${signBit}]}},${thisBinding.toString()}}`),
+                                    out: extSig
+                                });
+                            }
+                            else {
+                                this.addAssign({ in: new Expr(`{${extBits}'d0,${thisBinding.toString()}}`), out: extSig });
+                            }
+                            bindings[port] = extSig;
+                        }
+                        else {
+                            bindings[port] = extSigName;
+                        }
+                    }
                 }
                 else {
                     if ((thisSig.width || 1) !== (thisPort.width || 1)) {

@@ -144,10 +144,12 @@ module Adder3_8_8_8
    logic signed [9:0] sum_d;
    logic [9:0] sum_d3;
    logic [9:0] sum_d4;
-   const logic signed [7:0] const_w8sm5 = -5;
+   const logic signed [4:0] testSignExtend = -5;
+   logic signed [7:0] ext_w3s_testSignExtend;
    logic [9:0] sum_d5;
    const logic signed [7:0] const_w8sm32 = -32;
 
+  assign ext_w3s_testSignExtend = {{3{testSignExtend[4]}},testSignExtend};
 
     always_ff @(posedge clk or negedge rst_b)
       if(!rst_b)
@@ -180,7 +182,7 @@ module Adder3_8_8_8
 
     Adder_8_9 add4
       (
-        .a(const_w8sm5),
+        .a(ext_w3s_testSignExtend),
         .b(psum),
         .sum(sum_d),
         .regs(regs2)        

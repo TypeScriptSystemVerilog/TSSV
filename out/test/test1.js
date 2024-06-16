@@ -47,7 +47,7 @@ export class Adder3 extends Module {
         this.addSignal('sum_d3', { width: sumWidth });
         this.addSystemVerilogSubmodule('add3', 'ts/test/testImport.sv', { aWidth: 8, bWidth: 9, sumWidth: 10 }, { a: 'c', b: 'psum', sum: 'sum_d3' });
         this.addSignal('sum_d4', { width: sumWidth });
-        this.addSubmodule('add4', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: this.addConstSignal(undefined, -5n, true, this.params.cWidth), b: 'psum', sum: 'sum_d', regs: 'regs2' });
+        this.addSubmodule('add4', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: this.addConstSignal('testSignExtend', -5n, true, 5), b: 'psum', sum: 'sum_d', regs: 'regs2' }, true, true, true);
         this.addSignal('sum_d5', { width: sumWidth });
         this.addSubmodule('add5', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: -32n, b: 'psum', sum: 'sum_d', regs: 'regs2' });
         this.addSequentialAlways({
