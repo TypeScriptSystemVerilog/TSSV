@@ -123,7 +123,7 @@ export class Module {
        */
     constructor(params = {}, IOs = {}, signals = {}, body = '') {
         this.bindingRules = {
-            input: ['input', 'wire', 'reg', 'const', 'logic', 'enum'],
+            input: ['input', 'wire', 'reg', 'const logic', 'logic', 'enum'],
             output: ['output', 'wire', 'logic', 'enum'],
             inout: ['inout', 'wire']
         };
@@ -183,7 +183,7 @@ export class Module {
        * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
        * @returns returns the resulting submodule instance
        */
-    addSubmodule(instanceName, submodule, bindings, autoBind = true, createMissing = false) {
+    addSubmodule(instanceName, submodule, bindings, autoBind = true, createMissing = false, autoWidthExtension = false) {
         if (this.submodules.instanceName !== undefined)
             throw Error(`submodule with instance name ${instanceName} already exists`);
         const thisModule = {
@@ -238,7 +238,62 @@ export class Module {
             const thisPort = submodule.IOs[port];
             const thisInterface = submodule.interfaces[port];
             if (thisPort) {
-                const thisSig = this.findSignal(bindings[port], true, this.addSubmodule, true);
+                let thisBinding = bindings[port];
+                if (typeof thisBinding === 'bigint') {
+                    thisBinding = this.addConstSignal(undefined, thisBinding, (thisBinding < 0n), thisPort.width);
+                    bindings[port] = thisBinding;
+                }
+                const thisSig = this.findSignal(thisBinding, true, this.addSubmodule, true);
+                if (thisSig.isSigned && (thisPort.isSigned !== true)) {
+                    throw Error(`Error: signed signals can only be connected to signed ports, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                }
+                if (thisSig.isSigned) {
+                    if ((thisSig.width || 1) > (thisPort.width || 1)) {
+                        throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                    }
+                }
+                else {
+                    if (thisPort.isSigned) {
+                        if (((thisSig.width || 1) + 1) > (thisPort.width || 1)) {
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                        }
+                    }
+                    else {
+                        if ((thisSig.width || 1) > (thisPort.width || 1)) {
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                        }
+                    }
+                }
+                if (autoWidthExtension && (thisPort.direction === 'input')) {
+                    // sign or zero extend input automatically
+                    if ((thisSig.width || 1) < (thisPort.width || 1)) {
+                        const extBits = (thisPort.width || 1) - (thisSig.width || 1);
+                        const s_or_u = (thisPort.isSigned) ? 's' : 'u';
+                        const extSigName = `ext_w${extBits}${s_or_u}_${thisBinding.toString()}`;
+                        if (this.findSignal(extSigName) === undefined) {
+                            const extSig = this.addSignal(extSigName, thisPort);
+                            if (thisSig.isSigned) {
+                                const signBit = (thisSig.width || 1) - 1;
+                                this.addAssign({
+                                    in: new Expr(`{{${extBits}{${thisBinding.toString()}[${signBit}]}},${thisBinding.toString()}}`),
+                                    out: extSig
+                                });
+                            }
+                            else {
+                                this.addAssign({ in: new Expr(`{${extBits}'d0,${thisBinding.toString()}}`), out: extSig });
+                            }
+                            bindings[port] = extSig;
+                        }
+                        else {
+                            bindings[port] = extSigName;
+                        }
+                    }
+                }
+                else {
+                    if ((thisSig.width || 1) !== (thisPort.width || 1)) {
+                        throw Error(`Error: binding signal width mismatch, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                    }
+                }
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
                     throw Error(`illegal binding ${port}(${bindings[port].toString()})`);
             }
@@ -292,11 +347,25 @@ export class Module {
         // Convert to 32bit unsigned integer in base 36 and pad with "0" to ensure length is 7.
         return (hash >>> 0).toString(36).padStart(7, '0');
     }
+    bigintToSigName(value, isSigned, width) {
+        if (isSigned === undefined) {
+            isSigned = (value < 0n);
+        }
+        if (width === undefined) {
+            width = this.bitWidth(value, isSigned);
+        }
+        if (width < this.bitWidth(value, isSigned)) {
+            throw Error(`${width} is not enougn bits to hold value ${value}`);
+        }
+        const absVal = (value < 0n) ? `m${-value.toString()}` : value.toString();
+        return `const_w${width}${isSigned ? 's' : 'u'}${absVal}`;
+    }
     // we do not call the caller, we just grab the name for an error message
     // so the explicit anys are fine
     // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     findSignal(sig, throwOnFalse = false, caller = null, throwOnArray) {
-        const thisSig = this.IOs[sig.toString()] || this.signals[sig.toString()];
+        const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString();
+        const thisSig = this.IOs[sigString] || this.signals[sigString];
         if (!thisSig && throwOnFalse) {
             let errString = '';
             if (typeof caller === 'function') {
@@ -753,9 +822,16 @@ export class Module {
     addConstSignal(name, value, isSigned = false, width = undefined) {
         const minWidth = this.bitWidth(value, isSigned);
         const resolvedWidth = (width === undefined) ? minWidth : width;
+        if (value < 0)
+            isSigned = true;
         if (resolvedWidth < minWidth)
             throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`);
-        this.signals[name] = { type: 'const', value, isSigned, width: resolvedWidth };
+        if (name === undefined) {
+            name = this.bigintToSigName(value, isSigned, resolvedWidth);
+        }
+        if (this.signals[name] === undefined) {
+            this.signals[name] = { type: 'const logic', value, isSigned, width: resolvedWidth };
+        }
         return new Sig(name);
     }
     /**
@@ -927,6 +1003,7 @@ ${caseAssignments}
         Object.keys(this.signals).forEach((key) => {
             let rangeString = '';
             let arrayString = '';
+            let valueString = '';
             const signString = (this.signals[key].isSigned) ? ' signed' : '';
             if ((this.signals[key].width || 0) > 1) {
                 rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
@@ -934,7 +1011,10 @@ ${caseAssignments}
             if (this.signals[key].isArray && ((this.signals[key].isArray || 0) > 1)) {
                 arrayString = ` [0:${(this.signals[key].isArray || 0n) - 1n}]`;
             }
-            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}`);
+            if (this.signals[key].type === 'const logic') {
+                valueString = ` = ${(this.signals[key].value || 0n).toString()}`;
+            }
+            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
         if (signalArray.length > 0)

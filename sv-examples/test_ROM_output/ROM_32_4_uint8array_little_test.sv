@@ -21,7 +21,7 @@ module ROM_32_4_uint8array_little_test
                   3'd1: data_out <= 32'h07060504;
                   3'd2: data_out <= 32'h0B0A0908;
                   3'd3: data_out <= 32'h01FF0D0C;
-                  3'd4: data_out <= 32'h00000020;
+                  3'd4: data_out <= 32'hundefinedundefinedundefined20;
 
                   default: data_out <= 32'hx;
               endcase
