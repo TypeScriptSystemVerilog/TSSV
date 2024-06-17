@@ -474,8 +474,7 @@ export class Module {
        * @returns signal of the result of the saturation
        */
     addSaturate(io, satMode = 'simple') {
-        if (satMode === 'balanced')
-            throw Error(`FIXME: ${satMode} not implemented yet`); // still have to add balanced
+        // if (satMode === 'balanced') throw Error(`FIXME: ${satMode} not implemented yet`) // still have to add balanced
         const inSig = this.findSignal(io.in, true, this.addSaturate, true);
         const outSig = this.findSignal(io.out, true, this.addSaturate, true);
         if (inSig.isSigned !== outSig.isSigned)
@@ -501,12 +500,20 @@ export class Module {
                        ${io.in.toString()}[${outSig.width}-1:0]);
 `;
             }
+            else if (satMode === 'balanced') {
+                this.body +=
+                    `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
+                      ((${io.in.toString()} < ${minSatStringIn}) ? ${maxSatString} : 
+                      ((${io.in.toString()} < ${outSig.width}'sd0) ? ~${io.in.toString()}+1 :
+                      ${io.in.toString()}));
+`;
+            }
         }
         else {
             const sat = (1 << ((outSig.width || 1))) - 1;
             const maxSatStringIn = `${outSig.width}'d${sat}`;
             const maxSatString = `${outSig.width}'d${sat}`;
-            if (satMode === 'simple') {
+            if (satMode === 'simple' || satMode === 'balanced') {
                 this.body +=
                     `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : (${io.in.toString()});
 `;
