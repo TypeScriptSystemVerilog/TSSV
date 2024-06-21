@@ -54,7 +54,7 @@ export class LZC extends Module {
                 }
             }
         }
-        const CombAlwaysBody = `   begin
+        const LatchAlwaysBody = `   begin
       if(data_in[${this.params.dataWidth - 1}:0] == ${this.params.dataWidth}'d0) begin
         is_zero = 1'b1;
         tmp_cnt = ${cnt_width}'d${this.params.dataWidth + padding_num};
@@ -65,7 +65,7 @@ ${cnt_body}
       end
     end
 `;
-        this.addCombAlways({ outputs: ['tmp_cnt', 'is_zero'] }, CombAlwaysBody);
+        this.addLatchAlways({ outputs: ['tmp_cnt', 'is_zero'] }, LatchAlwaysBody);
         if (Math.log2(this.params.dataWidth) % 1 !== 0) {
             this.addSignal('tmp_zero_num', { width: cnt_width });
             this.addAssign({ in: new Expr(`tmp_cnt - ${cnt_width}'d${padding_num}`), out: 'tmp_zero_num' });

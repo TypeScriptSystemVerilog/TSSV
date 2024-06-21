@@ -20,7 +20,7 @@ module LZC_64
    logic  val1;
 
   assign val64 = data_in;
-always_comb
+always_latch
    begin
       if(data_in[63:0] == 64'd0) begin
         is_zero = 1'b1;
