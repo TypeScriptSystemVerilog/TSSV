@@ -20,7 +20,7 @@ module LZC_21
    logic [5:0] tmp_zero_num;
 
   assign val32 = {11'd0,data_in};
-always_comb
+always_latch
    begin
       if(data_in[20:0] == 21'd0) begin
         is_zero = 1'b1;

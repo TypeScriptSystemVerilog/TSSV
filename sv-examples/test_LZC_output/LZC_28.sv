@@ -20,7 +20,7 @@ module LZC_28
    logic [5:0] tmp_zero_num;
 
   assign val32 = {4'd0,data_in};
-always_comb
+always_latch
    begin
       if(data_in[27:0] == 28'd0) begin
         is_zero = 1'b1;

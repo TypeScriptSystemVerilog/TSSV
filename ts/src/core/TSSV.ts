@@ -760,7 +760,7 @@ export class Module {
     let sensitivityList: string | null = null
     if (io.inputs) {
       for (const input of io.inputs) {
-        this.findSignal(input, true, this.addSequentialAlways)
+        this.findSignal(input, true, this.addCombAlways)
       }
       sensitivityList = `@( ${io.inputs.join(' or ')} )`
     }
@@ -776,6 +776,50 @@ export class Module {
       this.body += body
     } else {
       this.body += 'always_comb\n'
+      this.body += body
+    }
+  }
+
+  addLatchAlways (
+    io: {
+      inputs?: Array<string | Sig>
+      outputs: Array<string | Sig>
+    },
+    body: string
+  ): void {
+    for (const output of io.outputs) {
+      const thisSig = this.findSignal(output, true, this.addLatchAlways)
+      switch (thisSig.type) {
+        case undefined:
+        case 'wire':
+          thisSig.type = 'logic'
+          break
+        case 'reg':
+        case 'logic':
+          break
+        default:
+          throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`)
+      }
+    }
+    let sensitivityList: string | null = null
+    if (io.inputs) {
+      for (const input of io.inputs) {
+        this.findSignal(input, true, this.addLatchAlways)
+      }
+      sensitivityList = `@( ${io.inputs.join(' or ')} )`
+    }
+    if (body.includes('always')) {
+      const SenseMatch = body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)
+      if (SenseMatch) {
+        this.body += body
+      } else {
+        throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
+      }
+    } else if (sensitivityList) {
+      this.body += `always ${sensitivityList}\n`
+      this.body += body
+    } else {
+      this.body += 'always_latch\n'
       this.body += body
     }
   }
