@@ -255,6 +255,7 @@ export declare class Module {
         out: string | Sig;
         default?: string | Sig | Expr;
     }): Sig;
+    addIpexactComponent(xmlData: string): Record<string, Record<string, string>>;
     /**
        * print some debug information to the console
        */

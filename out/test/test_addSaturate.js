@@ -260,11 +260,11 @@ const tbBodyBS = `
     case(count)
     'd0: begin
         in <= -8'd18;
-        assert(out == 4'd7) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
+        assert(out == -4'd7) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
     end
     'd1: begin
         in <= -8'd15;
-        assert(out == 4'd7) else $fatal("Assertion failed: out should be -8 at time %0t", $time);
+        assert(out == -4'd7) else $fatal("Assertion failed: out should be -8 at time %0t", $time);
     end
     'd2: begin
         in <= 8'b00010010;
@@ -272,7 +272,7 @@ const tbBodyBS = `
     end
     'd3: begin
         in <= -8'd7;
-        assert(out == 4'd7) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
+        assert(out == -4'd7) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
     end
     'd4: begin 
         in <= 8'd12;
@@ -280,7 +280,7 @@ const tbBodyBS = `
     end
     'd5: begin
         in <= -8'd4;
-        assert(out == 4'd4) else $fatal("Assertion failed: out should be 4 at time %0t", $time);
+        assert(out == -4'd4) else $fatal("Assertion failed: out should be 4 at time %0t", $time);
     end
     'd6: begin
         in <= 8'd4;
@@ -292,7 +292,7 @@ const tbBodyBS = `
     end
     'd8: begin
         in <= -8'd6;
-        assert(out == 4'd6) else $fatal("Assertion failed: out should be 6 at time %0t", $time);
+        assert(out == -4'd6) else $fatal("Assertion failed: out should be 6 at time %0t", $time);
     end
     default: in <= 8'b00000000;
     endcase

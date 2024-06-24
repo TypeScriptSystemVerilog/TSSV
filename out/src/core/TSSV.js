@@ -1,4 +1,6 @@
 import { readFileSync } from 'fs';
+// new for the addIpexactComponent()
+import { XMLParser } from 'fast-xml-parser';
 /**
  * container class of a TSSV signal used to pass signals
  * among add* primtives and submodules to define interconnections
@@ -55,6 +57,8 @@ var BinaryOp;
     BinaryOp["BITWISE_AND"] = "&";
     BinaryOp["BITWISE_OR"] = "|";
 })(BinaryOp || (BinaryOp = {}));
+// new for addIpexactComponent()
+// xf
 /**
  * Interface is a class to define a signal bundle for a standardized
  * interface.  It wraps the modport functionality of an SV interface
@@ -249,18 +253,18 @@ export class Module {
                 }
                 if (thisSig.isSigned) {
                     if ((thisSig.width || 1) > (thisPort.width || 1)) {
-                        throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                        throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width} æ`);
                     }
                 }
                 else {
                     if (thisPort.isSigned) {
                         if (((thisSig.width || 1) + 1) > (thisPort.width || 1)) {
-                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signed and unsigned mismatch extra bit is needed to sign unsigned number`);
                         }
                     }
                     else {
                         if ((thisSig.width || 1) > (thisPort.width || 1)) {
-                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width} ø`);
                         }
                     }
                 }
@@ -572,9 +576,7 @@ export class Module {
             else if (satMode === 'balanced') {
                 this.body +=
                     `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
-                      ((${io.in.toString()} < ${minSatStringIn}) ? ${maxSatString} : 
-                      ((${io.in.toString()} < ${outSig.width}'sd0) ? ~${io.in.toString()}+1 :
-                      ${io.in.toString()}));
+                      ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString}+1 : ${io.in.toString()});
 `;
             }
         }
@@ -741,7 +743,7 @@ export class Module {
             bWidth = Number(bSig.width);
             bSigned = bSig.isSigned || false;
             if (typeof io.a !== 'bigint') {
-                if (bSigned || aSigned) {
+                if (bSigned !== aSigned) {
                     if (aSigned) {
                         bOperand = `{1'b0,${bOperand.toString()}}`;
                     }
@@ -916,6 +918,37 @@ ${caseAssignments}
             return new Sig(io.out);
         }
         return io.out;
+    }
+    addIpexactComponent(xmlData) {
+        const parser = new XMLParser({
+            ignoreAttributes: false, // Ensure attributes are parsed
+            attributeNamePrefix: '', // No prefix for attribute names
+            textNodeName: 'text' // Name for text nodes (in case there are any)
+        });
+        const jsonObj = parser.parse(xmlData);
+        const components = jsonObj['spirit:component'];
+        const result = {};
+        const processComponent = (component) => {
+            const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface'];
+            busInterfaces.forEach((busInterface) => {
+                const interfaceName = busInterface['spirit:name'];
+                const portMaps = busInterface['spirit:portMaps']['spirit:portMap'];
+                const portDictionary = {};
+                portMaps.forEach((portMap) => {
+                    const logicalPort = portMap['spirit:logicalPort']['spirit:name'];
+                    const physicalPort = portMap['spirit:physicalPort']['spirit:name'];
+                    portDictionary[logicalPort] = physicalPort;
+                });
+                result[interfaceName] = portDictionary;
+            });
+        };
+        if (Array.isArray(components)) {
+            components.forEach(processComponent);
+        }
+        else {
+            processComponent(components);
+        }
+        return result;
     }
     /**
        * print some debug information to the console
