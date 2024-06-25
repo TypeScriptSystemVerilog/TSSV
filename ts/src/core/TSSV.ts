@@ -1039,9 +1039,9 @@ ${caseAssignments}
 
   addIpexactComponent (xmlData: string): Record<string, Record<string, string>> {
     const parser = new XMLParser({
-      ignoreAttributes: false, // Ensure attributes are parsed
-      attributeNamePrefix: '', // No prefix for attribute names
-      textNodeName: 'text' // Name for text nodes (in case there are any)
+      ignoreAttributes: false,
+      attributeNamePrefix: '',
+      textNodeName: 'text'
     })
     const jsonObj = parser.parse(xmlData)
 
