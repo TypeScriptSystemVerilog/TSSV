@@ -1,6 +1,4 @@
 import { readFileSync } from 'fs'
-// new for the addIpexactComponent()
-import { XMLParser } from 'fast-xml-parser'
 
 /**
  * IntRange type allows specifify a type that allows a range of integer values
@@ -130,9 +128,6 @@ enum BinaryOp {
   BITWISE_AND = '&',
   BITWISE_OR = '|'
 }
-
-// new for addIpexactComponent()
-// xf
 
 /**
  * Interface is a class to define a signal bundle for a standardized
@@ -1035,39 +1030,6 @@ ${caseAssignments}
       return new Sig(io.out)
     }
     return io.out
-  }
-
-  addIpexactComponent (xmlData: string): Record<string, Record<string, string>> {
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: '',
-      textNodeName: 'text'
-    })
-    const jsonObj = parser.parse(xmlData)
-
-    const components = jsonObj['spirit:component']
-    const result: Record<string, Record<string, string>> = {}
-
-    const processComponent = (component: any): void => {
-      const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface']
-      busInterfaces.forEach((busInterface: any) => {
-        const interfaceName = busInterface['spirit:name']
-        const portMaps = busInterface['spirit:portMaps']['spirit:portMap']
-        const portDictionary: Record<string, string> = {}
-        portMaps.forEach((portMap: any) => {
-          const logicalPort = portMap['spirit:logicalPort']['spirit:name']
-          const physicalPort = portMap['spirit:physicalPort']['spirit:name']
-          portDictionary[logicalPort] = physicalPort
-        })
-        result[interfaceName] = portDictionary
-      })
-    }
-    if (Array.isArray(components)) {
-      components.forEach(processComponent)
-    } else {
-      processComponent(components)
-    }
-    return result
   }
 
   /**

@@ -1,6 +1,4 @@
 import { readFileSync } from 'fs';
-// new for the addIpexactComponent()
-import { XMLParser } from 'fast-xml-parser';
 /**
  * container class of a TSSV signal used to pass signals
  * among add* primtives and submodules to define interconnections
@@ -57,8 +55,6 @@ var BinaryOp;
     BinaryOp["BITWISE_AND"] = "&";
     BinaryOp["BITWISE_OR"] = "|";
 })(BinaryOp || (BinaryOp = {}));
-// new for addIpexactComponent()
-// xf
 /**
  * Interface is a class to define a signal bundle for a standardized
  * interface.  It wraps the modport functionality of an SV interface
@@ -918,37 +914,6 @@ ${caseAssignments}
             return new Sig(io.out);
         }
         return io.out;
-    }
-    addIpexactComponent(xmlData) {
-        const parser = new XMLParser({
-            ignoreAttributes: false, // Ensure attributes are parsed
-            attributeNamePrefix: '', // No prefix for attribute names
-            textNodeName: 'text' // Name for text nodes (in case there are any)
-        });
-        const jsonObj = parser.parse(xmlData);
-        const components = jsonObj['spirit:component'];
-        const result = {};
-        const processComponent = (component) => {
-            const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface'];
-            busInterfaces.forEach((busInterface) => {
-                const interfaceName = busInterface['spirit:name'];
-                const portMaps = busInterface['spirit:portMaps']['spirit:portMap'];
-                const portDictionary = {};
-                portMaps.forEach((portMap) => {
-                    const logicalPort = portMap['spirit:logicalPort']['spirit:name'];
-                    const physicalPort = portMap['spirit:physicalPort']['spirit:name'];
-                    portDictionary[logicalPort] = physicalPort;
-                });
-                result[interfaceName] = portDictionary;
-            });
-        };
-        if (Array.isArray(components)) {
-            components.forEach(processComponent);
-        }
-        else {
-            processComponent(components);
-        }
-        return result;
     }
     /**
        * print some debug information to the console
