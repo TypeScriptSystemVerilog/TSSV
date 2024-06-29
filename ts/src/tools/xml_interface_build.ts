@@ -81,7 +81,7 @@ function mapToAmbaInterface (json: any): Component | null {
 
   return {
     name: abstractionDefinition.name || '',
-    vlnv: vlnv,
+    vlnv,
     busInterfaces: {
       busInterface: {
         name: abstractionDefinition.name || '',
@@ -91,7 +91,7 @@ function mapToAmbaInterface (json: any): Component | null {
           name: abstractionDefinition.busType?.name || '',
           version: abstractionDefinition.busType?.version || ''
         },
-        signals: signals
+        signals
       }
     }
   }

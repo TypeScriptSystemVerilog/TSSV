@@ -203,6 +203,10 @@ export declare class Module {
         inputs?: Array<string | Sig>;
         outputs: Array<string | Sig>;
     }, body: string): void;
+    addLatchAlways(io: {
+        inputs?: Array<string | Sig>;
+        outputs: Array<string | Sig>;
+    }, body: string): void;
     protected addOperation(op: BinaryOp, io: OperationIO): Sig;
     addMultiplier(io: OperationIO): Sig;
     /**

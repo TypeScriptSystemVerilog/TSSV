@@ -12,22 +12,22 @@ export class IpXactComponent extends Module {
         });
         const interfaceData = this.createDictionary(params.xmlData);
         this.addInterfaces(interfaceData);
-        for (const interfaceName in interfaceData) {
-            const componentData = interfaceData[interfaceName];
-            // Access each componentData here
-            //   console.log(`Interface: ${interfaceName}`)
-            //   console.log(`Version: ${componentData.version}`)
-            //   console.log(`Abstraction Name: ${componentData.abstractionName}`)
-            //   console.log(`Abstraction Library: ${componentData.abstractionLibrary}`)
-            //   console.log(`Bus Name: ${componentData.busName}`)
-            // const pathString = `tssv/lib/interfaces/AMBA/${componentData.abstractionLibrary}/${componentData.busName}/${componentData.version}/${componentData.abstractionName}`
-            // // Add the new interface
-            // void this.addInterfaceToExport(interfaceName, pathString)
-            // console.log('Ports:')
-            for (const logicalPort in componentData.ports) {
-                this.addSignal(`${componentData.ports[logicalPort]}`, {});
-            }
-        }
+        // for (const interfaceName in interfaceData) {
+        //   const componentData = interfaceData[interfaceName]
+        //   // Access each componentData here
+        //   //   console.log(`Interface: ${interfaceName}`)
+        //   //   console.log(`Version: ${componentData.version}`)
+        //   //   console.log(`Abstraction Name: ${componentData.abstractionName}`)
+        //   //   console.log(`Abstraction Library: ${componentData.abstractionLibrary}`)
+        //   //   console.log(`Bus Name: ${componentData.busName}`)
+        //   // const pathString = `tssv/lib/interfaces/AMBA/${componentData.abstractionLibrary}/${componentData.busName}/${componentData.version}/${componentData.abstractionName}`
+        //   // // Add the new interface
+        //   // void this.addInterfaceToExport(interfaceName, pathString)
+        //   // console.log('Ports:')
+        //   // for (const logicalPort in componentData.ports) {
+        //   //   this.addSignal(`${componentData.ports[logicalPort]}`, {})
+        //   // }
+        // }
         // Generate IO signals based on parsed XML data
         // this.IOs = {
         //   ACLK: { direction: 'input', isClock: 'posedge' },
