@@ -59,7 +59,7 @@ module addS_tb
     end
     endcase
     end
-   assign sum_axb = $signed(a) + $signed({1'b0,b});
+   assign sum_axb = a + b;
 
 
 endmodule

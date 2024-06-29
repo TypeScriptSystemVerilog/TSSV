@@ -45,7 +45,7 @@ module saturateS_tb
     end
     'd4: begin 
         in <= 8'b10000000;
-        assert(out == 4'd7) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
+        assert(out == -4'd8) else $fatal("Assertion failed: out should be 7 at time %0t", $time);
     end
     default: in <= 8'b00000000;
     endcase

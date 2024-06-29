@@ -355,16 +355,16 @@ export class Module {
         }
         if (thisSig.isSigned) {
           if ((thisSig.width || 1) > (thisPort.width || 1)) {
-            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`)
+            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width} æ`)
           }
         } else {
           if (thisPort.isSigned) {
             if (((thisSig.width || 1) + 1) > (thisPort.width || 1)) {
-              throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`)
+              throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signed and unsigned mismatch extra bit is needed to sign unsigned number`)
             }
           } else {
             if ((thisSig.width || 1) > (thisPort.width || 1)) {
-              throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}`)
+              throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width} ø`)
             }
           }
         }
@@ -655,7 +655,7 @@ export class Module {
     in: string | Sig
     out: string | Sig
   }, satMode: 'simple' | 'balanced' | 'none' = 'simple'): Sig {
-    if (satMode !== 'simple') throw Error(`FIXME: ${satMode} not implemented yet`)
+    // if (satMode === 'balanced') throw Error(`FIXME: ${satMode} not implemented yet`) // still have to add balanced
     const inSig = this.findSignal(io.in, true, this.addSaturate, true)
     const outSig = this.findSignal(io.out, true, this.addSaturate, true)
     if (inSig.isSigned !== outSig.isSigned) throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`)
@@ -665,17 +665,38 @@ export class Module {
       const minSatStringIn = `$signed(-${inSig.width}'d${sat})`
       const maxSatString = `${outSig.width}'sd${sat - 1}`
       const minSatString = `-${outSig.width}'d${sat}`
-      this.body +=
+      if (satMode === 'simple') {
+        this.body +=
 `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
                        ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString} : ${io.in.toString()});
 `
+      } else if (satMode === 'none') {
+        this.body +=
+`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? 
+                       {1'b0,(${io.in.toString()}[${outSig.width}-2:0])} : 
+                       ((${io.in.toString()} < ${minSatStringIn}) ? 
+                       {1'b1,(${io.in.toString()}[${outSig.width}-2:0])} : 
+                       ${io.in.toString()}[${outSig.width}-1:0]);
+`
+      } else if (satMode === 'balanced') {
+        this.body +=
+`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
+                      ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString}+1 : ${io.in.toString()});
+`
+      }
     } else {
       const sat = (1 << ((outSig.width || 1))) - 1
       const maxSatStringIn = `${outSig.width}'d${sat}`
       const maxSatString = `${outSig.width}'d${sat}`
-      this.body +=
+      if (satMode === 'simple' || satMode === 'balanced') {
+        this.body +=
 `   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : (${io.in.toString()});
 `
+      } else if (satMode === 'none') {
+        this.body +=
+`   assign ${io.out.toString()} = ${io.in.toString()}[${outSig.width}:0];
+`
+      }
     }
     if (typeof io.out === 'string') {
       return new Sig(io.out)
@@ -879,7 +900,7 @@ export class Module {
       bWidth = Number(bSig.width)
       bSigned = bSig.isSigned || false
       if (typeof io.a !== 'bigint') {
-        if (bSigned || aSigned) {
+        if (bSigned !== aSigned) {
           if (aSigned) {
             bOperand = `{1'b0,${bOperand.toString()}}`
           } else {
