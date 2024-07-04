@@ -352,3 +352,4 @@ export class IpXactComponent extends Module {
     return result
   }
 */
+export default IpXactComponent

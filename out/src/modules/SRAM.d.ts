@@ -53,3 +53,4 @@ export declare class SRAM extends Module {
     params: SRAM_Parameters;
     constructor(params: SRAM_Parameters);
 }
+export default SRAM;

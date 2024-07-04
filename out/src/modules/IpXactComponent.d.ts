@@ -18,3 +18,4 @@ export declare class IpXactComponent extends Module {
     addInterfaces(interfaceData: Record<string, ComponentData>): void;
     addInterfaceToExport(instanceName: string, pathString: string): Promise<void>;
 }
+export default IpXactComponent;

@@ -12,3 +12,4 @@ export declare class LZC extends Module {
     params: LZC_Parameters;
     constructor(params: LZC_Parameters);
 }
+export default LZC;

@@ -325,3 +325,4 @@ IpXactComponent.knownInterfaces = {
     return result
   }
 */
+export default IpXactComponent;

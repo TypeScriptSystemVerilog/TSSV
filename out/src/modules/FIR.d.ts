@@ -25,3 +25,4 @@ export declare class FIR extends Module {
     params: FIR_Parameters;
     constructor(params: FIR_Parameters);
 }
+export default FIR;

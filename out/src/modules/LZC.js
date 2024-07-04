@@ -76,3 +76,4 @@ ${cnt_body}
         }
     }
 }
+export default LZC;

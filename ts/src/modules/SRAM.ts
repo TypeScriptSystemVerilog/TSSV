@@ -513,3 +513,5 @@ export class SRAM extends Module {
     }
   }
 }
+
+export default SRAM

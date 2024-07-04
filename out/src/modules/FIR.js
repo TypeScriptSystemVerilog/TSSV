@@ -55,3 +55,4 @@ export class FIR extends Module {
         });
     }
 }
+export default FIR;
