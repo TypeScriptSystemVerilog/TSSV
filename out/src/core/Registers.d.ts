@@ -17,7 +17,8 @@ interface Register {
 }
 export declare class RegAddr {
     private addr;
-    constructor(start?: bigint);
+    private readonly stride;
+    constructor(start?: bigint, wordSize?: 32 | 64);
     next(): bigint;
 }
 export interface RegisterBlockDef<T> {

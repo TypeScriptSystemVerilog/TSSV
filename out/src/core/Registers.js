@@ -1,12 +1,13 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { TL_UL } from 'tssv/lib/interfaces/TL_UL';
 export class RegAddr {
-    constructor(start) {
+    constructor(start, wordSize) {
         this.addr = start || 0n;
+        this.stride = BigInt((wordSize || 32) / 8);
     }
     next() {
         const nextAddr = this.addr;
-        this.addr += 4n;
+        this.addr += this.stride;
         return nextAddr;
     }
 }

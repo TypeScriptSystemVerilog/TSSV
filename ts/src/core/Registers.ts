@@ -20,13 +20,15 @@ interface Register {
 
 export class RegAddr {
   private addr: bigint
-  constructor (start?: bigint) {
+  private readonly stride: bigint
+  constructor (start?: bigint, wordSize?: 32 | 64) {
     this.addr = start || 0n
+    this.stride = BigInt((wordSize || 32) / 8)
   }
 
   next (): bigint {
     const nextAddr = this.addr
-    this.addr += 4n
+    this.addr += this.stride
     return nextAddr
   }
 }
