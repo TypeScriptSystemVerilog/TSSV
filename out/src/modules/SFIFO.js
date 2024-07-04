@@ -175,3 +175,4 @@ export class SFIFO extends Module {
         this.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['fifo_cnt'] }, cnt_body);
     }
 }
+export default SFIFO;

@@ -19,3 +19,4 @@ export declare class ROM extends Module {
     rcf_path?: string;
     constructor(params: ROM_Parameters, MemInitFile: string | number[] | Uint8Array, rcf_path?: string);
 }
+export default ROM;

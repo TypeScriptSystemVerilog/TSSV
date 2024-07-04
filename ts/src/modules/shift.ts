@@ -66,3 +66,5 @@ export class shift extends Module {
     }
   }
 }
+
+export default shift

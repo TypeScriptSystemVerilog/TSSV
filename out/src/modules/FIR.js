@@ -1,5 +1,5 @@
-import { Module, Sig, Expr } from 'tssv/lib/core/TSSV';
-export class FIR extends Module {
+import * as TSSV from 'tssv/lib/core/TSSV';
+export class FIR extends TSSV.Module {
     constructor(params) {
         super({
             // define the default parameter values
@@ -18,7 +18,7 @@ export class FIR extends Module {
             data_out: { direction: 'output', width: this.params.outWidth, isSigned: true }
         };
         // construct logic
-        let nextTapIn = new Sig('data_in');
+        let nextTapIn = new TSSV.Sig('data_in');
         const products = [];
         let coeffSum = 0;
         for (let i = 0; i < this.params.coefficients.length; i++) {
@@ -35,7 +35,7 @@ export class FIR extends Module {
         const productsExt = products.map((p) => `${sumWidth}'(${p.toString()})`);
         this.addSignal('sum', { width: sumWidth, isSigned: true });
         this.addRegister({
-            d: new Expr(`${productsExt.join(' + ')}`),
+            d: new TSSV.Expr(`${productsExt.join(' + ')}`),
             clk: 'clk',
             reset: 'rst_b',
             en: 'en',

@@ -24,3 +24,4 @@ export declare class shift extends Module {
     params: shift_Parameters;
     constructor(params: shift_Parameters);
 }
+export default shift;

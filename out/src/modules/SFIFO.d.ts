@@ -32,3 +32,4 @@ export declare class SFIFO extends Module {
     params: SFIFO_Parameters;
     constructor(params: SFIFO_Parameters);
 }
+export default SFIFO;

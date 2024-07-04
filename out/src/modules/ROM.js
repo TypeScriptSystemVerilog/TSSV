@@ -316,3 +316,4 @@ export class ROM extends Module {
         }
     }
 }
+export default ROM;

@@ -1,9 +1,9 @@
-import { Module, type TSSVParameters, type IntRange, Sig, Expr } from 'tssv/lib/core/TSSV'
+import * as TSSV from 'tssv/lib/core/TSSV'
 
 /**
  * configuration parameters of the FIR module
  */
-export interface FIR_Parameters extends TSSVParameters {
+export interface FIR_Parameters extends TSSV.TSSVParameters {
   /**
      * Array containing the coefficients of the FIR filter
      */
@@ -11,19 +11,19 @@ export interface FIR_Parameters extends TSSVParameters {
   /**
      * bit width of the FIR input data
      */
-  inWidth?: IntRange<1, 32>
+  inWidth?: TSSV.IntRange<1, 32>
   /**
      * bit width of the FIR output data
      * @remarks result will be saturated or ign extended as needed
      */
-  outWidth?: IntRange<1, 32>
+  outWidth?: TSSV.IntRange<1, 32>
   /**
      * right to apply to the FIR result to scale down the output
      */
-  rShift?: IntRange<0, 32>
+  rShift?: TSSV.IntRange<0, 32>
 }
 
-export class FIR extends Module {
+export class FIR extends TSSV.Module {
   declare params: FIR_Parameters
   constructor (params: FIR_Parameters) {
     super({
@@ -45,8 +45,8 @@ export class FIR extends Module {
     }
 
     // construct logic
-    let nextTapIn: Sig = new Sig('data_in')
-    const products: Sig[] = []
+    let nextTapIn: TSSV.Sig = new TSSV.Sig('data_in')
+    const products: TSSV.Sig[] = []
     let coeffSum = 0
     for (let i = 0; i < this.params.coefficients.length; i++) {
       // construct tap delay line
@@ -65,7 +65,7 @@ export class FIR extends Module {
     const productsExt = products.map((p) => `${sumWidth}'(${p.toString()})`)
     this.addSignal('sum', { width: sumWidth, isSigned: true })
     this.addRegister({
-      d: new Expr(`${productsExt.join(' + ')}`),
+      d: new TSSV.Expr(`${productsExt.join(' + ')}`),
       clk: 'clk',
       reset: 'rst_b',
       en: 'en',
