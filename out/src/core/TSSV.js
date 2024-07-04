@@ -135,7 +135,12 @@ export class Module {
         else {
             const mapFunc = (p) => {
                 if (typeof p === 'object') {
-                    return this.simpleHash(p.toString());
+                    return this.simpleHash(JSON.stringify(p, function (key, value) {
+                        if (typeof value === 'bigint') {
+                            return value.toString();
+                        }
+                        return value;
+                    }));
                 }
                 return p;
             };
@@ -1109,7 +1114,17 @@ ${functionalAssigments.join('\n')}
             }
             const vParamsArray = [];
             for (const p in thisSubmodule.module.verilogParams) {
-                vParamsArray.push(`.${p}(${(thisSubmodule.module.params[p] || '').toString()})`);
+                let pString;
+                if ((typeof thisSubmodule.module.params[p] === 'number') ||
+                    (typeof thisSubmodule.module.params[p] === 'bigint')) {
+                    pString = thisSubmodule.module.params[p]?.toString();
+                }
+                else if (typeof thisSubmodule.module.params[p] === 'string') {
+                    pString = `"${thisSubmodule.module.params[p]?.toString()}"`;
+                }
+                if (pString !== undefined) {
+                    vParamsArray.push(`.${p}(${pString})`);
+                }
             }
             if (vParamsArray.length > 0) {
                 paramsBind = `#(${vParamsArray.join(',')}) `;

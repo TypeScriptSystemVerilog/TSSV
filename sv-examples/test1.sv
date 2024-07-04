@@ -77,7 +77,7 @@ module Adder_8_8
 
    
 
-   assign sum = $signed(a) + $signed({1'b0,b});
+   assign sum = a + b;
 
 
 endmodule
@@ -97,7 +97,7 @@ module Adder_8_9
 
    
 
-   assign sum = $signed(a) + $signed({1'b0,b});
+   assign sum = a + b;
 
 
 endmodule

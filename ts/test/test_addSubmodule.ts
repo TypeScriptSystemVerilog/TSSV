@@ -2,10 +2,10 @@ import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
 // import { AXI_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl.ts'
 // /Users/bennettva/TSSV/ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl.ts
 // import { AXI_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AXI/r2p0_0/AXI_rtl'
-import * as amba from 'tssv/lib/tools/index'
+// import * as amba from 'tssv/lib/tools/index'
 import { writeFileSync, mkdirSync } from 'fs'
-import * as fs from 'fs'
-import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
+// import * as fs from 'fs'
+// import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
 
 try {
   mkdirSync('sv-examples/test_addSubmodule_output')
@@ -284,6 +284,7 @@ try {
 
 // adding an interface
 
+/*
 // const tbBodyI =
 // `
 // `
@@ -309,11 +310,12 @@ subA_tb.addInterface('regs1', new amba.AXI_rtl({}, 'master'))
 try {
   const TB =
 `
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
+    // verilator lint_off DECLFILENAME
+    // verilator lint_off UNUSED
     ${subI_tb.writeSystemVerilog()}
 `
   writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }
+*/

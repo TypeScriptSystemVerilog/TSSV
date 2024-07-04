@@ -5,7 +5,9 @@
   "description": "Typescript based SystemVerilog meta-language and HDL design framework",
   "main": "./out/src/TSSV.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs": "typedoc --out docs",
+    "deploy-docs": "gh-pages -d docs"
   },
   "repository": {
     "type": "git",

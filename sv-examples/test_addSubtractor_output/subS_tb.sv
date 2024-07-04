@@ -59,7 +59,7 @@ module subS_tb
   end
   endcase
   end
-   assign diff_axb = $signed(a) - $signed({1'b0,b});
+   assign diff_axb = a - b;
 
 
 endmodule

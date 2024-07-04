@@ -65,10 +65,10 @@ export class IpXactComponent extends Module {
                     portDictionary[logicalPort] = physicalPort;
                 });
                 result[interfaceName] = {
-                    version: version,
-                    abstractionName: abstractionName,
-                    abstractionLibrary: abstractionLibrary,
-                    busName: busName,
+                    version,
+                    abstractionName,
+                    abstractionLibrary,
+                    busName,
                     ports: portDictionary
                 };
             });

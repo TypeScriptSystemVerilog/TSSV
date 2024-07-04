@@ -12,7 +12,7 @@ ACC extends number = never> = ARR['length'] extends END
   ? ACC | START | END
   : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
-type ParameterValue = string | bigint | IntRange<number, number> | bigint[]
+type ParameterValue = string | bigint | IntRange<number, number> | bigint[] | { [name: string]: ParameterValue | undefined }
 export interface TSSVParameters {
   name?: string | undefined
   [name: string]: ParameterValue | undefined
@@ -227,7 +227,12 @@ export class Module {
     } else {
       const mapFunc = (p: ParameterValue | undefined): (ParameterValue | undefined) => {
         if (typeof p === 'object') {
-          return this.simpleHash(p.toString())
+          return this.simpleHash(JSON.stringify(p, function (key, value) {
+            if (typeof value === 'bigint') {
+              return value.toString()
+            }
+            return value
+          }))
         }
         return p
       }
@@ -1233,7 +1238,16 @@ ${functionalAssigments.join('\n')}
       }
       const vParamsArray: string[] = []
       for (const p in thisSubmodule.module.verilogParams) {
-        vParamsArray.push(`.${p}(${(thisSubmodule.module.params[p] || '').toString()})`)
+        let pString
+        if ((typeof thisSubmodule.module.params[p] === 'number') ||
+            (typeof thisSubmodule.module.params[p] === 'bigint')) {
+          pString = thisSubmodule.module.params[p]?.toString()
+        } else if (typeof thisSubmodule.module.params[p] === 'string') {
+          pString = `"${thisSubmodule.module.params[p]?.toString()}"`
+        }
+        if (pString !== undefined) {
+          vParamsArray.push(`.${p}(${pString})`)
+        }
       }
       if (vParamsArray.length > 0) {
         paramsBind = `#(${vParamsArray.join(',')}) `

@@ -20,3 +20,5 @@ node_modules
 obj_dir
 *.vcd
 .local-pack
+docs
+

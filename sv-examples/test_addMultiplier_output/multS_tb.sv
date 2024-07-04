@@ -59,7 +59,7 @@ module multS_tb
     end
     endcase
     end
-   assign prod_axb = $signed(a) * $signed({1'b0,b});
+   assign prod_axb = a * b;
 
 
 endmodule

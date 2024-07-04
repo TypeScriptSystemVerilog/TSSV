@@ -34,7 +34,7 @@ function mapToAmbaInterface(json) {
     const signals = abstractionDefinition.ports?.port.map(mapSignal);
     return {
         name: abstractionDefinition.name || '',
-        vlnv: vlnv,
+        vlnv,
         busInterfaces: {
             busInterface: {
                 name: abstractionDefinition.name || '',
@@ -44,7 +44,7 @@ function mapToAmbaInterface(json) {
                     name: abstractionDefinition.busType?.name || '',
                     version: abstractionDefinition.busType?.version || ''
                 },
-                signals: signals
+                signals
             }
         }
     };
