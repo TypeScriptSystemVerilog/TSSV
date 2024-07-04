@@ -1,7 +1,7 @@
-import * as module from 'tssv/lib/core/Module'
+import * as base from 'tssv/lib/core/Base'
 import * as registers from 'tssv/lib/core/Registers'
 
-export * from 'tssv/lib/core/Module'
+export * from 'tssv/lib/core/Base'
 export * from 'tssv/lib/core/Registers'
 
 /*
@@ -32,7 +32,7 @@ export namespace TSSV {
 */
 
 export const TSSV = {
-  module,
+  base,
   registers
 }
 
