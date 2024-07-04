@@ -29,18 +29,18 @@ npm -v  #10.5.0
 
 #### Run Procedure
 ```bash
-$ git clone https://github.com/TypeScriptSystemVerilog/TSSV.git
-$ cd TSSV
-$ npm install
-$ npx tsc
-$ node out/test/test_FIR.js
-$ cat sv-examples/test_FIR_output/myFIR.sv
+git clone https://github.com/TypeScriptSystemVerilog/TSSV.git
+cd TSSV
+npm install
+npx tsc
+node out/test/test_FIR.js
+cat sv-examples/test_FIR_output/myFIR.sv
 ```
 ### Run ESLint
 Run ESlint to for additional code quality checks beyond the type checking specified by Typescript.
 ```bash
-$ cd ~/TSSV
-$ npx eslint .
+cd ~/TSSV
+npx eslint .
 ```
 For Visual Studio Code GUI based linting, make sure install extensioin ESLint from Microsoft v2.4.4 or above.
 
@@ -50,26 +50,29 @@ Verilator is an open source Verilog/SystemVerilog simulator.   It can also be us
 #### Installation
 For Ubuntu 22.04 NodeJS installation:
 ```bash
-$ sudo apt install verilator
+sudo apt install verilator
 ```
 #### Run Procedure
 ```bash
-$ cd ~/TSSV
-$ verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
+cd ~/TSSV
+verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
 ```
 
 ### Example TSSV Module
-A example of a simple FIR Filter TSSV Module can be found [here](docs/example.md)
+A example of a simple FIR Filter TSSV Module can be found [here](https://github.com/TypeScriptSystemVerilog/TSSV/wiki/Simple-FIR-Filter-Example)
 
 ### How to generate the TypeDoc documentation
 #### Generating
 ```bash
-$ cd ~/TSSV
-$ npx typedoc --plugin typedoc-plugin-missing-exports --out docs/typedoc ts/src/**/*.ts
+cd ~/TSSV
+npm run doc
+```
+#### Deploy to GitHub Pages
+```bash
+npm deploy-docs
 ```
 #### Viewing the TypeDoc Documentation
 [The TSSV TypeDoc generated Github Page can be accessed here](https://TypeScriptSystemVerilog.github.io/TSSV/index.html)
 ### Next Steps
-- implement addMemory()
-- implement Control Register generator
-- Decide approach to Bus fabrics and standardized interconnect
+- [ ] implement Control Register generator
+- [ ] Decide approach to Bus fabrics and standardized interconnect
