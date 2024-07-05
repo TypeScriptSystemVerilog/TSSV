@@ -281,38 +281,36 @@ try {
 
 // adding an interface
 
-/*
 // const tbBodyI =
 // `
 // `
-const bindings = {
-  ARADDR: 'main_Ar_Addr',
-  WREADY: 'main_W_Ready'
-  // Add other bindings as needed
-}
-const fileContent = fs.readFileSync(
-  '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
-  'utf-8')
-const subI_tb = new IpXactComponent(
-  {
-    name: 'newComponent',
-    xmlData: fileContent,
-    svFilePath: '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
-  }, bindings)
-subA_tb.addInterface('regs1', new amba.AXI_rtl({}, 'master'))
+// const bindings = {
+//   ARADDR: 'main_Ar_Addr',
+//   WREADY: 'main_W_Ready'
+//   // Add other bindings as needed
+// }
+// const fileContent = fs.readFileSync(
+//   '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
+//   'utf-8')
+// const subI_tb = new IpXactComponent(
+//   {
+//     name: 'newComponent',
+//     xmlData: fileContent,
+//     svFilePath: '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
+//   })
+// subA_tb.addInterface('regs1', new amba.AXI_rtl({}, 'outward'))
 
-// const portDictionary: Record<string, ComponentData> = subI_tb.addIpXactComponent(fileContent, bindings, '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v')
-// console.log(portDictionary)
+// // const portDictionary: Record<string, ComponentData> = subI_tb.addIpXactComponent(fileContent, bindings, '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v')
+// // console.log(portDictionary)
 
-try {
-  const TB =
-`
-    // verilator lint_off DECLFILENAME
-    // verilator lint_off UNUSED
-    ${subI_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB)
-} catch (err) {
-  console.error(err)
-}
-*/
+// try {
+//   const TB =
+// `
+//     // verilator lint_off DECLFILENAME
+//     // verilator lint_off UNUSED
+//     ${subI_tb.writeSystemVerilog()}
+// `
+//   writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB)
+// } catch (err) {
+//   console.error(err)
+// }
