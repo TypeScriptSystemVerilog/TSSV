@@ -1,5 +1,5 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV';
-import { TL_UL } from 'tssv/lib/interfaces/TL_UL';
+import { TL_UL } from 'tssv/lib/interfaces/TileLink';
 import { writeFileSync } from 'fs';
 export class Adder extends Module {
     constructor(params) {

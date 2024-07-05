@@ -77,7 +77,6 @@ const sub_tb = new Module({ name: 'sub_tb' }, {
 sub_tb.addSignal('a', { width: 16, isSigned: true });
 sub_tb.addSignal('b', { width: 16, isSigned: true });
 sub_tb.addSignal('sum', { width: 18, isSigned: true });
-// sub_tb.addInterface('regs', new TL_UL({}))
 sub_tb.addSubmodule('add', new Adder({ aWidth: 17, bWidth: 17 }), { a: 'a', b: 'b', sum: 'sum' }, false, false, true);
 try {
     const TB = `
@@ -157,7 +156,6 @@ const subA_tb = new Module({ name: 'subA_tb' }, {
 subA_tb.addSignal('a', { width: 8, isSigned: true });
 subA_tb.addSignal('b', { width: 8, isSigned: true });
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
-// sub_tb.addInterface('regs', new TL_UL({}))
 subA_tb.addSubmodule('subtract', new Subber({ aWidth: 8, bWidth: 8 }), { a: 'a' }, true, true, false);
 try {
     const TB = `
@@ -222,7 +220,6 @@ const subU_tb = new Module({ name: 'subU_tb' }, {
 subU_tb.addSignal('a', { width: 8, isSigned: false });
 subU_tb.addSignal('b', { width: 8, isSigned: false });
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
-// sub_tb.addInterface('regs', new TL_UL({}))
 subU_tb.addSubmodule('sub', new Subber({ aWidth: 9, bWidth: 9 }), {}, true, true, true);
 try {
     const TB = `

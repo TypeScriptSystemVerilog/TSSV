@@ -86,12 +86,6 @@ const testRegBlock = new RegisterBlock<typeof myRegs.addrMap>(
   myRegs)
 
 const tb_testRegBlock = new Module({ name: 'tb_testRegBlock' })
-/*
-tb_testRegBlock.addSignal('clk', { isClock: 'posedge' })
-tb_testRegBlock.addSignal('rst_b', { isReset: 'lowasync' })
-tb_testRegBlock.addInterface('regs', new TL_UL())
-tb_testRegBlock.addSignal('MEM1_rdata', {width:32})
-*/
 tb_testRegBlock.addSubmodule(
   'dut',
   testRegBlock,

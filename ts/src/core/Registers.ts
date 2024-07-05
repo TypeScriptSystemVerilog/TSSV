@@ -1,5 +1,5 @@
 import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
-import { TL_UL } from 'tssv/lib/interfaces/TL_UL'
+import { TL_UL } from 'tssv/lib/interfaces/TileLink'
 
 type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | string
 interface Field {

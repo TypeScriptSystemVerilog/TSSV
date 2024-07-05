@@ -109,11 +109,11 @@ export class Expr {
   readonly type: 'Expr'
 }
 
-interface Signal extends baseSignal {
+export interface Signal extends baseSignal {
   value?: bigint | bigint[]
 }
 
-type Signals = Record<string, Signal>
+export type Signals = Record<string, Signal>
 
 interface OperationIO {
   a: string | Sig | bigint

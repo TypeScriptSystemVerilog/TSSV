@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV';
-import { TL_UL } from 'tssv/lib/interfaces/TL_UL';
+import { TL_UL } from 'tssv/lib/interfaces/TileLink';
 export class RegAddr {
     constructor(start, wordSize) {
         this.addr = start || 0n;
