@@ -1,4 +1,4 @@
-import * as TSSV from 'tssv/lib/core/TSSV';
+import TSSV from 'tssv/lib/core/TSSV';
 /**
  * configuration parameters of the FIR module
  */
