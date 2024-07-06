@@ -9,7 +9,7 @@ export class Adder extends Module {
             bWidth: params.bWidth || 8
         });
         // add Tilelink UL responder interface
-        this.addInterface('regs', new TL_UL({}, 'responder'));
+        this.addInterface('regs', new TL_UL({}, 'inward'));
         // define IO signals
         this.IOs = {
             a: { direction: 'input', width: this.params.aWidth, isSigned: true },

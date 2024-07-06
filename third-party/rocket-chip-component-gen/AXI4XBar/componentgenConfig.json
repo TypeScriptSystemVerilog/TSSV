@@ -1,0 +1,54 @@
+{
+    "moduleName": "AXI4XBar2x4",
+    "masters" : [
+        {
+            "name": "master1",
+            "id" : [0,1]
+        },
+        {
+            "name": "master2",
+            "id" : [2,3]
+        }
+    ],
+    "beatBytes": 16,
+    "addrBits" : 48,
+    "idBits": 8,
+    "slaves": [
+        {
+            "name": "slave1",
+            "address": {
+                "base": "0x00000000",
+                "mask": "0x0fffffff"
+            },
+            "transferSizesWrite": [1,128],
+            "transferSizesRead": [1,128]
+        },
+        {
+            "name": "slave2",
+            "address": {
+                "base": "0x10000000",
+                "mask": "0x0fffffff"
+            },
+            "transferSizesWrite": [1,128],
+            "transferSizesRead": [1,128]
+        },
+        {
+            "name": "slave3",
+            "address": {
+                "base": "0x20000000",
+                "mask": "0x0fffffff"
+            },
+            "transferSizesWrite": [1,128],
+            "transferSizesRead": [1,128]
+        },
+        {
+            "name": "slave4",
+            "address": {
+                "base": "0x30000000",
+                "mask": "0x0fffffff"
+            },
+            "transferSizesWrite": [1,128],
+            "transferSizesRead": [1,128]
+        }
+    ]
+}

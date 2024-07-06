@@ -280,7 +280,7 @@ export declare class Module {
     protected static printedInterfaces: Record<string, boolean>;
     protected verilogParams: Record<string, boolean>;
 }
-export declare function serialize(obj: any, indent?: number): string;
+export declare function serialize(obj: any, indent?: number, bigIntSuffix?: string): string;
 export declare function deserialize(serialized: string): any;
 declare const _default: {
     Module: typeof Module;

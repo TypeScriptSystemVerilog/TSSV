@@ -1158,10 +1158,10 @@ endmodule
     }
 }
 Module.printedInterfaces = {};
-export function serialize(obj, indent) {
+export function serialize(obj, indent, bigIntSuffix = 'n') {
     const serialized = JSON.stringify(obj, function (key, value) {
         if (typeof value === 'bigint') {
-            return `0x${value.toString(16)}n`;
+            return `0x${value.toString(16)}${bigIntSuffix}`;
         }
         return value;
     }, indent);

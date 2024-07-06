@@ -52,12 +52,25 @@ export interface TileLinkParameters extends TSSVParameters {
 }
 
 /**
- * Defines the role of the Interface instance
- * requester(a.k.a. master) is used in module port interfaces that are transaction initiators
- * responder(a.k.a slave) is used in module port interfaces that are transaction responders
- * leave role undefined to create just a bundle of interconnect wires
+ * Defines the role of the Interface bundle instance
+ *
+ * the direction outward/inward refers to the port direction
+ * of the primary control channel (channel a in the case of Tilelink)
+ *
+ * outward is port bundle for an outward connection
+ * - examples
+ *   - interface leaving a requester(master) component
+ *   - interface leaving an interconnect component
+ *   - interface leaving a transformation component
+ * inward is a port bundle for an inward connection
+ * - examples
+ *   - interface entering a responder(slave) component
+ *   - interface entering interconnect component
+ *   - interface entering a transformation component
+ * undefined creates a bundle of interconnect wires, not ports
+ *
  */
-export type TileLinkRole = 'requester' | 'responder' | undefined
+export type TileLinkRole = 'outward' | 'inward' | undefined
 
 export interface TLSignalsUncached extends Signals {
   a_opcode: { width: 3 }
@@ -123,10 +136,10 @@ export class TL_UL extends Interface {
   declare params: TileLinkParameters
   declare signals: TLSignalsUncached
   /**
-         * create a new TileLink interface bundle with either producer or responder port interface
+         * create a new TileLink interface bundle with either producer or inward port interface
          * or just a bundle of interconnect wires
          * @param params param value set
-         * @param role sets the role of this instance to choose producer or responder port interface
+         * @param role sets the role of this instance to choose producer or inward port interface
          * or just a bundle of interconnect wires
          */
   constructor (params: TileLinkParameters, role: TileLinkRole = undefined) {
@@ -169,7 +182,7 @@ export class TL_UL extends Interface {
         }
 
     this.modports = {
-      requester: {
+      outward: {
         // a channel
         a_opcode: 'output',
         a_param: 'output',
@@ -196,8 +209,8 @@ export class TL_UL extends Interface {
       }
     }
 
-    this.modports.responder = Object.fromEntries(
-      Object.entries(this.modports.requester).map(([key, value]) =>
+    this.modports.inward = Object.fromEntries(
+      Object.entries(this.modports.outward).map(([key, value]) =>
         [key, (value === 'input') ? 'output' : 'input']))
   }
 }
@@ -209,10 +222,10 @@ export class TL_UH extends Interface {
   declare params: TileLinkParameters
   declare signals: TLSignalsUncached
   /**
-         * create a new TileLink interface bundle with either producer or responder port interface
+         * create a new TileLink interface bundle with either producer or inward port interface
          * or just a bundle of interconnect wires
          * @param params param value set
-         * @param role sets the role of this instance to choose producer or responder port interface
+         * @param role sets the role of this instance to choose producer or inward port interface
          * or just a bundle of interconnect wires
          */
   constructor (params: TileLinkParameters, role: TileLinkRole = undefined) {
@@ -255,7 +268,7 @@ export class TL_UH extends Interface {
         }
 
     this.modports = {
-      requester: {
+      outward: {
         // a channel
         a_opcode: 'output',
         a_param: 'output',
@@ -282,8 +295,8 @@ export class TL_UH extends Interface {
       }
     }
 
-    this.modports.responder = Object.fromEntries(
-      Object.entries(this.modports.requester).map(([key, value]) =>
+    this.modports.inward = Object.fromEntries(
+      Object.entries(this.modports.outward).map(([key, value]) =>
         [key, (value === 'input') ? 'output' : 'input']))
   }
 }
@@ -295,10 +308,10 @@ export class TL_C extends Interface {
   declare params: TileLinkParameters
   declare signals: TLSignalsCached
   /**
-         * create a new TileLink interface bundle with either producer or responder port interface
+         * create a new TileLink interface bundle with either producer or inward port interface
          * or just a bundle of interconnect wires
          * @param params param value set
-         * @param role sets the role of this instance to choose producer or responder port interface
+         * @param role sets the role of this instance to choose producer or inward port interface
          * or just a bundle of interconnect wires
          */
   constructor (params: TileLinkParameters, role: TileLinkRole = undefined) {
@@ -369,7 +382,7 @@ export class TL_C extends Interface {
         }
 
     this.modports = {
-      requester: {
+      outward: {
         // a channel
         a_opcode: 'output',
         a_param: 'output',
@@ -424,8 +437,8 @@ export class TL_C extends Interface {
       }
     }
 
-    this.modports.responder = Object.fromEntries(
-      Object.entries(this.modports.requester).map(([key, value]) =>
+    this.modports.inward = Object.fromEntries(
+      Object.entries(this.modports.outward).map(([key, value]) =>
         [key, (value === 'input') ? 'output' : 'input']))
   }
 }

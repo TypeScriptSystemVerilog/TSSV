@@ -26,7 +26,7 @@ interface TL_UL_4_32_2_8_8;
    logic  d_ready;
 
 
-    modport requester (
+    modport outward (
       output a_opcode,
       output a_param,
       output a_size,
@@ -49,7 +49,7 @@ interface TL_UL_4_32_2_8_8;
       output d_ready
     );           
 
-    modport responder (
+    modport inward (
       input a_opcode,
       input a_param,
       input a_size,
@@ -84,7 +84,7 @@ module Adder_8_8
    input logic signed [7:0] a,
    input logic signed [7:0] b,
    output logic signed [8:0] sum,
-   TL_UL_4_32_2_8_8.responder regs
+   TL_UL_4_32_2_8_8.inward regs
    );
 
    
@@ -104,7 +104,7 @@ module Adder_8_9
    input logic signed [7:0] a,
    input logic signed [8:0] b,
    output logic signed [9:0] sum,
-   TL_UL_4_32_2_8_8.responder regs
+   TL_UL_4_32_2_8_8.inward regs
    );
 
    

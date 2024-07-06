@@ -1296,10 +1296,10 @@ endmodule
   protected verilogParams: Record<string, boolean>
 }
 
-export function serialize (obj: any, indent?: number): string {
+export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): string {
   const serialized = JSON.stringify(obj, function (key, value) {
     if (typeof value === 'bigint') {
-      return `0x${value.toString(16)}n`
+      return `0x${value.toString(16)}${bigIntSuffix}`
     }
     return value
   }, indent)
