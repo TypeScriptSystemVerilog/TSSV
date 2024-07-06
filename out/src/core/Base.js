@@ -1158,4 +1158,23 @@ endmodule
     }
 }
 Module.printedInterfaces = {};
+export function serialize(obj, indent) {
+    const serialized = JSON.stringify(obj, function (key, value) {
+        if (typeof value === 'bigint') {
+            return `0x${value.toString(16)}n`;
+        }
+        return value;
+    }, indent);
+    return serialized;
+}
+export function deserialize(serialized) {
+    const revived = JSON.parse(serialized, (key, value) => {
+        const hexPattern = /^0x[0-9a-fA-F]+n$/;
+        if (typeof value === 'string' && hexPattern.test(value)) {
+            return BigInt(value.slice(0, -1));
+        }
+        return value;
+    });
+    return revived;
+}
 export default { Module, Sig, Expr };

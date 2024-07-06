@@ -1,5 +1,5 @@
 import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'
-import { Module } from 'tssv/lib/core/TSSV'
+import { Module, serialize, deserialize } from 'tssv/lib/core/TSSV'
 import { writeFileSync } from 'fs'
 import { inspect } from 'util'
 import diff from 'deep-diff'
@@ -54,22 +54,10 @@ const myRegs: RegisterBlockDef<typeof myRegMap> = {
 }
 
 console.log(inspect(myRegs, { depth: null, colors: true }))
-const serialized = JSON.stringify(myRegs, function (key, value) {
-  if (typeof value === 'bigint') {
-    return `0x${value.toString(16)}n`
-  }
-  return value
-}, 2)
+const serialized = serialize(myRegs)
 console.log(serialized)
 
-const revived = JSON.parse(serialized, (key, value) => {
-  const hexPattern = /^0x[0-9a-fA-F]+n$/
-  if (typeof value === 'string' && hexPattern.test(value)) {
-    return BigInt(value.slice(0, -1))
-  }
-  return value
-})
-
+const revived = deserialize(serialized)
 console.log(inspect(revived, { depth: null, colors: true }))
 
 const differences = diff.diff(myRegs, revived)
