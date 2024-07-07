@@ -1,6 +1,7 @@
 import TSSV from 'tssv/lib/core/TSSV'
 import { inspect } from 'util'
 import { exec } from 'child_process'
+// import { AXI4_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl'
 
 import * as fs from 'fs'
 import * as os from 'os'
@@ -60,5 +61,16 @@ export class AXI4XBar extends TSSV.Module {
       console.error(`stderr: ${stderr}`)
       console.log(`stdout: ${stdout}`)
     })
+
+    /*
+    for (const m of this.params.masters) {
+      this.addInterface(m.name,
+        new AXI4_rtl({
+
+        },
+        'slave'
+        ))
+    }
+    */
   }
 }

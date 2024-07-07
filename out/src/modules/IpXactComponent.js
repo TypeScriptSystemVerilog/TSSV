@@ -293,8 +293,8 @@ export class IpXactComponent extends Module {
                 const value = param['spirit:value'];
                 const realName = transformParameterName(`${name}`);
                 interfaceParametersData[name] = {
-                    value: value,
-                    realName: realName
+                    value,
+                    realName
                 };
             });
             parametersData[interfaceName] = interfaceParametersData;

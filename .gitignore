@@ -1,4 +1,5 @@
 #VSCode stuff
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json

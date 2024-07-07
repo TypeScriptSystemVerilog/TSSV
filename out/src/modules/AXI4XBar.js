@@ -1,6 +1,7 @@
 import TSSV from 'tssv/lib/core/TSSV';
 import { inspect } from 'util';
 import { exec } from 'child_process';
+import { AXI4_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -22,14 +23,18 @@ export class AXI4XBar extends TSSV.Module {
             moduleName: `${params.name}_inner`
         };
         const jsonFile = saveStringToTempFile(TSSV.serialize(innerParams, undefined, ''));
-        console.log(`Generating AXI4XBar component using rocketdock container...`);
+        console.log('Generating AXI4XBar component using rocketdock container...');
         exec(`cat ${jsonFile};third-party/rocket-chip-component-gen/gen_rocket_component.sh AXI4XBar ${jsonFile}; rm ${jsonFile}`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`exec error: ${error}`);
+                console.error(`exec error: ${inspect(error, { depth: null, colors: true })}`);
                 return;
             }
             console.error(`stderr: ${stderr}`);
             console.log(`stdout: ${stdout}`);
         });
+        for (const m in this.params.masters) {
+            const thisMaster = params.masters[m];
+            this.addInterface(thisMaster.name, new AXI4_rtl({}, 'slave'));
+        }
     }
 }
