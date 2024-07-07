@@ -16,7 +16,7 @@ export class Adder extends Module {
     })
 
     // add Tilelink UL responder interface
-    this.addInterface('regs', new TL_UL({}, 'responder'))
+    this.addInterface('regs', new TL_UL({}, 'inward'))
 
     // define IO signals
     this.IOs = {

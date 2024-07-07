@@ -12,7 +12,12 @@ ACC extends number = never> = ARR['length'] extends END
   ? ACC | START | END
   : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
-type ParameterValue = string | bigint | IntRange<number, number> | bigint[] | { [name: string]: ParameterValue | undefined }
+type ParameterValue =
+  string | bigint | IntRange<number, number> | bigint[] |
+  Array<IntRange<number, number>> |
+  { [name: string]: ParameterValue | undefined } |
+  Array<{ [name: string]: ParameterValue | undefined }>
+
 export interface TSSVParameters {
   name?: string | undefined
   [name: string]: ParameterValue | undefined
@@ -1333,6 +1338,27 @@ endmodule
   protected static printedInterfaces: Record<string, boolean> = {}
 
   protected verilogParams: Record<string, boolean>
+}
+
+export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): string {
+  const serialized = JSON.stringify(obj, function (key, value) {
+    if (typeof value === 'bigint') {
+      return `0x${value.toString(16)}${bigIntSuffix}`
+    }
+    return value
+  }, indent)
+  return serialized
+}
+
+export function deserialize (serialized: string): any {
+  const revived = JSON.parse(serialized, (key, value) => {
+    const hexPattern = /^0x[0-9a-fA-F]+n$/
+    if (typeof value === 'string' && hexPattern.test(value)) {
+      return BigInt(value.slice(0, -1))
+    }
+    return value
+  })
+  return revived
 }
 
 export default { Module, Sig, Expr }

@@ -26,7 +26,7 @@ interface TL_UL_4_32_2_8_8;
    logic  d_ready;
 
 
-    modport requester (
+    modport outward (
       output a_opcode,
       output a_param,
       output a_size,
@@ -49,7 +49,7 @@ interface TL_UL_4_32_2_8_8;
       output d_ready
     );           
 
-    modport responder (
+    modport inward (
       input a_opcode,
       input a_param,
       input a_size,
@@ -94,7 +94,7 @@ module testRegBlock
    output logic [3:0] MEM0_wstrb,
    input logic [31:0] MEM1_rdata,
    output logic  MEM1_re,
-   TL_UL_4_32_2_8_8.responder regs
+   TL_UL_4_32_2_8_8.inward regs
    );
 
    

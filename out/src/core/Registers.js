@@ -35,7 +35,7 @@ export class RegisterBlock extends Module {
             AIW: params.busIDWidth,
             AW: params.busAddressWidth,
             DIW: params.busIDWidth
-        }, 'responder'));
+        }, 'inward'));
         for (const reg in this.regDefs.addrMap) {
             const regName = reg;
             const registers = this.regDefs.registers;

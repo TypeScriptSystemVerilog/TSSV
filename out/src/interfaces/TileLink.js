@@ -4,10 +4,10 @@ import { Interface } from 'tssv/lib/core/TSSV';
  */
 export class TL_UL extends Interface {
     /**
-           * create a new TileLink interface bundle with either producer or responder port interface
+           * create a new TileLink interface bundle with either producer or inward port interface
            * or just a bundle of interconnect wires
            * @param params param value set
-           * @param role sets the role of this instance to choose producer or responder port interface
+           * @param role sets the role of this instance to choose producer or inward port interface
            * or just a bundle of interconnect wires
            */
     constructor(params, role = undefined) {
@@ -44,7 +44,7 @@ export class TL_UL extends Interface {
                 d_ready: { width: 1 }
             };
         this.modports = {
-            requester: {
+            outward: {
                 // a channel
                 a_opcode: 'output',
                 a_param: 'output',
@@ -69,7 +69,7 @@ export class TL_UL extends Interface {
                 d_ready: 'output'
             }
         };
-        this.modports.responder = Object.fromEntries(Object.entries(this.modports.requester).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
+        this.modports.inward = Object.fromEntries(Object.entries(this.modports.outward).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
     }
 }
 /**
@@ -77,10 +77,10 @@ export class TL_UL extends Interface {
  */
 export class TL_UH extends Interface {
     /**
-           * create a new TileLink interface bundle with either producer or responder port interface
+           * create a new TileLink interface bundle with either producer or inward port interface
            * or just a bundle of interconnect wires
            * @param params param value set
-           * @param role sets the role of this instance to choose producer or responder port interface
+           * @param role sets the role of this instance to choose producer or inward port interface
            * or just a bundle of interconnect wires
            */
     constructor(params, role = undefined) {
@@ -117,7 +117,7 @@ export class TL_UH extends Interface {
                 d_ready: { width: 1 }
             };
         this.modports = {
-            requester: {
+            outward: {
                 // a channel
                 a_opcode: 'output',
                 a_param: 'output',
@@ -142,7 +142,7 @@ export class TL_UH extends Interface {
                 d_ready: 'output'
             }
         };
-        this.modports.responder = Object.fromEntries(Object.entries(this.modports.requester).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
+        this.modports.inward = Object.fromEntries(Object.entries(this.modports.outward).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
     }
 }
 /**
@@ -150,10 +150,10 @@ export class TL_UH extends Interface {
  */
 export class TL_C extends Interface {
     /**
-           * create a new TileLink interface bundle with either producer or responder port interface
+           * create a new TileLink interface bundle with either producer or inward port interface
            * or just a bundle of interconnect wires
            * @param params param value set
-           * @param role sets the role of this instance to choose producer or responder port interface
+           * @param role sets the role of this instance to choose producer or inward port interface
            * or just a bundle of interconnect wires
            */
     constructor(params, role = undefined) {
@@ -215,7 +215,7 @@ export class TL_C extends Interface {
                 e_ready: { width: 1 }
             };
         this.modports = {
-            requester: {
+            outward: {
                 // a channel
                 a_opcode: 'output',
                 a_param: 'output',
@@ -265,6 +265,6 @@ export class TL_C extends Interface {
                 e_ready: 'output'
             }
         };
-        this.modports.responder = Object.fromEntries(Object.entries(this.modports.requester).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
+        this.modports.inward = Object.fromEntries(Object.entries(this.modports.outward).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
     }
 }
