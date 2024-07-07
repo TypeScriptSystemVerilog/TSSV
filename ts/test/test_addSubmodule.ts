@@ -280,11 +280,10 @@ try {
 }
 
 // adding an interface
-
 /*
-// const tbBodyI =
-// `
-// `
+const tbBodyI =
+`
+`
 const bindings = {
   ARADDR: 'main_Ar_Addr',
   WREADY: 'main_W_Ready'
@@ -298,8 +297,8 @@ const subI_tb = new IpXactComponent(
     name: 'newComponent',
     xmlData: fileContent,
     svFilePath: '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
-  }, bindings)
-subA_tb.addInterface('regs1', new amba.AXI_rtl({}, 'master'))
+  })
+subA_tb.addInterface('regs1', new amba.AXI_rtl({}, 'outward'))
 
 // const portDictionary: Record<string, ComponentData> = subI_tb.addIpXactComponent(fileContent, bindings, '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v')
 // console.log(portDictionary)

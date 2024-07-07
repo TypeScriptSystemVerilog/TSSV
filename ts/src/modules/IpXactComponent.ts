@@ -1,7 +1,7 @@
-import { Module, type TSSVParameters, type Sig /* type IOSignals */ } from 'tssv/lib/core/TSSV'
+import { Module, type TSSVParameters /* Expr, type Sig, type IOSignals */ } from 'tssv/lib/core/TSSV'
 import { XMLParser } from 'fast-xml-parser'
 import * as amba from 'tssv/lib/tools/index'
-// import { readFileSync } from 'fs'
+import * as fs from 'fs'
 
 export interface ComponentData {
   version: string
@@ -11,9 +11,14 @@ export interface ComponentData {
   ports: Record<string, string>
 }
 
+interface ParameterData {
+  value: string
+  realName: string
+}
+
 export interface IpXactComponent_Parameters extends TSSVParameters {
   xmlData: string
-  svFilePath?: string
+  svFilePath: string
 }
 
 export class IpXactComponent extends Module {
@@ -104,7 +109,7 @@ export class IpXactComponent extends Module {
     'tssv/lib/interfaces/AMBA/AMBA5/LTI/r0p1_0/LTI_rtl': amba.LTI_rtl2
   }
 
-  constructor (params: IpXactComponent_Parameters, newBindings: Record<string, string | Sig | bigint >) {
+  constructor (params: IpXactComponent_Parameters) {
     super({
       name: params.name,
       coefficients: params.coefficients,
@@ -114,36 +119,85 @@ export class IpXactComponent extends Module {
     })
 
     const interfaceData = this.createDictionary(params.xmlData)
-    this.addInterfaces(interfaceData)
+    console.log(interfaceData)
+    const paramData = this.parseParameters(params.xmlData)
+    // console.log(paramData)
+    this.addInterfaces(interfaceData, paramData)
 
-    // for (const interfaceName in interfaceData) {
-    //   const componentData = interfaceData[interfaceName]
-    //   // Access each componentData here
-    //   //   console.log(`Interface: ${interfaceName}`)
-    //   //   console.log(`Version: ${componentData.version}`)
-    //   //   console.log(`Abstraction Name: ${componentData.abstractionName}`)
-    //   //   console.log(`Abstraction Library: ${componentData.abstractionLibrary}`)
-    //   //   console.log(`Bus Name: ${componentData.busName}`)
-    //   // const pathString = `tssv/lib/interfaces/AMBA/${componentData.abstractionLibrary}/${componentData.busName}/${componentData.version}/${componentData.abstractionName}`
+    this.addSystemVerilogSubmoduleWithBindings(interfaceData)
+  }
 
-    //   // // Add the new interface
-    //   // void this.addInterfaceToExport(interfaceName, pathString)
-    //   // console.log('Ports:')
-    //   // for (const logicalPort in componentData.ports) {
-    //   //   this.addSignal(`${componentData.ports[logicalPort]}`, {})
-    //   // }
-    // }
+  // addSystemVerilogSubmoduleWithBindings (
+  //   componentDataRecord: Record<string, ComponentData>
+  // ): Module {
+  //   let SVFilePath = this.params.svFilePath
+  //   if (!SVFilePath) {
+  //     SVFilePath = '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
+  //   }
+  //   const vModuleName = `verilog${this.params.name}`
+  //   const bindings: Record<string, string> = {}
 
-    // Generate IO signals based on parsed XML data
-    // this.IOs = {
-    //   ACLK: { direction: 'input', isClock: 'posedge' },
-    //   ARESETn: { direction: 'input', isReset: 'lowasync' },
-    //   port: { direction: 'input' }
-    // }
+  //   // Iterate through each component and build the bindings
+  //   for (const [interfaceName, componentData] of Object.entries(componentDataRecord)) {
+  //     for (const [logicalPort, physicalPort] of Object.entries(componentData.ports)) {
+  //       bindings[physicalPort] = `${interfaceName}.${logicalPort}`
+  //     }
+  //   }
+  //   // bindings
+  //   console.log(bindings)
+  //   return this.addSystemVerilogSubmodule(vModuleName, SVFilePath, {}, bindings, true)
+  // }
+  addSystemVerilogSubmoduleWithBindings (componentDataRecord: Record<string, ComponentData>): Module {
+    let SVFilePath = this.params.svFilePath
+    if (!SVFilePath) {
+      SVFilePath = '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
+    }
 
-    // Add submodules and SystemVerilog submodule
-    this.addSubmodule(`${params.name}`, this, newBindings)
-    this.addSystemVerilogSubmodule(`${params.name}`, `${params.svFilePath}`, {}, {})
+    const vModuleName = `verilog${this.params.name}`
+    const bindings: Record<string, string> = {}
+
+    // Iterate through each component and build the bindings
+    for (const [interfaceName, componentData] of Object.entries(componentDataRecord)) {
+      for (const [logicalPort, physicalPort] of Object.entries(componentData.ports)) {
+        bindings[physicalPort] = `${interfaceName}.${logicalPort}`
+      }
+    }
+
+    // Parse the Verilog file to get the input signals
+    const inputSignals = this.extractInputSignalsFromVerilog(SVFilePath)
+    let sigNotAdded = true
+    // Add bindings for input signals not listed in componentData
+    inputSignals.forEach(signal => {
+      if (!Object.values(componentDataRecord).some(componentData =>
+        Object.values(componentData.ports).includes(signal))) {
+        if (sigNotAdded) {
+          sigNotAdded = false
+          this.addSignal('unbound', {})
+        }
+        bindings[signal] = 'unbound' // Bind to constant value of 0
+      }
+    })
+
+    // console.log(bindings)
+    return this.addSystemVerilogSubmodule(vModuleName, SVFilePath, {}, bindings, true)
+  }
+
+  // Helper method to extract input signals from a Verilog file
+  private extractInputSignalsFromVerilog (filePath: string): string[] {
+    const fileContent = fs.readFileSync(filePath, 'utf-8')
+    const inputSignals: string[] = []
+
+    // Regex to match input signals and their names, handling sizes correctly
+    const inputSignalRegex = /input\s+(?:\[\d+:\d+\]\s+)?([^\s,;]+)/g
+    let match
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    while ((match = inputSignalRegex.exec(fileContent)) !== null) {
+      // Extract the signal name from the regex match
+      const signalName = match[1].trim()
+      inputSignals.push(signalName)
+    }
+
+    return inputSignals
   }
 
   createDictionary (xmlData: string): Record<string, ComponentData> {
@@ -189,167 +243,226 @@ export class IpXactComponent extends Module {
     return result
   }
 
-  addInterfaces (interfaceData: Record<string, ComponentData>): void {
+  // addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
+  //   for (const interfaceName in interfaceData) {
+  //     const component = interfaceData[interfaceName]
+  //     const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.abstractionName}`
+
+  //     const InterfaceModule = IpXactComponent.knownInterfaces[pathString]
+  //     if (InterfaceModule) {
+  //       if (interfaceName.startsWith('Init')) {
+  //         if (pathString.includes('AXI')) {
+  //           // Extract AXI parameters if available
+  //           const axiParams = parameterData[interfaceName]
+  //           const {
+  //             AWID_WIDTH,
+  //             WID_WIDTH,
+  //             BID_WIDTH,
+  //             ARID_WIDTH,
+  //             RID_WIDTH,
+  //             ADDR_WIDTH,
+  //             DATA_WIDTH,
+  //             BURST_LEN_WIDTH,
+  //             USER_WIDTH,
+  //             RESP_WIDTH
+  //           } = axiParams || {}
+
+  //           // Check if any AXI parameters are defined and create the parameter object
+  //           const axiParamObject = {
+  //             AWID_WIDTH: AWID_WIDTH?.value,
+  //             WID_WIDTH: WID_WIDTH?.value,
+  //             BID_WIDTH: BID_WIDTH?.value,
+  //             ARID_WIDTH: ARID_WIDTH?.value,
+  //             RID_WIDTH: RID_WIDTH?.value,
+  //             ADDR_WIDTH: ADDR_WIDTH?.value,
+  //             DATA_WIDTH: DATA_WIDTH?.value,
+  //             BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
+  //             USER_WIDTH: USER_WIDTH?.value,
+  //             RESP_WIDTH: RESP_WIDTH?.value
+  //           }
+
+  //           // Remove undefined properties
+  //           // Object.keys(axiParamObject).forEach(key => axiParamObject[key] === undefined && delete axiParamObject[key])
+
+  //           Object.entries(axiParamObject).forEach(([key, value]) => {
+  //             if (value === undefined) {
+  //               // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  //               delete axiParamObject[key as keyof typeof axiParamObject]
+  //             }
+  //           })
+
+  //           // Add AXI interface with parameters
+  //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  //           this.addInterface(interfaceName, new InterfaceModule(axiParamObject, 'outward'))
+  //         } else {
+  //           // Add non-AXI interface
+  //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  //           this.addInterface(interfaceName, new InterfaceModule({}, 'outward'))
+  //         }
+  //       } else if (interfaceName.toLowerCase().startsWith('targ')) {
+  //         if (pathString.includes('AXI')) {
+  //           // Extract AXI parameters if available
+  //           const axiParams = parameterData[interfaceName]
+  //           const {
+  //             AWID_WIDTH,
+  //             WID_WIDTH,
+  //             BID_WIDTH,
+  //             ARID_WIDTH,
+  //             RID_WIDTH,
+  //             ADDR_WIDTH,
+  //             DATA_WIDTH,
+  //             BURST_LEN_WIDTH,
+  //             USER_WIDTH,
+  //             RESP_WIDTH
+  //           } = axiParams || {}
+
+  //           // Check if any AXI parameters are defined and create the parameter object
+  //           const axiParamObject = {
+  //             AWID_WIDTH: AWID_WIDTH?.value,
+  //             WID_WIDTH: WID_WIDTH?.value,
+  //             BID_WIDTH: BID_WIDTH?.value,
+  //             ARID_WIDTH: ARID_WIDTH?.value,
+  //             RID_WIDTH: RID_WIDTH?.value,
+  //             ADDR_WIDTH: ADDR_WIDTH?.value,
+  //             DATA_WIDTH: DATA_WIDTH?.value,
+  //             BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
+  //             USER_WIDTH: USER_WIDTH?.value,
+  //             RESP_WIDTH: RESP_WIDTH?.value
+  //           }
+
+  //           // Remove undefined properties
+  //           Object.entries(axiParamObject).forEach(([key, value]) => {
+  //             if (value === undefined) {
+  //               // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  //               delete axiParamObject[key as keyof typeof axiParamObject]
+  //             }
+  //           })
+
+  //           // Add AXI interface with parameters
+  //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  //           this.addInterface(interfaceName, new InterfaceModule(axiParamObject, 'inward'))
+  //         } else {
+  //           // Add non-AXI interface
+  //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  //           this.addInterface(interfaceName, new InterfaceModule({}, 'inward'))
+  //         }
+  //       } else {
+  //         console.warn(`Interface name ${interfaceName} does not indicate outward or inward.`)
+  //       }
+  //     } else {
+  //       console.error(`Interface for ${interfaceName} with path ${pathString} is not known.`)
+  //     }
+  //   }
+  // }
+
+  addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
     for (const interfaceName in interfaceData) {
       const component = interfaceData[interfaceName]
       const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.abstractionName}`
 
       const InterfaceModule = IpXactComponent.knownInterfaces[pathString]
       if (InterfaceModule) {
-        if (interfaceName.startsWith('Init')) {
+        const isAXI = pathString.includes('AXI')
+        const isOutward = interfaceName.startsWith('Init')
+        const isInward = interfaceName.toLowerCase().startsWith('targ')
+
+        if (isOutward || isInward) {
+          const axiParams = parameterData[interfaceName]
+          const {
+            AWID_WIDTH,
+            WID_WIDTH,
+            BID_WIDTH,
+            ARID_WIDTH,
+            RID_WIDTH,
+            ADDR_WIDTH,
+            DATA_WIDTH,
+            BURST_LEN_WIDTH,
+            USER_WIDTH,
+            RESP_WIDTH
+          } = axiParams || {}
+
+          const axiParamObject: Record<string, string | undefined> = {
+            AWID_WIDTH: AWID_WIDTH?.value,
+            WID_WIDTH: WID_WIDTH?.value,
+            BID_WIDTH: BID_WIDTH?.value,
+            ARID_WIDTH: ARID_WIDTH?.value,
+            RID_WIDTH: RID_WIDTH?.value,
+            ADDR_WIDTH: ADDR_WIDTH?.value,
+            DATA_WIDTH: DATA_WIDTH?.value,
+            BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
+            USER_WIDTH: USER_WIDTH?.value,
+            RESP_WIDTH: RESP_WIDTH?.value
+          }
+
+          // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
+          const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'true' : 'false'
+          axiParamObject.QOS = qosParameter
+
+          // Remove undefined properties
+          Object.entries(axiParamObject).forEach(([key, value]) => {
+            if (value === undefined) {
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+              delete axiParamObject[key]
+            }
+          })
+          // const direction = isOutward ? 'outward' : 'inward'
+          const direction = isOutward ? 'inward' : 'outward'
+
+          // Add AXI or non-AXI interface with parameters
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          this.addInterface(interfaceName, new InterfaceModule({}, 'master'))
-        } else if (interfaceName.toLowerCase().startsWith('targ')) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          this.addInterface(interfaceName, new InterfaceModule({}, 'slave'))
+          this.addInterface(interfaceName, new InterfaceModule(isAXI ? axiParamObject : {}, direction))
         } else {
-          console.warn(`Interface name ${interfaceName} does not indicate master or slave.`)
+          console.warn(`Interface name ${interfaceName} does not indicate outward or inward.`)
         }
+      } else {
         console.error(`Interface for ${interfaceName} with path ${pathString} is not known.`)
       }
     }
   }
 
-  async addInterfaceToExport (instanceName: string, pathString: string): Promise<void> {
-    try {
-      // Dynamically import the module
-      const interfaceModule = await import(pathString)
-
-      // Determine the correct export to use
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const InterfaceClass = interfaceModule.default || interfaceModule[Object.keys(interfaceModule)[0]]
-
-      // Check if the export is a valid constructor
-      if (typeof InterfaceClass !== 'function') {
-        throw new Error(`The module at ${pathString} does not export a valid constructor.`)
-      }
-
-      // Create a new instance of the interface module
-      const interfaceInstance = new InterfaceClass()
-
-      // Use the addInterface function to add the interface
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      this.addInterface(instanceName, interfaceInstance)
-    } catch (error) {
-      console.error(`Failed to add interface ${instanceName} from path ${pathString}`, error)
-    }
-  }
-}
-/*
-  addIpXactComponent (
-    xmlData: string,
-    bindings: Record<string, string | Sig >, // bigint
-    SVFilePath: string
-  ): Record<string, ComponentData> {
-    const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', textNodeName: 'text' })
-    const jsonObj = parser.parse(xmlData)
-
-    const components = jsonObj['spirit:component']
-    const result: Record<string, ComponentData> = {}
-
-    const processComponent = (component: any): void => {
-      const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface']
-      busInterfaces.forEach((busInterface: any) => {
-        const interfaceName = busInterface['spirit:name']
-        const abstractionType = busInterface['spirit:abstractionType']
-        const version = abstractionType['spirit:version']
-        const abstractionName = abstractionType['spirit:name'].replace(/_+/g, '_')
-        const abstractionLibrary = abstractionType['spirit:library']
-        const busType = busInterface['spirit:busType']
-        const busName = busType['spirit:name'].replace(/_+$/, '') // Remove trailing underscores
-        const portMaps = busInterface['spirit:portMaps']['spirit:portMap']
-        const portDictionary: Record<string, string> = {}
-
-        portMaps.forEach((portMap: any) => {
-          const logicalPort = portMap['spirit:logicalPort']['spirit:name']
-          const physicalPort = portMap['spirit:physicalPort']['spirit:name']
-          portDictionary[logicalPort] = physicalPort
-        })
-
-        result[interfaceName] = {
-          version: version,
-          abstractionName: abstractionName,
-          abstractionLibrary: abstractionLibrary,
-          busName: busName,
-          ports: portDictionary
-        }
-      })
-    }
-
-    if (Array.isArray(components)) {
-      components.forEach(processComponent)
-    } else {
-      processComponent(components)
-    }
-
-    // Creating TSSV Module instance
-    const moduleInstance = new Module({ name: 'TopModule' })
-
-    // Adding submodule based on the parsed data
-    // for (const interfaceName in result) {
-    //   const componentData = result[interfaceName]
-    //   const interfaceParams = {
-    //     name: interfaceName,
-    //     version: componentData.version,
-    //     abstractionName: componentData.abstractionName,
-    //     abstractionLibrary: componentData.abstractionLibrary,
-    //     busName: componentData.busName
-    //   }
-    //   const submodule = new Interface(interfaceParams) // componentData.ports
-    //   moduleInstance.addSubmodule(interfaceName, submodule, bindings)
-    // }
-
-    moduleInstance.addInterface('regs1', new amba.AXI_rtl({}, 'master'))
-
-    moduleInstance.addSubmodule('bindings', new Module(), bindings)
-    // Adding SystemVerilog submodule2
-    moduleInstance.addSystemVerilogSubmodule('SVSubmodule', SVFilePath, {}, {}) // {}, bindings
-
-    return result
-  }
-
-  /* OLD CODE:
-  addIpXactComponent (xmlData: string): Record<string, ComponentData> {
+  parseParameters (xmlInput: string): Record<string, Record<string, ParameterData>> {
     const parser = new XMLParser({
       ignoreAttributes: false,
-      attributeNamePrefix: '',
-      textNodeName: 'text'
+      attributeNamePrefix: '@_'
     })
-    const jsonObj = parser.parse(xmlData)
-    const components = jsonObj['spirit:component']
-    const result: Record<string, ComponentData> = {}
-    const processComponent = (component: any): void => {
-      const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface']
-      busInterfaces.forEach((busInterface: any) => {
-        const interfaceName = busInterface['spirit:name']
-        const abstractionType = busInterface['spirit:abstractionType']
-        const version = abstractionType['spirit:version']
-        const abstractionName = abstractionType['spirit:name'].replace(/_+/g, '_')
-        const abstractionLibrary = abstractionType['spirit:library']
-        const busType = busInterface['spirit:busType']
-        const busName = busType['spirit:name'].replace(/_+$/, '')
-        const portMaps = busInterface['spirit:portMaps']['spirit:portMap']
-        const portDictionary: Record<string, string> = {}
-        portMaps.forEach((portMap: any) => {
-          const logicalPort = portMap['spirit:logicalPort']['spirit:name']
-          const physicalPort = portMap['spirit:physicalPort']['spirit:name']
-          portDictionary[logicalPort] = physicalPort
-        })
-        result[interfaceName] = {
-          version: version,
-          abstractionName: abstractionName,
-          abstractionLibrary: abstractionLibrary,
-          busName: busName,
-          ports: portDictionary
+
+    const parsedXml = parser.parse(xmlInput)
+    const busInterfaces = parsedXml['spirit:component']['spirit:busInterfaces']['spirit:busInterface']
+
+    const parametersData: Record<string, Record<string, ParameterData>> = {}
+
+    busInterfaces.forEach((interfaceData: any) => {
+      const interfaceName = interfaceData['spirit:name']
+      const parameters = interfaceData['spirit:parameters']['spirit:parameter']
+
+      const interfaceParametersData: Record<string, ParameterData> = {}
+
+      parameters.forEach((param: any) => {
+        const name = param['spirit:name']
+        const value = param['spirit:value']
+        const realName = transformParameterName(`${name}`)
+        interfaceParametersData[name] = {
+          value: value,
+          realName: realName
         }
       })
-    }
-    if (Array.isArray(components)) {
-      components.forEach(processComponent)
-    } else {
-      processComponent(components)
-    }
-    return result
+
+      parametersData[interfaceName] = interfaceParametersData
+    })
+
+    return parametersData
   }
-*/
+}
+
+function transformParameterName (name: string): string {
+  let transformedName = name.toUpperCase()
+  if (transformedName.startsWith('W')) {
+    transformedName = transformedName.slice(1) + '_WIDTH'
+  }
+  if (transformedName.includes('LEN')) {
+    transformedName = transformedName.replace('LEN', 'BURST_LEN')
+  }
+  return transformedName
+}
+
 export default IpXactComponent

@@ -131,11 +131,11 @@ export interface ${interfaceName}_Parameters extends TSSVParameters {
 
 /**
  * Defines the role of the Interface instance
- * master is used in module port interfaces that are transaction initiators
- * slave is used in module port interfaces that are transaction responders
+ * outward is used in module port interfaces that are transaction initiators
+ * inward is used in module port interfaces that are transaction responders
  * leave role undefined to create just a bundle of interconnect wires
  */
-export type ${interfaceName}_Role = 'master' | 'slave' | undefined
+export type ${interfaceName}_Role = 'outward' | 'inward' | undefined
 
 /**
  * TSSV Interface bundle for the ${interfaceName} protocol
@@ -153,10 +153,10 @@ export class ${interfaceName} extends Interface {
   }
 
   /**
-   * Create a new ${interfaceName} Interface bundle with either master or slave port interface
+   * Create a new ${interfaceName} Interface bundle with either outward or inward port interface
    * or just a bundle of interconnect wires
    * @param params param value set
-   * @param role sets the role of this instance to choose master or slave port interface
+   * @param role sets the role of this instance to choose outward or inward port interface
    * or just a bundle of interconnect wires
    */
   constructor (params: ${interfaceName}_Parameters = {}, role: ${interfaceName}_Role = undefined) {
@@ -201,7 +201,7 @@ export class ${interfaceName} extends Interface {
 
   tsCode += `    }
     this.modports = {
-      master: {
+      outward: {
 `
 
   const producerSignals = signalEntries.filter(([_, signal]) => signal.producerDirection)
@@ -211,7 +211,7 @@ export class ${interfaceName} extends Interface {
   })
 
   tsCode += `      },
-      slave: {
+      inward: {
 `
 
   const responderSignals = signalEntries.filter(([name, signal]) => signal.responderDirection)

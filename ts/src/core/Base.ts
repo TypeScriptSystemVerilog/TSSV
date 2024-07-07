@@ -479,6 +479,7 @@ export class Module {
   // we do not call the caller, we just grab the name for an error message
   // so the explicit anys are fine
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+  /*
   protected findSignal (sig: Sig | string | bigint, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null, throwOnArray?: boolean): Signal | IOSignal {
     const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString()
     const thisSig = this.IOs[sigString] || this.signals[sigString]
@@ -491,6 +492,49 @@ export class Module {
       }
       throw Error(errString)
     }
+    if (throwOnArray && thisSig.isArray) {
+      let errString = ''
+      if (typeof caller === 'function') {
+        errString = `${sig.toString()} array signal used as normal signal in ${caller.name}()`
+      } else if (caller !== null) {
+        errString = `${caller.toString()}: ${sig.toString()} array signal used as normal signal`
+      }
+      throw Error(errString)
+    }
+    return thisSig
+  }
+  */
+
+  protected findSignal (sig: Sig | string | bigint, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null, throwOnArray?: boolean): Signal | IOSignal {
+    const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString()
+    const thisSig = this.IOs[sigString] || this.signals[sigString]
+
+    if (!thisSig) {
+      // Split the signal string by '.'
+      const sigParts = sigString.split('.')
+      if (sigParts.length === 2) {
+        const [interfaceName, signalName] = sigParts
+        const interfaceObj = this.interfaces[interfaceName]
+
+        if (interfaceObj) {
+          const interfaceSignal = interfaceObj.signals[signalName]
+          if (interfaceSignal) {
+            return interfaceSignal
+          }
+        }
+      }
+
+      if (throwOnFalse) {
+        let errString = ''
+        if (typeof caller === 'function') {
+          errString = `${sig.toString()} signal not found in ${caller.name}()`
+        } else if (caller !== null) {
+          errString = `${caller.toString()}: ${sig.toString()} signal not found`
+        }
+        throw Error(errString)
+      }
+    }
+
     if (throwOnArray && thisSig.isArray) {
       let errString = ''
       if (typeof caller === 'function') {
