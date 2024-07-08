@@ -111,45 +111,6 @@ export class AXI4 extends Interface {
                 RLAST: 'input',
                 RVALID: 'input',
                 RREADY: 'output'
-            },
-            inward: {
-                AWID: 'input',
-                AWADDR: 'input',
-                AWLEN: 'input',
-                AWSIZE: 'input',
-                AWBURST: 'input',
-                AWLOCK: 'input',
-                AWCACHE: 'input',
-                AWPROT: 'input',
-                AWQOS: 'input',
-                AWVALID: 'input',
-                AWREADY: 'output',
-                WDATA: 'input',
-                WSTRB: 'input',
-                WLAST: 'input',
-                WVALID: 'input',
-                WREADY: 'output',
-                BID: 'output',
-                BRESP: 'output',
-                BVALID: 'output',
-                BREADY: 'input',
-                ARID: 'input',
-                ARADDR: 'input',
-                ARLEN: 'input',
-                ARSIZE: 'input',
-                ARBURST: 'input',
-                ARLOCK: 'input',
-                ARCACHE: 'input',
-                ARPROT: 'input',
-                ARQOS: 'input',
-                ARVALID: 'input',
-                ARREADY: 'output',
-                RID: 'output',
-                RDATA: 'output',
-                RRESP: 'output',
-                RLAST: 'output',
-                RVALID: 'output',
-                RREADY: 'input'
             }
         };
         if ((params.USER_WIDTH || 0) > 0) {
@@ -161,14 +122,6 @@ export class AXI4 extends Interface {
                 ARUSER: 'output',
                 RUSER: 'input'
             };
-            this.modports.inward = {
-                ...this.modports.inward,
-                AWUSER: 'input',
-                WUSER: 'input',
-                BUSER: 'output',
-                ARUSER: 'input',
-                RUSER: 'output'
-            };
         }
         // Add modports for QOS signals if QOS is true
         if (params.QOS === 'withQOS') {
@@ -177,11 +130,6 @@ export class AXI4 extends Interface {
                 ARQOS: 'output',
                 AWQOS: 'output'
             };
-            this.modports.inward = {
-                ...this.modports.inward,
-                ARQOS: 'input',
-                AWQOS: 'input'
-            };
         }
         if (params.REGION === 'withREGION') {
             this.modports.outward = {
@@ -189,12 +137,8 @@ export class AXI4 extends Interface {
                 AWREGION: 'output',
                 ARREGION: 'output'
             };
-            this.modports.inward = {
-                ...this.modports.inward,
-                AWREGION: 'input',
-                ARREGION: 'input'
-            };
         }
+        this.modports.inward = Object.fromEntries(Object.entries(this.modports.outward).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
     }
 }
 /**

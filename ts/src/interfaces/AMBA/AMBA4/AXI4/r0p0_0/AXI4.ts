@@ -1,4 +1,4 @@
-import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSSV'
+import { type TSSVParameters, type IntRange, Interface, type Signal, type Signals } from 'tssv/lib/core/TSSV'
 
 /**
  * Interface defining the parameters of the AXI4 TSSV Interface bundle
@@ -19,6 +19,45 @@ export interface AXI4_Parameters extends TSSVParameters {
 
 }
 
+export interface AXI4_Signals extends Signals {
+  AWID: Signal
+  AWADDR: Signal
+  AWLEN: { width: 8 }
+  AWSIZE: { width: 3 }
+  AWBURST: { width: 2 }
+  AWLOCK: { width: 1 }
+  AWCACHE: { width: 4 }
+  AWPROT: { width: 3 }
+  AWVALID: { width: 1 }
+  AWREADY: { width: 1 }
+  WDATA: Signal
+  WSTRB: Signal
+  WLAST: { width: 1 }
+  WVALID: { width: 1 }
+  WREADY: { width: 1 }
+  BID: Signal
+  BRESP: { width: 2 }
+  BVALID: { width: 1 }
+  BREADY: { width: 1 }
+  ARID: Signal
+  ARADDR: Signal
+  ARLEN: { width: 8 }
+  ARSIZE: { width: 3 }
+  ARBURST: { width: 2 }
+  ARLOCK: { width: 1 }
+  ARCACHE: { width: 4 }
+  ARPROT: { width: 3 }
+  ARVALID: { width: 1 }
+  ARREADY: { width: 1 }
+  RID: Signal
+  RDATA: Signal
+  RRESP: { width: 2 }
+  RLAST: { width: 1 }
+  RVALID: { width: 1 }
+  RREADY: { width: 1 }
+
+}
+
 /**
  * Defines the role of the Interface instance
  * master is used in module port interfaces that are transaction initiators
@@ -32,6 +71,7 @@ export type AXI4_Role = 'outward' | 'inward' | undefined
  */
 export class AXI4 extends Interface {
   declare params: AXI4_Parameters
+  declare signals: AXI4_Signals
   /**
    * VLNV Metadata
    */
@@ -156,45 +196,6 @@ export class AXI4 extends Interface {
         RLAST: 'input',
         RVALID: 'input',
         RREADY: 'output'
-      },
-      inward: {
-        AWID: 'input',
-        AWADDR: 'input',
-        AWLEN: 'input',
-        AWSIZE: 'input',
-        AWBURST: 'input',
-        AWLOCK: 'input',
-        AWCACHE: 'input',
-        AWPROT: 'input',
-        AWQOS: 'input',
-        AWVALID: 'input',
-        AWREADY: 'output',
-        WDATA: 'input',
-        WSTRB: 'input',
-        WLAST: 'input',
-        WVALID: 'input',
-        WREADY: 'output',
-        BID: 'output',
-        BRESP: 'output',
-        BVALID: 'output',
-        BREADY: 'input',
-        ARID: 'input',
-        ARADDR: 'input',
-        ARLEN: 'input',
-        ARSIZE: 'input',
-        ARBURST: 'input',
-        ARLOCK: 'input',
-        ARCACHE: 'input',
-        ARPROT: 'input',
-        ARQOS: 'input',
-        ARVALID: 'input',
-        ARREADY: 'output',
-        RID: 'output',
-        RDATA: 'output',
-        RRESP: 'output',
-        RLAST: 'output',
-        RVALID: 'output',
-        RREADY: 'input'
       }
     }
     if ((params.USER_WIDTH || 0) > 0) {
@@ -206,14 +207,6 @@ export class AXI4 extends Interface {
         ARUSER: 'output',
         RUSER: 'input'
       }
-      this.modports.inward = {
-        ...this.modports.inward,
-        AWUSER: 'input',
-        WUSER: 'input',
-        BUSER: 'output',
-        ARUSER: 'input',
-        RUSER: 'output'
-      }
     }
     // Add modports for QOS signals if QOS is true
     if (params.QOS === 'withQOS') {
@@ -221,11 +214,6 @@ export class AXI4 extends Interface {
         ...this.modports.outward,
         ARQOS: 'output',
         AWQOS: 'output'
-      }
-      this.modports.inward = {
-        ...this.modports.inward,
-        ARQOS: 'input',
-        AWQOS: 'input'
       }
     }
 
@@ -235,11 +223,10 @@ export class AXI4 extends Interface {
         AWREGION: 'output',
         ARREGION: 'output'
       }
-      this.modports.inward = {
-        ...this.modports.inward,
-        AWREGION: 'input',
-        ARREGION: 'input'
-      }
     }
+
+    this.modports.inward = Object.fromEntries(
+      Object.entries(this.modports.outward).map(([key, value]) =>
+        [key, (value === 'input') ? 'output' : 'input']))
   }
 }
