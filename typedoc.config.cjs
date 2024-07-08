@@ -1,4 +1,5 @@
 module.exports = {
     entryPoints: ["ts/src/**/*.ts"],
-    out: "docs/typedoc"
+    out: "docs/typedoc",
+    sort: "source-order"
 };

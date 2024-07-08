@@ -59,20 +59,17 @@ const test_1 = new AXI4XBar(
     ]
   })
 
-
 const tb_testRegBlock = new TSSV.Module({ name: 'tb_AXI4XBar' })
 tb_testRegBlock.addSubmodule(
-    'dut',
-    test_1,
-    {},
-    true,
-    true
+  'dut',
+  test_1,
+  {},
+  true,
+  true
 )
-  
+
 try {
   writeFileSync('sv-examples/tb_AXI4XBar.sv', tb_testRegBlock.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
-  
-

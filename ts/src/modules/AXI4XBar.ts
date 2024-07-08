@@ -64,8 +64,8 @@ export class AXI4XBar extends TSSV.Module {
     })
 
     const bindings: Record<string, string | TSSV.Sig> = {
-      "clock" : "clock",
-      "reset" : "reset"
+      clock: 'clock',
+      reset: 'reset'
     }
     for (const m of this.params.masters) {
       const thisMaster = this.addInterface(m.name,
@@ -91,7 +91,7 @@ export class AXI4XBar extends TSSV.Module {
         if (match) {
           let prefix = match[1].toLowerCase()
           const base = match[2].toLowerCase()
-          if ((base !== 'valid') && (base !== 'ready') ) {
+          if ((base !== 'valid') && (base !== 'ready')) {
             prefix += '_bits'
           }
           bindings[`${m.name}_${prefix}_${base}`] = `${m.name}.${port}`
@@ -123,7 +123,7 @@ export class AXI4XBar extends TSSV.Module {
         if (match) {
           let prefix = match[1].toLowerCase()
           const base = match[2].toLowerCase()
-          if ((base !== 'valid') && (base !== 'ready') ) {
+          if ((base !== 'valid') && (base !== 'ready')) {
             prefix += '_bits'
           }
           bindings[`${s.name}_${prefix}_${base}`] = `${s.name}.${port}`

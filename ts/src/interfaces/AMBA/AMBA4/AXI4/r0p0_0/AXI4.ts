@@ -73,7 +73,7 @@ export class AXI4 extends Interface {
         DATA_WIDTH: params.DATA_WIDTH || 32,
         USER_WIDTH: params.USER_WIDTH || 0,
         QOS: params.QOS || 'withQOS',
-        REGION: params.REGION || "noREGION"
+        REGION: params.REGION || 'noREGION'
       },
       role
     )
