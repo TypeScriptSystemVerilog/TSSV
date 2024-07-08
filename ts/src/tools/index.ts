@@ -18,7 +18,7 @@ export { ACE_Lite_WO_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/ACE-Lite_WO/r0p0
 export { ACP_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/ACP/r0p0_0/ACP_rtl'
 export { APB4_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4_rtl'
 export { ATB_rtl as ATB_rtl2 } from 'tssv/lib/interfaces/AMBA/AMBA4/ATB/r0p0_0/ATB_rtl' //
-export { AXI4_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl'
+export { AXI4 } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4'
 export { AXI4_Lite_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4-Lite/r0p0_0/AXI4-Lite_rtl'
 export { AXI4Stream_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4Stream/r0p0_1/AXI4Stream_rtl'
 export { AXI4_RO_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4_RO/r0p0_0/AXI4_RO_rtl'

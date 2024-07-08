@@ -4,9 +4,9 @@ export interface AXI4XBarParams extends TSSV.TSSVParameters {
         name: string;
         id: [number, number];
     }>;
-    beatBytes: 4 | 16 | 32 | 64 | 128;
+    beatBytes: 4 | 8 | 16 | 32 | 64 | 128;
     addrBits: TSSV.IntRange<16, 64>;
-    idBits: TSSV.IntRange<1, 32>;
+    idBits: TSSV.IntRange<1, 16>;
     slaves: Array<{
         name: string;
         address: {

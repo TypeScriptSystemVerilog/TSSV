@@ -1,25 +1,33 @@
 import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSSV'
 
 /**
- * Interface defining the parameters of the AXI4_rtl TSSV Interface bundle
+ * Interface defining the parameters of the AXI4 TSSV Interface bundle
  */
-export interface AXI4_rtl_Parameters extends TSSVParameters {
-  /**
-   * Defines the bit width of the source identifier signal
-   */
-  AIW?: IntRange<1, 32>
-  /**
-   * Defines the bit width of the address signal
-   */
-  AW?: IntRange<8, 64>
-  /**
-   * Defines the bit width of the sink identifier signal
-   */
-  DIW?: IntRange<1, 32>
-  /**
-   * Defines the data bus width
-   */
-  DW?: 32 | 64
+export interface AXI4_Parameters extends TSSVParameters {
+  AWID_WIDTH?: IntRange<1, 16>
+
+  WID_WIDTH?: IntRange<1, 16>
+
+  BID_WIDTH?: IntRange<1, 16>
+
+  ARID_WIDTH?: IntRange<1, 16>
+
+  RID_WIDTH?: IntRange<1, 16>
+
+  ADDR_WIDTH?: IntRange<16, 64>
+
+  DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024
+
+  BURST_LEN_WIDTH?: IntRange<1, 16>
+
+  USER_WIDTH?: IntRange<0, 64>
+
+  RESP_WIDTH?: IntRange<2, 4>
+
+  QOS?: 'withQOS' | 'noQOS'
+
+  REGION?: 'withREGION' | 'noREGION'
+
 }
 
 /**
@@ -28,95 +36,104 @@ export interface AXI4_rtl_Parameters extends TSSVParameters {
  * slave is used in module port interfaces that are transaction responders
  * leave role undefined to create just a bundle of interconnect wires
  */
-export type AXI4_rtl_Role = 'master' | 'slave' | undefined
+export type AXI4_Role = 'outward' | 'inward' | undefined
 
 /**
- * TSSV Interface bundle for the AXI4_rtl protocol
+ * TSSV Interface bundle for the AXI4 protocol
  */
-export class AXI4_rtl extends Interface {
-  declare params: AXI4_rtl_Parameters
+export class AXI4 extends Interface {
+  declare params: AXI4_Parameters
   /**
    * VLNV Metadata
    */
   static readonly VLNV = {
     vendor: 'amba.com',
     library: 'AMBA4',
-    name: 'AXI4_rtl',
+    name: 'AXI4',
     version: 'r0p0_0'
   }
 
   /**
-   * Create a new AXI4_rtl Interface bundle with either master or slave port interface
+   * Create a new AXI4 Interface bundle with either master or slave port interface
    * or just a bundle of interconnect wires
    * @param params param value set
    * @param role sets the role of this instance to choose master or slave port interface
    * or just a bundle of interconnect wires
    */
-  constructor (params: AXI4_rtl_Parameters = {}, role: AXI4_rtl_Role = undefined) {
+  constructor (params: AXI4_Parameters = {}, role: AXI4_Role = undefined) {
     super(
-      'AXI4_rtl',
+      'AXI4',
       {
-        AIW: params.AIW || 8,
-        AW: params.AW || 32,
-        DIW: params.DIW || 8,
-        DW: params.DW || 32
+        AWID_WIDTH: params.AWID_WIDTH || 4,
+        WID_WIDTH: params.WID_WIDTH || 4,
+        BID_WIDTH: params.BID_WIDTH || 4,
+        ARID_WIDTH: params.ARID_WIDTH || 4,
+        RID_WIDTH: params.RID_WIDTH || 4,
+        ADDR_WIDTH: params.ADDR_WIDTH || 32,
+        DATA_WIDTH: params.DATA_WIDTH || 32,
+        USER_WIDTH: params.USER_WIDTH || 0,
+        QOS: params.QOS || 'withQOS',
+        REGION: params.REGION || "noREGION"
       },
       role
     )
     this.signals = {
-      ACLK: { width: 1 },
-      ACLKEN: { width: 1 },
-      ARESETn: { width: 1 },
-      AWID: { width: params.DIW || 8 },
-      AWADDR: { width: params.AW || 32 },
+      AWID: { width: params.AWID_WIDTH || 8 },
+      AWADDR: { width: params.ADDR_WIDTH || 32 },
       AWLEN: { width: 8 },
       AWSIZE: { width: 3 },
       AWBURST: { width: 2 },
       AWLOCK: { width: 1 },
       AWCACHE: { width: 4 },
       AWPROT: { width: 3 },
-      AWQOS: { width: 4 },
-      AWREGION: { width: 4 },
       AWVALID: { width: 1 },
       AWREADY: { width: 1 },
-      WDATA: { width: params.DW || 32 },
-      WSTRB: { width: params.DIW || 8 },
+      WDATA: { width: params.DATA_WIDTH || 32 },
+      WSTRB: { width: (params.DATA_WIDTH) ? params.DATA_WIDTH >> 3 : 4 },
       WLAST: { width: 1 },
       WVALID: { width: 1 },
       WREADY: { width: 1 },
-      BID: { width: params.DIW || 8 },
+      BID: { width: params.BID_WIDTH || 8 },
       BRESP: { width: 2 },
       BVALID: { width: 1 },
       BREADY: { width: 1 },
-      ARID: { width: params.DIW || 8 },
-      ARADDR: { width: params.AW || 32 },
+      ARID: { width: params.ARID_WIDTH || 8 },
+      ARADDR: { width: params.ADDR_WIDTH || 32 },
       ARLEN: { width: 8 },
       ARSIZE: { width: 3 },
       ARBURST: { width: 2 },
       ARLOCK: { width: 1 },
       ARCACHE: { width: 4 },
       ARPROT: { width: 3 },
-      ARQOS: { width: 4 },
-      ARREGION: { width: 4 },
       ARVALID: { width: 1 },
       ARREADY: { width: 1 },
-      RID: { width: params.DIW || 8 },
-      RDATA: { width: params.DW || 32 },
+      RID: { width: params.RID_WIDTH || 8 },
+      RDATA: { width: params.DATA_WIDTH || 32 },
       RRESP: { width: 2 },
       RLAST: { width: 1 },
       RVALID: { width: 1 },
-      RREADY: { width: 1 },
-      AWUSER: { width: params.DIW || 8 },
-      WUSER: { width: params.DIW || 8 },
-      BUSER: { width: params.DIW || 8 },
-      ARUSER: { width: params.DIW || 8 },
-      RUSER: { width: params.DIW || 8 }
+      RREADY: { width: 1 }
     }
+    if ((params.USER_WIDTH || 0) > 0) {
+      this.signals.AWUSER = { width: params.USER_WIDTH }
+      this.signals.WUSER = { width: params.USER_WIDTH }
+      this.signals.BUSER = { width: params.USER_WIDTH }
+      this.signals.ARUSER = { width: params.USER_WIDTH }
+      this.signals.RUSER = { width: params.USER_WIDTH }
+    }
+    // Add ARQOS and AWQOS if QOS is true
+    if (params.QOS === 'withQOS') {
+      this.signals.ARQOS = { width: 4 }
+      this.signals.AWQOS = { width: 4 }
+    }
+
+    if (params.REGION === 'withREGION') {
+      this.signals.ARREGION = { width: 4 }
+      this.signals.AWREGION = { width: 4 }
+    }
+
     this.modports = {
-      master: {
-        ACLK: 'input',
-        ACLKEN: 'input',
-        ARESETn: 'input',
+      outward: {
         AWID: 'output',
         AWADDR: 'output',
         AWLEN: 'output',
@@ -126,7 +143,6 @@ export class AXI4_rtl extends Interface {
         AWCACHE: 'output',
         AWPROT: 'output',
         AWQOS: 'output',
-        AWREGION: 'output',
         AWVALID: 'output',
         AWREADY: 'input',
         WDATA: 'output',
@@ -147,7 +163,6 @@ export class AXI4_rtl extends Interface {
         ARCACHE: 'output',
         ARPROT: 'output',
         ARQOS: 'output',
-        ARREGION: 'output',
         ARVALID: 'output',
         ARREADY: 'input',
         RID: 'input',
@@ -155,17 +170,9 @@ export class AXI4_rtl extends Interface {
         RRESP: 'input',
         RLAST: 'input',
         RVALID: 'input',
-        RREADY: 'output',
-        AWUSER: 'output',
-        WUSER: 'output',
-        BUSER: 'input',
-        ARUSER: 'output',
-        RUSER: 'input'
+        RREADY: 'output'
       },
-      slave: {
-        ACLK: 'input',
-        ACLKEN: 'input',
-        ARESETn: 'input',
+      inward: {
         AWID: 'input',
         AWADDR: 'input',
         AWLEN: 'input',
@@ -175,7 +182,6 @@ export class AXI4_rtl extends Interface {
         AWCACHE: 'input',
         AWPROT: 'input',
         AWQOS: 'input',
-        AWREGION: 'input',
         AWVALID: 'input',
         AWREADY: 'output',
         WDATA: 'input',
@@ -196,7 +202,6 @@ export class AXI4_rtl extends Interface {
         ARCACHE: 'input',
         ARPROT: 'input',
         ARQOS: 'input',
-        ARREGION: 'input',
         ARVALID: 'input',
         ARREADY: 'output',
         RID: 'output',
@@ -204,12 +209,51 @@ export class AXI4_rtl extends Interface {
         RRESP: 'output',
         RLAST: 'output',
         RVALID: 'output',
-        RREADY: 'input',
+        RREADY: 'input'
+      }
+    }
+    if ((params.USER_WIDTH || 0) > 0) {
+      this.modports.outward = {
+        ...this.modports.outward,
+        AWUSER: 'output',
+        WUSER: 'output',
+        BUSER: 'input',
+        ARUSER: 'output',
+        RUSER: 'input'
+      }
+      this.modports.inward = {
+        ...this.modports.inward,
         AWUSER: 'input',
         WUSER: 'input',
         BUSER: 'output',
         ARUSER: 'input',
         RUSER: 'output'
+      }
+    }
+    // Add modports for QOS signals if QOS is true
+    if (params.QOS === 'withQOS') {
+      this.modports.outward = {
+        ...this.modports.outward,
+        ARQOS: 'output',
+        AWQOS: 'output'
+      }
+      this.modports.inward = {
+        ...this.modports.inward,
+        ARQOS: 'input',
+        AWQOS: 'input'
+      }
+    }
+
+    if (params.REGION === 'withREGION') {
+      this.modports.outward = {
+        ...this.modports.outward,
+        AWREGION: 'output',
+        ARREGION: 'output'
+      }
+      this.modports.inward = {
+        ...this.modports.inward,
+        AWREGION: 'input',
+        ARREGION: 'input'
       }
     }
   }

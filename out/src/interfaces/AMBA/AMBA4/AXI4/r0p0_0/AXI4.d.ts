@@ -9,11 +9,12 @@ export interface AXI4_Parameters extends TSSVParameters {
     ARID_WIDTH?: IntRange<1, 16>;
     RID_WIDTH?: IntRange<1, 16>;
     ADDR_WIDTH?: IntRange<16, 64>;
-    DATA_WIDTH?: 32 | 64 | 128 | 256 | 512;
+    DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024;
     BURST_LEN_WIDTH?: IntRange<1, 16>;
-    USER_WIDTH?: IntRange<1, 64>;
+    USER_WIDTH?: IntRange<0, 64>;
     RESP_WIDTH?: IntRange<2, 4>;
-    QOS?: 'true' | 'false';
+    QOS?: 'withQOS' | 'noQOS';
+    REGION?: 'withREGION' | 'noREGION';
 }
 /**
  * Defines the role of the Interface instance

@@ -329,7 +329,7 @@ export class Module {
             }
         }
         let vModuleName = 'IMPORT';
-        const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s]/;
+        const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s()]/;
         const match = SVString.match(re2);
         if (match && match.length >= 2) {
             vModuleName = match[1];
