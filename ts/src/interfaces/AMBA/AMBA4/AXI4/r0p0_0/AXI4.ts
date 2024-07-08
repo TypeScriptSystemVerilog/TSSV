@@ -9,15 +9,7 @@ export interface AXI4_Parameters extends TSSVParameters {
 
   ADDR_WIDTH?: IntRange<16, 64>
 
-  AWID_WIDTH?: IntRange<1, 16>
-
-  WID_WIDTH?: IntRange<1, 16>
-
-  BID_WIDTH?: IntRange<1, 16>
-
-  ARID_WIDTH?: IntRange<1, 16>
-
-  RID_WIDTH?: IntRange<1, 16>
+  ID_WIDTH?: IntRange<1, 16>
 
   USER_WIDTH?: IntRange<0, 64>
 
@@ -63,11 +55,7 @@ export class AXI4 extends Interface {
       {
         DATA_WIDTH: params.DATA_WIDTH || 32,
         ADDR_WIDTH: params.ADDR_WIDTH || 32,
-        AWID_WIDTH: params.AWID_WIDTH || 4,
-        WID_WIDTH: params.WID_WIDTH || 4,
-        BID_WIDTH: params.BID_WIDTH || 4,
-        ARID_WIDTH: params.ARID_WIDTH || 4,
-        RID_WIDTH: params.RID_WIDTH || 4,
+        ID_WIDTH: params.AWID_WIDTH || 4,
         USER_WIDTH: params.USER_WIDTH || 0,
         QOS: params.QOS || 'withQOS',
         REGION: params.REGION || 'noREGION'
@@ -75,7 +63,7 @@ export class AXI4 extends Interface {
       role
     )
     this.signals = {
-      AWID: { width: params.AWID_WIDTH || 8 },
+      AWID: { width: params.ID_WIDTH || 4 },
       AWADDR: { width: params.ADDR_WIDTH || 32 },
       AWLEN: { width: 8 },
       AWSIZE: { width: 3 },
@@ -90,11 +78,11 @@ export class AXI4 extends Interface {
       WLAST: { width: 1 },
       WVALID: { width: 1 },
       WREADY: { width: 1 },
-      BID: { width: params.BID_WIDTH || 8 },
+      BID: { width: params.ID_WIDTH || 4 },
       BRESP: { width: 2 },
       BVALID: { width: 1 },
       BREADY: { width: 1 },
-      ARID: { width: params.ARID_WIDTH || 8 },
+      ARID: { width: params.ID_WIDTH || 4 },
       ARADDR: { width: params.ADDR_WIDTH || 32 },
       ARLEN: { width: 8 },
       ARSIZE: { width: 3 },
@@ -104,7 +92,7 @@ export class AXI4 extends Interface {
       ARPROT: { width: 3 },
       ARVALID: { width: 1 },
       ARREADY: { width: 1 },
-      RID: { width: params.RID_WIDTH || 8 },
+      RID: { width: params.ID_WIDTH || 4 },
       RDATA: { width: params.DATA_WIDTH || 32 },
       RRESP: { width: 2 },
       RLAST: { width: 1 },

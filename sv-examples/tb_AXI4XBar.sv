@@ -2,7 +2,7 @@
         
 
 
-interface AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION;
+interface AXI4_128_48_4_0_withQOS_noREGION;
 
    logic [7:0] AWID;
    logic [47:0] AWADDR;
@@ -4592,12 +4592,12 @@ module AXI4XBar2x4
    (
    input logic  clock,
    input logic  reset,
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION.inward master1,
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION.inward master2,
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION.outward slave1,
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION.outward slave2,
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION.outward slave3,
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION.outward slave4
+   AXI4_128_48_4_0_withQOS_noREGION.inward master1,
+   AXI4_128_48_4_0_withQOS_noREGION.inward master2,
+   AXI4_128_48_4_0_withQOS_noREGION.outward slave1,
+   AXI4_128_48_4_0_withQOS_noREGION.outward slave2,
+   AXI4_128_48_4_0_withQOS_noREGION.outward slave3,
+   AXI4_128_48_4_0_withQOS_noREGION.outward slave4
    );
 
    
@@ -4842,12 +4842,12 @@ module tb_AXI4XBar
    
    );
 
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION master1;
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION master2;
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION slave1;
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION slave2;
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION slave3;
-   AXI4_128_48_8_8_8_8_8_0_withQOS_noREGION slave4;
+   AXI4_128_48_4_0_withQOS_noREGION master1;
+   AXI4_128_48_4_0_withQOS_noREGION master2;
+   AXI4_128_48_4_0_withQOS_noREGION slave1;
+   AXI4_128_48_4_0_withQOS_noREGION slave2;
+   AXI4_128_48_4_0_withQOS_noREGION slave3;
+   AXI4_128_48_4_0_withQOS_noREGION slave4;
    logic  clock;
    logic  reset;
 

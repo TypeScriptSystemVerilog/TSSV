@@ -39,16 +39,10 @@ export class AXI4XBar extends TSSV.Module {
         };
         for (const m of this.params.masters) {
             const thisMaster = this.addInterface(m.name, new AXI4({
-                AWID_WIDTH: params.idBits,
-                WID_WIDTH: params.idBits,
-                BID_WIDTH: params.idBits,
-                ARID_WIDTH: params.idBits,
-                RID_WIDTH: params.idBits,
-                ADDR_WIDTH: params.addrBits,
                 DATA_WIDTH: (params.beatBytes << 3),
-                BURST_LEN_WIDTH: 4, // FIXME
+                ADDR_WIDTH: params.addrBits,
+                ID_WIDTH: params.idBits,
                 USER_WIDTH: 0,
-                RESP_WIDTH: 2, // FIXME
                 QOS: 'withQOS'
             }, 'inward'));
             for (const port in thisMaster.signals) {
@@ -66,16 +60,10 @@ export class AXI4XBar extends TSSV.Module {
         }
         for (const s of this.params.slaves) {
             const thisSlave = this.addInterface(s.name, new AXI4({
-                AWID_WIDTH: params.idBits,
-                WID_WIDTH: params.idBits,
-                BID_WIDTH: params.idBits,
-                ARID_WIDTH: params.idBits,
-                RID_WIDTH: params.idBits,
-                ADDR_WIDTH: params.addrBits,
                 DATA_WIDTH: (params.beatBytes << 3),
-                BURST_LEN_WIDTH: 4, // FIXME
+                ADDR_WIDTH: params.addrBits,
+                ID_WIDTH: params.idBits,
                 USER_WIDTH: 0,
-                RESP_WIDTH: 2, // FIXME
                 QOS: 'withQOS'
             }, 'outward'));
             for (const port in thisSlave.signals) {
