@@ -510,7 +510,6 @@ export class Module {
     const thisSig = this.IOs[sigString] || this.signals[sigString]
 
     if (!thisSig) {
-      // Split the signal string by '.'
       const sigParts = sigString.split('.')
       if (sigParts.length === 2) {
         const [interfaceName, signalName] = sigParts

@@ -1,11 +1,8 @@
 import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
-// import { AXI_rtl } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl.ts'
-// /Users/bennettva/TSSV/ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl.ts
-// import { AXI_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AXI/r2p0_0/AXI_rtl'
-// import * as amba from 'tssv/lib/tools/index'
 import { writeFileSync, mkdirSync } from 'fs'
-// import * as fs from 'fs'
-// import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
+import * as fs from 'fs'
+import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
+import { FIR } from 'tssv/lib/modules/FIR'
 
 try {
   mkdirSync('sv-examples/test_addSubmodule_output')
@@ -279,16 +276,35 @@ try {
   console.error(err)
 }
 
-// adding an interface
-/*
-const tbBodyI =
+// adding component
+const tbBodyC =
 `
 `
-const bindings = {
-  ARADDR: 'main_Ar_Addr',
-  WREADY: 'main_W_Ready'
-  // Add other bindings as needed
+const subC_tb = new Module(
+  { name: 'subC_t' },
+  {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_b: { direction: 'input', isReset: 'lowasync' }
+  },
+  {},
+  tbBodyC
+)
+subC_tb.addSubmodule('FIR', new FIR({ coefficients: [1n, 2n] }), {}, true, true, true)
+
+try {
+  const TB =
+`
+    // verilator lint_off DECLFILENAME
+    // verilator lint_off UNUSED
+    ${subC_tb.writeSystemVerilog()}
+`
+  writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB)
+} catch (err) {
+  console.error(err)
 }
+
+// adding IpXactComponent
+
 const fileContent = fs.readFileSync(
   '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
   'utf-8')
@@ -298,10 +314,6 @@ const subI_tb = new IpXactComponent(
     xmlData: fileContent,
     svFilePath: '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
   })
-subA_tb.addInterface('regs1', new amba.AXI_rtl({}, 'outward'))
-
-// const portDictionary: Record<string, ComponentData> = subI_tb.addIpXactComponent(fileContent, bindings, '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v')
-// console.log(portDictionary)
 
 try {
   const TB =
@@ -314,4 +326,3 @@ try {
 } catch (err) {
   console.error(err)
 }
-*/
