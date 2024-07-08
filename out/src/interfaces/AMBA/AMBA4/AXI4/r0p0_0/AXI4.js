@@ -14,7 +14,7 @@ export class AXI4 extends Interface {
         super('AXI4', {
             DATA_WIDTH: params.DATA_WIDTH || 32,
             ADDR_WIDTH: params.ADDR_WIDTH || 32,
-            ID_WIDTH: params.AWID_WIDTH || 4,
+            ID_WIDTH: params.ID_WIDTH || 4,
             USER_WIDTH: params.USER_WIDTH || 0,
             QOS: params.QOS || 'withQOS',
             REGION: params.REGION || 'noREGION'
