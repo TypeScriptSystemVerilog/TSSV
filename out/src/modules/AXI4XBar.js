@@ -22,10 +22,10 @@ export class AXI4XBar extends TSSV.Module {
             moduleName: `${params.name}_inner`
         };
         const jsonFile = saveStringToTempFile(TSSV.serialize(innerParams, undefined, ''));
-        console.log(`Generating AXI4XBar component using rocketdock container...`);
+        console.log('Generating AXI4XBar component using rocketdock container...');
         exec(`cat ${jsonFile};third-party/rocket-chip-component-gen/gen_rocket_component.sh AXI4XBar ${jsonFile}; rm ${jsonFile}`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`exec error: ${error}`);
+                console.error(`exec error: ${inspect(error, { depth: null, colors: true })}`);
                 return;
             }
             console.error(`stderr: ${stderr}`);
