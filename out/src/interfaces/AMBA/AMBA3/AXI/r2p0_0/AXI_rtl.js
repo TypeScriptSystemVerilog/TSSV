@@ -17,7 +17,7 @@ export class AXI_rtl extends Interface {
             BID_WIDTH: params.BID_WIDTH || 4,
             ARID_WIDTH: params.ARID_WIDTH || 4,
             RID_WIDTH: params.RID_WIDTH || 4,
-            ADDR_WIDTH: params.ADDR_WIDHT || 32,
+            ADDR_WIDTH: params.ADDR_WIDTH || 32,
             DATA_WIDTH: params.DATA_WIDTH || 32,
             USER_WIDTH: params.USER_WIDTH || 0
         }, role);

@@ -8,7 +8,7 @@ export interface AXI_rtl_Parameters extends TSSVParameters {
     BID_WIDTH?: IntRange<1, 16>;
     ARID_WIDTH?: IntRange<1, 16>;
     RID_WIDTH?: IntRange<1, 16>;
-    ADDR_WIDTH?: 32 | 64;
+    ADDR_WIDTH?: IntRange<16, 64>;
     DATA_WIDTH?: 32 | 64 | 128 | 256 | 512;
     BURST_LEN_WIDTH?: IntRange<1, 16>;
     USER_WIDTH?: IntRange<1, 64>;

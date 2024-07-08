@@ -1,6 +1,7 @@
 import TSSV from 'tssv/lib/core/TSSV';
 import { inspect } from 'util';
 import { exec } from 'child_process';
+import { AXI4 } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -14,7 +15,8 @@ export class AXI4XBar extends TSSV.Module {
     constructor(params) {
         super(params);
         this.IOs = {
-            clk: { direction: 'input', isClock: 'posedge' }
+            clock: { direction: 'input', isClock: 'posedge' },
+            reset: { direction: 'input', isReset: 'highsync' }
         };
         console.log(inspect(params, { depth: null, colors: true }));
         const innerParams = {
@@ -31,5 +33,52 @@ export class AXI4XBar extends TSSV.Module {
             console.error(`stderr: ${stderr}`);
             console.log(`stdout: ${stdout}`);
         });
+        const bindings = {
+            clock: 'clock',
+            reset: 'reset'
+        };
+        for (const m of this.params.masters) {
+            const thisMaster = this.addInterface(m.name, new AXI4({
+                DATA_WIDTH: (params.beatBytes << 3),
+                ADDR_WIDTH: params.addrBits,
+                ID_WIDTH: params.idBits,
+                USER_WIDTH: 0,
+                QOS: 'withQOS'
+            }, 'inward'));
+            for (const port in thisMaster.signals) {
+                const regex = /^(AW|W|AR|R|B)(.*)$/;
+                const match = port.match(regex);
+                if (match) {
+                    let prefix = match[1].toLowerCase();
+                    const base = match[2].toLowerCase();
+                    if ((base !== 'valid') && (base !== 'ready')) {
+                        prefix += '_bits';
+                    }
+                    bindings[`${m.name}_${prefix}_${base}`] = `${m.name}.${port}`;
+                }
+            }
+        }
+        for (const s of this.params.slaves) {
+            const thisSlave = this.addInterface(s.name, new AXI4({
+                DATA_WIDTH: (params.beatBytes << 3),
+                ADDR_WIDTH: params.addrBits,
+                ID_WIDTH: params.idBits,
+                USER_WIDTH: 0,
+                QOS: 'withQOS'
+            }, 'outward'));
+            for (const port in thisSlave.signals) {
+                const regex = /^(AW|W|AR|R|B)(.*)$/;
+                const match = port.match(regex);
+                if (match) {
+                    let prefix = match[1].toLowerCase();
+                    const base = match[2].toLowerCase();
+                    if ((base !== 'valid') && (base !== 'ready')) {
+                        prefix += '_bits';
+                    }
+                    bindings[`${s.name}_${prefix}_${base}`] = `${s.name}.${port}`;
+                }
+            }
+        }
+        this.addSystemVerilogSubmodule('inner', `third-party/rocket-chip-component-gen/componentgen/compile.dest/${innerParams.moduleName}.sv`, {}, bindings, true);
     }
 }

@@ -163,8 +163,8 @@ export class IpXactComponent extends Module {
                 const value = param['spirit:value'];
                 const realName = transformParameterName(`${name}`);
                 interfaceParametersData[name] = {
-                    value: value,
-                    realName: realName
+                    value,
+                    realName
                 };
             });
             parametersData[interfaceName] = interfaceParametersData;
@@ -192,7 +192,7 @@ IpXactComponent.knownInterfaces = {
     'tssv/lib/interfaces/AMBA/AMBA4/ACP/r0p0_0/ACP_rtl': amba.ACP_rtl,
     'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4_rtl': amba.APB4_rtl,
     'tssv/lib/interfaces/AMBA/AMBA4/ATB/r0p0_0/ATB_rtl': amba.ATB_rtl2,
-    'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4_rtl': amba.AXI4_rtl,
+    'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4': amba.AXI4,
     'tssv/lib/interfaces/AMBA/AMBA4/AXI4-Lite/r0p0_0/AXI4-Lite_rtl': amba.AXI4_Lite_rtl,
     'tssv/lib/interfaces/AMBA/AMBA4/AXI4Stream/r0p0_1/AXI4Stream_rtl': amba.AXI4Stream_rtl,
     'tssv/lib/interfaces/AMBA/AMBA4/AXI4_RO/r0p0_0/AXI4_RO_rtl': amba.AXI4_RO_rtl,

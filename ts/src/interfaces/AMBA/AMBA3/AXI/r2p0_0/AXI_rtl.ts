@@ -14,7 +14,7 @@ export interface AXI_rtl_Parameters extends TSSVParameters {
 
   RID_WIDTH?: IntRange<1, 16>
 
-  ADDR_WIDTH?: 32 | 64
+  ADDR_WIDTH?: IntRange<16, 64>
 
   DATA_WIDTH?: 32 | 64 | 128 | 256 | 512
 
@@ -66,7 +66,7 @@ export class AXI_rtl extends Interface {
         BID_WIDTH: params.BID_WIDTH || 4,
         ARID_WIDTH: params.ARID_WIDTH || 4,
         RID_WIDTH: params.RID_WIDTH || 4,
-        ADDR_WIDTH: params.ADDR_WIDHT || 32,
+        ADDR_WIDTH: params.ADDR_WIDTH || 32,
         DATA_WIDTH: params.DATA_WIDTH || 32,
         USER_WIDTH: params.USER_WIDTH || 0
       },

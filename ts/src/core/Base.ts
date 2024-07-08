@@ -434,7 +434,7 @@ export class Module {
       if (re.test(SVString)) { vIOs[port] = { direction: 'input', ...thisSignal } } else { vIOs[port] = { direction: 'output', ...thisSignal } }
     }
     let vModuleName = 'IMPORT'
-    const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s]/
+    const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s()]/
     const match = SVString.match(re2)
     if (match && match.length >= 2) {
       vModuleName = match[1]

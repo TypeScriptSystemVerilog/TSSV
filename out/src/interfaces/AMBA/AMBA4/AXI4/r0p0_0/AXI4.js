@@ -12,21 +12,15 @@ export class AXI4 extends Interface {
      */
     constructor(params = {}, role = undefined) {
         super('AXI4', {
-            AWID_WIDTH: params.AWID_WIDTH || 4,
-            WID_WIDTH: params.WID_WIDTH || 4,
-            BID_WIDTH: params.BID_WIDTH || 4,
-            ARID_WIDTH: params.ARID_WIDTH || 4,
-            RID_WIDTH: params.RID_WIDTH || 4,
-            ADDR_WIDTH: params.ADDR_WIDTH || 32,
             DATA_WIDTH: params.DATA_WIDTH || 32,
+            ADDR_WIDTH: params.ADDR_WIDTH || 32,
+            ID_WIDTH: params.ID_WIDTH || 4,
             USER_WIDTH: params.USER_WIDTH || 0,
-            QOS: params.QOS || 'false'
+            QOS: params.QOS || 'withQOS',
+            REGION: params.REGION || 'noREGION'
         }, role);
         this.signals = {
-            ACLK: { width: 1 },
-            ACLKEN: { width: 1 },
-            ARESETn: { width: 1 },
-            AWID: { width: params.AWID_WIDTH || 8 },
+            AWID: { width: params.ID_WIDTH || 4 },
             AWADDR: { width: params.ADDR_WIDTH || 32 },
             AWLEN: { width: 8 },
             AWSIZE: { width: 3 },
@@ -34,8 +28,6 @@ export class AXI4 extends Interface {
             AWLOCK: { width: 1 },
             AWCACHE: { width: 4 },
             AWPROT: { width: 3 },
-            AWQOS: { width: 4 },
-            AWREGION: { width: 4 },
             AWVALID: { width: 1 },
             AWREADY: { width: 1 },
             WDATA: { width: params.DATA_WIDTH || 32 },
@@ -43,11 +35,11 @@ export class AXI4 extends Interface {
             WLAST: { width: 1 },
             WVALID: { width: 1 },
             WREADY: { width: 1 },
-            BID: { width: params.BID_WIDTH || 8 },
+            BID: { width: params.ID_WIDTH || 4 },
             BRESP: { width: 2 },
             BVALID: { width: 1 },
             BREADY: { width: 1 },
-            ARID: { width: params.ARID_WIDTH || 8 },
+            ARID: { width: params.ID_WIDTH || 4 },
             ARADDR: { width: params.ADDR_WIDTH || 32 },
             ARLEN: { width: 8 },
             ARSIZE: { width: 3 },
@@ -55,32 +47,33 @@ export class AXI4 extends Interface {
             ARLOCK: { width: 1 },
             ARCACHE: { width: 4 },
             ARPROT: { width: 3 },
-            ARQOS: { width: 4 },
-            ARREGION: { width: 4 },
             ARVALID: { width: 1 },
             ARREADY: { width: 1 },
-            RID: { width: params.RID_WIDTH || 8 },
+            RID: { width: params.ID_WIDTH || 4 },
             RDATA: { width: params.DATA_WIDTH || 32 },
             RRESP: { width: 2 },
             RLAST: { width: 1 },
             RVALID: { width: 1 },
-            RREADY: { width: 1 },
-            AWUSER: { width: params.USER_WIDTH || 0 },
-            WUSER: { width: params.USER_WIDTH || 0 },
-            BUSER: { width: params.USER_WIDTH || 0 },
-            ARUSER: { width: params.USER_WIDTH || 0 },
-            RUSER: { width: params.USER_WIDTH || 0 }
+            RREADY: { width: 1 }
         };
+        if ((params.USER_WIDTH || 0) > 0) {
+            this.signals.AWUSER = { width: params.USER_WIDTH };
+            this.signals.WUSER = { width: params.USER_WIDTH };
+            this.signals.BUSER = { width: params.USER_WIDTH };
+            this.signals.ARUSER = { width: params.USER_WIDTH };
+            this.signals.RUSER = { width: params.USER_WIDTH };
+        }
         // Add ARQOS and AWQOS if QOS is true
-        if (params.QOS === 'true') {
+        if (params.QOS === 'withQOS') {
             this.signals.ARQOS = { width: 4 };
             this.signals.AWQOS = { width: 4 };
         }
+        if (params.REGION === 'withREGION') {
+            this.signals.ARREGION = { width: 4 };
+            this.signals.AWREGION = { width: 4 };
+        }
         this.modports = {
             outward: {
-                ACLK: 'input',
-                ACLKEN: 'input',
-                ARESETn: 'input',
                 AWID: 'output',
                 AWADDR: 'output',
                 AWLEN: 'output',
@@ -90,7 +83,6 @@ export class AXI4 extends Interface {
                 AWCACHE: 'output',
                 AWPROT: 'output',
                 AWQOS: 'output',
-                AWREGION: 'output',
                 AWVALID: 'output',
                 AWREADY: 'input',
                 WDATA: 'output',
@@ -111,7 +103,6 @@ export class AXI4 extends Interface {
                 ARCACHE: 'output',
                 ARPROT: 'output',
                 ARQOS: 'output',
-                ARREGION: 'output',
                 ARVALID: 'output',
                 ARREADY: 'input',
                 RID: 'input',
@@ -119,70 +110,35 @@ export class AXI4 extends Interface {
                 RRESP: 'input',
                 RLAST: 'input',
                 RVALID: 'input',
-                RREADY: 'output',
+                RREADY: 'output'
+            }
+        };
+        if ((params.USER_WIDTH || 0) > 0) {
+            this.modports.outward = {
+                ...this.modports.outward,
                 AWUSER: 'output',
                 WUSER: 'output',
                 BUSER: 'input',
                 ARUSER: 'output',
                 RUSER: 'input'
-            },
-            inward: {
-                ACLK: 'input',
-                ACLKEN: 'input',
-                ARESETn: 'input',
-                AWID: 'input',
-                AWADDR: 'input',
-                AWLEN: 'input',
-                AWSIZE: 'input',
-                AWBURST: 'input',
-                AWLOCK: 'input',
-                AWCACHE: 'input',
-                AWPROT: 'input',
-                AWQOS: 'input',
-                AWREGION: 'input',
-                AWVALID: 'input',
-                AWREADY: 'output',
-                WDATA: 'input',
-                WSTRB: 'input',
-                WLAST: 'input',
-                WVALID: 'input',
-                WREADY: 'output',
-                BID: 'output',
-                BRESP: 'output',
-                BVALID: 'output',
-                BREADY: 'input',
-                ARID: 'input',
-                ARADDR: 'input',
-                ARLEN: 'input',
-                ARSIZE: 'input',
-                ARBURST: 'input',
-                ARLOCK: 'input',
-                ARCACHE: 'input',
-                ARPROT: 'input',
-                ARQOS: 'input',
-                ARREGION: 'input',
-                ARVALID: 'input',
-                ARREADY: 'output',
-                RID: 'output',
-                RDATA: 'output',
-                RRESP: 'output',
-                RLAST: 'output',
-                RVALID: 'output',
-                RREADY: 'input',
-                AWUSER: 'input',
-                WUSER: 'input',
-                BUSER: 'output',
-                ARUSER: 'input',
-                RUSER: 'output'
-            }
-        };
-        // Add modports for QOS signals if QOS is true
-        if (params.QOS === 'true') {
-            this.modports.outward.ARQOS = 'output'; // input
-            this.modports.outward.AWQOS = 'output'; // input
-            this.modports.inward.ARQOS = 'input'; // output
-            this.modports.inward.AWQOS = 'input'; // output
+            };
         }
+        // Add modports for QOS signals if QOS is true
+        if (params.QOS === 'withQOS') {
+            this.modports.outward = {
+                ...this.modports.outward,
+                ARQOS: 'output',
+                AWQOS: 'output'
+            };
+        }
+        if (params.REGION === 'withREGION') {
+            this.modports.outward = {
+                ...this.modports.outward,
+                AWREGION: 'output',
+                ARREGION: 'output'
+            };
+        }
+        this.modports.inward = Object.fromEntries(Object.entries(this.modports.outward).map(([key, value]) => [key, (value === 'input') ? 'output' : 'input']));
     }
 }
 /**
