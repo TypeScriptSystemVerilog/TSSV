@@ -12,16 +12,16 @@ export class AXI4 extends Interface {
      */
     constructor(params = {}, role = undefined) {
         super('AXI4', {
+            DATA_WIDTH: params.DATA_WIDTH || 32,
+            ADDR_WIDTH: params.ADDR_WIDTH || 32,
             AWID_WIDTH: params.AWID_WIDTH || 4,
             WID_WIDTH: params.WID_WIDTH || 4,
             BID_WIDTH: params.BID_WIDTH || 4,
             ARID_WIDTH: params.ARID_WIDTH || 4,
             RID_WIDTH: params.RID_WIDTH || 4,
-            ADDR_WIDTH: params.ADDR_WIDTH || 32,
-            DATA_WIDTH: params.DATA_WIDTH || 32,
             USER_WIDTH: params.USER_WIDTH || 0,
             QOS: params.QOS || 'withQOS',
-            REGION: params.REGION || "noREGION"
+            REGION: params.REGION || 'noREGION'
         }, role);
         this.signals = {
             AWID: { width: params.AWID_WIDTH || 8 },

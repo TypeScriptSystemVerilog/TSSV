@@ -3,16 +3,14 @@ import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSS
  * Interface defining the parameters of the AXI4 TSSV Interface bundle
  */
 export interface AXI4_Parameters extends TSSVParameters {
+    DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024;
+    ADDR_WIDTH?: IntRange<16, 64>;
     AWID_WIDTH?: IntRange<1, 16>;
     WID_WIDTH?: IntRange<1, 16>;
     BID_WIDTH?: IntRange<1, 16>;
     ARID_WIDTH?: IntRange<1, 16>;
     RID_WIDTH?: IntRange<1, 16>;
-    ADDR_WIDTH?: IntRange<16, 64>;
-    DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024;
-    BURST_LEN_WIDTH?: IntRange<1, 16>;
     USER_WIDTH?: IntRange<0, 64>;
-    RESP_WIDTH?: IntRange<2, 4>;
     QOS?: 'withQOS' | 'noQOS';
     REGION?: 'withREGION' | 'noREGION';
 }

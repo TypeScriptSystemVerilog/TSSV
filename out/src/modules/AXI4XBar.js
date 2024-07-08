@@ -34,8 +34,8 @@ export class AXI4XBar extends TSSV.Module {
             console.log(`stdout: ${stdout}`);
         });
         const bindings = {
-            "clock": "clock",
-            "reset": "reset"
+            clock: 'clock',
+            reset: 'reset'
         };
         for (const m of this.params.masters) {
             const thisMaster = this.addInterface(m.name, new AXI4({

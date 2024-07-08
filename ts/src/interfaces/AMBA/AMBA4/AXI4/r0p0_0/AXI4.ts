@@ -4,6 +4,11 @@ import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSS
  * Interface defining the parameters of the AXI4 TSSV Interface bundle
  */
 export interface AXI4_Parameters extends TSSVParameters {
+
+  DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024
+
+  ADDR_WIDTH?: IntRange<16, 64>
+
   AWID_WIDTH?: IntRange<1, 16>
 
   WID_WIDTH?: IntRange<1, 16>
@@ -14,15 +19,7 @@ export interface AXI4_Parameters extends TSSVParameters {
 
   RID_WIDTH?: IntRange<1, 16>
 
-  ADDR_WIDTH?: IntRange<16, 64>
-
-  DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024
-
-  BURST_LEN_WIDTH?: IntRange<1, 16>
-
   USER_WIDTH?: IntRange<0, 64>
-
-  RESP_WIDTH?: IntRange<2, 4>
 
   QOS?: 'withQOS' | 'noQOS'
 
@@ -64,13 +61,13 @@ export class AXI4 extends Interface {
     super(
       'AXI4',
       {
+        DATA_WIDTH: params.DATA_WIDTH || 32,
+        ADDR_WIDTH: params.ADDR_WIDTH || 32,
         AWID_WIDTH: params.AWID_WIDTH || 4,
         WID_WIDTH: params.WID_WIDTH || 4,
         BID_WIDTH: params.BID_WIDTH || 4,
         ARID_WIDTH: params.ARID_WIDTH || 4,
         RID_WIDTH: params.RID_WIDTH || 4,
-        ADDR_WIDTH: params.ADDR_WIDTH || 32,
-        DATA_WIDTH: params.DATA_WIDTH || 32,
         USER_WIDTH: params.USER_WIDTH || 0,
         QOS: params.QOS || 'withQOS',
         REGION: params.REGION || 'noREGION'
