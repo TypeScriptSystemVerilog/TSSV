@@ -11,8 +11,8 @@ interface ParameterData {
     realName: string;
 }
 export interface IpXactComponent_Parameters extends TSSVParameters {
-    xmlData: string;
     svFilePath: string;
+    xmlDataPath: string;
 }
 export declare class IpXactComponent extends Module {
     params: IpXactComponent_Parameters;

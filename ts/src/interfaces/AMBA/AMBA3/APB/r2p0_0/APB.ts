@@ -1,60 +1,61 @@
-import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSSV'
+import { type TSSVParameters, type IntRange, Interface, type Signal, type Signals } from 'tssv/lib/core/TSSV'
 
 /**
- * Interface defining the parameters of the APB_rtl TSSV Interface bundle
+ * Interface defining the parameters of the APB TSSV Interface bundle
  */
-export interface APB_rtl_Parameters extends TSSVParameters {
-  /**
-   * Defines the bit width of the source identifier signal
-   */
-  AIW?: IntRange<1, 32>
-  /**
-   * Defines the bit width of the address signal
-   */
-  AW?: IntRange<8, 64>
-  /**
-   * Defines the bit width of the sink identifier signal
-   */
-  DIW?: IntRange<1, 32>
-  /**
-   * Defines the data bus width
-   */
-  DW?: 32 | 64
+export interface APB_Parameters extends TSSVParameters {
+  DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024
+
+  ADDR_WIDTH?: IntRange<16, 64>
 }
 
+export interface APB_Signals extends Signals {
+  PCLK: { width: 1 }
+  PRESETn: { width: 1 }
+  PADDR: Signal
+  PSELx: { width: 1 }
+  PENABLE: { width: 1 }
+  PWRITE: { width: 1 }
+  PRDATA: Signal
+  PWDATA: Signal
+  PREADY: { width: 1 }
+  PSLVERR: { width: 1 }
+  PCLKEN: { width: 1 }
+}
 /**
  * Defines the role of the Interface instance
  * master is used in module port interfaces that are transaction initiators
  * slave is used in module port interfaces that are transaction responders
  * leave role undefined to create just a bundle of interconnect wires
  */
-export type APB_rtl_Role = 'master' | 'slave' | undefined
+export type APB_Role = 'outward' | 'inward' | undefined
 
 /**
- * TSSV Interface bundle for the APB_rtl protocol
+ * TSSV Interface bundle for the APB protocol
  */
-export class APB_rtl extends Interface {
-  declare params: APB_rtl_Parameters
+export class APB extends Interface {
+  declare params: APB_Parameters
+  declare signals: APB_Signals
   /**
    * VLNV Metadata
    */
   static readonly VLNV = {
     vendor: 'amba.com',
     library: 'AMBA3',
-    name: 'APB_rtl',
+    name: 'APB',
     version: 'r2p0_0'
   }
 
   /**
-   * Create a new APB_rtl Interface bundle with either master or slave port interface
+   * Create a new APB Interface bundle with either master or slave port interface
    * or just a bundle of interconnect wires
    * @param params param value set
    * @param role sets the role of this instance to choose master or slave port interface
    * or just a bundle of interconnect wires
    */
-  constructor (params: APB_rtl_Parameters = {}, role: APB_rtl_Role = undefined) {
+  constructor (params: APB_Parameters = {}, role: APB_Role = undefined) {
     super(
-      'APB_rtl',
+      'APB',
       {
         AIW: params.AIW || 8,
         AW: params.AW || 32,
@@ -66,18 +67,18 @@ export class APB_rtl extends Interface {
     this.signals = {
       PCLK: { width: 1 },
       PRESETn: { width: 1 },
-      PADDR: { width: params.AW || 32 },
+      PADDR: { width: params.ADDR_WIDTH || 32 },
       PSELx: { width: 1 },
       PENABLE: { width: 1 },
       PWRITE: { width: 1 },
-      PRDATA: { width: params.DW || 32 },
-      PWDATA: { width: params.DW || 32 },
+      PRDATA: { width: params.DATA_WIDTH || 32 },
+      PWDATA: { width: params.DATA_WIDTH || 32 },
       PREADY: { width: 1 },
       PSLVERR: { width: 1 },
       PCLKEN: { width: 1 }
     }
     this.modports = {
-      master: {
+      outward: {
         PCLK: 'input',
         PRESETn: 'input',
         PADDR: 'output',
@@ -90,7 +91,7 @@ export class APB_rtl extends Interface {
         PSLVERR: 'input',
         PCLKEN: 'input'
       },
-      slave: {
+      inward: {
         PCLK: 'input',
         PRESETn: 'input',
         PADDR: 'input',

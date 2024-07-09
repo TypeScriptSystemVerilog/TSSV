@@ -1,6 +1,6 @@
 import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
-import * as fs from 'fs'
+// import * as fs from 'fs'
 import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
 import { FIR } from 'tssv/lib/modules/FIR'
 
@@ -305,13 +305,13 @@ try {
 
 // adding IpXactComponent
 
-const fileContent = fs.readFileSync(
-  '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
-  'utf-8')
+// const fileContent = fs.readFileSync(
+//   '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
+//   'utf-8')
 const subI_tb = new IpXactComponent(
   {
     name: 'newComponent',
-    xmlData: fileContent,
+    xmlDataPath: '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
     svFilePath: '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
   })
 
