@@ -1,4 +1,4 @@
-//import { renderWaveForm } from 'wavedrom'
+// import { renderWaveForm } from 'wavedrom'
 import * as typedoc from 'typedoc';
 function createHeadScript() {
     return String.raw `
@@ -37,12 +37,10 @@ export class WaveDromPlugin {
         context.project.getReflectionsByKind(typedoc.ReflectionKind.All).forEach(reflection => {
             if (reflection.comment) {
                 reflection.comment.getTags('@wavedrom').forEach(part => {
-                    console.log("WAVEDROM!!!!");
+                    console.log('WAVEDROM!!!!');
                     const p = part.content[0];
                     // Regex to match code blocks
                     const codeBlockRegex = /```(?:\w+)?\s*([\s\S]+?)\s*```/g;
-                    // Array to store matches
-                    const codeBlocks = [];
                     let match;
                     if (p?.text) {
                         if ((match = codeBlockRegex.exec(p.text)) !== null) {
