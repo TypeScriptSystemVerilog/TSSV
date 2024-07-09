@@ -23,8 +23,32 @@ export interface FIR_Parameters extends TSSV.TSSVParameters {
   rShift?: TSSV.IntRange<0, 32>
 }
 
+/**
+ * FIR Interface
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": "      en", "wave": "01.0.1.01."},
+ *     {"name": " data_in", "wave": "x34..56.78", "data": ["i0", "i1", "i2", "i3", "i4", "i5"]},
+ *     {"name": "data_out", "wave": "x.34..56.7", "data": ["o0", "o1", "o2", "o3", "o4", "o5"]}
+ *   ]
+ * }
+ * ```
+ */
+export interface FIR_Ports extends TSSV.IOSignals {
+  clk: { direction: 'input', isClock: 'posedge' }
+  rst_b: { direction: 'input', isReset: 'lowasync' }
+  en: { direction: 'input' }
+  data_in: { direction: 'input', width: number, isSigned: true }
+  data_out: { direction: 'output', width: number, isSigned: true }
+}
+
 export class FIR extends TSSV.Module {
   declare params: FIR_Parameters
+  declare IOs: FIR_Ports
   constructor (params: FIR_Parameters) {
     super({
       // define the default parameter values
@@ -40,8 +64,8 @@ export class FIR extends TSSV.Module {
       clk: { direction: 'input', isClock: 'posedge' },
       rst_b: { direction: 'input', isReset: 'lowasync' },
       en: { direction: 'input' },
-      data_in: { direction: 'input', width: this.params.inWidth, isSigned: true },
-      data_out: { direction: 'output', width: this.params.outWidth, isSigned: true }
+      data_in: { direction: 'input', width: this.params.inWidth || 8, isSigned: true },
+      data_out: { direction: 'output', width: this.params.outWidth || 9, isSigned: true }
     }
 
     // construct logic
