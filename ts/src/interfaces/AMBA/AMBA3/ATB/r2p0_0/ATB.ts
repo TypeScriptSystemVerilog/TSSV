@@ -1,25 +1,26 @@
-import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSSV'
+import { type TSSVParameters, type IntRange, Interface, type Signal, type Signals } from 'tssv/lib/core/TSSV'
 
 /**
- * Interface defining the parameters of the ATB_rtl TSSV Interface bundle
+ * Interface defining the parameters of the ATB TSSV Interface bundle
  */
-export interface ATB_rtl_Parameters extends TSSVParameters {
-  /**
-   * Defines the bit width of the source identifier signal
-   */
-  AIW?: IntRange<1, 32>
-  /**
-   * Defines the bit width of the address signal
-   */
-  AW?: IntRange<8, 64>
-  /**
-   * Defines the bit width of the sink identifier signal
-   */
-  DIW?: IntRange<1, 32>
-  /**
-   * Defines the data bus width
-   */
-  DW?: 32 | 64
+export interface ATB_Parameters extends TSSVParameters {
+
+  DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024
+
+  TRACE_DATA_WIDTH?: IntRange<4, 16>
+}
+
+export interface ATB_Signals extends Signals {
+  ATCLK: { width: 1 }
+  ATCLKEN: { width: 1 }
+  ATRESETn: { width: 1 }
+  ATBYTES: Signal
+  ATDATA: Signal
+  ATID: { width: 7 }
+  ATREADY: { width: 1 }
+  ATVALID: { width: 1 }
+  AFVALID: { width: 1 }
+  AFREADY: { width: 1 }
 }
 
 /**
@@ -28,38 +29,37 @@ export interface ATB_rtl_Parameters extends TSSVParameters {
  * slave is used in module port interfaces that are transaction responders
  * leave role undefined to create just a bundle of interconnect wires
  */
-export type ATB_rtl_Role = 'master' | 'slave' | undefined
+export type ATB_Role = 'outward' | 'inward' | undefined
 
 /**
- * TSSV Interface bundle for the ATB_rtl protocol
+ * TSSV Interface bundle for the ATB protocol
  */
-export class ATB_rtl extends Interface {
-  declare params: ATB_rtl_Parameters
+export class ATB extends Interface {
+  declare params: ATB_Parameters
+  declare signals: ATB_Signals
   /**
    * VLNV Metadata
    */
   static readonly VLNV = {
     vendor: 'amba.com',
     library: 'AMBA3',
-    name: 'ATB_rtl',
+    name: 'ATB',
     version: 'r2p0_0'
   }
 
   /**
-   * Create a new ATB_rtl Interface bundle with either master or slave port interface
+   * Create a new ATB Interface bundle with either master or slave port interface
    * or just a bundle of interconnect wires
    * @param params param value set
    * @param role sets the role of this instance to choose master or slave port interface
    * or just a bundle of interconnect wires
    */
-  constructor (params: ATB_rtl_Parameters = {}, role: ATB_rtl_Role = undefined) {
+  constructor (params: ATB_Parameters = {}, role: ATB_Role = undefined) {
     super(
-      'ATB_rtl',
+      'ATB',
       {
-        AIW: params.AIW || 8,
-        AW: params.AW || 32,
-        DIW: params.DIW || 8,
-        DW: params.DW || 32
+        DATA_WIDTH: params.DATA_WIDTH || 32,
+        TRACE_DATA_WIDTH: params.TRACE_DATA_WIDTH || 4
       },
       role
     )
@@ -67,8 +67,8 @@ export class ATB_rtl extends Interface {
       ATCLK: { width: 1 },
       ATCLKEN: { width: 1 },
       ATRESETn: { width: 1 },
-      ATBYTES: { width: params.DIW || 8 },
-      ATDATA: { width: params.DW || 32 },
+      ATBYTES: { width: params.TRACE_DATA_WIDTH || 4 },
+      ATDATA: { width: params.DATA_WIDTH || 32 },
       ATID: { width: 7 },
       ATREADY: { width: 1 },
       ATVALID: { width: 1 },

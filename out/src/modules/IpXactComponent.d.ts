@@ -11,17 +11,17 @@ interface ParameterData {
     realName: string;
 }
 export interface IpXactComponent_Parameters extends TSSVParameters {
-    xmlData: string;
     svFilePath: string;
+    xmlDataPath: string;
 }
 export declare class IpXactComponent extends Module {
     params: IpXactComponent_Parameters;
     static knownInterfaces: Record<string, any>;
     constructor(params: IpXactComponent_Parameters);
-    addSystemVerilogSubmoduleWithBindings(componentDataRecord: Record<string, ComponentData>): Module;
+    protected addSystemVerilogSubmoduleWithBindings(componentDataRecord: Record<string, ComponentData>): Module;
     private extractInputSignalsFromVerilog;
-    createDictionary(xmlData: string): Record<string, ComponentData>;
-    addInterfaces(interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void;
-    parseParameters(xmlInput: string): Record<string, Record<string, ParameterData>>;
+    protected createDictionary(xmlData: string): Record<string, ComponentData>;
+    protected addInterfaces(interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void;
+    protected parseParameters(xmlInput: string): Record<string, Record<string, ParameterData>>;
 }
 export default IpXactComponent;

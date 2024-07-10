@@ -6,42 +6,17 @@ export class IpXactComponent extends Module {
     constructor(params) {
         super({
             name: params.name,
-            coefficients: params.coefficients,
-            inWidth: params.inWidth || 8,
-            outWidth: params.outWidth || 9,
-            rShift: params.rShift || 2
+            xmlDataPath: params.xmlDataPath,
+            svFilePath: params.svFilePath
         });
-        const interfaceData = this.createDictionary(params.xmlData);
-        console.log(interfaceData);
-        const paramData = this.parseParameters(params.xmlData);
-        // console.log(paramData)
+        const xmlData = fs.readFileSync(params.xmlDataPath, 'utf-8');
+        const interfaceData = this.createDictionary(xmlData);
+        const paramData = this.parseParameters(xmlData);
         this.addInterfaces(interfaceData, paramData);
         this.addSystemVerilogSubmoduleWithBindings(interfaceData);
     }
-    // addSystemVerilogSubmoduleWithBindings (
-    //   componentDataRecord: Record<string, ComponentData>
-    // ): Module {
-    //   let SVFilePath = this.params.svFilePath
-    //   if (!SVFilePath) {
-    //     SVFilePath = '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
-    //   }
-    //   const vModuleName = `verilog${this.params.name}`
-    //   const bindings: Record<string, string> = {}
-    //   // Iterate through each component and build the bindings
-    //   for (const [interfaceName, componentData] of Object.entries(componentDataRecord)) {
-    //     for (const [logicalPort, physicalPort] of Object.entries(componentData.ports)) {
-    //       bindings[physicalPort] = `${interfaceName}.${logicalPort}`
-    //     }
-    //   }
-    //   // bindings
-    //   console.log(bindings)
-    //   return this.addSystemVerilogSubmodule(vModuleName, SVFilePath, {}, bindings, true)
-    // }
     addSystemVerilogSubmoduleWithBindings(componentDataRecord) {
-        let SVFilePath = this.params.svFilePath;
-        if (!SVFilePath) {
-            SVFilePath = '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v';
-        }
+        const SVFilePath = this.params.svFilePath;
         const vModuleName = `verilog${this.params.name}`;
         const bindings = {};
         // Iterate through each component and build the bindings
@@ -63,7 +38,6 @@ export class IpXactComponent extends Module {
                 bindings[signal] = 'unbound'; // Bind to constant value of 0
             }
         });
-        // console.log(bindings)
         return this.addSystemVerilogSubmodule(vModuleName, SVFilePath, {}, bindings, true);
     }
     // Helper method to extract input signals from a Verilog file
@@ -124,101 +98,57 @@ export class IpXactComponent extends Module {
         }
         return result;
     }
-    // addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
+    // protected addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
     //   for (const interfaceName in interfaceData) {
     //     const component = interfaceData[interfaceName]
-    //     const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.abstractionName}`
+    //     // const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.abstractionName}`
+    //     const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.busName}`
     //     const InterfaceModule = IpXactComponent.knownInterfaces[pathString]
     //     if (InterfaceModule) {
-    //       if (interfaceName.startsWith('Init')) {
-    //         if (pathString.includes('AXI')) {
-    //           // Extract AXI parameters if available
-    //           const axiParams = parameterData[interfaceName]
-    //           const {
-    //             AWID_WIDTH,
-    //             WID_WIDTH,
-    //             BID_WIDTH,
-    //             ARID_WIDTH,
-    //             RID_WIDTH,
-    //             ADDR_WIDTH,
-    //             DATA_WIDTH,
-    //             BURST_LEN_WIDTH,
-    //             USER_WIDTH,
-    //             RESP_WIDTH
-    //           } = axiParams || {}
-    //           // Check if any AXI parameters are defined and create the parameter object
-    //           const axiParamObject = {
-    //             AWID_WIDTH: AWID_WIDTH?.value,
-    //             WID_WIDTH: WID_WIDTH?.value,
-    //             BID_WIDTH: BID_WIDTH?.value,
-    //             ARID_WIDTH: ARID_WIDTH?.value,
-    //             RID_WIDTH: RID_WIDTH?.value,
-    //             ADDR_WIDTH: ADDR_WIDTH?.value,
-    //             DATA_WIDTH: DATA_WIDTH?.value,
-    //             BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
-    //             USER_WIDTH: USER_WIDTH?.value,
-    //             RESP_WIDTH: RESP_WIDTH?.value
-    //           }
-    //           // Remove undefined properties
-    //           // Object.keys(axiParamObject).forEach(key => axiParamObject[key] === undefined && delete axiParamObject[key])
-    //           Object.entries(axiParamObject).forEach(([key, value]) => {
-    //             if (value === undefined) {
-    //               // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    //               delete axiParamObject[key as keyof typeof axiParamObject]
-    //             }
-    //           })
-    //           // Add AXI interface with parameters
-    //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //           this.addInterface(interfaceName, new InterfaceModule(axiParamObject, 'outward'))
-    //         } else {
-    //           // Add non-AXI interface
-    //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //           this.addInterface(interfaceName, new InterfaceModule({}, 'outward'))
+    //       const isAXI = pathString.includes('AXI')
+    //       const isOutward = interfaceName.startsWith('Init')
+    //       const isInward = interfaceName.toLowerCase().startsWith('targ')
+    //       if (isOutward || isInward) {
+    //         const axiParams = parameterData[interfaceName]
+    //         const {
+    //           AWID_WIDTH,
+    //           WID_WIDTH,
+    //           BID_WIDTH,
+    //           ARID_WIDTH,
+    //           RID_WIDTH,
+    //           ADDR_WIDTH,
+    //           DATA_WIDTH,
+    //           BURST_LEN_WIDTH,
+    //           USER_WIDTH,
+    //           RESP_WIDTH
+    //         } = axiParams || {}
+    //         const axiParamObject: Record<string, string | undefined> = {
+    //           AWID_WIDTH: AWID_WIDTH?.value,
+    //           WID_WIDTH: WID_WIDTH?.value,
+    //           BID_WIDTH: BID_WIDTH?.value,
+    //           ARID_WIDTH: ARID_WIDTH?.value,
+    //           RID_WIDTH: RID_WIDTH?.value,
+    //           ADDR_WIDTH: ADDR_WIDTH?.value,
+    //           DATA_WIDTH: DATA_WIDTH?.value,
+    //           BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
+    //           USER_WIDTH: USER_WIDTH?.value,
+    //           RESP_WIDTH: RESP_WIDTH?.value
     //         }
-    //       } else if (interfaceName.toLowerCase().startsWith('targ')) {
-    //         if (pathString.includes('AXI')) {
-    //           // Extract AXI parameters if available
-    //           const axiParams = parameterData[interfaceName]
-    //           const {
-    //             AWID_WIDTH,
-    //             WID_WIDTH,
-    //             BID_WIDTH,
-    //             ARID_WIDTH,
-    //             RID_WIDTH,
-    //             ADDR_WIDTH,
-    //             DATA_WIDTH,
-    //             BURST_LEN_WIDTH,
-    //             USER_WIDTH,
-    //             RESP_WIDTH
-    //           } = axiParams || {}
-    //           // Check if any AXI parameters are defined and create the parameter object
-    //           const axiParamObject = {
-    //             AWID_WIDTH: AWID_WIDTH?.value,
-    //             WID_WIDTH: WID_WIDTH?.value,
-    //             BID_WIDTH: BID_WIDTH?.value,
-    //             ARID_WIDTH: ARID_WIDTH?.value,
-    //             RID_WIDTH: RID_WIDTH?.value,
-    //             ADDR_WIDTH: ADDR_WIDTH?.value,
-    //             DATA_WIDTH: DATA_WIDTH?.value,
-    //             BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
-    //             USER_WIDTH: USER_WIDTH?.value,
-    //             RESP_WIDTH: RESP_WIDTH?.value
+    //         // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
+    //         const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'withQOS' : 'noQOS'
+    //         axiParamObject.QOS = qosParameter
+    //         // Remove undefined properties
+    //         Object.entries(axiParamObject).forEach(([key, value]) => {
+    //           if (value === undefined) {
+    //             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    //             delete axiParamObject[key]
     //           }
-    //           // Remove undefined properties
-    //           Object.entries(axiParamObject).forEach(([key, value]) => {
-    //             if (value === undefined) {
-    //               // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    //               delete axiParamObject[key as keyof typeof axiParamObject]
-    //             }
-    //           })
-    //           // Add AXI interface with parameters
-    //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //           this.addInterface(interfaceName, new InterfaceModule(axiParamObject, 'inward'))
-    //         } else {
-    //           // Add non-AXI interface
-    //           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //           this.addInterface(interfaceName, new InterfaceModule({}, 'inward'))
-    //         }
+    //         })
+    //         // switched directions
+    //         const direction = isOutward ? 'inward' : 'outward'
+    //         // Add AXI or non-AXI interface with parameters
+    //         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    //         this.addInterface(interfaceName, new InterfaceModule(isAXI ? axiParamObject : {}, direction))
     //       } else {
     //         console.warn(`Interface name ${interfaceName} does not indicate outward or inward.`)
     //       }
@@ -230,7 +160,7 @@ export class IpXactComponent extends Module {
     addInterfaces(interfaceData, parameterData) {
         for (const interfaceName in interfaceData) {
             const component = interfaceData[interfaceName];
-            const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.abstractionName}`;
+            const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.busName}`;
             const InterfaceModule = IpXactComponent.knownInterfaces[pathString];
             if (InterfaceModule) {
                 const isAXI = pathString.includes('AXI');
@@ -238,30 +168,27 @@ export class IpXactComponent extends Module {
                 const isInward = interfaceName.toLowerCase().startsWith('targ');
                 if (isOutward || isInward) {
                     const axiParams = parameterData[interfaceName];
-                    const { AWID_WIDTH, WID_WIDTH, BID_WIDTH, ARID_WIDTH, RID_WIDTH, ADDR_WIDTH, DATA_WIDTH, BURST_LEN_WIDTH, USER_WIDTH, RESP_WIDTH } = axiParams || {};
-                    const axiParamObject = {
-                        AWID_WIDTH: AWID_WIDTH?.value,
-                        WID_WIDTH: WID_WIDTH?.value,
-                        BID_WIDTH: BID_WIDTH?.value,
-                        ARID_WIDTH: ARID_WIDTH?.value,
-                        RID_WIDTH: RID_WIDTH?.value,
-                        ADDR_WIDTH: ADDR_WIDTH?.value,
-                        DATA_WIDTH: DATA_WIDTH?.value,
-                        BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
-                        USER_WIDTH: USER_WIDTH?.value,
-                        RESP_WIDTH: RESP_WIDTH?.value
-                    };
-                    // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
-                    const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'true' : 'false';
-                    axiParamObject.QOS = qosParameter;
-                    // Remove undefined properties
-                    Object.entries(axiParamObject).forEach(([key, value]) => {
-                        if (value === undefined) {
-                            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                            delete axiParamObject[key];
+                    const axiParamObject = {};
+                    if (axiParams) {
+                        for (const [paramName, paramData] of Object.entries(axiParams)) {
+                            let transformedParamName = transformParameterName(paramName);
+                            if (transformedParamName.endsWith('USER_WIDTH')) {
+                                transformedParamName = 'USER_WIDTH';
+                            }
+                            axiParamObject[transformedParamName] = paramData.value;
                         }
-                    });
-                    // const direction = isOutward ? 'outward' : 'inward'
+                        // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
+                        const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'withQOS' : 'noQOS';
+                        axiParamObject.QOS = qosParameter;
+                        // Remove undefined properties
+                        Object.entries(axiParamObject).forEach(([key, value]) => {
+                            if (value === undefined) {
+                                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                                delete axiParamObject[key];
+                            }
+                        });
+                    }
+                    // Switched directions
                     const direction = isOutward ? 'inward' : 'outward';
                     // Add AXI or non-AXI interface with parameters
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -303,13 +230,13 @@ export class IpXactComponent extends Module {
     }
 }
 IpXactComponent.knownInterfaces = {
-    'tssv/lib/interfaces/AMBA/AMBA2/AHB/r3p0_1/AHB_rtl': amba.AHB_rtl,
-    'tssv/lib/interfaces/AMBA/AMBA3/AHBLite/r2p0_0/AHBLite_rtl': amba.AHBLite_rtl,
-    'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteInitiator/r2p0_0/AHBLiteInitiator_rtl': amba.AHBLiteInitiator_rtl,
-    'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteTarget/r2p0_0/AHBLiteTarget_rtl': amba.AHBLiteTarget_rtl,
-    'tssv/lib/interfaces/AMBA/AMBA3/APB/r2p0_0/APB_rtl': amba.APB_rtl,
-    'tssv/lib/interfaces/AMBA/AMBA3/ATB/r2p0_0/ATB_rtl': amba.ATB_rtl,
-    'tssv/lib/interfaces/AMBA/AMBA3/AXI/r2p0_0/AXI_rtl': amba.AXI_rtl,
+    'tssv/lib/interfaces/AMBA/AMBA2/AHB/r3p0_1/AHB': amba.AHB,
+    'tssv/lib/interfaces/AMBA/AMBA3/AHBLite/r2p0_0/AHBLite': amba.AHBLite,
+    'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteInitiator/r2p0_0/AHBLiteInitiator': amba.AHBLiteInitiator,
+    'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteTarget/r2p0_0/AHBLiteTarget': amba.AHBLiteTarget,
+    'tssv/lib/interfaces/AMBA/AMBA3/APB/r2p0_0/APB': amba.APB,
+    'tssv/lib/interfaces/AMBA/AMBA3/ATB/r2p0_0/ATB': amba.ATB,
+    'tssv/lib/interfaces/AMBA/AMBA3/AXI/r2p0_0/AXI': amba.AXI,
     'tssv/lib/interfaces/AMBA/AMBA3/AXI_RO/r2p0_0/AXI_RO_rtl': amba.AXI_RO_rtl,
     'tssv/lib/interfaces/AMBA/AMBA3/AXI_WO/r2p0_0/AXI_WO_rtl': amba.AXI_WO_rtl,
     'tssv/lib/interfaces/AMBA/AMBA3/LPI/r2p0_0/LPI_rtl': amba.LPI_rtl,

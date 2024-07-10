@@ -1,11 +1,11 @@
 // Auto_generated index file
-export { AHB_rtl } from 'tssv/lib/interfaces/AMBA/AMBA2/AHB/r3p0_1/AHB_rtl';
-export { AHBLite_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AHBLite/r2p0_0/AHBLite_rtl';
-export { AHBLiteInitiator_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteInitiator/r2p0_0/AHBLiteInitiator_rtl';
-export { AHBLiteTarget_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteTarget/r2p0_0/AHBLiteTarget_rtl';
-export { APB_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/APB/r2p0_0/APB_rtl';
-export { ATB_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/ATB/r2p0_0/ATB_rtl'; //
-export { AXI_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AXI/r2p0_0/AXI_rtl';
+export { AHB } from 'tssv/lib/interfaces/AMBA/AMBA2/AHB/r3p0_1/AHB';
+export { AHBLite } from 'tssv/lib/interfaces/AMBA/AMBA3/AHBLite/r2p0_0/AHBLite';
+export { AHBLiteInitiator } from 'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteInitiator/r2p0_0/AHBLiteInitiator';
+export { AHBLiteTarget } from 'tssv/lib/interfaces/AMBA/AMBA3/AHBLiteTarget/r2p0_0/AHBLiteTarget';
+export { APB } from 'tssv/lib/interfaces/AMBA/AMBA3/APB/r2p0_0/APB';
+export { ATB } from 'tssv/lib/interfaces/AMBA/AMBA3/ATB/r2p0_0/ATB'; //
+export { AXI } from 'tssv/lib/interfaces/AMBA/AMBA3/AXI/r2p0_0/AXI';
 export { AXI_RO_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AXI_RO/r2p0_0/AXI_RO_rtl';
 export { AXI_WO_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/AXI_WO/r2p0_0/AXI_WO_rtl';
 export { LPI_rtl } from 'tssv/lib/interfaces/AMBA/AMBA3/LPI/r2p0_0/LPI_rtl';

@@ -3,13 +3,13 @@
     // verilator lint_off UNUSED
     
 
-interface AXI_rtl_4_4_4_4_4_32_32_0;
+interface AXI_4_53_1024_8_withQOS_noREGION;
 
    logic  ACLK;
    logic  ACLKEN;
    logic  ARESETn;
-   logic [3:0] AWID;
-   logic [31:0] AWADDR;
+   logic [7:0] AWID;
+   logic [52:0] AWADDR;
    logic [3:0] AWLEN;
    logic [2:0] AWSIZE;
    logic [1:0] AWBURST;
@@ -19,8 +19,8 @@ interface AXI_rtl_4_4_4_4_4_32_32_0;
    logic  AWVALID;
    logic  AWREADY;
    logic [7:0] WID;
-   logic [31:0] WDATA;
-   logic [3:0] WSTRB;
+   logic [1023:0] WDATA;
+   logic [127:0] WSTRB;
    logic  WLAST;
    logic  WVALID;
    logic  WREADY;
@@ -29,7 +29,7 @@ interface AXI_rtl_4_4_4_4_4_32_32_0;
    logic  BVALID;
    logic  BREADY;
    logic [7:0] ARID;
-   logic [31:0] ARADDR;
+   logic [52:0] ARADDR;
    logic [3:0] ARLEN;
    logic [2:0] ARSIZE;
    logic [1:0] ARBURST;
@@ -39,54 +39,16 @@ interface AXI_rtl_4_4_4_4_4_32_32_0;
    logic  ARVALID;
    logic  ARREADY;
    logic [7:0] RID;
-   logic [31:0] RDATA;
+   logic [1023:0] RDATA;
    logic [1:0] RRESP;
    logic  RLAST;
    logic  RVALID;
    logic  RREADY;
-   logic  AWUSER;
-   logic  WUSER;
-   logic  BUSER;
-   logic  ARUSER;
-   logic  RUSER;
-   logic  ACLKCHK;
-   logic  ACLKENCHK;
-   logic  ARESETnCHK;
-   logic [7:0] AWIDCHK;
-   logic [7:0] AWADDRCHK;
-   logic [7:0] AWLENCHK;
-   logic  AWVALIDCHK;
-   logic  AWREADYCHK;
-   logic [7:0] WIDCHK;
-   logic [7:0] WDATACHK;
-   logic [3:0] WSTRBCHK;
-   logic  WLASTCHK;
-   logic  WVALIDCHK;
-   logic  WREADYCHK;
-   logic [7:0] BIDCHK;
-   logic [1:0] BRESPCHK;
-   logic  BVALIDCHK;
-   logic  BREADYCHK;
-   logic [7:0] ARIDCHK;
-   logic [7:0] ARADDRCHK;
-   logic [7:0] ARLENCHK;
-   logic  ARVALIDCHK;
-   logic  ARREADYCHK;
-   logic [7:0] RIDCHK;
-   logic [7:0] RDATACHK;
-   logic [7:0] RRESPCHK;
-   logic  RLASTCHK;
-   logic  RVALIDCHK;
-   logic  RREADYCHK;
-   logic  AWUSERCHK;
-   logic  WUSERCHK;
-   logic  BUSERCHK;
-   logic  ARUSERCHK;
-   logic  RUSERCHK;
-   logic  AWCTLCHK0;
-   logic  AWCTLCHK1;
-   logic  ARCTLCHK0;
-   logic  ARCTLCHK1;
+   logic [7:0] AWUSER;
+   logic [7:0] WUSER;
+   logic [7:0] BUSER;
+   logic [7:0] ARUSER;
+   logic [7:0] RUSER;
    logic [3:0] ARQOS;
    logic [3:0] AWQOS;
 
@@ -136,52 +98,14 @@ interface AXI_rtl_4_4_4_4_4_32_32_0;
       input BUSER,
       output ARUSER,
       input RUSER,
-      input ACLKCHK,
-      input ACLKENCHK,
-      input ARESETnCHK,
-      output AWIDCHK,
-      output AWADDRCHK,
-      output AWLENCHK,
-      output AWVALIDCHK,
-      input AWREADYCHK,
-      output WIDCHK,
-      output WDATACHK,
-      output WSTRBCHK,
-      output WLASTCHK,
-      output WVALIDCHK,
-      input WREADYCHK,
-      input BIDCHK,
-      input BRESPCHK,
-      input BVALIDCHK,
-      output BREADYCHK,
-      output ARIDCHK,
-      output ARADDRCHK,
-      output ARLENCHK,
-      output ARVALIDCHK,
-      input ARREADYCHK,
-      input RIDCHK,
-      input RDATACHK,
-      input RRESPCHK,
-      input RLASTCHK,
-      input RVALIDCHK,
-      output RREADYCHK,
-      output AWUSERCHK,
-      output WUSERCHK,
-      input BUSERCHK,
-      output ARUSERCHK,
-      input RUSERCHK,
-      output AWCTLCHK0,
-      output AWCTLCHK1,
-      output ARCTLCHK0,
-      output ARCTLCHK1,
       output ARQOS,
       output AWQOS
     );           
 
     modport inward (
-      input ACLK,
-      input ACLKEN,
-      input ARESETn,
+      output ACLK,
+      output ACLKEN,
+      output ARESETn,
       input AWID,
       input AWADDR,
       input AWLEN,
@@ -223,44 +147,6 @@ interface AXI_rtl_4_4_4_4_4_32_32_0;
       output BUSER,
       input ARUSER,
       output RUSER,
-      input ACLKCHK,
-      input ACLKENCHK,
-      input ARESETnCHK,
-      input AWIDCHK,
-      input AWADDRCHK,
-      input AWLENCHK,
-      input AWVALIDCHK,
-      output AWREADYCHK,
-      input WIDCHK,
-      input WDATACHK,
-      input WSTRBCHK,
-      input WLASTCHK,
-      input WVALIDCHK,
-      output WREADYCHK,
-      output BIDCHK,
-      output BRESPCHK,
-      output BVALIDCHK,
-      input BREADYCHK,
-      input ARIDCHK,
-      input ARADDRCHK,
-      input ARLENCHK,
-      input ARVALIDCHK,
-      output ARREADYCHK,
-      output RIDCHK,
-      output RDATACHK,
-      output RRESPCHK,
-      output RLASTCHK,
-      output RVALIDCHK,
-      input RREADYCHK,
-      input AWUSERCHK,
-      input WUSERCHK,
-      output BUSERCHK,
-      input ARUSERCHK,
-      output RUSERCHK,
-      input AWCTLCHK0,
-      input AWCTLCHK1,
-      input ARCTLCHK0,
-      input ARCTLCHK1,
       input ARQOS,
       input AWQOS
     );           
@@ -2324,30 +2210,30 @@ endmodule
 /* verilator lint_off WIDTH */        
 module newComponent 
    (
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init11,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init7,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init6,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init5,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init4,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init3,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init2,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init1,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init0,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init9,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init8,
-   AXI_rtl_4_4_4_4_4_32_32_0.inward Init10,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ9,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ8,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ5,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ4,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ7,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ6,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ1,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ0,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ3,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ2,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ11,
-   AXI_rtl_4_4_4_4_4_32_32_0.outward Targ10
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init11,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init7,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init6,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init5,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init4,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init3,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init2,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init1,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init0,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init9,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init8,
+   AXI_4_53_1024_8_withQOS_noREGION.inward Init10,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ9,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ8,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ5,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ4,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ7,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ6,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ1,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ0,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ3,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ2,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ11,
+   AXI_4_53_1024_8_withQOS_noREGION.outward Targ10
    );
 
    logic  unbound;
