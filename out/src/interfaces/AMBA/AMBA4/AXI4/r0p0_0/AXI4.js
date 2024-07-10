@@ -57,11 +57,11 @@ export class AXI4 extends Interface {
             RREADY: { width: 1 }
         };
         if ((params.USER_WIDTH || 0) > 0) {
-            this.signals.AWUSER = { width: params.USER_WIDTH };
-            this.signals.WUSER = { width: params.USER_WIDTH };
-            this.signals.BUSER = { width: params.USER_WIDTH };
-            this.signals.ARUSER = { width: params.USER_WIDTH };
-            this.signals.RUSER = { width: params.USER_WIDTH };
+            this.signals.AWUSER = { width: params.USER_WIDTH || 1 };
+            this.signals.WUSER = { width: params.USER_WIDTH || 1 };
+            this.signals.BUSER = { width: params.USER_WIDTH || 1 };
+            this.signals.ARUSER = { width: params.USER_WIDTH || 1 };
+            this.signals.RUSER = { width: params.USER_WIDTH || 1 };
         }
         // Add ARQOS and AWQOS if QOS is true
         if (params.QOS === 'withQOS') {

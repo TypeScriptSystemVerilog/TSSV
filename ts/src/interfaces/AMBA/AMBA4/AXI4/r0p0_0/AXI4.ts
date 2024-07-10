@@ -1,4 +1,4 @@
-import { type TSSVParameters, type IntRange, Interface, type Signal, type Signals } from 'tssv/lib/core/TSSV'
+import { type TSSVParameters, type IntRange, Interface, type Signals } from 'tssv/lib/core/TSSV'
 
 /**
  * Interface defining the parameters of the AXI4 TSSV Interface bundle
@@ -20,8 +20,8 @@ export interface AXI4_Parameters extends TSSVParameters {
 }
 
 export interface AXI4_Signals extends Signals {
-  AWID: Signal
-  AWADDR: Signal
+  AWID: { width: number }
+  AWADDR: { width: number }
   AWLEN: { width: 8 }
   AWSIZE: { width: 3 }
   AWBURST: { width: 2 }
@@ -30,17 +30,25 @@ export interface AXI4_Signals extends Signals {
   AWPROT: { width: 3 }
   AWVALID: { width: 1 }
   AWREADY: { width: 1 }
-  WDATA: Signal
-  WSTRB: Signal
+  AWUSER?: { width: number }
+  AWQOS?: { width: 4 }
+  AWREGION?: { width: 4 }
+
+  WDATA: { width: number }
+  WSTRB: { width: number }
   WLAST: { width: 1 }
   WVALID: { width: 1 }
   WREADY: { width: 1 }
-  BID: Signal
+  WUSER?: { width: number }
+
+  BID: { width: number }
   BRESP: { width: 2 }
   BVALID: { width: 1 }
   BREADY: { width: 1 }
-  ARID: Signal
-  ARADDR: Signal
+  BUSER?: { width: number }
+
+  ARID: { width: number }
+  ARADDR: { width: number }
   ARLEN: { width: 8 }
   ARSIZE: { width: 3 }
   ARBURST: { width: 2 }
@@ -49,12 +57,17 @@ export interface AXI4_Signals extends Signals {
   ARPROT: { width: 3 }
   ARVALID: { width: 1 }
   ARREADY: { width: 1 }
-  RID: Signal
-  RDATA: Signal
+  ARUSER?: { width: number }
+  ARREGION?: { width: 4 }
+
+  RID: { width: number }
+  RDATA: { width: number }
   RRESP: { width: 2 }
   RLAST: { width: 1 }
   RVALID: { width: 1 }
   RREADY: { width: 1 }
+  RUSER?: { width: number }
+  RQOS?: { width: 4 }
 
 }
 
@@ -140,11 +153,11 @@ export class AXI4 extends Interface {
       RREADY: { width: 1 }
     }
     if ((params.USER_WIDTH || 0) > 0) {
-      this.signals.AWUSER = { width: params.USER_WIDTH }
-      this.signals.WUSER = { width: params.USER_WIDTH }
-      this.signals.BUSER = { width: params.USER_WIDTH }
-      this.signals.ARUSER = { width: params.USER_WIDTH }
-      this.signals.RUSER = { width: params.USER_WIDTH }
+      this.signals.AWUSER = { width: params.USER_WIDTH || 1 }
+      this.signals.WUSER = { width: params.USER_WIDTH || 1 }
+      this.signals.BUSER = { width: params.USER_WIDTH || 1 }
+      this.signals.ARUSER = { width: params.USER_WIDTH || 1 }
+      this.signals.RUSER = { width: params.USER_WIDTH || 1 }
     }
     // Add ARQOS and AWQOS if QOS is true
     if (params.QOS === 'withQOS') {
@@ -230,3 +243,10 @@ export class AXI4 extends Interface {
         [key, (value === 'input') ? 'output' : 'input']))
   }
 }
+
+type IncludeValues<T, K extends keyof T, V> = {
+  [P in keyof T]: P extends K ? Extract<T[P], V> : T[P];
+}
+
+export type AXI4_inward = IncludeValues<AXI4, 'role', 'inward'>
+export type AXI4_outward = IncludeValues<AXI4, 'role', 'outward'>

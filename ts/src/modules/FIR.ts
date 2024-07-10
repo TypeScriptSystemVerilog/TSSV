@@ -1,5 +1,6 @@
 import TSSV from 'tssv/lib/core/TSSV'
 
+type inWidthType = TSSV.IntRange<1, 32>
 /**
  * configuration parameters of the FIR module
  */
@@ -11,7 +12,7 @@ export interface FIR_Parameters extends TSSV.TSSVParameters {
   /**
      * bit width of the FIR input data
      */
-  inWidth?: TSSV.IntRange<1, 32>
+  inWidth?: inWidthType
   /**
      * bit width of the FIR output data
      * @remarks result will be saturated or ign extended as needed
@@ -42,7 +43,7 @@ export interface FIR_Ports extends TSSV.IOSignals {
   clk: { direction: 'input', isClock: 'posedge' }
   rst_b: { direction: 'input', isReset: 'lowasync' }
   en: { direction: 'input' }
-  data_in: { direction: 'input', width: number, isSigned: true }
+  data_in: { direction: 'input', width: inWidthType, isSigned: true }
   data_out: { direction: 'output', width: number, isSigned: true }
 }
 

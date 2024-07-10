@@ -67,7 +67,7 @@ export declare class Expr {
 export interface Signal extends baseSignal {
     value?: bigint | bigint[];
 }
-export type Signals = Record<string, Signal>;
+export type Signals = Record<string, Signal | undefined>;
 interface OperationIO {
     a: string | Sig | bigint;
     b: string | Sig | bigint;
@@ -97,6 +97,7 @@ export declare class Interface {
     interfaceName(): string;
     writeSystemVerilog(): string;
 }
+export type Interfaces = Record<string, Interface>;
 /**
 * The Module class is the base class for all TSSV modules.
 */
@@ -112,7 +113,7 @@ export declare class Module {
         module: Module;
         bindings: Record<string, string | Sig | bigint>;
     }>;
-    protected interfaces: Record<string, Interface>;
+    protected interfaces: Interfaces;
     /**
        * base constructor
        * @param params parameter value bundle

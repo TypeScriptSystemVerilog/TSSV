@@ -304,7 +304,7 @@ try {
 }
 
 // adding IpXactComponent
-
+/*
 // const fileContent = fs.readFileSync(
 //   '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
 //   'utf-8')
@@ -326,3 +326,4 @@ try {
 } catch (err) {
   console.error(err)
 }
+*/

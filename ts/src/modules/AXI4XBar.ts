@@ -1,7 +1,7 @@
 import TSSV from 'tssv/lib/core/TSSV'
 import { inspect } from 'util'
 import { exec } from 'child_process'
-import { AXI4 } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4'
+import { AXI4, type AXI4_inward, type AXI4_outward } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4'
 
 import * as fs from 'fs'
 import * as os from 'os'
@@ -35,8 +35,17 @@ export interface AXI4XBarParams extends TSSV.TSSVParameters {
   }>
 }
 
+export interface AXI4XBarPorts extends TSSV.IOSignals {
+  clock: { direction: 'input', isClock: 'posedge' }
+  reset: { direction: 'input', isReset: 'highsync' }
+}
+
+export type AXI4XBarInterfaces = Record<string, AXI4_inward | AXI4_outward>
+
 export class AXI4XBar extends TSSV.Module {
   declare params: AXI4XBarParams
+  declare IOs: AXI4XBarPorts
+  declare interfaces: AXI4XBarInterfaces
   constructor (params: AXI4XBarParams) {
     super(params)
 
