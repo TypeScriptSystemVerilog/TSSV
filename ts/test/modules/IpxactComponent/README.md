@@ -25,9 +25,9 @@ const component = new IpXactComponent(
 
 Here the parameters are seen passed in being the name, XML file path, and SystemVerilog file path.
 
-In the example above [this](/ts/test/modules/IpxactComponent/axiSample.xml) is the XML file which defines the struture of the interface and the parameters which decide which ports will be present on the interfaces.
+In the example above [this](/ts/test/modules/IpxactComponent/AXI/axiSample.xml) is the XML file which defines the struture of the interface and the parameters which decide which ports will be present on the interfaces.
 
-Then the last parameter is the SystemVerilog [file](/ts/test/modules/IpxactComponent/architectureSample.sv) which provides the list of physical ports which will be connected to the various present interfaces.
+Then the last parameter is the SystemVerilog [file](/ts/test/modules/IpxactComponent/AXI/architectureSample.sv) which provides the list of physical ports which will be connected to the various present interfaces.
 
 This example can be run by running:
 ```

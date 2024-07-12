@@ -1,9 +1,9 @@
 import { type TSSVParameters, type IntRange, Interface, type Signal, type Signals } from 'tssv/lib/core/TSSV'
 
 /**
- * Interface defining the parameters of the AXI TSSV Interface bundle
+ * Interface defining the parameters of the AXI_WO TSSV Interface bundle
  */
-export interface AXI_Parameters extends TSSVParameters {
+export interface AXI_WO_Parameters extends TSSVParameters {
   ID_WIDTH?: IntRange<1, 16>
 
   ADDR_WIDTH?: IntRange<16, 64>
@@ -17,7 +17,7 @@ export interface AXI_Parameters extends TSSVParameters {
   REGION?: 'withREGION' | 'noREGION'
 }
 
-export interface AXI_Signals extends Signals {
+export interface AXI_WO_Signals extends Signals {
   ACLK: { width: 1 }
   ACLKEN: { width: 1 }
   ARESETn: { width: 1 }
@@ -43,55 +43,55 @@ export interface AXI_Signals extends Signals {
   BREADY: { width: 1 }
   ARID: Signal
   ARADDR: Signal
-  ARLEN: { width: 4 }
-  ARSIZE: { width: 3 }
-  ARBURST: { width: 2 }
-  ARLOCK: { width: 2 }
-  ARCACHE: { width: 4 }
-  ARPROT: { width: 3 }
-  ARVALID: { width: 1 }
-  ARREADY: { width: 1 }
+  ARLEN: Signal
+  ARSIZE: Signal
+  ARBURST: Signal
+  ARLOCK: Signal
+  ARCACHE: Signal
+  ARPROT: Signal
+  ARVALID: Signal
+  ARREADY: Signal
   RID: Signal
   RDATA: Signal
-  RRESP: { width: 2 }
-  RLAST: { width: 1 }
-  RVALID: { width: 1 }
-  RREADY: { width: 1 }
+  RRESP: Signal
+  RLAST: Signal
+  RVALID: Signal
+  RREADY: Signal
 }
 
 /**
  * Defines the role of the Interface instance
- * outward is used in module port interfaces that are transaction initiators
- * inward is used in module port interfaces that are transaction responders
+ * master is used in module port interfaces that are transaction initiators
+ * slave is used in module port interfaces that are transaction responders
  * leave role undefined to create just a bundle of interconnect wires
  */
-export type AXI_Role = 'outward' | 'inward' | undefined
+export type AXI_WO_Role = 'outward' | 'inward' | undefined
 
 /**
- * TSSV Interface bundle for the AXI protocol
+ * TSSV Interface bundle for the AXI_WO protocol
  */
-export class AXI extends Interface {
-  declare params: AXI_Parameters
+export class AXI_WO extends Interface {
+  declare params: AXI_WO_Parameters
   /**
    * VLNV Metadata
    */
   static readonly VLNV = {
     vendor: 'amba.com',
     library: 'AMBA3',
-    name: 'AXI',
+    name: 'AXI_WO',
     version: 'r2p0_0'
   }
 
   /**
-   * Create a new AXI Interface bundle with either outward or inward port interface
+   * Create a new AXI_WO Interface bundle with either master or slave port interface
    * or just a bundle of interconnect wires
    * @param params param value set
-   * @param role sets the role of this instance to choose outward or inward port interface
+   * @param role sets the role of this instance to choose master or slave port interface
    * or just a bundle of interconnect wires
    */
-  constructor (params: AXI_Parameters = {}, role: AXI_Role = undefined) {
+  constructor (params: AXI_WO_Parameters = {}, role: AXI_WO_Role = undefined) {
     super(
-      'AXI',
+      'AXI_WO',
       {
         ID_WIDTH: params.ID_WIDTH || 4,
         ADDR_WIDTH: params.ADDR_WIDTH || 32,
@@ -150,7 +150,6 @@ export class AXI extends Interface {
       this.signals.ARUSER = { width: params.USER_WIDTH }
       this.signals.RUSER = { width: params.USER_WIDTH }
     }
-    // Add ARQOS and AWQOS if QOS is true
     if (params.QOS === 'withQOS') {
       this.signals.ARQOS = { width: 4 }
       this.signals.AWQOS = { width: 4 }
@@ -160,7 +159,7 @@ export class AXI extends Interface {
       this.signals.AWREGION = { width: 4 }
     }
     this.modports = {
-      outward: {
+      master: {
         ACLK: 'input',
         ACLKEN: 'input',
         ARESETn: 'input',
@@ -212,8 +211,6 @@ export class AXI extends Interface {
         RUSER: 'input'
       }
     }
-    // Add modports for QOS signals if QOS is true
-    // Add modports for QOS signals if QOS is true
     if (params.QOS === 'withQOS') {
       this.modports.outward = {
         ...this.modports.outward,

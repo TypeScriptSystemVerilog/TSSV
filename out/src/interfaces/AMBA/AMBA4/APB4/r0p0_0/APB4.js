@@ -1,17 +1,17 @@
 import { Interface } from 'tssv/lib/core/TSSV';
 /**
- * TSSV Interface bundle for the APB protocol
+ * TSSV Interface bundle for the APB4 protocol
  */
-export class APB extends Interface {
+export class APB4 extends Interface {
     /**
-     * Create a new APB Interface bundle with either master or slave port interface
+     * Create a new APB4 Interface bundle with either master or slave port interface
      * or just a bundle of interconnect wires
      * @param params param value set
      * @param role sets the role of this instance to choose master or slave port interface
      * or just a bundle of interconnect wires
      */
     constructor(params = {}, role = undefined) {
-        super('APB', {
+        super('APB4', {
             ADDR_WIDTH: params.ADDR_WIDTH || 32,
             DATA_WIDTH: params.DATA_WIDTH || 32
         }, role);
@@ -24,6 +24,8 @@ export class APB extends Interface {
             PWRITE: { width: 1 },
             PRDATA: { width: params.DATA_WIDTH || 32 },
             PWDATA: { width: params.DATA_WIDTH || 32 },
+            PPROT: { width: 3 },
+            PSTRB: { width: (params.DATA_WIDTH) ? params.DATA_WIDTH >> 3 : 4 },
             PREADY: { width: 1 },
             PSLVERR: { width: 1 },
             PCLKEN: { width: 1 }
@@ -38,6 +40,8 @@ export class APB extends Interface {
                 PWRITE: 'output',
                 PRDATA: 'input',
                 PWDATA: 'output',
+                PPROT: 'output',
+                PSTRB: 'output',
                 PREADY: 'input',
                 PSLVERR: 'input',
                 PCLKEN: 'input'
@@ -51,6 +55,8 @@ export class APB extends Interface {
                 PWRITE: 'input',
                 PRDATA: 'output',
                 PWDATA: 'input',
+                PPROT: 'input',
+                PSTRB: 'input',
                 PREADY: 'output',
                 PSLVERR: 'output',
                 PCLKEN: 'input'
@@ -61,9 +67,9 @@ export class APB extends Interface {
 /**
  * VLNV Metadata
  */
-APB.VLNV = {
+APB4.VLNV = {
     vendor: 'amba.com',
-    library: 'AMBA3',
-    name: 'APB',
-    version: 'r2p0_0'
+    library: 'AMBA4',
+    name: 'APB4',
+    version: 'r0p0_0'
 };

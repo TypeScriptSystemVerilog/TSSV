@@ -501,7 +501,7 @@ module Specification_Architecture_Structure (
 endmodule
         
 /* verilator lint_off WIDTH */        
-module newComponent 
+module axiComponent 
    (
    AXI_4_53_1024_8_withQOS_noREGION.inward Init1,
    AXI_4_53_1024_8_withQOS_noREGION.inward Init0,
@@ -512,7 +512,7 @@ module newComponent
    logic  unbound;
 
 
-    Specification_Architecture_Structure verilognewComponent
+    Specification_Architecture_Structure verilogaxiComponent
       (
         .Init1_Ar_Addr(Init1.ARADDR),
         .Init1_W_Ready(Init1.WREADY),

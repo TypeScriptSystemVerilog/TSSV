@@ -1,7 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 // import * as fs from 'fs'
-import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent';
 import { FIR } from 'tssv/lib/modules/FIR';
 try {
     mkdirSync('sv-examples/test_addSubmodule_output');
@@ -242,26 +241,6 @@ try {
     // verilator lint_off DECLFILENAME
     // verilator lint_off UNUSED
     ${subC_tb.writeSystemVerilog()}
-`;
-    writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB);
-}
-catch (err) {
-    console.error(err);
-}
-// adding IpXactComponent
-// const fileContent = fs.readFileSync(
-//   '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
-//   'utf-8')
-const subI_tb = new IpXactComponent({
-    name: 'newComponent',
-    xmlDataPath: '/Users/bennettva/amba-interface-parser/torus/torus_4x3_nodes_2024-06-05_08.50.40_Specification.Architecture.Structure_xml_2024-06-05_08.50.40_ipxact/Specification.Architecture.Structure.xml',
-    svFilePath: '/Users/bennettva/amba-interface-parser/Specification_Architecture_Structure.stub.v'
-});
-try {
-    const TB = `
-    // verilator lint_off DECLFILENAME
-    // verilator lint_off UNUSED
-    ${subI_tb.writeSystemVerilog()}
 `;
     writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB);
 }

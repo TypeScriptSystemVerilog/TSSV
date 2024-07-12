@@ -173,32 +173,95 @@ export class IpXactComponent extends Module {
     return inputSignals
   }
 
+  // protected createDictionary (xmlData: string): Record<string, ComponentData> {
+  //   const parser = new XMLParser({
+  //     ignoreAttributes: false,
+  //     attributeNamePrefix: '',
+  //     textNodeName: 'text'
+  //   })
+  //   const jsonObj = parser.parse(xmlData)
+  //   const components = jsonObj['spirit:component']
+  //   const result: Record<string, ComponentData> = {}
+  //   const processComponent = (component: any): void => {
+  //     const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface']
+  //     busInterfaces.forEach((busInterface: any) => {
+  //       const interfaceName = busInterface['spirit:name']
+  //       const abstractionType = busInterface['spirit:abstractionType']
+  //       const version = abstractionType['spirit:version']
+  //       const abstractionName = abstractionType['spirit:name'].replace(/_+/g, '_')
+  //       const abstractionLibrary = abstractionType['spirit:library']
+  //       const busType = busInterface['spirit:busType']
+  //       const busName = busType['spirit:name'].replace(/_+$/, '')
+  //       const portMaps = busInterface['spirit:portMaps']['spirit:portMap']
+  //       const portDictionary: Record<string, string> = {}
+  //       portMaps.forEach((portMap: any) => {
+  //         const logicalPort = portMap['spirit:logicalPort']['spirit:name']
+  //         const physicalPort = portMap['spirit:physicalPort']['spirit:name']
+  //         portDictionary[logicalPort] = physicalPort
+  //       })
+  //       result[interfaceName] = {
+  //         version,
+  //         abstractionName,
+  //         abstractionLibrary,
+  //         busName,
+  //         ports: portDictionary
+  //       }
+  //     })
+  //   }
+  //   if (Array.isArray(components)) {
+  //     components.forEach(processComponent)
+  //   } else {
+  //     processComponent(components)
+  //   }
+  //   return result
+  // }
   protected createDictionary (xmlData: string): Record<string, ComponentData> {
     const parser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: '',
       textNodeName: 'text'
     })
-    const jsonObj = parser.parse(xmlData)
-    const components = jsonObj['spirit:component']
+
+    const removePrefix = (obj: any): any => {
+      if (typeof obj !== 'object' || obj === null) {
+        return obj
+      }
+
+      if (Array.isArray(obj)) {
+        return obj.map(removePrefix)
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      return Object.keys(obj).reduce<Record<string, any>>((acc, key) => {
+        const newKey = key.replace(/^[^:]+:/, '')
+        acc[newKey] = removePrefix(obj[key])
+        return acc
+      }, {})
+    }
+
+    const jsonObj = removePrefix(parser.parse(xmlData))
+    const components = jsonObj.component
     const result: Record<string, ComponentData> = {}
+
     const processComponent = (component: any): void => {
-      const busInterfaces = component['spirit:busInterfaces']['spirit:busInterface']
+      const busInterfaces = component.busInterfaces.busInterface
       busInterfaces.forEach((busInterface: any) => {
-        const interfaceName = busInterface['spirit:name']
-        const abstractionType = busInterface['spirit:abstractionType']
-        const version = abstractionType['spirit:version']
-        const abstractionName = abstractionType['spirit:name'].replace(/_+/g, '_')
-        const abstractionLibrary = abstractionType['spirit:library']
-        const busType = busInterface['spirit:busType']
-        const busName = busType['spirit:name'].replace(/_+$/, '')
-        const portMaps = busInterface['spirit:portMaps']['spirit:portMap']
+        const interfaceName = busInterface.name
+        const abstractionType = busInterface.abstractionType
+        const version = abstractionType.version
+        const abstractionName = abstractionType.name.replace(/_+/g, '_')
+        const abstractionLibrary = abstractionType.library
+        const busType = busInterface.busType
+        const busName = busType.name.replace(/_+$/, '')
+        const portMaps = busInterface.portMaps.portMap
         const portDictionary: Record<string, string> = {}
+
         portMaps.forEach((portMap: any) => {
-          const logicalPort = portMap['spirit:logicalPort']['spirit:name']
-          const physicalPort = portMap['spirit:physicalPort']['spirit:name']
+          const logicalPort = portMap.logicalPort.name
+          const physicalPort = portMap.physicalPort.name
           portDictionary[logicalPort] = physicalPort
         })
+
         result[interfaceName] = {
           version,
           abstractionName,
@@ -208,19 +271,80 @@ export class IpXactComponent extends Module {
         }
       })
     }
+
     if (Array.isArray(components)) {
       components.forEach(processComponent)
     } else {
       processComponent(components)
     }
+
     return result
+  }
+
+  protected addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
+    for (const interfaceName in interfaceData) {
+      const component = interfaceData[interfaceName]
+      const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.busName}`
+
+      const InterfaceModule = IpXactComponent.knownInterfaces[pathString]
+      if (InterfaceModule) {
+        const isAXI = pathString.includes('AXI')
+        const isAPB = pathString.includes('APB')
+        const isOutward = interfaceName.startsWith('Init')
+        const isInward = interfaceName.toLowerCase().startsWith('targ')
+
+        if (isOutward || isInward) {
+          const paramObject: Record<string, string | undefined> = {}
+
+          if (isAXI) {
+            const axiParams = parameterData[interfaceName]
+            if (axiParams) {
+              for (const [paramName, paramData] of Object.entries(axiParams)) {
+                let transformedParamName = transformParameterName(paramName)
+                if (transformedParamName.endsWith('USER_WIDTH')) {
+                  transformedParamName = 'USER_WIDTH'
+                }
+                paramObject[transformedParamName] = paramData.value
+              }
+
+              // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
+              const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'withQOS' : 'noQOS'
+              paramObject.QOS = qosParameter
+            }
+          } else if (isAPB) {
+            const apbParams = parameterData[interfaceName]
+            for (const [paramName, paramData] of Object.entries(apbParams)) {
+              const transformedName = transformParameterName(paramName)
+              paramObject[transformedName] = paramData.value
+            }
+          }
+
+          // Remove undefined properties
+          Object.entries(paramObject).forEach(([key, value]) => {
+            if (value === undefined) {
+              delete paramObject[key] // eslint-disable-line @typescript-eslint/no-dynamic-delete
+            }
+          })
+
+          // Switched directions
+          const direction = isOutward ? 'inward' : 'outward'
+
+          // Add interface with parameters
+          this.addInterface(interfaceName, new InterfaceModule(paramObject, direction)) // eslint-disable-line @typescript-eslint/no-unsafe-argument
+        } else {
+          console.warn(`Interface name ${interfaceName} does not indicate outward or inward.`)
+        }
+      } else {
+        console.error(`Interface for ${interfaceName} with path ${pathString} is not known.`)
+      }
+    }
   }
 
   // protected addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
   //   for (const interfaceName in interfaceData) {
   //     const component = interfaceData[interfaceName]
-  //     // const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.abstractionName}`
   //     const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.busName}`
+
   //     const InterfaceModule = IpXactComponent.knownInterfaces[pathString]
   //     if (InterfaceModule) {
   //       const isAXI = pathString.includes('AXI')
@@ -229,44 +353,32 @@ export class IpXactComponent extends Module {
 
   //       if (isOutward || isInward) {
   //         const axiParams = parameterData[interfaceName]
-  //         const {
-  //           AWID_WIDTH,
-  //           WID_WIDTH,
-  //           BID_WIDTH,
-  //           ARID_WIDTH,
-  //           RID_WIDTH,
-  //           ADDR_WIDTH,
-  //           DATA_WIDTH,
-  //           BURST_LEN_WIDTH,
-  //           USER_WIDTH,
-  //           RESP_WIDTH
-  //         } = axiParams || {}
+  //         const axiParamObject: Record<string, string | undefined> = {}
 
-  //         const axiParamObject: Record<string, string | undefined> = {
-  //           AWID_WIDTH: AWID_WIDTH?.value,
-  //           WID_WIDTH: WID_WIDTH?.value,
-  //           BID_WIDTH: BID_WIDTH?.value,
-  //           ARID_WIDTH: ARID_WIDTH?.value,
-  //           RID_WIDTH: RID_WIDTH?.value,
-  //           ADDR_WIDTH: ADDR_WIDTH?.value,
-  //           DATA_WIDTH: DATA_WIDTH?.value,
-  //           BURST_LEN_WIDTH: BURST_LEN_WIDTH?.value,
-  //           USER_WIDTH: USER_WIDTH?.value,
-  //           RESP_WIDTH: RESP_WIDTH?.value
+  //         if (axiParams) {
+  //           for (const [paramName, paramData] of Object.entries(axiParams)) {
+  //             let transformedParamName = transformParameterName(paramName)
+  //             if (transformedParamName.endsWith('USER_WIDTH')) {
+  //               transformedParamName = 'USER_WIDTH'
+  //             }
+
+  //             axiParamObject[transformedParamName] = paramData.value
+  //           }
+
+  //           // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
+  //           const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'withQOS' : 'noQOS'
+  //           axiParamObject.QOS = qosParameter
+
+  //           // Remove undefined properties
+  //           Object.entries(axiParamObject).forEach(([key, value]) => {
+  //             if (value === undefined) {
+  //               // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  //               delete axiParamObject[key]
+  //             }
+  //           })
   //         }
 
-  //         // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
-  //         const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'withQOS' : 'noQOS'
-  //         axiParamObject.QOS = qosParameter
-
-  //         // Remove undefined properties
-  //         Object.entries(axiParamObject).forEach(([key, value]) => {
-  //           if (value === undefined) {
-  //             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-  //             delete axiParamObject[key]
-  //           }
-  //         })
-  //         // switched directions
+  //         // Switched directions
   //         const direction = isOutward ? 'inward' : 'outward'
 
   //         // Add AXI or non-AXI interface with parameters
@@ -280,59 +392,6 @@ export class IpXactComponent extends Module {
   //     }
   //   }
   // }
-
-  protected addInterfaces (interfaceData: Record<string, ComponentData>, parameterData: Record<string, Record<string, ParameterData>>): void {
-    for (const interfaceName in interfaceData) {
-      const component = interfaceData[interfaceName]
-      const pathString = `tssv/lib/interfaces/AMBA/${component.abstractionLibrary}/${component.busName}/${component.version}/${component.busName}`
-
-      const InterfaceModule = IpXactComponent.knownInterfaces[pathString]
-      if (InterfaceModule) {
-        const isAXI = pathString.includes('AXI')
-        const isOutward = interfaceName.startsWith('Init')
-        const isInward = interfaceName.toLowerCase().startsWith('targ')
-
-        if (isOutward || isInward) {
-          const axiParams = parameterData[interfaceName]
-          const axiParamObject: Record<string, string | undefined> = {}
-
-          if (axiParams) {
-            for (const [paramName, paramData] of Object.entries(axiParams)) {
-              let transformedParamName = transformParameterName(paramName)
-              if (transformedParamName.endsWith('USER_WIDTH')) {
-                transformedParamName = 'USER_WIDTH'
-              }
-
-              axiParamObject[transformedParamName] = paramData.value
-            }
-
-            // Check if any logical port contains 'QOS' and set the QOS parameter accordingly
-            const qosParameter = component.ports && Object.keys(component.ports).some(logicalPort => logicalPort.includes('QOS')) ? 'withQOS' : 'noQOS'
-            axiParamObject.QOS = qosParameter
-
-            // Remove undefined properties
-            Object.entries(axiParamObject).forEach(([key, value]) => {
-              if (value === undefined) {
-                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                delete axiParamObject[key]
-              }
-            })
-          }
-
-          // Switched directions
-          const direction = isOutward ? 'inward' : 'outward'
-
-          // Add AXI or non-AXI interface with parameters
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          this.addInterface(interfaceName, new InterfaceModule(isAXI ? axiParamObject : {}, direction))
-        } else {
-          console.warn(`Interface name ${interfaceName} does not indicate outward or inward.`)
-        }
-      } else {
-        console.error(`Interface for ${interfaceName} with path ${pathString} is not known.`)
-      }
-    }
-  }
 
   protected parseParameters (xmlInput: string): Record<string, Record<string, ParameterData>> {
     const parser = new XMLParser({

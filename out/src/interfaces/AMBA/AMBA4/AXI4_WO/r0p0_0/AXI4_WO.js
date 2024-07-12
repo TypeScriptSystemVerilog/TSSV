@@ -1,20 +1,20 @@
 import { Interface } from 'tssv/lib/core/TSSV';
 /**
- * TSSV Interface bundle for the AXI protocol
+ * TSSV Interface bundle for the AXI4_WO protocol
  */
-export class AXI extends Interface {
+export class AXI4_WO extends Interface {
     /**
-     * Create a new AXI Interface bundle with either outward or inward port interface
+     * Create a new AXI4_WO Interface bundle with either master or slave port interface
      * or just a bundle of interconnect wires
      * @param params param value set
-     * @param role sets the role of this instance to choose outward or inward port interface
+     * @param role sets the role of this instance to choose master or slave port interface
      * or just a bundle of interconnect wires
      */
     constructor(params = {}, role = undefined) {
-        super('AXI', {
-            ID_WIDTH: params.ID_WIDTH || 4,
-            ADDR_WIDTH: params.ADDR_WIDTH || 32,
+        super('AXI4_WO', {
             DATA_WIDTH: params.DATA_WIDTH || 32,
+            ADDR_WIDTH: params.ADDR_WIDTH || 32,
+            ID_WIDTH: params.ID_WIDTH || 4,
             USER_WIDTH: params.USER_WIDTH || 0,
             QOS: params.QOS || 'withQOS',
             REGION: params.REGION || 'noREGION'
@@ -25,15 +25,14 @@ export class AXI extends Interface {
             ARESETn: { width: 1 },
             AWID: { width: params.ID_WIDTH || 4 },
             AWADDR: { width: params.ADDR_WIDTH || 32 },
-            AWLEN: { width: 4 },
+            AWLEN: { width: 8 },
             AWSIZE: { width: 3 },
             AWBURST: { width: 2 },
-            AWLOCK: { width: 2 },
+            AWLOCK: { width: 1 },
             AWCACHE: { width: 4 },
             AWPROT: { width: 3 },
             AWVALID: { width: 1 },
             AWREADY: { width: 1 },
-            WID: { width: params.ID_WIDTH || 4 },
             WDATA: { width: params.DATA_WIDTH || 32 },
             WSTRB: { width: (params.DATA_WIDTH) ? params.DATA_WIDTH >> 3 : 4 },
             WLAST: { width: 1 },
@@ -45,10 +44,10 @@ export class AXI extends Interface {
             BREADY: { width: 1 },
             ARID: { width: params.ID_WIDTH || 4 },
             ARADDR: { width: params.ADDR_WIDTH || 32 },
-            ARLEN: { width: 4 },
+            ARLEN: { width: 8 },
             ARSIZE: { width: 3 },
             ARBURST: { width: 2 },
-            ARLOCK: { width: 2 },
+            ARLOCK: { width: 1 },
             ARCACHE: { width: 4 },
             ARPROT: { width: 3 },
             ARVALID: { width: 1 },
@@ -77,7 +76,7 @@ export class AXI extends Interface {
             this.signals.AWREGION = { width: 4 };
         }
         this.modports = {
-            outward: {
+            master: {
                 ACLK: 'input',
                 ACLKEN: 'input',
                 ARESETn: 'input',
@@ -91,7 +90,6 @@ export class AXI extends Interface {
                 AWPROT: 'output',
                 AWVALID: 'output',
                 AWREADY: 'input',
-                WID: 'output',
                 WDATA: 'output',
                 WSTRB: 'output',
                 WLAST: 'output',
@@ -130,7 +128,6 @@ export class AXI extends Interface {
             };
         }
         // Add modports for QOS signals if QOS is true
-        // Add modports for QOS signals if QOS is true
         if (params.QOS === 'withQOS') {
             this.modports.outward = {
                 ...this.modports.outward,
@@ -151,9 +148,9 @@ export class AXI extends Interface {
 /**
  * VLNV Metadata
  */
-AXI.VLNV = {
+AXI4_WO.VLNV = {
     vendor: 'amba.com',
-    library: 'AMBA3',
-    name: 'AXI',
-    version: 'r2p0_0'
+    library: 'AMBA4',
+    name: 'AXI4_WO',
+    version: 'r0p0_0'
 };

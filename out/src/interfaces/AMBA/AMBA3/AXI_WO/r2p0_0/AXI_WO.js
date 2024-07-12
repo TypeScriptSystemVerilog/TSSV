@@ -1,17 +1,17 @@
 import { Interface } from 'tssv/lib/core/TSSV';
 /**
- * TSSV Interface bundle for the AXI protocol
+ * TSSV Interface bundle for the AXI_WO protocol
  */
-export class AXI extends Interface {
+export class AXI_WO extends Interface {
     /**
-     * Create a new AXI Interface bundle with either outward or inward port interface
+     * Create a new AXI_WO Interface bundle with either master or slave port interface
      * or just a bundle of interconnect wires
      * @param params param value set
-     * @param role sets the role of this instance to choose outward or inward port interface
+     * @param role sets the role of this instance to choose master or slave port interface
      * or just a bundle of interconnect wires
      */
     constructor(params = {}, role = undefined) {
-        super('AXI', {
+        super('AXI_WO', {
             ID_WIDTH: params.ID_WIDTH || 4,
             ADDR_WIDTH: params.ADDR_WIDTH || 32,
             DATA_WIDTH: params.DATA_WIDTH || 32,
@@ -67,7 +67,6 @@ export class AXI extends Interface {
             this.signals.ARUSER = { width: params.USER_WIDTH };
             this.signals.RUSER = { width: params.USER_WIDTH };
         }
-        // Add ARQOS and AWQOS if QOS is true
         if (params.QOS === 'withQOS') {
             this.signals.ARQOS = { width: 4 };
             this.signals.AWQOS = { width: 4 };
@@ -77,7 +76,7 @@ export class AXI extends Interface {
             this.signals.AWREGION = { width: 4 };
         }
         this.modports = {
-            outward: {
+            master: {
                 ACLK: 'input',
                 ACLKEN: 'input',
                 ARESETn: 'input',
@@ -129,8 +128,6 @@ export class AXI extends Interface {
                 RUSER: 'input'
             };
         }
-        // Add modports for QOS signals if QOS is true
-        // Add modports for QOS signals if QOS is true
         if (params.QOS === 'withQOS') {
             this.modports.outward = {
                 ...this.modports.outward,
@@ -151,9 +148,9 @@ export class AXI extends Interface {
 /**
  * VLNV Metadata
  */
-AXI.VLNV = {
+AXI_WO.VLNV = {
     vendor: 'amba.com',
     library: 'AMBA3',
-    name: 'AXI',
+    name: 'AXI_WO',
     version: 'r2p0_0'
 };

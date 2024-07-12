@@ -153,4 +153,44 @@ export class RegisterBlock<T> extends Module {
       }
     }
   }
+/*
+  generateVerilogRW (): void {
+    for (const regName in this.regDefs.registers) {
+      const reg = this.regDefs.registers[regName]
+      if (reg?.type === 'RW') {
+        const regWidth = reg.width || this.regDefs.wordSize
+        const resetVal = reg.reset !== undefined ? reg.reset : 0n
+        // Add signals for the register
+        const d = this.addSignal(`${regName}_d`, { width: regWidth })
+        const q = this.addSignal(`${regName}_q`, { width: regWidth })
+        // Add the register itself
+        this.addRegister({
+          d: d,
+          clk: 'clk',
+          reset: 'rst_b',
+          resetVal: resetVal,
+          q: q
+        })
+        // Add the write enable and write data signals
+        const we = this.addSignal(`${regName}_we`, { width: 1 })
+        const wdata = this.addSignal(`${regName}_wdata`, { width: regWidth })
+        // Generate the sequential logic for the RW register
+        this.addSequentialAlways(
+          { clk: 'clk', reset: 'rst_b', outputs: [q] },
+`
+if (!rst_b) begin
+  ${q} <= ${resetVal};
+end else if (${we}) begin
+  ${q} <= ${wdata};
+end
+`)
+      }
+    }
+  }
+
+  // sample function
+  writeSystemVerilog (): string {
+    this.generateVerilogRW()
+    return super.writeSystemVerilog()
+  } */
 }
