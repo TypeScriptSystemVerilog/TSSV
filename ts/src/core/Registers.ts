@@ -1,4 +1,4 @@
-import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
+import { Module, type TSSVParameters, type IntRange, Expr } from 'tssv/lib/core/TSSV'
 import { TL_UL } from 'tssv/lib/interfaces/TileLink'
 
 type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | string
@@ -76,6 +76,13 @@ export class RegisterBlock<T> extends Module {
       DIW: params.busIDWidth
     }, 'inward'))
 
+    let hasRAM = false
+    let hasRW = false
+    let hasROM = false
+    let registerName = ''
+    let ramName = ''
+    let romName = ''
+
     for (const reg in this.regDefs.addrMap) {
       const regName = reg
       const registers = this.regDefs.registers
@@ -108,6 +115,10 @@ export class RegisterBlock<T> extends Module {
               }
           }
         }
+        if (thisReg.type === 'RW') {
+          hasRW = true
+          registerName = regName.toString()
+        }
       } else if (thisReg.type === 'ROM') {
         if (thisReg.fields !== undefined) throw Error('fields not supported for type ROM')
         this.IOs[`${regName.toString()}_rdata`] =
@@ -120,6 +131,10 @@ export class RegisterBlock<T> extends Module {
         {
           direction: 'output',
           width: 1
+        }
+        if (thisReg.type === 'ROM') {
+          hasROM = true
+          romName = `${regName.toString()}`
         }
       } else {
         if (thisReg.fields !== undefined) throw Error('fields not supported for type ROM')
@@ -150,10 +165,35 @@ export class RegisterBlock<T> extends Module {
           direction: 'output',
           width: Math.ceil((thisReg.width || regDefs.wordSize) / 8)
         }
+        if (thisReg.type === 'RAM') {
+          hasRAM = true
+          ramName = `${regName.toString()}`
+        }
       }
     }
+    if (hasRAM && hasRW) {
+      this.addRegister({
+        d: `${ramName}_wdata`,
+        clk: 'clk',
+        reset: 'rst_b',
+        en: `${ramName}_we`,
+        q: `${ramName}_rdata`
+      })
+      this.addAssign({ in: new Expr(`{${registerName}_field1,${registerName}_field0}`), out: `${ramName}_rdata` })
+    }
+
+    if (hasROM && hasRW) {
+      this.addRegister({
+        d: `${romName}_wdata`,
+        clk: 'clk',
+        reset: 'rst_b',
+        en: `${romName}_we`,
+        q: `${romName}_rdata`
+      })
+      this.addAssign({ in: new Expr(`{${registerName}_field1,${registerName}_field0}`), out: `${romName}_rdata` })
+    }
   }
-/*
+  /*
   generateVerilogRW (): void {
     for (const regName in this.regDefs.registers) {
       const reg = this.regDefs.registers[regName]

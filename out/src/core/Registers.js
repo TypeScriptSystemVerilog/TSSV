@@ -1,4 +1,4 @@
-import { Module } from 'tssv/lib/core/TSSV';
+import { Module, Expr } from 'tssv/lib/core/TSSV';
 import { TL_UL } from 'tssv/lib/interfaces/TileLink';
 export class RegAddr {
     constructor(start, wordSize) {
@@ -36,6 +36,12 @@ export class RegisterBlock extends Module {
             AW: params.busAddressWidth,
             DIW: params.busIDWidth
         }, 'inward'));
+        let hasRAM = false;
+        let hasRW = false;
+        let hasROM = false;
+        let registerName = '';
+        let ramName = '';
+        let romName = '';
         for (const reg in this.regDefs.addrMap) {
             const regName = reg;
             const registers = this.regDefs.registers;
@@ -69,6 +75,10 @@ export class RegisterBlock extends Module {
                             };
                     }
                 }
+                if (thisReg.type === 'RW') {
+                    hasRW = true;
+                    registerName = regName.toString();
+                }
             }
             else if (thisReg.type === 'ROM') {
                 if (thisReg.fields !== undefined)
@@ -84,6 +94,10 @@ export class RegisterBlock extends Module {
                         direction: 'output',
                         width: 1
                     };
+                if (thisReg.type === 'ROM') {
+                    hasROM = true;
+                    romName = `${regName.toString()}`;
+                }
             }
             else {
                 if (thisReg.fields !== undefined)
@@ -115,7 +129,31 @@ export class RegisterBlock extends Module {
                         direction: 'output',
                         width: Math.ceil((thisReg.width || regDefs.wordSize) / 8)
                     };
+                if (thisReg.type === 'RAM') {
+                    hasRAM = true;
+                    ramName = `${regName.toString()}`;
+                }
             }
+        }
+        if (hasRAM && hasRW) {
+            this.addRegister({
+                d: `${ramName}_wdata`,
+                clk: 'clk',
+                reset: 'rst_b',
+                en: `${ramName}_we`,
+                q: `${ramName}_rdata`
+            });
+            this.addAssign({ in: new Expr(`{${registerName}_field1,${registerName}_field0}`), out: `${ramName}_rdata` });
+        }
+        if (hasROM && hasRW) {
+            this.addRegister({
+                d: `${romName}_wdata`,
+                clk: 'clk',
+                reset: 'rst_b',
+                en: `${romName}_we`,
+                q: `${romName}_rdata`
+            });
+            this.addAssign({ in: new Expr(`{${registerName}_field1,${registerName}_field0}`), out: `${romName}_rdata` });
         }
     }
 }

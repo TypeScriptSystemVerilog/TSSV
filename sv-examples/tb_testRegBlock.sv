@@ -99,6 +99,17 @@ module testRegBlock
 
    
 
+  assign MEM0_rdata = {REG2_field1,REG2_field0};
+
+   always_ff @( posedge clk  or negedge rst_b )
+     if(!rst_b)
+        begin
+           MEM0_rdata <= 'd0;
+        end
+      else if(MEM0_we)
+        begin
+           MEM0_rdata <= MEM0_wdata;
+        end
 
 
 endmodule
