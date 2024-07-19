@@ -1059,10 +1059,11 @@ export class Module {
      */
   addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig, default?: string | Sig | Expr }): Sig {
     const selWidth = Math.ceil(Math.log2(io.in.length)) // remove -1
+    console.log(`sel width is ${selWidth}`)
     let selString = io.sel.toString()
     if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
       const selSig = this.findSignal(io.sel, true, this.addMux, true)
-      if ((selSig.width || 1) < selWidth) throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select`)
+      if ((selSig.width || 1) < selWidth) throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select, select signal width: ${selSig.width} is less than select width ${selWidth}`)
       if ((selSig.width || 1) > selWidth) {
         selString = `${io.sel.toString()}[${selWidth - 1}:0]`
       }
