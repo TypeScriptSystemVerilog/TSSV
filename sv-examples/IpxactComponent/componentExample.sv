@@ -3,7 +3,7 @@
     // verilator lint_off UNUSED
     
 
-interface AXI_4_53_1024_8_withQOS_noREGION;
+interface AXI_8_53_1024_8_withQOS_noREGION;
 
    logic  ACLK;
    logic  ACLKEN;
@@ -503,10 +503,10 @@ endmodule
 /* verilator lint_off WIDTH */        
 module axiComponent 
    (
-   AXI_4_53_1024_8_withQOS_noREGION.inward Init1,
-   AXI_4_53_1024_8_withQOS_noREGION.inward Init0,
-   AXI_4_53_1024_8_withQOS_noREGION.outward Targ1,
-   AXI_4_53_1024_8_withQOS_noREGION.outward Targ0
+   AXI_8_53_1024_8_withQOS_noREGION.inward Init1,
+   AXI_8_53_1024_8_withQOS_noREGION.inward Init0,
+   AXI_8_53_1024_8_withQOS_noREGION.outward Targ1,
+   AXI_8_53_1024_8_withQOS_noREGION.outward Targ0
    );
 
    logic  unbound;

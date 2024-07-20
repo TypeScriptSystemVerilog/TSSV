@@ -10,10 +10,11 @@ try {
     mkdirSync('sv-examples/IpxactComponent');
 }
 catch (e) { }
-const xml_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/axiSample.xml');
-const sv_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/architectureSample.sv');
+const xml_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/AXI/axiSample.xml');
+const sv_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/AXI/architectureSample.sv');
+// AXI component
 const component = new IpXactComponent({
-    name: 'newComponent',
+    name: 'axiComponent',
     xmlDataPath: xml_path,
     svFilePath: sv_path
 });
