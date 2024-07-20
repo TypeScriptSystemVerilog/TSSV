@@ -484,32 +484,6 @@ export class Module {
   // we do not call the caller, we just grab the name for an error message
   // so the explicit anys are fine
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
-  /*
-  protected findSignal (sig: Sig | string | bigint, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null, throwOnArray?: boolean): Signal | IOSignal {
-    const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString()
-    const thisSig = this.IOs[sigString] || this.signals[sigString]
-    if (!thisSig && throwOnFalse) {
-      let errString = ''
-      if (typeof caller === 'function') {
-        errString = `${sig.toString()} signal not found in ${caller.name}()`
-      } else if (caller !== null) {
-        errString = `${caller.toString()}: ${sig.toString()} signal not found`
-      }
-      throw Error(errString)
-    }
-    if (throwOnArray && thisSig.isArray) {
-      let errString = ''
-      if (typeof caller === 'function') {
-        errString = `${sig.toString()} array signal used as normal signal in ${caller.name}()`
-      } else if (caller !== null) {
-        errString = `${caller.toString()}: ${sig.toString()} array signal used as normal signal`
-      }
-      throw Error(errString)
-    }
-    return thisSig
-  }
-  */
-
   protected findSignal (sig: Sig | string | bigint, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null, throwOnArray?: boolean): Signal | IOSignal {
     const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString()
     const thisSig = this.IOs[sigString] || this.signals[sigString]
@@ -1090,10 +1064,11 @@ export class Module {
      */
   addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig, default?: string | Sig | Expr }): Sig {
     const selWidth = Math.ceil(Math.log2(io.in.length)) // remove -1
+    console.log(`sel width is ${selWidth}`)
     let selString = io.sel.toString()
     if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
       const selSig = this.findSignal(io.sel, true, this.addMux, true)
-      if ((selSig.width || 1) < selWidth) throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select`)
+      if ((selSig.width || 1) < selWidth) throw Error(`${io.sel.toString()} signal does not have enough bits as Mux select, select signal width: ${selSig.width} is less than select width ${selWidth}`)
       if ((selSig.width || 1) > selWidth) {
         selString = `${io.sel.toString()}[${selWidth - 1}:0]`
       }

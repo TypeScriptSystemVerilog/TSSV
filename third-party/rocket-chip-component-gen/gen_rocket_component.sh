@@ -36,5 +36,5 @@ echo "chown -R $user_id:$group_id /rocketchip/src/main/scala/componentgen/compil
 chmod +x $scriptDir/componentgen/run.sh
 
 cd $scriptDir
-docker run  --rm -v ./componentgen:/rocketchip/src/main/scala/componentgen avonancken/rocketdock:v1 /rocketchip/src/main/scala/componentgen/run.sh 
+docker run --rm -v ./componentgen:/rocketchip/src/main/scala/componentgen avonancken/rocketdock:v1 /rocketchip/src/main/scala/componentgen/run.sh 
 echo "Generated componenet path: $scriptDir/componentgen/compile.dest"

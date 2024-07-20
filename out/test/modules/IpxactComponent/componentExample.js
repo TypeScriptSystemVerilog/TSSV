@@ -28,3 +28,22 @@ try {
 catch (err) {
     console.error(err);
 }
+// APB component
+const xml_path_apb = join(__dirname, '../../../../ts/test/modules/IpxactComponent/APB/apbSample.xml');
+const sv_path_apb = join(__dirname, '../../../../ts/test/modules/IpxactComponent/APB/apbArchitecture.sv');
+const apbComponent = new IpXactComponent({
+    name: 'apbComponent',
+    xmlDataPath: xml_path_apb,
+    svFilePath: sv_path_apb
+});
+try {
+    const TB = `
+      // verilator lint_off DECLFILENAME
+      // verilator lint_off UNUSED
+      ${apbComponent.writeSystemVerilog()}
+  `;
+    writeFileSync('sv-examples/IpxactComponent/apbComponentExample.sv', TB);
+}
+catch (err) {
+    console.error(err);
+}

@@ -57,10 +57,8 @@ export class APB extends Interface {
     super(
       'APB',
       {
-        AIW: params.AIW || 8,
-        AW: params.AW || 32,
-        DIW: params.DIW || 8,
-        DW: params.DW || 32
+        ADDR_WIDTH: params.ADDR_WIDTH || 32,
+        DATA_WIDTH: params.DATA_WIDTH || 32
       },
       role
     )
