@@ -6,7 +6,8 @@
     "strict": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",  
-    "declaration": true
+    "declaration": true,
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
   "module": "ES2020", // (A)
   "moduleResolution": "Node", // (B)
@@ -17,7 +18,8 @@
   //
   "declaration": true,
   "include" : [
-    "ts/**/*.ts"
+    "ts/**/*.ts",
+    "types/*.d.ts"
   ],
   "exclude" : [
     "node_modules"

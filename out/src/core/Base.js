@@ -76,12 +76,15 @@ export class Interface {
     writeSystemVerilog() {
         const signalArray = [];
         Object.keys(this.signals).forEach((key) => {
-            let rangeString = '';
-            const signString = (this.signals[key].isSigned) ? ' signed' : '';
-            if ((this.signals[key].width || 0) > 1) {
-                rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
+            const thisSignal = this.signals[key];
+            if (thisSignal) {
+                let rangeString = '';
+                const signString = (thisSignal.isSigned) ? ' signed' : '';
+                if ((thisSignal.width || 0) > 1) {
+                    rangeString = `[${Number(thisSignal.width) - 1}:0]`;
+                }
+                signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}`);
             }
-            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}`);
         });
         const signalString = `   ${signalArray.join(';\n   ')}`;
         let modportsString = '';
@@ -1058,20 +1061,23 @@ ${caseAssignments}
         const IOString = `   ${IOArray.join(',\n   ')}`;
         // construct signal list
         Object.keys(this.signals).forEach((key) => {
-            let rangeString = '';
-            let arrayString = '';
-            let valueString = '';
-            const signString = (this.signals[key].isSigned) ? ' signed' : '';
-            if ((this.signals[key].width || 0) > 1) {
-                rangeString = `[${Number(this.signals[key].width) - 1}:0]`;
+            const thisSignal = this.signals[key];
+            if (thisSignal) {
+                let rangeString = '';
+                let arrayString = '';
+                let valueString = '';
+                const signString = (thisSignal.isSigned) ? ' signed' : '';
+                if ((thisSignal.width || 0) > 1) {
+                    rangeString = `[${Number(thisSignal.width) - 1}:0]`;
+                }
+                if (thisSignal.isArray && ((thisSignal.isArray || 0) > 1)) {
+                    arrayString = ` [0:${(thisSignal.isArray || 0n) - 1n}]`;
+                }
+                if (thisSignal.type === 'const logic') {
+                    valueString = ` = ${(thisSignal.value || 0n).toString()}`;
+                }
+                signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
             }
-            if (this.signals[key].isArray && ((this.signals[key].isArray || 0) > 1)) {
-                arrayString = ` [0:${(this.signals[key].isArray || 0n) - 1n}]`;
-            }
-            if (this.signals[key].type === 'const logic') {
-                valueString = ` = ${(this.signals[key].value || 0n).toString()}`;
-            }
-            signalArray.push(`${this.signals[key].type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
         if (signalArray.length > 0)

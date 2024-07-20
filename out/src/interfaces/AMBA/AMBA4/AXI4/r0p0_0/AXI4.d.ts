@@ -1,4 +1,4 @@
-import { type TSSVParameters, type IntRange, Interface, type Signal, type Signals } from 'tssv/lib/core/TSSV';
+import { type TSSVParameters, type IntRange, Interface, type Signals } from 'tssv/lib/core/TSSV';
 /**
  * Interface defining the parameters of the AXI4 TSSV Interface bundle
  */
@@ -11,8 +11,12 @@ export interface AXI4_Parameters extends TSSVParameters {
     REGION?: 'withREGION' | 'noREGION';
 }
 export interface AXI4_Signals extends Signals {
-    AWID: Signal;
-    AWADDR: Signal;
+    AWID: {
+        width: number;
+    };
+    AWADDR: {
+        width: number;
+    };
     AWLEN: {
         width: 8;
     };
@@ -37,8 +41,21 @@ export interface AXI4_Signals extends Signals {
     AWREADY: {
         width: 1;
     };
-    WDATA: Signal;
-    WSTRB: Signal;
+    AWUSER?: {
+        width: number;
+    };
+    AWQOS?: {
+        width: 4;
+    };
+    AWREGION?: {
+        width: 4;
+    };
+    WDATA: {
+        width: number;
+    };
+    WSTRB: {
+        width: number;
+    };
     WLAST: {
         width: 1;
     };
@@ -48,7 +65,12 @@ export interface AXI4_Signals extends Signals {
     WREADY: {
         width: 1;
     };
-    BID: Signal;
+    WUSER?: {
+        width: number;
+    };
+    BID: {
+        width: number;
+    };
     BRESP: {
         width: 2;
     };
@@ -58,8 +80,15 @@ export interface AXI4_Signals extends Signals {
     BREADY: {
         width: 1;
     };
-    ARID: Signal;
-    ARADDR: Signal;
+    BUSER?: {
+        width: number;
+    };
+    ARID: {
+        width: number;
+    };
+    ARADDR: {
+        width: number;
+    };
     ARLEN: {
         width: 8;
     };
@@ -84,8 +113,18 @@ export interface AXI4_Signals extends Signals {
     ARREADY: {
         width: 1;
     };
-    RID: Signal;
-    RDATA: Signal;
+    ARUSER?: {
+        width: number;
+    };
+    ARREGION?: {
+        width: 4;
+    };
+    RID: {
+        width: number;
+    };
+    RDATA: {
+        width: number;
+    };
     RRESP: {
         width: 2;
     };
@@ -97,6 +136,12 @@ export interface AXI4_Signals extends Signals {
     };
     RREADY: {
         width: 1;
+    };
+    RUSER?: {
+        width: number;
+    };
+    RQOS?: {
+        width: 4;
     };
 }
 /**
@@ -130,3 +175,9 @@ export declare class AXI4 extends Interface {
      */
     constructor(params?: AXI4_Parameters, role?: AXI4_Role);
 }
+type IncludeValues<T, K extends keyof T, V> = {
+    [P in keyof T]: P extends K ? Extract<T[P], V> : T[P];
+};
+export type AXI4_inward = IncludeValues<AXI4, 'role', 'inward'>;
+export type AXI4_outward = IncludeValues<AXI4, 'role', 'outward'>;
+export {};

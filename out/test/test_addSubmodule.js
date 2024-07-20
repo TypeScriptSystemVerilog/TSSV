@@ -1,6 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
-// import * as fs from 'fs'
 import { FIR } from 'tssv/lib/modules/FIR';
 try {
     mkdirSync('sv-examples/test_addSubmodule_output');

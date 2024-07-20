@@ -14,8 +14,8 @@ export class FIR extends TSSV.Module {
             clk: { direction: 'input', isClock: 'posedge' },
             rst_b: { direction: 'input', isReset: 'lowasync' },
             en: { direction: 'input' },
-            data_in: { direction: 'input', width: this.params.inWidth, isSigned: true },
-            data_out: { direction: 'output', width: this.params.outWidth, isSigned: true }
+            data_in: { direction: 'input', width: this.params.inWidth || 8, isSigned: true },
+            data_out: { direction: 'output', width: this.params.outWidth || 9, isSigned: true }
         };
         // construct logic
         let nextTapIn = new TSSV.Sig('data_in');
