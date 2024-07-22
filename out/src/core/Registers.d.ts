@@ -67,7 +67,7 @@ export declare class Memory extends Interface {
 export declare class RegisterBlock<T extends Record<string, bigint>> extends Module {
     params: RegisterBlockParameters;
     regDefs: RegisterBlockDef<T>;
-    constructor(params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>);
+    constructor(params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface);
     private padAddress;
     private calculateDecMask;
     private calculatePassMask;

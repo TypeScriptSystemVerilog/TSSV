@@ -303,7 +303,7 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   declare params: RegisterBlockParameters
   regDefs: RegisterBlockDef<T>
 
-  constructor (params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>) {
+  constructor (params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface) {
     super({
       name: params.name,
       busInterface: params.busInterface || 'Memory',
@@ -315,6 +315,10 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
       rst_b: { direction: 'input', isReset: 'lowasync' }
+    }
+
+    if (!(busInterface instanceof Memory)) {
+      throw Error('Unsupported interface')
     }
 
     this.addInterface('regs', new Memory({
@@ -338,7 +342,6 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       const matchExpr = this.addSignal(`${regName}_matchExpr`, { width: 1 })
 
       // Use original address for logic
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       this.addAssign({ in: new Expr(`${ADDR.toString()} == ${baseAddr}`), out: matchExpr })
 
       let thisReg: Register = {
@@ -370,6 +373,7 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
               clk: 'clk',
               reset: 'rst_b',
               q: fieldSigName,
+              en: 'WE',
               resetVal: field.reset || 0n
             })
           })
@@ -391,6 +395,11 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       } else if (thisReg.type === 'RO') {
         const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
         this.addAssign({ in: new Expr(`${matchExpr.toString()} && ${RE.toString()}`), out: RE_Sig })
+        this.IOs[regName.toString()] = {
+          direction: 'output',
+          width: thisReg.width || regDefs.wordSize,
+          isSigned: thisReg.isSigned
+        }
       } else if (thisReg.type === 'WO') {
         const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
         this.addAssign({ in: new Expr(`${matchExpr.toString()} && ${WE.toString()}`), out: WE_Sig })
@@ -500,54 +509,33 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       }
     }
 
-    // Create a read multiplexer with padded address cases
-    // const muxInputs: string[] = []
-    // const caseStatements: string[] = []
-    // for (const reg in this.regDefs.addrMap) {
-    //   const regName = reg
-    //   const thisReg: Register = this.regDefs.registers[regName] || {
-    //     type: 'RW',
-    //     width: regDefs.wordSize
-    //   }
+    let casexString = 'casex (ADDR)\n'
+    for (const reg in this.regDefs.addrMap) {
+      const regName = reg
+      const baseAddr = this.regDefs.addrMap[regName]
 
-    //   if (thisReg.type === 'RW') {
-    //     if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-    //       Object.keys(thisReg.fields).forEach((fieldName, index) => {
-    //         muxInputs.push(`${regName}_field${index}`)
-    //       })
-    //     } else {
-    //       muxInputs.push(regName.toString())
-    //     }
-    //   } else if (thisReg.type === 'ROM') {
-    //     muxInputs.push(`${regName}_rdata`)
-    //   } else if (thisReg.type === 'RAM') {
-    //     muxInputs.push(`${regName}_rdata`)
-    //   }
+      let readSignal = ''
+      const register = this.regDefs.registers?.[regName]
+      if (register?.type === 'ROM' || register?.type === 'RAM') {
+        readSignal = `${regName}_rdata`
+      } else if (register?.type === 'RO') {
+        readSignal = regName
+      } else if (register?.type === 'RW') {
+        if (register.fields && Object.keys(register.fields).length > 0) {
+          readSignal = Object.keys(register.fields).map((fieldName, index) => `${regName}_field${index}`).join(' | ')
+        } else {
+          readSignal = regName
+        }
+      } else {
+        readSignal = regName
+      }
 
-    //   // Use padded address only for multiplexer case
-    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //   const paddedAddr = this.padAddress(regName, params.busAddressWidth || 8)
-    //   caseStatements.push(`when (${ADDR.toString()} === ${paddedAddr}) => ${muxInputs.join(', ')}`)
-    // }
-    // console.log(muxInputs)
-    // this.addMux({
-    //   in: muxInputs,
-    //   sel: ADDR,
-    //   out: DATA_RD.toString(),
-    //   default: new Expr('0')
-    // })
-    let casexString =
-`
-casex(${ADDR.toString()})
-`
-    for (const regAddr in this.regDefs.addrMap) {
-      casexString +=
-`
-      ${params.busAddressWidth}'b${this.regDefs.addrMap[regAddr.toString()].toString(2)}:
-        ${DATA_RD.toString()} = ${regAddr}_rdata;
-`
+      casexString += `  ${this.padAddress(baseAddr.toString(2), 8)}: DATA_RD = ${readSignal};\n`
     }
-    console.log(casexString)
+    casexString += '  default: DATA_RD = 0;\n'
+    casexString += 'endcase\n'
+    // Add the casex string to the body
+    this.body += casexString
   }
 
   private padAddress (address: string, width: number): string {

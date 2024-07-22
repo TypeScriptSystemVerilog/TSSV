@@ -1,5 +1,5 @@
 import { RegisterBlock } from 'tssv/lib/core/Registers';
-import { Module, serialize, deserialize } from 'tssv/lib/core/TSSV';
+import { Module, serialize, deserialize, Memory } from 'tssv/lib/core/TSSV';
 import { writeFileSync } from 'fs';
 import { inspect } from 'util';
 import diff from 'deep-diff';
@@ -65,11 +65,11 @@ else {
 const testRegBlock = new RegisterBlock({
     name: 'testRegBlock',
     busAddressWidth: 32
-}, myRegs);
+}, myRegs, new Memory());
 const tb_testRegBlock = new Module({ name: 'tb_testRegBlock' });
 tb_testRegBlock.addSubmodule('dut', testRegBlock, {}, true, true);
-const temp = 'REG0';
-console.log(myRegMap[temp]);
+// const temp = 'REG0'
+// console.log(myRegMap[temp])
 try {
     writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog());
 }

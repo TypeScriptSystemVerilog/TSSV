@@ -10,6 +10,7 @@ module testRegBlock
    input logic  clk,
    input logic  rst_b,
    output logic [31:0] REG0,
+   output logic signed [15:0] REG1,
    output logic [15:0] REG2_field0,
    output logic [15:0] REG2_field1,
    input logic [31:0] MEM0_rdata,
@@ -61,11 +62,21 @@ module testRegBlock
   assign MEM1_matchExpr = ADDR == 64;
   assign MEM1_RE = MEM1_matchExpr && RE;
   assign MEM1_ADDR = ADDR;
+casex (ADDR)
+  0XXXXXXX: DATA_RD = REG0;
+  100XXXXX: DATA_RD = REG1;
+  1000XXXX: DATA_RD = REG2_field0 | REG2_field1;
+  100000XX: DATA_RD = MEM0_rdata;
+  1000000X: DATA_RD = MEM1_rdata;
+  default: DATA_RD = 0;
+endcase
 
    always_ff @( posedge clk  or negedge rst_b )
      if(!rst_b)
         begin
            REG0 <= 'd0;
+           REG2_field0 <= 'd16;
+           REG2_field1 <= 'd32;
            DATA_RD <= 'd0;
            MEM0_wdata <= 'd0;
            MEM0_re <= 'd0;
@@ -76,24 +87,14 @@ module testRegBlock
       else if(WE)
         begin
            REG0 <= DATA_WR;
+           REG2_field0 <= DATA_WR[0:15];
+           REG2_field1 <= DATA_WR[16:31];
            DATA_RD <= MEM1_rdata;
            MEM0_wdata <= DATA_WR;
            MEM0_re <= MEM0_RE;
            MEM0_we <= MEM0_WE;
            MEM0_wstrb <= 1;
            MEM1_re <= MEM1_RE;
-        end
-
-   always_ff @( posedge clk  or negedge rst_b )
-     if(!rst_b)
-        begin
-           REG2_field0 <= 'd16;
-           REG2_field1 <= 'd32;
-        end
-      else 
-        begin
-           REG2_field0 <= DATA_WR[0:15];
-           REG2_field1 <= DATA_WR[16:31];
         end
 
 
@@ -110,6 +111,7 @@ module tb_testRegBlock
    logic  clk;
    logic  rst_b;
    logic [31:0] REG0;
+   logic signed [15:0] REG1;
    logic [15:0] REG2_field0;
    logic [15:0] REG2_field1;
    logic [31:0] MEM0_rdata;
@@ -126,6 +128,7 @@ module tb_testRegBlock
         .clk(clk),
         .rst_b(rst_b),
         .REG0(REG0),
+        .REG1(REG1),
         .REG2_field0(REG2_field0),
         .REG2_field1(REG2_field1),
         .MEM0_rdata(MEM0_rdata),
