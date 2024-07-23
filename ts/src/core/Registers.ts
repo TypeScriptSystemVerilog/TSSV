@@ -18,7 +18,7 @@
  */
 
 /**
- * READY
+ * READ
  *
  * @wavedrom
  * ```json
