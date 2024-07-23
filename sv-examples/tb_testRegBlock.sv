@@ -1,6 +1,38 @@
 
         
 
+
+interface memory_32_32;
+
+   logic [31:0] ADDR;
+   logic [31:0] DATA_WR;
+   logic [31:0] DATA_RD;
+   logic  RE;
+   logic  WE;
+   logic  READY;
+
+
+    modport outward (
+      input ADDR,
+      output DATA_WR,
+      input DATA_RD,
+      output WE,
+      output RE,
+      input READY
+    );           
+
+    modport inward (
+      output ADDR,
+      input DATA_WR,
+      output DATA_RD,
+      input WE,
+      input RE,
+      output READY
+    );           
+
+
+endinterface
+        
         
 
         
@@ -19,16 +51,10 @@ module testRegBlock
    output logic [31:0] MEM0_wdata,
    output logic [31:0] MEM0_wstrb,
    input logic [31:0] MEM1_rdata,
-   output logic  MEM1_re
+   output logic  MEM1_re,
+   memory_32_32.inward regs
    );
 
-   memory_32_32 regs;
-   logic [31:0] ADDR;
-   logic [31:0] DATA_WR;
-   logic [31:0] DATA_RD;
-   logic  RE;
-   logic  WE;
-   logic  READY;
    logic  REG0_matchExpr;
    logic  REG0_RE;
    logic  REG0_WE;
@@ -46,30 +72,32 @@ module testRegBlock
    logic  MEM1_RE;
    logic [31:0] MEM1_ADDR;
 
-  assign REG0_matchExpr = ADDR == 0;
-  assign REG0_RE = REG0_matchExpr && RE;
-  assign REG0_WE = REG0_matchExpr && WE;
-  assign REG1_matchExpr = ADDR == 4;
-  assign REG1_RE = REG1_matchExpr && RE;
-  assign REG2_matchExpr = ADDR == 8;
-  assign REG2_RE = REG2_matchExpr && RE;
-  assign REG2_WE = REG2_matchExpr && WE;
-  assign MEM0_matchExpr = ADDR == 32;
-  assign MEM0_Nmatch = (ADDR & 4'b1100) == 32;
-  assign MEM0_RE = MEM0_Nmatch && RE;
-  assign MEM0_WE = MEM0_Nmatch && WE;
-  assign MEM0_ADDR = ADDR & 4'b0011;
-  assign MEM1_matchExpr = ADDR == 64;
-  assign MEM1_RE = MEM1_matchExpr && RE;
-  assign MEM1_ADDR = ADDR;
-casex (ADDR)
-  0XXXXXXX: DATA_RD = REG0;
-  100XXXXX: DATA_RD = REG1;
-  1000XXXX: DATA_RD = REG2_field0 | REG2_field1;
-  100000XX: DATA_RD = MEM0_rdata;
-  1000000X: DATA_RD = MEM1_rdata;
-  default: DATA_RD = 0;
-endcase
+  assign REG0_matchExpr = regs.ADDR == 0;
+  assign REG0_RE = REG0_matchExpr && regs.RE;
+  assign REG0_WE = REG0_matchExpr && regs.WE;
+  assign REG1_matchExpr = regs.ADDR == 4;
+  assign REG1_RE = REG1_matchExpr && regs.RE;
+  assign REG2_matchExpr = regs.ADDR == 8;
+  assign REG2_RE = REG2_matchExpr && regs.RE;
+  assign REG2_WE = REG2_matchExpr && regs.WE;
+  assign MEM0_matchExpr = regs.ADDR == 32;
+  assign MEM0_Nmatch = regs.ADDR & 4'b1100 == 32;
+  assign MEM0_RE = MEM0_Nmatch && regs.RE;
+  assign MEM0_WE = MEM0_Nmatch && regs.WE;
+  assign MEM0_ADDR = regs.ADDR & 4'b0011;
+  assign MEM1_matchExpr = regs.ADDR == 64;
+  assign MEM1_RE = MEM1_matchExpr && regs.RE;
+  assign MEM1_ADDR = regs.ADDR;
+   always_comb
+    /* verilator lint_off CASEX */
+    casex (regs.ADDR)
+      8'b0XXXXXXX: regs.DATA_RD = REG0;
+      8'b100XXXXX: regs.DATA_RD = REG1;
+      8'b1000XXXX: regs.DATA_RD = REG2_field0 | REG2_field1;
+      8'b100000XX: regs.DATA_RD = MEM0_rdata;
+      8'b1000000X: regs.DATA_RD = MEM1_rdata;
+      default: regs.DATA_RD = 0;
+    endcase
 
    always_ff @( posedge clk  or negedge rst_b )
      if(!rst_b)
@@ -77,20 +105,20 @@ endcase
            REG0 <= 'd0;
            REG2_field0 <= 'd16;
            REG2_field1 <= 'd32;
-           DATA_RD <= 'd0;
+           regs.DATA_RD <= 'd0;
            MEM0_wdata <= 'd0;
            MEM0_re <= 'd0;
            MEM0_we <= 'd0;
            MEM0_wstrb <= 'd0;
            MEM1_re <= 'd0;
         end
-      else if(WE)
+      else if(regs.WE)
         begin
-           REG0 <= DATA_WR;
-           REG2_field0 <= DATA_WR[0:15];
-           REG2_field1 <= DATA_WR[16:31];
-           DATA_RD <= MEM1_rdata;
-           MEM0_wdata <= DATA_WR;
+           REG0 <= regs.DATA_WR;
+           REG2_field0 <= regs.DATA_WR[15:0];
+           REG2_field1 <= regs.DATA_WR[31:16];
+           regs.DATA_RD <= MEM1_rdata;
+           MEM0_wdata <= regs.DATA_WR;
            MEM0_re <= MEM0_RE;
            MEM0_we <= MEM0_WE;
            MEM0_wstrb <= 1;
@@ -108,6 +136,7 @@ module tb_testRegBlock
    
    );
 
+   memory_32_32 regs();
    logic  clk;
    logic  rst_b;
    logic [31:0] REG0;
@@ -137,7 +166,8 @@ module tb_testRegBlock
         .MEM0_wdata(MEM0_wdata),
         .MEM0_wstrb(MEM0_wstrb),
         .MEM1_rdata(MEM1_rdata),
-        .MEM1_re(MEM1_re)        
+        .MEM1_re(MEM1_re),
+        .regs(regs)        
       );
 
 

@@ -66,7 +66,66 @@ const testRegBlock = new RegisterBlock({
     name: 'testRegBlock',
     busAddressWidth: 32
 }, myRegs, new Memory());
-const tb_testRegBlock = new Module({ name: 'tb_testRegBlock' });
+const tbBody = `
+    logic [15:0] count;
+
+    always @(posedge clk or negedge rst_b) begin
+      if (!rst_b) begin
+         count <= 'd0;
+      end else begin
+         count <= count + 1'b1;
+
+         case (count)
+            'd0: begin
+               regs.ADDR <= 32'h00000000;
+               regs.DATA_WR <= 32'h12345678;
+               regs.WE <= 1;
+            end
+            'd1: begin
+               regs.WE <= 0;
+               regs.RE <= 1;
+            end
+            'd2: begin
+               regs.RE <= 0;
+            end
+            'd3: begin
+               regs.ADDR <= 32'h00000008;
+               regs.DATA_WR <= 32'h87654321;
+               regs.WE <= 1;
+            end
+            'd4: begin
+               regs.WE <= 0;
+               regs.RE <= 1;
+            end
+            'd5: begin
+               regs.RE <= 0;
+            end
+            'd6: begin
+               regs.ADDR <= 32'h00000020;
+               regs.DATA_WR <= 32'hAABBCCDD;
+               regs.WE <= 1;
+            end
+            'd7: begin
+               regs.WE <= 0;
+               MEM0_rdata <= 32'hAABBCCDD;
+               regs.RE <= 1;
+            end
+            'd8: begin
+               regs.RE <= 0;
+            end
+            'd9: begin
+               // End of test
+               $stop;
+            end
+            default: ;
+         endcase
+      end
+    end
+`;
+const tb_testRegBlock = new Module({ name: 'tb_testRegBlock' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_b: { direction: 'input', isReset: 'lowasync' }
+}, tbBody);
 tb_testRegBlock.addSubmodule('dut', testRegBlock, {}, true, true);
 // const temp = 'REG0'
 // console.log(myRegMap[temp])
@@ -76,67 +135,3 @@ try {
 catch (err) {
     console.error(err);
 }
-// const myRegMap2 = {
-//   REG0: BigInt('0x00000000'),
-//   REG1: BigInt('0x00000004'),
-//   REG2: BigInt('0x00000008'),
-//   MEM0: BigInt('0x00000020'),
-//   MEM1: BigInt('0x00000040')
-// } as const
-// const myRegs2: RegisterBlockDef<typeof myRegMap> = {
-//   wordSize: 32,
-//   addrMap: myRegMap2,
-//   registers: {
-//     REG0: {
-//       type: 'RW',
-//       description: 'Register 0',
-//       fields: {
-//         REG2_field0: {
-//           bitRange: [15, 0],
-//           reset: BigInt('0x10')
-//         },
-//         REG2_field1: {
-//           bitRange: [31, 16],
-//           reset: BigInt('0x20')
-//         }
-//       }
-//     },
-//     REG1: {
-//       type: 'RW',
-//       description: 'Register 2',
-//       fields: {}
-//     },
-//     REG2: {
-//       type: 'RW',
-//       description: 'Register 2',
-//       fields: {}
-//     },
-//     MEM0: {
-//       type: 'RAM',
-//       size: 32n
-//     },
-//     MEM1: {
-//       type: 'RW',
-//       description: 'Register 2',
-//       fields: {}
-//     }
-//   }
-// }
-// const testRegBlock2 = new RegisterBlock<typeof myRegs.addrMap>(
-//   {
-//     name: 'testRegBlock2'
-//   },
-//   myRegs2)
-// const tb_testRegBlock2 = new Module({ name: 'tb_testRegBlock' })
-// tb_testRegBlock2.addSubmodule(
-//   'dut',
-//   testRegBlock2,
-//   {},
-//   true,
-//   true
-// )
-// try {
-//   writeFileSync('sv-examples/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog())
-// } catch (err) {
-//   console.error(err)
-// }

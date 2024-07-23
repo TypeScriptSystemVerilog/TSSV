@@ -1,3 +1,39 @@
+/**
+ * WRITE
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": " DATA_WR", "wave": "x100......", "data": ["D"]},
+ *     {"name": "    ADDR", "wave": "x100......", "data": ["A"]},
+ *     {"name": "      WE", "wave": "01.......0"},
+ *     {"name": "      RE", "wave": "0........."},
+ *     {"name": " DATA_RD", "wave": "0........."},
+ *     {"name": "   READY", "wave": "0-.......-"}
+ *   ]
+ * }
+ * ```
+ */
+/**
+ * READY
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": " DATA_WR", "wave": "0........."},
+ *     {"name": "    ADDR", "wave": "x100......", "data": ["A"]},
+ *     {"name": "      WE", "wave": "0........."},
+ *     {"name": "      RE", "wave": "01.......0"},
+ *     {"name": " DATA_RD", "wave": "....x100..", "data": ["D"]},
+ *     {"name": "   READY", "wave": "10......01"}
+ *   ]
+ * }
+ * ```
+ */
 import { Module, type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSSV';
 type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | string;
 interface Field {

@@ -932,7 +932,6 @@ export class Module {
        */
     addMux(io) {
         const selWidth = Math.ceil(Math.log2(io.in.length)); // remove -1
-        console.log(`sel width is ${selWidth}`);
         let selString = io.sel.toString();
         if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
             const selSig = this.findSignal(io.sel, true, this.addMux, true);
