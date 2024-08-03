@@ -189,7 +189,7 @@ export class SRAM extends Module {
           a_we: { direction: 'input' },
           a_data_in: { direction: 'input', width: this.params.dataWidth },
           a_data_out: { direction: 'output', width: this.params.dataWidth },
-          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
+          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }, // remove - 1n
           b_re: { direction: 'input' },
           b_we: { direction: 'input' },
           b_data_in: { direction: 'input', width: this.params.dataWidth },
