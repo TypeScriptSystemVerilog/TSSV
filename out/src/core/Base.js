@@ -257,7 +257,7 @@ export class Module {
                 }
                 if (thisSig.isSigned) {
                     if ((thisSig.width || 1) > (thisPort.width || 1)) {
-                        throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width} æ`);
+                        throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width}`);
                     }
                 }
                 else {
@@ -268,7 +268,7 @@ export class Module {
                     }
                     else {
                         if ((thisSig.width || 1) > (thisPort.width || 1)) {
-                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width} ø`);
+                            throw Error(`Error: binding signal is too wide for port, port: ${port.toString()}, signal: ${thisBinding.toString()}}, signal width: ${thisSig.width}, port width: ${thisPort.width}`);
                         }
                     }
                 }
@@ -299,7 +299,7 @@ export class Module {
                 }
                 else {
                     if ((thisSig.width || 1) !== (thisPort.width || 1)) {
-                        throw Error(`Error: binding signal width mismatch, port: ${port.toString()}, signal: ${thisBinding.toString()}}`);
+                        throw Error(`Error: binding signal width mismatch, port: ${port.toString()}, signal: ${thisBinding.toString()}}, port width: ${thisPort.width}, signal width: ${thisSig.width}`);
                     }
                 }
                 if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic')))
@@ -1054,7 +1054,7 @@ ${caseAssignments}
                 }
             }
             else {
-                signalArray.push(`${thisInterface.interfaceName()} ${key}`);
+                signalArray.push(`${thisInterface.interfaceName()} ${key}()`);
             }
         });
         const IOString = `   ${IOArray.join(',\n   ')}`;

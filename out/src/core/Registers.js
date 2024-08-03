@@ -6,35 +6,36 @@
  * {
  *   "signal": [
  *     {"name": "     clk", "wave": "p........."},
- *     {"name": " DATA_WR", "wave": "x100......", "data": ["D"]},
- *     {"name": "    ADDR", "wave": "x100......", "data": ["A"]},
- *     {"name": "      WE", "wave": "01.......0"},
- *     {"name": "      RE", "wave": "0........."},
- *     {"name": " DATA_RD", "wave": "0........."},
- *     {"name": "   READY", "wave": "0-.......-"}
+ *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
+ *     {"name": "    addr", "wave": "04........", "data": ["A"]},
+ *     {"name": "      we", "wave": "01.0......"},
+ *     {"name": "      re", "wave": "0........."},
+ *     {"name": " data_rd", "wave": "0........."},
+ *     {"name": "   ready", "wave": "10.1......"}
  *   ]
  * }
  * ```
  */
 /**
- * READY
+ * READ
  *
  * @wavedrom
  * ```json
  * {
  *   "signal": [
  *     {"name": "     clk", "wave": "p........."},
- *     {"name": " DATA_WR", "wave": "0........."},
- *     {"name": "    ADDR", "wave": "x100......", "data": ["A"]},
- *     {"name": "      WE", "wave": "0........."},
- *     {"name": "      RE", "wave": "01.......0"},
- *     {"name": " DATA_RD", "wave": "....x100..", "data": ["D"]},
- *     {"name": "   READY", "wave": "10......01"}
+ *     {"name": " data_wr", "wave": "0........."},
+ *     {"name": "    addr", "wave": "04........", "data": ["A"]},
+ *     {"name": "      we", "wave": "0........."},
+ *     {"name": "      re", "wave": "01.0......"},
+ *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
+ *     {"name": "   ready", "wave": "10......1."}
  *   ]
  * }
  * ```
  */
-import { Module, Expr, Interface } from 'tssv/lib/core/TSSV';
+import { Module, Expr } from 'tssv/lib/core/TSSV';
+import { Memory } from 'tssv/lib/interfaces/Memory';
 export class RegAddr {
     constructor(start, wordSize) {
         this.addr = start || 0n;
@@ -44,41 +45,6 @@ export class RegAddr {
         const nextAddr = this.addr;
         this.addr += this.stride;
         return nextAddr;
-    }
-}
-export class Memory extends Interface {
-    constructor(params = {}, role = undefined) {
-        super('memory', {
-            DATA_WIDTH: params.DATA_WIDTH || 32,
-            ADDR_WIDTH: params.ADDR_WIDTH || 32
-        }, role);
-        this.signals =
-            {
-                ADDR: { width: this.params.ADDR_WIDTH || 32 },
-                DATA_WR: { width: this.params.DATA_WIDTH || 32 },
-                DATA_RD: { width: this.params.DATA_WIDTH || 32 },
-                RE: { width: 1 },
-                WE: { width: 1 },
-                READY: { width: 1 }
-            };
-        this.modports = {
-            outward: {
-                ADDR: 'input',
-                DATA_WR: 'output',
-                DATA_RD: 'input',
-                WE: 'output',
-                RE: 'output',
-                READY: 'input'
-            },
-            inward: {
-                ADDR: 'output',
-                DATA_WR: 'input',
-                DATA_RD: 'output',
-                WE: 'input',
-                RE: 'input',
-                READY: 'output'
-            }
-        };
     }
 }
 export class RegisterBlock extends Module {
@@ -101,21 +67,12 @@ export class RegisterBlock extends Module {
             DATA_WIDTH: regDefs.wordSize || 32,
             ADDR_WIDTH: params.busAddressWidth
         }, 'inward'));
-        // Define base signals
-        // const ADDR = this.addSignal('ADDR', { width: params.busAddressWidth })
-        // const DATA_WR = this.addSignal('DATA_WR', { width: regDefs.wordSize || 32 })
-        // const DATA_RD = this.addSignal('DATA_RD', { width: regDefs.wordSize || 32 })
-        // const RE = this.addSignal('RE', { width: 1 })
-        // const WE = this.addSignal('WE', { width: 1 })
-        // this.addSignal('READY', { width: 1 })
         // Create signals and logic for registers
         for (const reg in this.regDefs.addrMap) {
             const regName = reg;
             const registers = this.regDefs.registers;
             const baseAddr = this.regDefs.addrMap[regName];
             const matchExpr = this.addSignal(`${regName}_matchExpr`, { width: 1 });
-            // Use original address for logic
-            this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
             let thisReg = {
                 type: 'RW',
                 width: regDefs.wordSize
@@ -124,10 +81,16 @@ export class RegisterBlock extends Module {
                 thisReg = registers[regName] || thisReg;
             }
             if (thisReg.type === 'RW') {
+                const wstrbWidth = (params.busAddressWidth || 8) / 8;
+                const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
+                // Use original address for logic
+                this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
                 const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
                 const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
                 this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig });
                 this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig });
+                // new code
+                this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb });
                 if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
                     Object.keys(thisReg.fields).forEach((fieldName, index) => {
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -143,7 +106,7 @@ export class RegisterBlock extends Module {
                             clk: 'clk',
                             reset: 'rst_b',
                             q: fieldSigName,
-                            en: 'regs.WE',
+                            en: `${regName}_WE && ${wstrb.toString()}`, // added && wstrb
                             resetVal: field.reset || 0n
                         });
                     });
@@ -154,17 +117,22 @@ export class RegisterBlock extends Module {
                         width: thisReg.width || regDefs.wordSize,
                         isSigned: thisReg.isSigned
                     };
+                    this.addSignal(`${regName}_d`, { width: regDefs.wordSize });
+                    // new
+                    this.addAssign({ in: new Expr(`regs.DATA_WR & ${wstrb.toString()}`), out: `${regName}_d` });
                     this.addRegister({
-                        d: 'regs.DATA_WR',
+                        d: 'regs.DATA_WR', // added & wstrb
                         clk: 'clk',
                         reset: 'rst_b',
                         q: regName.toString(),
-                        en: 'regs.WE',
+                        en: `${regName}_WE`,
                         resetVal: thisReg.reset || 0n
                     });
                 }
             }
             else if (thisReg.type === 'RO') {
+                // Use original address for logic
+                this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
                 const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
                 this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig });
                 this.IOs[regName.toString()] = {
@@ -174,6 +142,11 @@ export class RegisterBlock extends Module {
                 };
             }
             else if (thisReg.type === 'WO') {
+                const wstrbWidth = (params.busAddressWidth || 8) / 8;
+                const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
+                // Use original address for logic
+                this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
+                this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb });
                 const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
                 this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig });
                 this.IOs[regName.toString()] = {
@@ -184,12 +157,19 @@ export class RegisterBlock extends Module {
                 this.addAssign({ in: new Expr('regs.DATA_WR'), out: regName.toString() });
             }
             else if (thisReg.type === 'ROM') {
+                // Use original address for logic
+                if (thisReg.size) {
+                    this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchExpr });
+                }
+                else {
+                    this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
+                }
                 const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
                 const ROM_ADDR = this.addSignal(`${regName}_ADDR`, { width: params.busAddressWidth });
                 this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig });
                 this.addAssign({ in: new Expr('regs.ADDR'), out: ROM_ADDR });
                 this.IOs[`${regName}_rdata`] = {
-                    direction: 'input',
+                    direction: 'output',
                     width: thisReg.width || regDefs.wordSize,
                     isSigned: thisReg.isSigned
                 };
@@ -197,35 +177,39 @@ export class RegisterBlock extends Module {
                     direction: 'output',
                     width: 1
                 };
+                this.IOs[`${regName}_ready`] = {
+                    direction: 'output',
+                    width: 1
+                };
                 this.addRegister({
-                    d: new Expr(`${regName}_rdata`),
+                    d: 'regs.READY',
                     clk: 'clk',
                     reset: 'rst_b',
                     en: 'regs.WE',
-                    q: 'regs.DATA_RD'
-                });
-                this.addRegister({
-                    d: RE_Sig,
-                    clk: 'clk',
-                    reset: 'rst_b',
-                    en: 'regs.WE',
-                    q: `${regName}_re`
+                    q: `${regName}_ready`
                 });
             }
             else if (thisReg.type === 'RAM') {
+                // Use original address for logic
+                if (thisReg.size) {
+                    this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchExpr });
+                }
+                else {
+                    this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
+                }
                 const DEC_MASK = this.calculateDecMask(thisReg.size);
-                const PASS_MASK = this.calculatePassMask(thisReg.size);
+                // const PASS_MASK = this.calculatePassMask(thisReg.size)
                 const Nmatch = this.addSignal(`${regName}_Nmatch`, { width: 1 });
                 const RAM_ADDR = this.addSignal(`${regName}_ADDR`, { width: params.busAddressWidth });
                 const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
                 const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
                 // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                 this.addAssign({ in: new Expr(`regs.ADDR & ${DEC_MASK} == ${baseAddr}`), out: Nmatch });
-                this.addAssign({ in: new Expr(`${Nmatch.toString()} && regs.RE`), out: RE_Sig });
-                this.addAssign({ in: new Expr(`${Nmatch.toString()} && regs.WE`), out: WE_Sig });
-                this.addAssign({ in: new Expr(`regs.ADDR & ${PASS_MASK}`), out: RAM_ADDR });
+                this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig }); // changed from Nmatch
+                this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig }); // changed from Nmatch
+                this.addAssign({ in: new Expr('regs.ADDR'), out: RAM_ADDR }); // remove  & ${PASS_MASK}
                 this.IOs[`${regName}_rdata`] = {
-                    direction: 'input',
+                    direction: 'output',
                     width: thisReg.width || regDefs.wordSize,
                     isSigned: thisReg.isSigned
                 };
@@ -246,87 +230,150 @@ export class RegisterBlock extends Module {
                     direction: 'output',
                     width: thisReg.width || regDefs.wordSize
                 };
+                this.IOs[`${regName}_ready`] = {
+                    direction: 'output',
+                    width: 1
+                };
                 this.addRegister({
-                    d: new Expr(`${regName}_rdata`),
+                    d: 'regs.READY',
                     clk: 'clk',
                     reset: 'rst_b',
-                    en: 'regs.WE',
-                    q: 'regs.DATA_RD'
+                    en: `${regName}_WE`,
+                    q: `${regName}_ready`
                 });
                 this.addRegister({
                     d: 'regs.DATA_WR',
                     clk: 'clk',
                     reset: 'rst_b',
-                    en: 'regs.WE',
+                    en: `${regName}_WE`,
                     q: `${regName}_wdata`
                 });
                 this.addRegister({
                     d: RE_Sig,
                     clk: 'clk',
                     reset: 'rst_b',
-                    en: 'regs.WE',
+                    en: `${regName}_WE`,
                     q: `${regName}_re`
                 });
                 this.addRegister({
                     d: WE_Sig,
                     clk: 'clk',
                     reset: 'rst_b',
-                    en: 'regs.WE',
+                    en: `${regName}_WE`,
                     q: `${regName}_we`
                 });
                 this.addRegister({
                     d: new Expr('1'), // Assuming a simple write strobe signal
                     clk: 'clk',
                     reset: 'rst_b',
-                    en: 'regs.WE',
+                    en: `${regName}_WE`,
                     q: `${regName}_wstrb`
                 });
             }
         }
-        // this.addMux({ in: ['MEMO_rdata', 'MEM1_rdata'], sel: 'regs.ADDR', out: 'regs.DATA_RD' })
+        let readyStr = '';
         const inputs = [];
-        let casexString = '   always_comb\n    /* verilator lint_off CASEX */\n    casex (regs.ADDR)\n';
+        let casexString = `
+always @(regs.ADDR or regs.RE)
+  if(regs.RE == 1) begin
+    /* verilator lint_off CASEX */
+    casex (regs.ADDR)
+ `;
         for (const reg in this.regDefs.addrMap) {
             const regName = reg;
             const baseAddr = this.regDefs.addrMap[regName];
             let readSignal = '';
             const register = this.regDefs.registers?.[regName];
-            if (register?.type === 'ROM' || register?.type === 'RAM') {
+            if (register?.type === 'ROM') { //  || register?.type === 'RAM'
                 readSignal = `${regName}_rdata`;
                 inputs.push(`${regName}_rdata`);
+                readyStr = `${regName}_ready`;
+                casexString +=
+                    `     8'b${this.padZeroes(this.replaceZerosWithX(baseAddr.toString(2)), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
+            }
+            else if (register?.type === 'RAM') {
+                readSignal = `${regName}_wdata`;
+                inputs.push(`${regName}_rdata`);
+                readyStr = `${regName}_ready`;
+                casexString +=
+                    `     8'b${this.padZeroes(this.replaceZerosWithX(baseAddr.toString(2)), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
             }
             else if (register?.type === 'RO') {
                 readSignal = regName;
                 inputs.push(`${regName}`);
+                readyStr = '1\'b1';
+                casexString +=
+                    `     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
             }
             else if (register?.type === 'RW') {
                 if (register.fields && Object.keys(register.fields).length > 0) {
-                    readSignal = Object.keys(register.fields).map((fieldName, index) => `${regName}_field${index}`).join(' | ');
+                    readSignal = Object.keys(register.fields).map((fieldName, index) => `${regName}_field${index}`).reverse().join(', ');
+                    readSignal = `{${readSignal}}`;
                     inputs.push(`${regName}_field0`);
                     inputs.push(`${regName}_field1`);
+                    readyStr = '1\'b1';
+                    casexString +=
+                        `     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
                 }
                 else {
                     readSignal = regName;
                     inputs.push(`${regName}`);
+                    readyStr = '1\'b1';
+                    casexString +=
+                        `     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
                 }
             }
             else {
                 readSignal = regName;
                 inputs.push(`${regName}`);
+                casexString +=
+                    `     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
             }
-            casexString += `      8'b${this.padAddress(baseAddr.toString(2), 8)}: regs.DATA_RD = ${readSignal};\n`;
         }
-        casexString += '      default: regs.DATA_RD = 0;\n';
+        casexString += '      default: regs.DATA_RD <= 0;\n';
         casexString += '    endcase\n';
+        casexString += '  end';
         // Add the casex string to the body
         this.body += casexString;
-        // this.addCombAlways({ inputs: [], outputs: ['regs.DATA_RD'] }, casexString)
     }
-    padAddress(address, width) {
+    replaceZerosWithX(binaryStr) {
+        // Replace all '0's with 'X's
+        let modifiedStr = binaryStr.replace(/0/g, 'X');
+        // Check if there is no '1' in the string
+        if (!modifiedStr.includes('1')) {
+            modifiedStr += 'X';
+        }
+        return modifiedStr;
+    }
+    padZeroes(address, width) {
         const padLength = width - address.length;
         if (padLength <= 0)
             return address;
-        return address + 'X'.repeat(padLength);
+        return '0'.repeat(padLength) + address;
+    }
+    padZeroesRight(address, width) {
+        const padLength = width - address.length;
+        if (padLength <= 0)
+            return address;
+        return address + '0'.repeat(padLength);
     }
     calculateDecMask(size) {
         if (size === undefined)
