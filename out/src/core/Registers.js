@@ -106,7 +106,7 @@ export class RegisterBlock extends Module {
                             clk: 'clk',
                             reset: 'rst_b',
                             q: fieldSigName,
-                            en: `${regName}_WE && ${wstrb.toString()}`, // added && wstrb
+                            en: `${regName}_WE && ${wstrb.toString()}`, // added && ${wstrb.toString()}
                             resetVal: field.reset || 0n
                         });
                     });

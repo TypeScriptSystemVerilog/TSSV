@@ -1,41 +1,3 @@
-/**
- * WRITE
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "01.0......"},
- *     {"name": "      re", "wave": "0........."},
- *     {"name": " data_rd", "wave": "0........."},
- *     {"name": "   ready", "wave": "10.1......"}
- *   ]
- * }
- * ```
- */
-
-/**
- * READ
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "0........."},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "0........."},
- *     {"name": "      re", "wave": "01.0......"},
- *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
- *     {"name": "   ready", "wave": "10......1."}
- *   ]
- * }
- * ```
- */
-
 import { Module, type TSSVParameters, type IntRange, Expr, type Interface } from 'tssv/lib/core/TSSV'
 
 import { Memory } from 'tssv/lib/interfaces/Memory'
@@ -85,6 +47,43 @@ export interface RegisterBlockParameters extends TSSVParameters {
   busAddressWidth?: 32
 }
 
+/**
+ * WRITE
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
+ *     {"name": "    addr", "wave": "04........", "data": ["A"]},
+ *     {"name": "      we", "wave": "01.0......"},
+ *     {"name": "      re", "wave": "0........."},
+ *     {"name": " data_rd", "wave": "0........."},
+ *     {"name": "   ready", "wave": "10.1......"}
+ *   ]
+ * }
+ * ```
+ */
+
+/**
+ * READ
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": " data_wr", "wave": "0........."},
+ *     {"name": "    addr", "wave": "04........", "data": ["A"]},
+ *     {"name": "      we", "wave": "0........."},
+ *     {"name": "      re", "wave": "01.0......"},
+ *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
+ *     {"name": "   ready", "wave": "10......1."}
+ *   ]
+ * }
+ * ```
+ */
 export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   declare params: RegisterBlockParameters
   regDefs: RegisterBlockDef<T>
@@ -157,7 +156,7 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
               clk: 'clk',
               reset: 'rst_b',
               q: fieldSigName,
-              en: `${regName}_WE && ${wstrb.toString()}`, // added && wstrb
+              en: `${regName}_WE && ${wstrb.toString()}`, // added && ${wstrb.toString()}
               resetVal: field.reset || 0n
             })
           })
