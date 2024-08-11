@@ -150,8 +150,8 @@ module Adder3_8_8_8
    output logic signed [9:0] sum
    );
 
-   TL_UL_4_32_2_8_8 regs1;
-   TL_UL_4_32_2_8_8 regs2;
+   TL_UL_4_32_2_8_8 regs1();
+   TL_UL_4_32_2_8_8 regs2();
    logic signed [8:0] psum;
    logic signed [9:0] sum_d;
    logic [9:0] sum_d3;

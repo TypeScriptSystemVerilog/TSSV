@@ -192,7 +192,7 @@ always @(regs.ADDR or regs.RE)
            REG2_field0 <= 'd16;
            REG2_field1 <= 'd32;
         end
-      else if(REG2_WE)
+      else if(REG2_WE && REG2_wstrb)
         begin
            REG2_field0 <= regs.DATA_WR[15:0];
            REG2_field1 <= regs.DATA_WR[31:16];
@@ -242,7 +242,7 @@ always @(regs.ADDR or regs.RE)
            REG2_field0 <= 'd16;
            REG2_field1 <= 'd32;
         end
-      else if(REG2_WE)
+      else if(REG2_WE && REG2_wstrb)
         begin
            REG2_field0 <= regs.DATA_WR[15:0];
            REG2_field1 <= regs.DATA_WR[31:16];

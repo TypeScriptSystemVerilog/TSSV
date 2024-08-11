@@ -1,3 +1,16 @@
+import { Module, Expr } from 'tssv/lib/core/TSSV';
+import { Memory } from 'tssv/lib/interfaces/Memory';
+export class RegAddr {
+    constructor(start, wordSize) {
+        this.addr = start || 0n;
+        this.stride = BigInt((wordSize || 32) / 8);
+    }
+    next() {
+        const nextAddr = this.addr;
+        this.addr += this.stride;
+        return nextAddr;
+    }
+}
 /**
  * WRITE
  *
@@ -34,19 +47,6 @@
  * }
  * ```
  */
-import { Module, Expr } from 'tssv/lib/core/TSSV';
-import { Memory } from 'tssv/lib/interfaces/Memory';
-export class RegAddr {
-    constructor(start, wordSize) {
-        this.addr = start || 0n;
-        this.stride = BigInt((wordSize || 32) / 8);
-    }
-    next() {
-        const nextAddr = this.addr;
-        this.addr += this.stride;
-        return nextAddr;
-    }
-}
 export class RegisterBlock extends Module {
     constructor(params, regDefs, busInterface) {
         super({

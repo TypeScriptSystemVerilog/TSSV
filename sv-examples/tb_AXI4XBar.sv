@@ -4842,12 +4842,12 @@ module tb_AXI4XBar
    
    );
 
-   AXI4_128_48_8_0_withQOS_noREGION master1;
-   AXI4_128_48_8_0_withQOS_noREGION master2;
-   AXI4_128_48_8_0_withQOS_noREGION slave1;
-   AXI4_128_48_8_0_withQOS_noREGION slave2;
-   AXI4_128_48_8_0_withQOS_noREGION slave3;
-   AXI4_128_48_8_0_withQOS_noREGION slave4;
+   AXI4_128_48_8_0_withQOS_noREGION master1();
+   AXI4_128_48_8_0_withQOS_noREGION master2();
+   AXI4_128_48_8_0_withQOS_noREGION slave1();
+   AXI4_128_48_8_0_withQOS_noREGION slave2();
+   AXI4_128_48_8_0_withQOS_noREGION slave3();
+   AXI4_128_48_8_0_withQOS_noREGION slave4();
    logic  clock;
    logic  reset;
 
