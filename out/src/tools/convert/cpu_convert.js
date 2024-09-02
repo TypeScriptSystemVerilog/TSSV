@@ -11,14 +11,25 @@ function extractSramModules(verilogCode) {
     // console.log(`is this true: ${sramRegex.test(verilogCode)}`)
     if (rhcRegex.test(verilogCode)) {
         console.log('rhc mode');
-        // console.log('i am here')
         const instantiationRegex = /(\w+)\s*#\(\s*([\s\S]+?)\s*\)\s+(\w+)\s*\(\s*([\s\S]+?)\s*\);/g;
         const parameterRegex = /\.([A-Z_]+)\((\d+)\)/gi;
         const sramModules = [];
         let instantiationMatch;
         while ((instantiationMatch = instantiationRegex.exec(verilogCode)) !== null) {
-            const [, , parameters, instanceName] = instantiationMatch; // removed instanceName
-            // console.log(moduleName)
+            const [, moduleName, parameters, instanceName] = instantiationMatch; // removed instanceName
+            console.log(moduleName);
+            let port = 'UNKNOWN';
+            if (moduleName.startsWith('rhc_spram')) {
+                port = '1p11';
+            }
+            else if (moduleName.startsWith('rhc_tpram_s2x')) {
+                port = '2p12';
+                console.log(moduleName);
+            }
+            else if (moduleName.startsWith('rhc_tpram')) {
+                port = '2p11';
+                console.log(moduleName);
+            }
             const params = {};
             let paramMatch;
             while ((paramMatch = parameterRegex.exec(parameters)) !== null) {
@@ -26,37 +37,57 @@ function extractSramModules(verilogCode) {
                 params[paramName] = parseInt(paramValue, 10);
             }
             const sramModule = {
-                name: instanceName,
+                name: '',
                 dataWidth: params.DATA_W || 0,
                 addressWidth: params.ADDR_W || 0,
-                depth: params.DEPTH || 0
+                depth: params.DEPTH || 0,
+                port: port
                 // Add other fields as needed, with defaults or parsed values.
             };
-            sramModules.push(sramModule);
+            const isDuplicate = sramModules.some(module => module.name === sramModule.name &&
+                module.dataWidth === sramModule.dataWidth &&
+                module.addressWidth === sramModule.addressWidth &&
+                module.depth === sramModule.depth &&
+                module.port === sramModule.port &&
+                module.sw === sramModule.sw);
+            if (!isDuplicate) {
+                sramModules.push(sramModule);
+            }
         }
-        return ['rhu', sramModules];
+        return ['rhc', sramModules];
     }
     else if (uxRegex.test(verilogCode)) {
         console.log('ux900 mode');
-        const regex = /(\w+)\s*#\(\s*\.FORCE_X2ZERO\s*\(\d+\),\s*\.GATE_CLK\s*\(\d+\),\s*\.DP\s*\((\d+)\),\s*\.DW\s*\((\d+)\),\s*\.MW\s*\(\d+\),\s*\.AW\s*\((\d+)\)\s*\)\s*(\w+)/g;
+        const regex = /(\w+)\s*#\(\s*\.FORCE_X2ZERO\s*\(\d+\),\s*\.GATE_CLK\s*\(\d+\),\s*\.DP\s*\((\d+)\),\s*\.DW\s*\((\d+)\),\s*\.MW\s*\((\d+)\),\s*\.AW\s*\((\d+)\)\s*\)\s*(\w+)/g;
         const sramModules = [];
         let match;
         while ((match = regex.exec(verilogCode)) !== null) {
-            const [, , dp, dw, aw, instanceName] = match;
+            const [, , dp, dw, mw, aw, instanceName] = match;
             const sramModule = {
-                name: instanceName,
+                name: '',
                 dataWidth: parseInt(dw, 10),
                 addressWidth: parseInt(aw, 10),
-                depth: parseInt(dp, 10)
+                depth: parseInt(dp, 10),
+                port: '1p11',
+                sw: parseInt(mw, 10) === 1 ? 0 : 1
+                //sw: parseInt(dw, 10) / parseInt(mw, 10)
             };
-            sramModules.push(sramModule);
+            const isDuplicate = sramModules.some(module => module.name === sramModule.name &&
+                module.dataWidth === sramModule.dataWidth &&
+                module.addressWidth === sramModule.addressWidth &&
+                module.depth === sramModule.depth &&
+                module.port === sramModule.port &&
+                module.sw === sramModule.sw);
+            if (!isDuplicate) {
+                sramModules.push(sramModule);
+            }
         }
         return ['ux900', sramModules];
     }
     else {
         console.log('pc mode');
         const sramModules = [];
-        const sramPattern = /module\s+pc_spsram_\d+x\d+[^]*?\(\s+[^]*?endmodule/gs;
+        const sramPattern = /module\s+(pc_spsram_\d+x\d+|pc_tpsram_\d+x\d+)[^]*?\(\s+[^]*?endmodule/gs;
         const matches = Array.from(verilogCode.matchAll(sramPattern));
         for (const match of matches) {
             const moduleDeclaration = match[0];
@@ -70,24 +101,44 @@ function extractSramModules(verilogCode) {
                 continue;
             }
             const depthWidthPattern = /pc_spsram_(\d+)x(\d+)/;
+            const swPattern = /(\d+)bw/;
             const depthWidthMatch = moduleName.match(depthWidthPattern);
+            const swMatch = moduleName.match(swPattern);
             if (!depthWidthMatch) {
                 console.error('Depth and width not found in module name:', moduleName);
                 continue;
             }
             const [, depth, dataWidth] = depthWidthMatch;
+            let singleWrite = 0;
+            if (swMatch) {
+                singleWrite = parseInt(swMatch[1], 10);
+            }
             const addressWidthPattern = /parameter\s+ADDR_WIDTH\s*=\s*(\d+);/;
             const dataWidthPattern = /parameter\s+DATA_WIDTH\s*=\s*(\d+);/;
             const addressWidthMatch = moduleDeclaration.match(addressWidthPattern);
             const dataWidthMatch = moduleDeclaration.match(dataWidthPattern);
+            let port = '1p11';
+            if (moduleName.startsWith('pc_tpsram')) {
+                port = '2p11';
+            }
             const sramModule = {
-                name: moduleName,
+                name: '',
                 depth: parseInt(depth, 10),
                 dataWidth: parseInt(dataWidthMatch ? dataWidthMatch[1] : dataWidth, 10),
-                addressWidth: parseInt(addressWidthMatch ? addressWidthMatch[1] : '0', 10)
+                addressWidth: parseInt(addressWidthMatch ? addressWidthMatch[1] : '0', 10),
+                port: port,
+                sw: singleWrite
                 // code: moduleDeclaration.trim()
             };
-            sramModules.push(sramModule);
+            const isDuplicate = sramModules.some(module => module.name === sramModule.name &&
+                module.dataWidth === sramModule.dataWidth &&
+                module.addressWidth === sramModule.addressWidth &&
+                module.depth === sramModule.depth &&
+                module.port === sramModule.port &&
+                module.sw === sramModule.sw);
+            if (!isDuplicate) {
+                sramModules.push(sramModule);
+            }
         }
         return ['pc', sramModules];
     }
@@ -100,7 +151,10 @@ function removeSramInstances(verilogCode) {
     return cleanedCode;
 }
 function removeLastCharacter(str) {
-    return str.slice(0, -1);
+    if (str.endsWith('(')) {
+        return str.slice(0, -1);
+    }
+    return str;
 }
 function createLibrary(sramModules, type) {
     let libraryCode = '';
@@ -150,7 +204,7 @@ function jsonToCsv(jsonData) {
         'Port (Mandatory) 1p11/2p11/2p12/2p22',
         'Number (NA)',
         'Width (NB) (Mandatory)',
-        'Address Width (NB) (Mandatory)',
+        // 'Address Width (NB) (Mandatory)',
         'Depth (NW) (Mandatory)',
         'Total (KB) (NA)',
         'SW (Bit Write) (Mandatory)',
@@ -172,30 +226,42 @@ function jsonToCsv(jsonData) {
     jsonData.forEach(sram => {
         const row = [
             removeLastCharacter(sram.name) || '',
-            sram.frequency || '',
+            sram.frequency !== undefined ? sram.frequency : 1200,
             sram.port || '',
             sram.number || '',
             sram.dataWidth.toString() || '',
-            sram.addressWidth.toString() || '',
+            // sram.addressWidth.toString() || '',
             sram.depth?.toString() || '',
             sram.total || '',
-            sram.sw || '',
+            sram.sw !== (undefined || 0) ? 1 : 0,
             sram.columnMux || '',
             sram.bank || '',
             sram.centerDecoder || '',
-            sram.redundancy || '',
-            sram.bistInterface || '',
-            sram.dualRail || '',
-            sram.powerGating || '',
+            sram.redundancy !== undefined ? sram.redundancy.toString : 'TRUE',
+            sram.bistInterface !== undefined ? sram.bistInterface.toString : 'FALSE',
+            sram.dualRail !== undefined ? sram.dualRail.toString : 'FALSE',
+            sram.powerGating !== undefined ? sram.powerGating.toString : 'FALSE',
             sram.peripheryVt || '',
-            sram.readAssist || '',
-            sram.writeAssist || '',
-            sram.pvtEnable || ''
+            sram.readAssist !== undefined ? sram.readAssist.toString : 'FALSE',
+            sram.writeAssist !== undefined ? sram.writeAssist.toString : 'FALSE',
+            sram.pvtEnable !== undefined ? sram.pvtEnable.toString : '{ 19 20 22 }'
         ];
         csvContent += row.join(',') + '\n';
     });
     // console.log(csvContent)
     return csvContent;
+}
+function splitCsvContent(csvContent, outputPath) {
+    const lines = csvContent.trim().split('\n');
+    const header = lines[0];
+    const rows = lines.slice(1);
+    let fileIndex = 1;
+    for (let i = 0; i < rows.length; i += 5) {
+        const chunk = rows.slice(i, i + 5);
+        const chunkContent = [header, ...chunk].join('\n');
+        fs.writeFileSync(`${outputPath}_part${fileIndex}.csv`, chunkContent);
+        fileIndex++;
+    }
 }
 function main() {
     const args = process.argv.slice(2);
@@ -217,8 +283,9 @@ function main() {
     const [type, sramModules] = extractSramModules(verilogCode);
     const sramModulesJson = JSON.stringify(sramModules, null, 2);
     if (type === 'pc') {
-        fs.writeFileSync(`${outputPath}_sram_modules_pc.json`, sramModulesJson);
-        fs.writeFileSync(`${outputPath}_info_pc.csv`, jsonToCsv(sramModules));
+        fs.writeFileSync(`${outputPath}_pc.json`, sramModulesJson);
+        const csvContent = jsonToCsv(sramModules);
+        splitCsvContent(csvContent, `${outputPath}_info_pc`);
         const libString = createLibrary(sramModules, type);
         fs.writeFileSync(`${outputPath}_pc_library.sv`, libString);
         const rest = removeSramInstances(verilogCode);
@@ -226,15 +293,17 @@ function main() {
     }
     else if (type === 'ux900') {
         fs.writeFileSync(`${outputPath}_ux900.json`, sramModulesJson);
+        const csvContent = jsonToCsv(sramModules);
+        splitCsvContent(csvContent, `${outputPath}_info_ux900`);
         const libStringRHC = createLibrary(sramModules, type);
         fs.writeFileSync(`${outputPath}_ux900_library.sv`, libStringRHC);
-        fs.writeFileSync(`${outputPath}_info_ux900.csv`, jsonToCsv(sramModules));
     }
     else {
         fs.writeFileSync(`${outputPath}_rhc.json`, sramModulesJson);
+        const csvContent = jsonToCsv(sramModules);
+        splitCsvContent(csvContent, `${outputPath}_info_rhc`);
         const libStringRHC = createLibrary(sramModules, type);
         fs.writeFileSync(`${outputPath}_rhc_library.sv`, libStringRHC);
-        fs.writeFileSync(`${outputPath}_info_rhc.csv`, jsonToCsv(sramModules));
     }
 }
 main();
