@@ -76,7 +76,8 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
         dataWidth: params.DATA_W || 0,
         addressWidth: params.ADDR_W || 0,
         depth: params.DEPTH || 0,
-        port: port
+        port: port,
+        sw: params.WREN_W === 1? 0 : 1
         // Add other fields as needed, with defaults or parsed values.
       }
 
