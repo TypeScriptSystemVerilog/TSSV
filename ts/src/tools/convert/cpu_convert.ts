@@ -52,18 +52,13 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
     let instantiationMatch
     while ((instantiationMatch = instantiationRegex.exec(verilogCode)) !== null) {
       const [, moduleName, parameters, instanceName] = instantiationMatch // removed instanceName
-      console.log(moduleName)
       let port = 'UNKNOWN'
       if (moduleName.startsWith('rhc_spram')) {
         port = '1p11'
       } else if (moduleName.startsWith('rhc_tpram_s2x')) {
         port = '2p12'
-        console.log(moduleName)
-
       } else if (moduleName.startsWith('rhc_tpram')) {
         port = '2p11'
-        console.log(moduleName)
-
       } 
       const params: Record<string, number> = {}
       let paramMatch
