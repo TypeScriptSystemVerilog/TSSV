@@ -16,19 +16,16 @@ function extractSramModules(verilogCode) {
         const sramModules = [];
         let instantiationMatch;
         while ((instantiationMatch = instantiationRegex.exec(verilogCode)) !== null) {
-            const [, moduleName, parameters, instanceName] = instantiationMatch; // removed instanceName
-            console.log(moduleName);
+            const [, moduleName, parameters] = instantiationMatch; // removed instanceName
             let port = 'UNKNOWN';
             if (moduleName.startsWith('rhc_spram')) {
                 port = '1p11';
             }
             else if (moduleName.startsWith('rhc_tpram_s2x')) {
                 port = '2p12';
-                console.log(moduleName);
             }
             else if (moduleName.startsWith('rhc_tpram')) {
                 port = '2p11';
-                console.log(moduleName);
             }
             const params = {};
             let paramMatch;
@@ -41,7 +38,8 @@ function extractSramModules(verilogCode) {
                 dataWidth: params.DATA_W || 0,
                 addressWidth: params.ADDR_W || 0,
                 depth: params.DEPTH || 0,
-                port: port
+                port,
+                sw: params.WREN_W === 1 ? 0 : 1
                 // Add other fields as needed, with defaults or parsed values.
             };
             const isDuplicate = sramModules.some(module => module.name === sramModule.name &&
@@ -62,7 +60,7 @@ function extractSramModules(verilogCode) {
         const sramModules = [];
         let match;
         while ((match = regex.exec(verilogCode)) !== null) {
-            const [, , dp, dw, mw, aw, instanceName] = match;
+            const [, , dp, dw, mw, aw] = match;
             const sramModule = {
                 name: '',
                 dataWidth: parseInt(dw, 10),
@@ -70,7 +68,7 @@ function extractSramModules(verilogCode) {
                 depth: parseInt(dp, 10),
                 port: '1p11',
                 sw: parseInt(mw, 10) === 1 ? 0 : 1
-                //sw: parseInt(dw, 10) / parseInt(mw, 10)
+                // sw: parseInt(dw, 10) / parseInt(mw, 10)
             };
             const isDuplicate = sramModules.some(module => module.name === sramModule.name &&
                 module.dataWidth === sramModule.dataWidth &&
@@ -126,7 +124,7 @@ function extractSramModules(verilogCode) {
                 depth: parseInt(depth, 10),
                 dataWidth: parseInt(dataWidthMatch ? dataWidthMatch[1] : dataWidth, 10),
                 addressWidth: parseInt(addressWidthMatch ? addressWidthMatch[1] : '0', 10),
-                port: port,
+                port,
                 sw: singleWrite
                 // code: moduleDeclaration.trim()
             };

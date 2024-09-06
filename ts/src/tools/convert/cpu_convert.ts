@@ -33,11 +33,11 @@ interface SramModule {
   pvtEnable?: string
 }
 
-function readVerilogFile(filePath: string): string {
+function readVerilogFile (filePath: string): string {
   return fs.readFileSync(filePath, 'utf-8')
 }
 
-function extractSramModules(verilogCode: string): [string, SramModule[]] {
+function extractSramModules (verilogCode: string): [string, SramModule[]] {
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   const rhcRegex = /rhc./
   const uxRegex = /ux900./
@@ -51,7 +51,7 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
 
     let instantiationMatch
     while ((instantiationMatch = instantiationRegex.exec(verilogCode)) !== null) {
-      const [, moduleName, parameters, instanceName] = instantiationMatch // removed instanceName
+      const [, moduleName, parameters] = instantiationMatch // removed instanceName
       let port = 'UNKNOWN'
       if (moduleName.startsWith('rhc_spram')) {
         port = '1p11'
@@ -59,7 +59,7 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
         port = '2p12'
       } else if (moduleName.startsWith('rhc_tpram')) {
         port = '2p11'
-      } 
+      }
       const params: Record<string, number> = {}
       let paramMatch
       while ((paramMatch = parameterRegex.exec(parameters)) !== null) {
@@ -71,12 +71,12 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
         dataWidth: params.DATA_W || 0,
         addressWidth: params.ADDR_W || 0,
         depth: params.DEPTH || 0,
-        port: port,
-        sw: params.WREN_W === 1? 0 : 1
+        port,
+        sw: params.WREN_W === 1 ? 0 : 1
         // Add other fields as needed, with defaults or parsed values.
       }
 
-      const isDuplicate = sramModules.some(module => 
+      const isDuplicate = sramModules.some(module =>
         module.name === sramModule.name &&
         module.dataWidth === sramModule.dataWidth &&
         module.addressWidth === sramModule.addressWidth &&
@@ -98,7 +98,7 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
     let match: RegExpExecArray | null
 
     while ((match = regex.exec(verilogCode)) !== null) {
-      const [, , dp, dw, mw, aw, instanceName] = match
+      const [, , dp, dw, mw, aw] = match
 
       const sramModule: SramModule = {
         name: '',
@@ -107,10 +107,10 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
         depth: parseInt(dp, 10),
         port: '1p11',
         sw: parseInt(mw, 10) === 1 ? 0 : 1
-        //sw: parseInt(dw, 10) / parseInt(mw, 10)
+        // sw: parseInt(dw, 10) / parseInt(mw, 10)
       }
-    
-      const isDuplicate = sramModules.some(module => 
+
+      const isDuplicate = sramModules.some(module =>
         module.name === sramModule.name &&
         module.dataWidth === sramModule.dataWidth &&
         module.addressWidth === sramModule.addressWidth &&
@@ -150,7 +150,6 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
       const depthWidthMatch = moduleName.match(depthWidthPattern)
       const swMatch = moduleName.match(swPattern)
 
-
       if (!depthWidthMatch) {
         console.error('Depth and width not found in module name:', moduleName)
         continue
@@ -176,11 +175,11 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
         depth: parseInt(depth, 10),
         dataWidth: parseInt(dataWidthMatch ? dataWidthMatch[1] : dataWidth, 10),
         addressWidth: parseInt(addressWidthMatch ? addressWidthMatch[1] : '0', 10),
-        port: port,
+        port,
         sw: singleWrite
         // code: moduleDeclaration.trim()
       }
-      const isDuplicate = sramModules.some(module => 
+      const isDuplicate = sramModules.some(module =>
         module.name === sramModule.name &&
         module.dataWidth === sramModule.dataWidth &&
         module.addressWidth === sramModule.addressWidth &&
@@ -192,14 +191,13 @@ function extractSramModules(verilogCode: string): [string, SramModule[]] {
       if (!isDuplicate) {
         sramModules.push(sramModule)
       }
-    
     }
 
     return ['pc', sramModules]
   }
 }
 
-function removeSramInstances(verilogCode: string): string {
+function removeSramInstances (verilogCode: string): string {
   // Define the pattern for the specific instance to be removed
   const instancePattern = /module\s+pc_spsram_[\w\d_]+\s*\([\s\S]*?\);[\s\S]*?endmodule/g
 
@@ -209,14 +207,14 @@ function removeSramInstances(verilogCode: string): string {
   return cleanedCode
 }
 
-function removeLastCharacter(str: string): string {
+function removeLastCharacter (str: string): string {
   if (str.endsWith('(')) {
     return str.slice(0, -1)
   }
   return str
 }
 
-function createLibrary(sramModules: SramModule[], type: string): string {
+function createLibrary (sramModules: SramModule[], type: string): string {
   let libraryCode = ''
   sramModules.forEach((sram, index) => {
     const modName = (type === 'pc') ? removeLastCharacter(sram.name) : sram.name
@@ -264,7 +262,7 @@ function createLibrary(sramModules: SramModule[], type: string): string {
   return libraryCode
 }
 
-function jsonToCsv(jsonData: SramModule[]): string {
+function jsonToCsv (jsonData: SramModule[]): string {
   const headers = [
     'Name (NA)',
     'Frequency (MHz) (NA)',
@@ -322,7 +320,7 @@ function jsonToCsv(jsonData: SramModule[]): string {
   return csvContent
 }
 
-function splitCsvContent(csvContent: string, outputPath: string): void {
+function splitCsvContent (csvContent: string, outputPath: string): void {
   const lines = csvContent.trim().split('\n')
   const header = lines[0]
   const rows = lines.slice(1)
@@ -335,7 +333,7 @@ function splitCsvContent(csvContent: string, outputPath: string): void {
   }
 }
 
-function main(): void {
+function main (): void {
   const args = process.argv.slice(2)
   if (args.length !== 2) {
     console.error('Usage: node cpu_convert.js <path-to-verilog-file> <output-path>')
