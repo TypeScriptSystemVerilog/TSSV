@@ -83,7 +83,7 @@ An example use of this case would look like this:
 ```
 cd ~/TSSV
 npx tsc
-node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/ux900_rams_wrapper.sv ts/src/tools/example2
+node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/ux900_rams_wrapper.v ts/src/tools/example2
 ```
 
 This will take this example [file](../../../../sv-examples/cpu_convert/ux900_rams_wrapper.v) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
