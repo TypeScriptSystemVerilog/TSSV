@@ -1,0 +1,299 @@
+[
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_ilm_ram",
+    "dataWidth": 64,
+    "addressWidth": 15,
+    "depth": 32768,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dlm0_ram",
+    "dataWidth": 32,
+    "addressWidth": 15,
+    "depth": 32768,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dlm1_ram",
+    "dataWidth": 32,
+    "addressWidth": 15,
+    "depth": 32768,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_bht_ram_bank0",
+    "dataWidth": 16,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_bht_ram_bank1",
+    "dataWidth": 16,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_bht_ram_bank2",
+    "dataWidth": 16,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_bht_ram_bank3",
+    "dataWidth": 16,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_btb_ram_bank0",
+    "dataWidth": 140,
+    "addressWidth": 5,
+    "depth": 32,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_btb_ram_bank1",
+    "dataWidth": 140,
+    "addressWidth": 5,
+    "depth": 32,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_btb_ram_bank2",
+    "dataWidth": 140,
+    "addressWidth": 5,
+    "depth": 32,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_btb_ram_bank3",
+    "dataWidth": 140,
+    "addressWidth": 5,
+    "depth": 32,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_icache_tag0_ram",
+    "dataWidth": 22,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_icache_tag1_ram",
+    "dataWidth": 22,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_icache_data0_ram",
+    "dataWidth": 64,
+    "addressWidth": 11,
+    "depth": 2048,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_icache_data1_ram",
+    "dataWidth": 64,
+    "addressWidth": 11,
+    "depth": 2048,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_w0_tram_ram",
+    "dataWidth": 22,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_w1_tram_ram",
+    "dataWidth": 22,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b0_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b1_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b2_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b3_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b4_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b5_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b6_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_dcache_dram_b7_ram",
+    "dataWidth": 32,
+    "addressWidth": 10,
+    "depth": 1024,
+    "port": "1p11",
+    "sw": 1
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_tram_way0_ram",
+    "dataWidth": 39,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_tram_way1_ram",
+    "dataWidth": 39,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_dram_way0_ram",
+    "dataWidth": 27,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_dram_way1_ram",
+    "dataWidth": 27,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_tram_way2_ram",
+    "dataWidth": 39,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_dram_way2_ram",
+    "dataWidth": 27,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_tram_way3_ram",
+    "dataWidth": 39,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  },
+  {
+    "moduleName": "ux900_gnrl_ram",
+    "instanceName": "u_tlb_dram_way3_ram",
+    "dataWidth": 27,
+    "addressWidth": 8,
+    "depth": 256,
+    "port": "1p11",
+    "sw": 0
+  }
+]
