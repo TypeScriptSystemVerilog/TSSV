@@ -3,10 +3,22 @@ import * as path from 'path'
 import { Module, Expr, type IntRange } from 'tssv/lib/core/TSSV'
 import { SRAM } from 'tssv/lib/modules/SRAM'
 
+const logStream = fs.createWriteStream('cpu_convert.log', { flags: 'a' })
+console.log = function (message) {
+  logStream.write(`[LOG] ${message}\n`)
+}
+console.warn = function (message) {
+  logStream.write(`[WARN] ${message}\n`)
+}
+console.error = function (message) {
+  logStream.write(`[ERROR] ${message}\n`)
+}
+
 const predefinedConstants: Record<string, number> = {}
 
 interface SramModule {
-  name: string
+  moduleName: string
+  instanceName: string
   frequency?: number
   port?: string
   number?: number
@@ -64,7 +76,7 @@ function generatePredefinedConstants (verilogCode: string) {
     const [, , paramName, paramValue] = match
     predefinedConstants[paramName] = parseInt(paramValue, 10)
   }
-  console.log(predefinedConstants)
+  console.log(JSON.stringify(predefinedConstants, null, 2))
 }
 
 function evaluateExpression (expr: string): number {
@@ -102,6 +114,7 @@ function processParameter (paramValue: string): number {
 
 function isDuplicateModule (existingModules: SramModule[], newModule: SramModule): boolean {
   return existingModules.some(module =>
+    module.instanceName === newModule.instanceName &&
     module.dataWidth === newModule.dataWidth &&
     module.addressWidth === newModule.addressWidth &&
     module.depth === newModule.depth &&
@@ -138,11 +151,12 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
         const finalValue = processParameter(paramValue)
         params[paramName] = finalValue
       }
-      console.log(params)
+      console.log(JSON.stringify(params, null, 2))
       const sramModule: SramModule = {
-        name: '',
-        dataWidth: params.DATA_W || 0,
-        addressWidth: params.ADDR_W || 0,
+        moduleName: moduleName,
+        instanceName: removeLastCharacter(instanceName),
+        dataWidth: params.DATA_W,
+        addressWidth: params.ADDR_W || NaN,
         depth: params.DEPTH || 0,
         port,
         sw: params.WREN_W === 1 ? 0 : 1
@@ -161,10 +175,11 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
     let match: RegExpExecArray | null
 
     while ((match = regex.exec(verilogCode)) !== null) {
-      const [, , dp, dw, mw, aw] = match
+      const [, , dp, dw, mw, aw, instanceName] = match
 
       const sramModule: SramModule = {
-        name: '',
+        moduleName: 'ux900_gnrl_ram',
+        instanceName: instanceName,
         dataWidth: parseInt(dw, 10),
         addressWidth: parseInt(aw, 10),
         depth: parseInt(dp, 10),
@@ -183,13 +198,18 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
     console.log('pc mode')
     const sramModules: SramModule[] = []
     const sramPattern = /module\s+(pc_spsram_\d+x\d+|pc_tpsram_\d+x\d+)[^]*?\(\s+[^]*?endmodule/gs
+    // const sramPattern = /(pc_spsram_\d+x\d+(?:_\d+bw|_nobw)?)\s+(\w+)\s*\([^]*?\);/g
+
     const matches = Array.from(verilogCode.matchAll(sramPattern))
 
     for (const match of matches) {
+      // console.log("Module name: ", match[1])
+      // console.log("Instance name: ", match[2])
+      // const moduleDeclaration = match[1]
       const moduleDeclaration = match[0]
       const moduleNamePattern = /module\s+(pc_spsram_\d+x\d+_?[^;\s]*)/
       const moduleNameMatch = moduleDeclaration.match(moduleNamePattern)
-      const moduleName = moduleNameMatch ? moduleNameMatch[1] : 'Unknown'
+      const moduleName = moduleNameMatch ? removeLastCharacter(moduleNameMatch[1]) : 'Unknown'
 
       // console.log('Module Declaration:', moduleDeclaration)
       // console.log('Module Name:', moduleName)
@@ -225,11 +245,12 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
         port = '2p11'
       }
       const sramModule: SramModule = {
-        name: '',
+        moduleName: moduleName,
+        instanceName: '',
         depth: parseInt(depth, 10),
         dataWidth: parseInt(dataWidthMatch ? dataWidthMatch[1] : dataWidth, 10),
         addressWidth: parseInt(addressWidthMatch ? addressWidthMatch[1] : '0', 10),
-        port,
+        port: port,
         sw: singleWrite
         // code: moduleDeclaration.trim()
       }
@@ -244,10 +265,11 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
 
 function removeSramInstances (verilogCode: string): string {
   // Define the pattern for the specific instance to be removed
-  const instancePattern = /module\s+pc_spsram_[\w\d_]+\s*\([\s\S]*?\);[\s\S]*?endmodule/g
+  // const instancePattern = /module\s+pc_spsram_[\w\d_]+\s*\([\s\S]*?\);[\s\S]*?endmodule/g
+  const instancePattern = /(pc_spsram_\d+x\d+(?:_\d+bw|_nobw)?)\s+(\w+)\s*\([^]*?\);/g
 
   // Remove the specific instances
-  const cleanedCode = verilogCode.replace(instancePattern, '')
+  const cleanedCode = verilogCode.replace(instancePattern, 'toreplace')
 
   return cleanedCode
 }
@@ -262,9 +284,9 @@ function removeLastCharacter (str: string): string {
 function createLibrary (sramModules: SramModule[], type: string): string {
   let libraryCode = ''
   sramModules.forEach((sram, index) => {
-    const modName = (type === 'pc') ? removeLastCharacter(sram.name) : sram.name
+    const modName = (type === 'pc') ? removeLastCharacter(sram.moduleName) : sram.moduleName
     const module = new Module(
-      { name: modName }, // took out removeLastCharacter
+      { name: modName },
       {
         a: { direction: 'input', width: sram.addressWidth },
         cen: { direction: 'input' },
@@ -276,20 +298,19 @@ function createLibrary (sramModules: SramModule[], type: string): string {
       }
     )
     let sramMName = ''
-    // Extract the part of the name after the second underscore
     if (type === 'pc') {
-      const nameParts = sram.name.split('_')
+      const nameParts = sram.moduleName.split('_')
       const sramSuffix = nameParts.slice(2).join('_')
       sramMName = `sram_${sramSuffix}`
     } else {
-      const nameParts = sram.name.split('_')
+      const nameParts = sram.moduleName.split('_')
       const sramSuffix = nameParts.slice(1).join('_')
       sramMName = `sram_${sramSuffix}`
     }
 
     const sramM = new SRAM(
       {
-        name: `${sramMName}`, // took out removeLastCharacter
+        name: `${sramMName}`,
         depth: BigInt(sram.depth),
         dataWidth: sram.dataWidth as IntRange<1, 256>,
         ports: '1rw',
@@ -314,7 +335,6 @@ function jsonToCsv (jsonData: SramModule[]): string {
     'Port (Mandatory) 1p11/2p11/2p12/2p22',
     'Number (NA)',
     'Width (NB) (Mandatory)',
-    // 'Address Width (NB) (Mandatory)',
     'Depth (NW) (Mandatory)',
     'Total (KB) (NA)',
     'SW (Bit Write) (Mandatory)',
@@ -331,13 +351,18 @@ function jsonToCsv (jsonData: SramModule[]): string {
     'pvt_enable'
   ]
 
+  const hasInvalidData = jsonData.some(sram => isNaN(sram.dataWidth) || isNaN(sram.depth))
+  if (hasInvalidData) {
+    return 'Error: Unable to generate CSV because some modules have null dataWidth or depth.'
+  }
   // Add header row
   let csvContent = headers.join(',') + '\n'
 
   // Add each sramModule row
   jsonData.forEach(sram => {
     const row = [
-      removeLastCharacter(sram.name) || '',
+      // removeLastCharacter(sram.name) || '',
+      '',
       sram.frequency !== undefined ? sram.frequency : 1200,
       sram.port || '',
       sram.number || '',
@@ -395,7 +420,6 @@ function main (): void {
 
   generatePredefinedConstants(verilogCode)
   const [type, sramModules] = extractSramModules(verilogCode)
-
   const sramModulesJson = JSON.stringify(sramModules, null, 2)
 
   if (type === 'pc') {
@@ -420,8 +444,8 @@ function main (): void {
     const csvContent = jsonToCsv(sramModules)
     splitCsvContent(csvContent, `${outputPath}_info_rhc`)
 
-    const libStringRHC = createLibrary(sramModules, type)
-    fs.writeFileSync(`${outputPath}_rhc_library.sv`, libStringRHC)
+    // const libStringRHC = createLibrary(sramModules, type)
+    // fs.writeFileSync(`${outputPath}_rhc_library.sv`, libStringRHC)
   }
 }
 
