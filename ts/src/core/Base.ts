@@ -79,6 +79,7 @@ export type ExprParams = Record<string, string | number | bigint>
 /**
  * container class of a TSSV expression, or a RHS assignment in the
  * generated output
+ * 构造时可以将string或者((p: ExprParams) => string)类型的function传入
  */
 export class Expr {
   constructor (def: string | ((p: ExprParams) => string), params?: ExprParams) {
@@ -120,7 +121,7 @@ export interface Signal extends baseSignal {
 
 export type Signals = Record<string, Signal | undefined>
 
-interface OperationIO {
+export interface OperationIO {
   a: string | Sig | bigint
   b: string | Sig | bigint
   result?: string | Sig
@@ -224,7 +225,7 @@ export class Module {
   protected interfaces: Interfaces
 
   /**
-     * base constructor
+     * base constructor: obtain name by connecting parameters by '_'
      * @param params parameter value bundle
      * @param IOs IO port bundle
      * @param signals signal bundle
@@ -257,6 +258,10 @@ export class Module {
     this.verilogParams = {}
   }
 
+  /**
+     * setVerilogParameter: add a parameter to verilogParams which record whether a parameter should be included in the generated verilog
+     * @param param parameter name to add to verilogParams
+  */
   setVerilogParameter (param: string): void {
     if (!this.params[param]) {
       throw Error(`${param} does not exist!`)
@@ -538,6 +543,21 @@ export class Module {
   }
 
   /**
+   * Retrieves an existing signal or adds a new one if it doesn't exist.
+   * @param signalName The name of the signal to retrieve or add.
+   * @param width The width of the signal.
+   * @param type The type of the signal, either 'wire' or 'reg'.
+   * @returns The signal object.
+   */
+  getOrAddSignal (signalName: string, width: number, type: 'wire' | 'reg' = 'wire'): Sig {
+    if (signalName in this.IOs) {
+      return new Sig(signalName)
+    } else {
+      return this.addSignal(signalName, { width, type })
+    }
+  }
+
+  /**
      * add a DFF register(can be multi-bit) to the d input
      * @param io the input/output of the register
      * @returns return the q output signal
@@ -551,11 +571,15 @@ export class Module {
     q?: string | Sig
   }): Sig {
     let qName: string | Sig | undefined = io.q
-    if ((typeof io.d === 'string') || (io.d.type === 'Sig')) {
+
+    // Regular expression to match Verilog numeric literals
+    const verilogNumberPattern = /^\d+'[bBoOdDhH][0-9a-fA-FxXzZ]+$/
+
+    if ((typeof io.d === 'string' && !verilogNumberPattern.test(io.d)) || (io.d instanceof Sig && io.d.type === 'Sig')) {
       const dSig = this.findSignal(io.d, true, this.addRegister, true)
       if (io.q === undefined) {
         qName = `${io.d.toString()}_q`
-        if (this.signals[qName] || this.IOs[qName]) throw Error(`${qName} signal already exists`)
+        if (this.signals[qName] || this.IOs[qName]) throw Error(`generate ${qName} in addRegister as io.q is undefined, but ${qName} signal already exists`)
         this.signals[qName] = { ...dSig, type: 'logic' }
       }
     }
@@ -608,18 +632,23 @@ export class Module {
     if (io.en !== undefined) {
       enableExpr = io.en.toString()
     }
-    // console.log(`d: ${d}`)
-    // console.log(`sensitivity: ${sensitivityList}`)
     if (!this.registerBlocks[sensitivityList]) {
       this.registerBlocks[sensitivityList] = {}
+      this.regBlksReorder[sensitivityList] = {}
     }
     if (!this.registerBlocks[sensitivityList][resetCondition]) {
       this.registerBlocks[sensitivityList][resetCondition] = {}
+      this.regBlksReorder[sensitivityList][resetCondition] = {}
     }
     if (!this.registerBlocks[sensitivityList][resetCondition][enableExpr]) {
       this.registerBlocks[sensitivityList][resetCondition][enableExpr] = {}
     }
+    if (!this.regBlksReorder[sensitivityList][resetCondition][qName.toString()]) {
+      this.regBlksReorder[sensitivityList][resetCondition][qName.toString()] = {}
+    }
     this.registerBlocks[sensitivityList][resetCondition][enableExpr][qName.toString()] = { d, resetVal: io.resetVal }
+    this.regBlksReorder[sensitivityList][resetCondition][qName.toString()][enableExpr] = { d, resetVal: io.resetVal }
+
     if (typeof qName === 'string') {
       return new Sig(qName)
     }
@@ -1050,7 +1079,7 @@ export class Module {
     if (outSig.type && (!(outSig.type === 'wire' || outSig.type === 'logic'))) {
       throw Error(`${io.out.toString()} signal must be either wire or logic in assign statement`)
     }
-    this.body += `  assign ${io.out.toString()} = ${io.in.toString()};\n`
+    this.body += `assign ${io.out.toString()} = ${io.in.toString()};\n`
     if (typeof io.out === 'string') {
       return new Sig(io.out)
     }
@@ -1109,6 +1138,74 @@ ${caseAssignments}
   }
 
   /**
+   * Adds a range expression to the given IO object.
+   * If `io.b` is not a `Sig` object and is non-empty, it appends the range expression to `io.b`.
+   * If `io.b` is empty, it creates a new range expression and assigns it to `io.b`.
+   * @param io The operation IO object containing `a` (range) and `b` (the current expression or signal)
+   * @returns The updated string representing the modified `b` expression
+   * @throws Error If `io.b` is of unsupported type `Sig`
+   */
+  addInRange (io: OperationIO): string {
+    if (io.b instanceof Sig) {
+      throw Error('unsupported type of io.b in addInRange()')
+    } else {
+      if (io.b.toString() !== '') {
+        io.b = io.b.toString().slice(0, -1)
+        const decExpr = `,\n${io.a.toString()}}`
+        io.b += decExpr
+      } else {
+        io.b += `|{${io.a.toString()}}`
+      }
+      return io.b.toString()
+    }
+  }
+
+  /**
+   * Adds a read multiplexer expression to the given output expression.
+   * The function constructs a read signal by performing a bitwise AND between the input signal `a` and `b`,
+   * scaled to the given `wordSize`, and appends it to the provided `outRhs`.
+   * If `outRhs` is non-empty, the new expression is concatenated with a bitwise OR operator.
+   * If `outRhs` is empty, the expression is simply added as the first part of `outRhs`.
+   * @param io The operation IO object containing input signal `a` and additional signal `b`
+   * @param outRhs The existing output expression to which the new read mux signal will be added
+   * @param wordSize The size of the word (in bits) used to scale the `a` signal
+   * @returns The updated output expression with the added read mux signal
+   */
+  addReadMux (io: OperationIO, outRhs: string, wordSize: number): string {
+    const readSignal = `( {${wordSize}{${io.a.toString()}}} & ${io.b.toString()} )`
+    if (outRhs !== '') {
+      const modifiedReadExpr = ` |\n${readSignal}`
+      outRhs += modifiedReadExpr
+    } else {
+      outRhs += `\n${readSignal}`
+    }
+    return outRhs
+  }
+
+  /**
+   * Generates SystemVerilog code for buffer instances using a generate block.
+   * If the size is 1, it generates a single instance without the generate block.
+   * @param bufferName The base name of the buffer.
+   * @param instanceName The name of the instance to be used in the generate block.
+   * @param size The number of instances to generate.
+   * @returns The generated SystemVerilog code as a string.
+   */
+  generateBufferInstances (bufferName: string, bufferOut: string, instanceName: string, size: number): string {
+    let svCode = ''
+    if (size === 1) {
+      svCode += `    ${instanceName} u_${bufferName} (.in(buf_in_${bufferName}[0]), .out(${bufferName}[0]));\n`
+    } else {
+      svCode += 'genvar i;\n'
+      svCode += 'generate\n'
+      svCode += `    for(i=0; i<${size}; i=i+1) begin: GEN_${bufferName}\n`
+      svCode += `        ${instanceName} u_${bufferName} (.in(${bufferName}[i]), .out(${bufferOut}[i]));\n`
+      svCode += '    end\n'
+      svCode += 'endgenerate\n'
+    }
+    return svCode
+  }
+
+  /**
      * print some debug information to the console
      */
   debug (): void {
@@ -1120,61 +1217,48 @@ ${caseAssignments}
     console.log(this.registerBlocks)
   }
 
-  /**
-     * write the generated SystemVerilog code to a string
-     * @returns string containing the generated SystemVerilog code for this module
-     */
-  writeSystemVerilog (): string {
-    // assemble TSSVParameters
-    const paramsArray: string[] = []
-    if (this.params) {
-      // FIXME - need separate SV Verilog parameter container
-      /*
-              for (var key of Object.keys(this.params)) {
-              let param = this.params[key]
-              // console.log(`${key}: ${param} ${typeof param}`)
-              if(typeof param === 'number') {
-              paramsArray.push(`parameter ${key} = ${param.toString()}`)
-              }
-              }
-            */
-    }
-    let paramsString = ''
-    if (paramsArray.length > 0) {
-      paramsString = `    #(${paramsArray.join(',\n    ')})`
-    }
+  private assembleParameters (): string {
+    if (!this.params) return ''
 
-    // construct IO definition
+    const paramsArray = Object.entries(this.params)
+      .filter((entry): entry is [string, number] => {
+        const [_, value] = entry
+        return typeof value === 'number'
+      })
+      .map(([key, value]) => `parameter ${key} = ${value.toString()}`)
+
+    return paramsArray.length > 0 ? `    #(${paramsArray.join(',\n    ')})` : ''
+  }
+
+  private assembleIODefinition (isSystemVerilog: boolean = true): { IOString: string, interfacesString: string, signalArray: string[] } {
     const IOArray: string[] = []
     const signalArray: string[] = []
     let interfacesString = ''
-    Object.keys(this.IOs).forEach((key) => {
+
+    Object.entries(this.IOs).forEach(([key, io]) => {
       let rangeString = ''
-      const signString = (this.IOs[key].isSigned) ? ' signed' : ''
-      if (this.IOs[key].isArray) throw Error(`${key}: Array IOs not supported`)
-      if ((this.IOs[key].width || 0) > 1) {
-        rangeString = `[${Number(this.IOs[key].width) - 1}:0]`
+      const signString = io.isSigned ? ' signed' : ''
+      if (io.isArray) throw Error(`${key}: Array IOs not supported`)
+      if ((io.width || 0) > 1) {
+        rangeString = `[${Number(io.width) - 1}:0]`
       }
-      IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`)
+      if (isSystemVerilog) {
+        IOArray.push(`${io.direction} ${io.type || 'logic'}${signString} ${rangeString} ${key}`)
+      } else {
+        if (io.type === 'reg') {
+          IOArray.push(`${this.IOs[key].direction} ${io.type} ${signString} ${rangeString} ${key}`)
+        } else {
+          IOArray.push(`${this.IOs[key].direction} ${signString} ${rangeString} ${key}`)
+        }
+      }
     })
-    Object.keys(this.interfaces).forEach((key) => {
-      const thisInterface = this.interfaces[key]
+
+    Object.entries(this.interfaces).forEach(([key, thisInterface]) => {
       if (thisInterface.role) {
         if (thisInterface.modports) {
           const thisModports = thisInterface.modports[thisInterface.role]
           if (!thisModports) throw Error(`${thisInterface.name} : inconsistent modports`)
-          /*
-                    Object.keys(thisModports).map((name) => {
-                        let thisSignal = thisInterface.signals[name]
-                        if(!thisSignal) `${thisInterface.name}: modport missing signal ${name}`
-                        let rangeString = ""
-                        let signString = (thisSignal.isSigned) ? " signed" : ""
-                        if((thisSignal.width || 0) > 1) {
-                            rangeString = `[${Number(thisSignal.width)-1}:0]`
-                        }
-                        IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
-                    })
-                    */
+
           if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
             interfacesString += thisInterface.writeSystemVerilog()
             Module.printedInterfaces[thisInterface.interfaceName()] = true
@@ -1187,138 +1271,291 @@ ${caseAssignments}
         signalArray.push(`${thisInterface.interfaceName()} ${key}()`)
       }
     })
-    const IOString: string = `   ${IOArray.join(',\n   ')}`
 
-    // construct signal list
-    Object.keys(this.signals).forEach((key) => {
-      const thisSignal = this.signals[key]
-      if (thisSignal) {
-        let rangeString = ''
-        let arrayString = ''
-        let valueString = ''
-        const signString = (thisSignal.isSigned) ? ' signed' : ''
-        if ((thisSignal.width || 0) > 1) {
-          rangeString = `[${Number(thisSignal.width) - 1}:0]`
+    const IOString = `   ${IOArray.join(',\n   ')}`
+
+    return { IOString, interfacesString, signalArray }
+  }
+
+  private assembleSignals (signalArray: string[], isSystemVerilog: boolean = true): string {
+    Object.entries(this.signals).forEach(([key, signal]) => {
+      if (signal) {
+        const rangeString = (signal.width || 0) > 1 ? `[${Number(signal.width) - 1}:0]` : ''
+        const arrayString = signal.isArray && signal.isArray > 1 ? ` [0:${(signal.isArray || 0n) - 1n}]` : ''
+        const valueString = signal.type === 'const logic' ? ` = ${(signal.value || 0n).toString()}` : ''
+        const signString = signal.isSigned ? ' signed' : ''
+        if (isSystemVerilog) {
+          signalArray.push(`${'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
+        } else {
+          signalArray.push(`${signal.type}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
         }
-        if (thisSignal.isArray && ((thisSignal.isArray || 0) > 1)) {
-          arrayString = ` [0:${(thisSignal.isArray || 0n) - 1n}]`
-        }
-        if (thisSignal.type === 'const logic') {
-          valueString = ` = ${(thisSignal.value || 0n).toString()}`
-        }
-        signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
       }
     })
-    let signalString: string = `   ${signalArray.join(';\n   ')}`
-    if (signalArray.length > 0) signalString += ';'
+    return signalArray.length > 0 ? `   ${signalArray.join(';\n   ')};` : ''
+  }
 
+  private assembleRegisterBlocks (isSystemVerilog: boolean = true): string {
+    let registerBlocksString = ''
     for (const sensitivity in this.registerBlocks) {
       for (const resetCondition in this.registerBlocks[sensitivity]) {
         for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
-          const regs = this.registerBlocks[sensitivity][resetCondition][enable]
-          let resetString = '   '
-          if (resetCondition !== '#NONE#') {
-            const resetAssignments: string[] = []
-            Object.keys(regs).forEach((key) => {
-              const reg = regs[key]
-              // console.log(reg)
-              resetAssignments.push(`           ${key} <= 'd${reg.resetVal || 0};`)
-            })
-            resetString =
-`     if(${resetCondition})
-        begin
-${resetAssignments.join('\n')}
-        end
-      else `
-          }
-
-          const enableString = (enable === '#NONE#') ? '' : `if(${enable})`
-
-          const functionalAssigments: string[] = []
-          Object.keys(regs).forEach((key) => {
-            const reg = regs[key]
-            // console.log(reg)
-            functionalAssigments.push(`           ${key} <= ${reg.d};`)
-          })
-
-          this.body +=
-`
-   always_ff ${sensitivity}
-${resetString}${enableString}
-        begin
-${functionalAssigments.join('\n')}
-        end
-`
+          registerBlocksString += this.assembleRegisterBlock(sensitivity, resetCondition, enable, isSystemVerilog)
         }
       }
     }
+    return registerBlocksString
+  }
 
-    let subModulesString = ''
+  private assembleRegBlksReorder (isSystemVerilog: boolean = true): string {
+    let regBlocksReorderString = ''
+
+    for (const sensitivity in this.registerBlocks) {
+      if (!this.regBlksReorder[sensitivity]) {
+        this.regBlksReorder[sensitivity] = {}
+      }
+      for (const resetCondition in this.registerBlocks[sensitivity]) {
+        if (!this.regBlksReorder[sensitivity][resetCondition]) {
+          this.regBlksReorder[sensitivity][resetCondition] = {}
+        }
+        for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
+          for (const qName in this.registerBlocks[sensitivity][resetCondition][enable]) {
+            if (!this.regBlksReorder[sensitivity][resetCondition][qName]) {
+              this.regBlksReorder[sensitivity][resetCondition][qName] = {}
+            }
+            this.regBlksReorder[sensitivity][resetCondition][qName][enable] = this.registerBlocks[sensitivity][resetCondition][enable][qName]
+          }
+        }
+      }
+    }
+    for (const sensitivity in this.regBlksReorder) {
+      for (const resetCondition in this.regBlksReorder[sensitivity]) {
+        for (const qName in this.regBlksReorder[sensitivity][resetCondition]) {
+          regBlocksReorderString += this.assembleRegBlkReorder(sensitivity, resetCondition, qName, isSystemVerilog)
+        }
+      }
+    }
+    return regBlocksReorderString
+  }
+
+  private assembleRegisterBlock (sensitivity: string, resetCondition: string, enable: string, isSystemVerilog: boolean): string {
+    const regs = this.registerBlocks[sensitivity][resetCondition][enable]
+    const resetString = resetCondition === '' ? '' : this.assembleResetString(resetCondition, regs)
+    const enableString = enable === '#NONE#' ? '' : `if(${enable})`
+    const functionalAssignments = this.assembleFunctionalAssignments(regs)
+
+    const alwaysKeyword = isSystemVerilog ? 'always_ff' : 'always'
+
+    return `
+     ${alwaysKeyword} ${sensitivity}
+  ${resetString}${enableString}
+  begin
+  ${functionalAssignments}
+  end
+  `
+  }
+
+  private assembleRegBlkReorder (sensitivity: string, resetCondition: string, qName: string, isSystemVerilog: boolean): string {
+    const regs = this.regBlksReorder[sensitivity][resetCondition][qName]
+    const resetString = this.assembleReorderRstStr(qName, resetCondition, regs)
+    let enableandFunctionString: string = ''
+    for (const enable in regs) {
+      let enableString = enable === ('#NONE#' || '') ? 'else' : `else if(${enable})`
+      if (resetString === ('   ' || '#NONE#')) {
+        enableString = (enable === '#NONE#') ? '' : `if(${enable})`
+      }
+      const functionalAssignments = this.assembleReorderFunctAssignment(qName, regs[enable])
+      enableandFunctionString = enableandFunctionString + `${enableString}
+  begin
+  ${functionalAssignments}
+  end
+  `
+    }
+    const alwaysKeyword = isSystemVerilog ? 'always_ff' : 'always'
+
+    return `
+     ${alwaysKeyword} ${sensitivity}
+  ${resetString}${enableandFunctionString}
+  `
+  }
+
+  private assembleResetString (resetCondition: string, regs: Record<string, any>): string {
+    if (resetCondition === '#NONE#' || '') return '   '
+    // 此处将不同的q合并在一个Reset Block之中
+    const resetAssignments = Object.entries(regs)
+      .map(([key, reg]) => `           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`)
+      .join('\n')
+
+    return `     if(${resetCondition})
+begin
+${resetAssignments}
+end
+      else `
+  }
+
+  private assembleReorderRstStr (qName: string, resetCondition: string, regs: Record<string, any>): string {
+    if (resetCondition === '#NONE#') return '   '
+    let resetVal = 0
+    for (const enable in regs) {
+      if (regs[enable].resetVal !== undefined) {
+        resetVal = regs[enable].resetVal
+        break
+      }
+    }
+    const resetAssignment = `${qName} <= ${this.signals[qName]?.width || this.IOs[qName]?.width}'h${resetVal.toString(16).toUpperCase()};`
+    return `
+       if(${resetCondition})
+  begin
+    ${resetAssignment}
+  end
+  `
+  }
+
+  private assembleFunctionalAssignments (regs: Record<string, any>): string {
+    // 此处将不同的q合并在一个Assignment Block之中
+    return Object.entries(regs)
+      .map(([key, reg]) => `           ${key} <= ${reg.d};`)
+      .join('\n')
+  }
+
+  private assembleReorderFunctAssignment (qName: string, reg: any): string {
+    return `${qName} <= ${reg.d};`
+  }
+
+  private assembleSubmodules (): { definitions: string, instantiations: string } {
+    let definitions = ''
+    let instantiations = ''
     const printed: Record<string, boolean> = {}
-    for (const moduleInstance in this.submodules) {
-      const thisSubmodule = this.submodules[moduleInstance]
-      let paramsBind = ''
+
+    Object.entries(this.submodules).forEach(([moduleInstance, thisSubmodule]) => {
+      // Generate module definition if not already printed
       if (!printed[thisSubmodule.module.name]) {
         printed[thisSubmodule.module.name] = true
-        subModulesString += thisSubmodule.module.writeSystemVerilog()
+        definitions += thisSubmodule.module.writeSystemVerilog()
       }
-      const bindingsArray: string[] = []
-      for (const binding in thisSubmodule.bindings) {
-        bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding].toString()})`)
-      }
-      const vParamsArray: string[] = []
-      for (const p in thisSubmodule.module.verilogParams) {
-        let pString
-        if ((typeof thisSubmodule.module.params[p] === 'number') ||
-            (typeof thisSubmodule.module.params[p] === 'bigint')) {
-          pString = thisSubmodule.module.params[p]?.toString()
-        } else if (typeof thisSubmodule.module.params[p] === 'string') {
-          pString = `"${thisSubmodule.module.params[p]?.toString()}"`
-        }
-        if (pString !== undefined) {
-          vParamsArray.push(`.${p}(${pString})`)
-        }
-      }
-      if (vParamsArray.length > 0) {
-        paramsBind = `#(${vParamsArray.join(',')}) `
-      }
-      this.body +=
-`
-    ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
+
+      // Generate module instantiation
+      const paramsBind = this.assembleParamsBind(thisSubmodule)
+      const bindingsString = this.assembleBindings(thisSubmodule)
+
+      instantiations += `
+      ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
       (
-${bindingsArray.join(',\n')}        
+  ${bindingsString}
       );
-`
-    }
+  `
+    })
 
+    return { definitions, instantiations }
+  }
+
+  private assembleParamsBind (thisSubmodule: { module: Module }): string {
+    const vParamsArray = Object.entries(thisSubmodule.module.verilogParams)
+      .map(([p]) => {
+        const param = thisSubmodule.module.params[p]
+        if (typeof param === 'number' || typeof param === 'bigint') {
+          return `.${p}(${param.toString()})`
+        } else if (typeof param === 'string') {
+          return `.${p}("${param}")`
+        }
+        return null
+      })
+      .filter((p): p is string => p !== null)
+
+    return vParamsArray.length > 0 ? `#(${vParamsArray.join(',')}) ` : ''
+  }
+
+  private assembleBindings (thisSubmodule: { bindings: Record<string, string | Sig | bigint> }): string {
+    return Object.entries(thisSubmodule.bindings)
+      .map(([binding, value]) => `        .${binding}(${value.toString()})`)
+      .join(',\n')
+  }
+
+  /**
+     * write the generated SystemVerilog code to a string
+     * @returns string containing the generated SystemVerilog code for this module
+     */
+  writeSystemVerilog (includeVerilatorDirectives: boolean = false): string {
+    const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */' : ''
+    const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTH */' : ''
+    const paramsString = this.assembleParameters()
+    const { IOString, interfacesString, signalArray } = this.assembleIODefinition()
+    const signalString = this.assembleSignals(signalArray)
+    // const registerBlocksString = this.assembleRegisterBlocks()
+    const regBlksReorderString = this.assembleRegBlksReorder()
+    const { definitions, instantiations } = this.assembleSubmodules()
     const verilog: string =
-`
-${interfacesString}        
-${subModulesString}
-        
-/* verilator lint_off WIDTH */        
-module ${this.name} ${paramsString}
-   (
-${IOString}
-   );
+    `
+    ${interfacesString}        
+    ${definitions}
+            
+    ${verilatorOff}        
+    module ${this.name} ${paramsString}
+       (
+    ${IOString}
+       );
+    
+    ${signalString}
+    
+    ${this.body}
 
-${signalString}
+    ${instantiations}
 
-${this.body}
+    ${regBlksReorderString}
+    
+    endmodule
+    ${verilatorOn}       
+    `
+    return verilog
+  }
 
-endmodule
-/* verilator lint_on WIDTH */        
-`
+  writeVerilog (includeVerilatorDirectives: boolean = false): string {
+    const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */' : ''
+    const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTH */' : ''
+    const paramsString = this.assembleParameters()
 
+    const { IOString, interfacesString, signalArray } = this.assembleIODefinition(false)
+    const signalString = this.assembleSignals(signalArray, false)
+    // const registerBlocksString = this.assembleRegisterBlocks(false)
+    const regBlksReorderString = this.assembleRegBlksReorder(false)
+    const { definitions, instantiations } = this.assembleSubmodules()
+    const verilog: string =
+    `
+    ${interfacesString}        
+    ${definitions}
+            
+    ${verilatorOff}         
+    module ${this.name} ${paramsString}
+       (
+    ${IOString}
+       );
+    
+    ${signalString}
+    
+    ${this.body}
+
+    ${instantiations}
+
+    ${regBlksReorderString}
+    
+    endmodule
+    ${verilatorOn}  
+    `
     return verilog
   }
 
   protected body: string
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
+  protected regBlksReorder: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
+
   protected static printedInterfaces: Record<string, boolean> = {}
 
   protected verilogParams: Record<string, boolean>
+}
+
+export function extractNumberFromPattern (pattern: string): number | null {
+  const match = pattern.match(/^(\d+)'/)
+  return match ? parseInt(match[1], 10) : null
 }
 
 export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): string {

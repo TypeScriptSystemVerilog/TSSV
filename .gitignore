@@ -6,23 +6,20 @@
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
-
+runRegBlockGen
+.sv
+*.json
 # Local History for Visual Studio Code
 .history/
-
 # Built Visual Studio Code Extensions
 *.vsix
-
 *~
 \#*\#
 .\#*
-
-node_modules
 obj_dir
 *.vcd
 .local-pack
 docs
-
 componentgen
-
-
+node_modules/
+cpu_convert.log

@@ -1,0 +1,20 @@
+#!/bin/bash
+module add node/22.9.0
+TSSV_DIR=$(dirname "$0")
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <csv_file>"
+    exit 1
+fi
+CSV_FILE="$1"
+busAddrW=${2:-12}
+path=$(dirname "$CSV_FILE")
+name=$(basename "$CSV_FILE" .csv)
+REG_MAP_JSON="$path/${name}Map.json"
+REGS_JSON="$path/${name}.json"
+RALF="$path/${name}.ralf"
+node "$TSSV_DIR/out/src/tools/convert/reg_csv2json.js" "$CSV_FILE" "$REG_MAP_JSON" "$REGS_JSON"
+"$TSSV_DIR/out/src/tools/convert/csv2ralf.py" "$CSV_FILE" "$RALF"
+node "$TSSV_DIR/out/src/tools/convert/json2packagesv.js" "$REGS_JSON" "$path/${name}_pkg.sv" "$path/${name}_wofld_repUnfold.json" 
+node "$TSSV_DIR/out/test/reg_convert/intg_regblk.js" "$path/${name}_wofld_repUnfold.json" "$path/${name}.sv" $busAddrW
+
+rm "$REG_MAP_JSON" "$REGS_JSON" "$path/${name}_wofld_repUnfold.json"

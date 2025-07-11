@@ -1,0 +1,142 @@
+block AIGC_DEMO_Reg {
+    bytes 4;
+    register UNIT_ID @0x0 {
+        field ID {
+            bits 32;
+            reset 0x1;
+            access ro;
+        }
+    }
+    register CTRL @0x4 {
+        field ctrl0 {
+            bits 2;
+            reset 0x1;
+            access rw;
+        }
+        field ctrl1 @ 2 {
+            bits 1;
+            reset 0x0;
+            access rw;
+        }
+        field ctrl2 @ 8 {
+            bits 16;
+            reset 0x100;
+            access rw;
+        }
+        field ctrl3 @ 31 {
+            bits 1;
+            reset 0x0;
+            access rw;
+        }
+    }
+    register CFG0 @0xC {
+        field m0_clr {
+            bits 4;
+            reset 0x0;
+            access wo;
+        }
+        field m1_clr @ 4 {
+            bits 4;
+            reset 0x0;
+            access wo;
+        }
+        field m2_clear @ 24 {
+            bits 1;
+            reset 0x0;
+            access wo;
+        }
+    }
+    register DEBUG_0 @0x400 {
+        field bus0_pvld {
+            bits 8;
+            reset 0x0;
+            access ro;
+        }
+        field bus0_prdy @ 8 {
+            bits 8;
+            reset 0xFF;
+            access ro;
+        }
+        field bus1_pvld @ 16 {
+            bits 8;
+            reset 0x0;
+            access ro;
+        }
+        field bus1_prdy @ 24 {
+            bits 8;
+            reset 0xFF;
+            access ro;
+        }
+    }
+    register DEBUG_1_0 @0x404 {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_1 @0x408 {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_2 @0x40C {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_3 @0x410 {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_4 @0x414 {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_5 @0x418 {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_6 @0x41C {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DEBUG_1_7 @0x420 {
+        left_to_right;
+        field status {
+            bits 32;
+            reset 0x0;
+            access ro;
+        }
+    }
+    register DUMMY_DEBUG @0xFFC {
+        field dummy_debug {
+            bits 32;
+            reset 0x0;
+            access rw;
+        }
+    }
+}

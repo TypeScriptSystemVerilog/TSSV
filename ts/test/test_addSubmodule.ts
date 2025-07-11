@@ -99,7 +99,14 @@ try {
     /* verilator lint_off UNUSED */
     ${sub_tb.writeSystemVerilog()}
 `
+const TBv =
+`
+    /* verilator lint_off DECLFILENAME */
+    /* verilator lint_off UNUSED */
+    ${sub_tb.writeVerilog()}
+`
   writeFileSync('sv-examples/test_addSubmodule_output/sub_tb.sv', TB)
+  writeFileSync('sv-examples/test_addSubmodule_output/sub_tb.v', TBv)
 } catch (err) {
   console.error(err)
 }

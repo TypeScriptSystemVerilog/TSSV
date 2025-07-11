@@ -1,0 +1,15 @@
+
+
+#!/bin/bash
+module add node/22.9.0
+TSSV_DIR=$(dirname "$0")
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <cfg_file>"
+    exit 1
+fi
+CFG_FILE="$1"
+path=$(dirname "$CFG_FILE")
+name=$(basename "$CFG_FILE" .json)
+
+touch "$path/sram_list"
+node "$TSSV_DIR/out/test/gen_sram_wrapper/gen_sram_wrapper.js" "$CFG_FILE" "$path/sram_list"

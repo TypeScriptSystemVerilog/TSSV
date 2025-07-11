@@ -1,0 +1,2 @@
+Name (NA),Frequency (MHz) (NA),Port (Mandatory) 1p11/2p11/2p12/2p22,Number (NA),Width (NB) (Mandatory),Depth (NW) (Mandatory),Total (KB) (NA),SW (Bit Write) (Mandatory),Column Mux (Optional),Bank (Optional),Center Decoder (Optional),Redundancy (Mandatory),BIST Interface (Mandatory),Dual Rail (Mandatory),Power Gating (Mandatory),periphery_Vt (Optional),read_assist (Mandatory),write_assist (Mandatory),pvt_enable
+,1200,1p11,,0,136,,1,,,,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,{ 19 20 22 }
