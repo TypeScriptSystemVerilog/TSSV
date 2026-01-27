@@ -101,13 +101,13 @@ export type Interfaces = Record<string, Interface>;
 /**
 * The Module class is the base class for all TSSV modules.
 */
-export declare class Module {
+export declare class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSignals = IOSignals> {
     /**
       * name contains the resulting SystemVerilog module name
       */
     readonly name: string;
-    protected params: TSSVParameters;
-    protected IOs: IOSignals;
+    protected params: P;
+    protected IOs: IO;
     protected signals: Signals;
     protected submodules: Record<string, {
         module: Module;
@@ -121,7 +121,7 @@ export declare class Module {
        * @param signals signal bundle
        * @param body SystemVerilog body text
        */
-    constructor(params?: TSSVParameters, IOs?: IOSignals, signals?: {}, body?: string);
+    constructor(params?: P, IOs?: IO, signals?: {}, body?: string);
     setVerilogParameter(param: string): void;
     protected bindingRules: {
         input: string[];
@@ -268,6 +268,23 @@ export declare class Module {
        * print some debug information to the console
        */
     debug(): void;
+    /**
+     * Convert a ParameterValue into a compact, readable string suitable for Verilog comments.
+     * Deterministic ordering for objects/records.
+     */
+    protected formatParameterValue(v: ParameterValue): string;
+    /**
+     * Flatten parameters into `// key.path = value` lines.
+     * Good for embedding at the top of generated Verilog.
+     */
+    protected formatParametersForComment(params?: TSSVParameters, opts?: {
+        prefix?: string;
+        skipName?: boolean;
+    }): string;
+    /**
+     * Convenience wrapper that emits a nice comment block.
+     */
+    protected formatParametersAsVerilogComment(params?: TSSVParameters): string;
     /**
        * write the generated SystemVerilog code to a string
        * @returns string containing the generated SystemVerilog code for this module
