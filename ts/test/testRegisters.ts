@@ -1,5 +1,5 @@
 import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'
-import { Module, serialize, deserialize } from 'tssv/lib/core/TSSV'
+import { Module, serialize, deserialize, RegisterType } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { writeFileSync, mkdirSync } from 'fs'
 import { inspect } from 'util'
@@ -88,19 +88,19 @@ const myRegs: RegisterBlockDef<typeof myRegMap> = {
   addrMap: myRegMap,
   registers: {
     REG0: {
-      type: 'RW',
+      type: RegisterType.RW,
       reset: 0n,
       description: 'Register 0'
     },
     REG1: {
-      type: 'RO',
+      type: RegisterType.RO,
       reset: 1n,
       description: 'Register 1',
       width: 16,
       isSigned: true
     },
     REG2: {
-      type: 'RW',
+      type: RegisterType.RW,
       description: 'Register 2',
       fields: {
         REG2_field0: {
@@ -114,11 +114,11 @@ const myRegs: RegisterBlockDef<typeof myRegMap> = {
       }
     },
     MEM0: {
-      type: 'RAM',
+      type: RegisterType.RAM,
       size: 8n
     },
     MEM1: {
-      type: 'ROM',
+      type: RegisterType.ROM,
       size: 8n
     }
   }

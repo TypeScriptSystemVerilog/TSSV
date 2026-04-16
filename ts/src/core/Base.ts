@@ -1200,11 +1200,11 @@ ${caseAssignments}
     const body = this.formatParametersForComment(params)
     if (!body.trim()) return ''
     return [
-      '   // ------------------------------------------------------------------',
+      '\n   // ------------------------------------------------------------------',
       '   // Parameters',
       '   // ------------------------------------------------------------------',
       body,
-      '   // ------------------------------------------------------------------',
+      '   // ------------------------------------------------------------------\n',
     ].join('\n')
   }
 
@@ -1405,9 +1405,7 @@ module ${this.name} ${paramsString}
    (
 ${IOString}
    );
-
 ${this.formatParametersAsVerilogComment(this.params)}
-
 ${signalString}
 
 ${this.body}
