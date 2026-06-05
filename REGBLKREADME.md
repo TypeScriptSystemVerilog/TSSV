@@ -27,6 +27,12 @@ bsub -q be -Is /home/runzhe.liu/tssv2redzone/tssvRegBlk /home/runzhe.liu/tssv2re
 ```
 其中,16为指定的总线地址位宽，可修改。如像Run the flow 1中不指定，则默认为12。
 
+### Run the flow 3
+支持生成Hardware Update类型寄存器。对输入文件的修改参考/sv-examples/gold/Hard_Update2.0.csv
+```bash
+bsub -q be -Is /home/runzhe.liu/tssv2redzone/tssvRegBlk /home/runzhe.liu/tssv2redzone/sv-examples/gold/Hard_Update2.0.csv
+```
+
 ### FAQ
 
 1.由于需要Node和gcc环境，如果不采用提交作业的方法，
