@@ -1,0 +1,247 @@
+export class RegisterBlock<T extends Record<string, bigint>> extends Module {
+  // ... existing code ...
+
+  constructor(params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface | Record<string, unknown>) {
+    super({
+      name: params.name,
+      busInterface: params.busInterface || 'Memory',
+      endianess: params.endianess || 'little'
+    })
+    this.regDefs = regDefs
+
+    this.initializeIOs()
+
+    if (busInterface instanceof Memory) {
+      this.setupMemoryInterface(params, busInterface)
+    } else if (busInterface instanceof APB4) {
+      this.setupAPB4Interface(params, busInterface)
+    } else if (typeof busInterface === 'object') {
+      // Handle other interface types
+    } else {
+      throw Error('Unsupported interface')
+    }
+
+    this.setupRegisters(params)
+  }
+
+  private initializeIOs(): void {
+    this.IOs = {
+      clk: { direction: 'input', isClock: 'posedge' },
+      rst_b: { direction: 'input', isReset: 'lowasync' }
+    }
+  }
+
+  private setupMemoryInterface(params: RegisterBlockParameters, busInterface: Memory): void {
+    // Memory interface specific setup
+  }
+
+  private setupAPB4Interface(params: RegisterBlockParameters, busInterface: APB4): void {
+    // APB4 interface specific setup
+  }
+
+  private setupRegisters(params: RegisterBlockParameters): void {
+    // Common register setup logic
+  }
+
+  private setupRWRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+    // RW register setup logic
+  }
+  
+  private setupRORegister(regName: string, thisReg: Register): void {
+    // RO register setup logic
+  }
+  
+  private setupWORegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+    // WO register setup logic
+  }
+  
+  private setupROMRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+    // ROM register setup logic
+  }
+  
+  private setupRAMRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+    // RAM register setup logic
+  }
+
+  private setupRegisterFields(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+    if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
+      Object.keys(thisReg.fields).forEach((fieldName, index) => {
+        const field = thisReg.fields![fieldName]
+        const fieldSigName = `${regName}_field${index}`
+        this.setupField(regName, fieldName, field, fieldSigName, params)
+      })
+    }
+  }
+  
+  private setupField(regName: string, fieldName: string, field: Field, fieldSigName: string, params: RegisterBlockParameters): void {
+    this.IOs[fieldSigName] = {
+      direction: 'output',
+      width: field.bitRange[0] - field.bitRange[1] + 1,
+      isSigned: field.isSigned
+    }
+  
+    this.addRegister({
+      d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
+      clk: 'clk',
+      reset: 'rst_b',
+      q: fieldSigName,
+      en: `${regName}_WE && ${this.getSignal(`${regName}_wstrb`).toString()}`,
+      resetVal: field.reset || 0n
+    })
+  }
+
+  enum RegisterType {
+    RO = 'RO',
+    RW = 'RW',
+    WO = 'WO',
+    RAM = 'RAM',
+    ROM = 'ROM',
+    W1C = 'W1C',
+    W1T = 'W1T'
+  }
+  
+  interface Register {
+    type: RegisterType;
+    // ... other properties ...
+  }
+
+  interface RegisterSetupStrategy {
+    setup(regName: string, thisReg: Register, params: RegisterBlockParameters): void;
+  }
+  
+  class RWRegisterSetup implements RegisterSetupStrategy {
+    setup(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+      // RW register setup logic
+    }
+  }
+  
+  // Implement other strategies for RO, WO, RAM, ROM, etc.
+  
+  class RegisterSetupFactory {
+    static getStrategy(type: RegisterType): RegisterSetupStrategy {
+      switch (type) {
+        case RegisterType.RW: return new RWRegisterSetup();
+        // ... other cases ...
+        default: throw new Error(`Unsupported register type: ${type}`);
+      }
+    }
+  }
+  
+  // In the setupRegisters method:
+  private setupRegisters(params: RegisterBlockParameters): void {
+    for (const regName in this.regDefs.addrMap) {
+      const thisReg = this.regDefs.registers[regName] || { type: RegisterType.RW, width: this.regDefs.wordSize };
+      const strategy = RegisterSetupFactory.getStrategy(thisReg.type);
+      strategy.setup(regName, thisReg, params);
+    }
+  }
+
+  export class RegisterBlock<T extends Record<string, bigint>> extends Module {
+    // ... existing code ...
+  
+    constructor(params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface | Record<string, unknown>) {
+      // ... existing constructor code ...
+  
+      if (busInterface instanceof Memory) {
+        this.setupMemoryInterface(params, busInterface)
+      } else if (busInterface instanceof APB4) {
+        this.setupAPB4Interface(params, busInterface)
+      } else if (typeof busInterface === 'object') {
+        // Handle other interface types
+      } else {
+        throw Error('Unsupported interface')
+      }
+    }
+  
+    private setupMemoryInterface(params: RegisterBlockParameters, busInterface: Memory): void {
+      this.addInterface('regs', new Memory({
+        DATA_WIDTH: this.regDefs.wordSize || 32,
+        ADDR_WIDTH: params.busAddressWidth
+      }, 'inward'))
+  
+      for (const reg in this.regDefs.addrMap) {
+        const regName = reg
+        const registers = this.regDefs.registers
+        const baseAddr = this.regDefs.addrMap[regName]
+        const matchSig = this.addSignal(`${regName}_matchSig`, { width: 1 })
+  
+        let thisReg: Register = {
+          type: 'RW',
+          width: this.regDefs.wordSize
+        }
+        if (registers[regName] !== undefined) {
+          thisReg = registers[regName] || thisReg
+        }
+  
+        if (thisReg.type === 'RW') {
+          this.setupRWRegister(regName, thisReg, params, baseAddr, matchSig)
+        } else if (thisReg.type === 'RO') {
+          this.setupRORegister(regName, thisReg, baseAddr, matchSig)
+        }
+        // ... handle other register types ...
+      }
+    }
+  
+    private setupRWRegister(regName: string, thisReg: Register, params: RegisterBlockParameters, baseAddr: bigint, matchSig: Sig): void {
+      const wstrbWidth = (params.busAddressWidth || 8) / 8
+      const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
+  
+      this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchSig })
+  
+      const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
+      const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
+      this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.RE`), out: RE_Sig })
+      this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.WE`), out: WE_Sig })
+  
+      this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
+  
+      if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
+        this.setupRWRegisterWithFields(regName, thisReg, WE_Sig, wstrb)
+      } else {
+        this.setupRWRegisterWithoutFields(regName, thisReg, WE_Sig)
+      }
+    }
+  
+    private setupRWRegisterWithFields(regName: string, thisReg: Register, WE_Sig: Sig, wstrb: Sig): void {
+      Object.keys(thisReg.fields!).forEach((fieldName, index) => {
+        const field = thisReg.fields![fieldName]
+        const fieldSigName = `${regName}_field${index}`
+        this.IOs[fieldSigName] = {
+          direction: 'output',
+          width: field.bitRange[0] - field.bitRange[1] + 1,
+          isSigned: field.isSigned
+        }
+        this.addRegister({
+          d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
+          clk: 'clk',
+          reset: 'rst_b',
+          q: fieldSigName,
+          en: `${WE_Sig.toString()} && ${wstrb.toString()}`,
+          resetVal: field.reset || 0n
+        })
+      })
+    }
+  
+    private setupRWRegisterWithoutFields(regName: string, thisReg: Register, WE_Sig: Sig): void {
+      this.IOs[regName.toString()] = {
+        direction: 'output',
+        width: thisReg.width || this.regDefs.wordSize,
+        isSigned: thisReg.isSigned
+      }
+  
+      this.addSignal(`${regName}_d`, { width: this.regDefs.wordSize })
+      this.addAssign({ in: new Expr(`regs.DATA_WR`), out: `${regName}_d` })
+  
+      this.addRegister({
+        d: 'regs.DATA_WR',
+        clk: 'clk',
+        reset: 'rst_b',
+        q: regName.toString(),
+        en: WE_Sig.toString(),
+        resetVal: thisReg.reset || 0n
+      })
+    }
+  
+    // ... other methods ...
+  }
+}

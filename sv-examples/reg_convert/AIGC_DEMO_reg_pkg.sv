@@ -1,8 +1,8 @@
-package AIGC_DEMO_reg_pkg;
+package AIGC_DEMO_Reg_pkg;
 
 // =============================================================================
 // Generated Register Block 1.0
-// Commit ID: 43ac171b50db426673e378dec36af26f70c8a2df
+// Commit ID: 4b6db445428c9c419ffc461935768e739def4dc3
 // =============================================================================
 
 typedef struct packed {
@@ -41,8 +41,4 @@ typedef struct packed {
   logic [31: 0] dummy_debug;
 } DUMMY_DEBUG_t;
 
-typedef struct packed {
-  logic [31: 0] sys_ctrl;
-} SYSCTRL_t;
-
-endpackage : AIGC_DEMO_reg_pkg
+endpackage : AIGC_DEMO_Reg_pkg
