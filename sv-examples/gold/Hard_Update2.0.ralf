@@ -1,0 +1,17 @@
+block Hard_Update2.0 {
+    bytes 4;
+    register WPTR @0xF000 {
+        field wptr {
+            bits 32;
+            reset 0x0;
+            access rwu;
+        }
+    }
+    register FETCH_RPTR @0xF004 {
+        field fetch_rptr {
+            bits 32;
+            reset 0x0;
+            access rwu;
+        }
+    }
+}
