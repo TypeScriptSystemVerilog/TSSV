@@ -1,8 +1,8 @@
 package AIGC_DEMO_Reg_pkg;
 
 // =============================================================================
-// Generated Register Block 1.0
-// Commit ID: 4b6db445428c9c419ffc461935768e739def4dc3
+// Register bit field definition
+// Commit ID: 20a6af013fd07393de4c64eaf9009a282150fbc9
 // =============================================================================
 
 typedef struct packed {

@@ -1,11 +1,5 @@
 import { Module, type TSSVParameters, type IntRange, type Interface } from 'tssv/lib/core/TSSV';
-type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | 'W1C' | 'W1T' | 'W1S' | string;
-interface Field {
-    reset?: bigint;
-    description?: string;
-    bitRange: [IntRange<0, 63>, IntRange<0, 63>];
-    isSigned?: boolean;
-}
+import { type Field, type RegisterType } from 'tssv/lib/tools/shared';
 interface Register {
     type: RegisterType;
     reset?: bigint;
@@ -15,6 +9,9 @@ interface Register {
     isSigned?: boolean;
     fields?: Record<string, Field>;
     repeat?: number;
+    hardUpdate?: number;
+    weOut?: boolean;
+    useBuf?: boolean;
 }
 export declare class RegAddr {
     private addr;
@@ -34,53 +31,24 @@ export interface RegisterBlockParameters extends TSSVParameters {
     busInterface?: 'Memory' | 'TL_UL';
     endianess?: 'little';
     busIDWidth?: 8;
-    busAddressWidth?: 32;
+    busAddressWidth?: 32 | 12 | 16;
 }
-/**
- * WRITE
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "01.0......"},
- *     {"name": "      re", "wave": "0........."},
- *     {"name": " data_rd", "wave": "0........."},
- *     {"name": "   ready", "wave": "10.1......"}
- *   ]
- * }
- * ```
- */
-/**
- * READ
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "0........."},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "0........."},
- *     {"name": "      re", "wave": "01.0......"},
- *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
- *     {"name": "   ready", "wave": "10......1."}
- *   ]
- * }
- * ```
- */
 export declare class RegisterBlock<T extends Record<string, bigint>> extends Module {
     params: RegisterBlockParameters;
     regDefs: RegisterBlockDef<T>;
+    private setupSignalsExprs;
+    private extendIOs;
+    private slverrHandler;
+    private setupMatchPack;
+    private setupRegIO;
+    private setupWOReg;
+    private setupROReg;
+    private setupRWReg;
+    private setupMemoryIntRWRegister;
+    private setWriteOneClearOrToggle;
     constructor(params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface | Record<string, unknown>);
-    private handleWriteOneClearOrToggle;
-    private replaceZerosWithX;
-    private padZeroes;
-    private padZeroesRight;
-    private calculateDecMask;
-    private calculatePassMask;
+    private genRegBlkMemory;
+    private genRegBlkAPB4;
+    private addCasexStr;
 }
 export {};

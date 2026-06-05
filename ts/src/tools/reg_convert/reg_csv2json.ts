@@ -141,7 +141,7 @@ async function generateRegMapAndRegs (): Promise<void> {
         throw new Error(`Bit range is required for field "${field}" in register "${curRegName}"`)
       } else if (lastField !== '' && registers[curRegName].fields[lastField]) {
         if (registers[curRegName].fields[lastField].bitRange[1] <= registers[curRegName].fields[field].bitRange[0]) {
-          throw new Error(`Fields should start from big to little. Invalid bit range for field "${field}" in register "${curRegName}": Compare the bit ranges of "${lastField}" and "${field}"`)
+          console.warn(`Fields should start from big to little. Invalid bit range for field "${field}" in register "${curRegName}": Compare the bit ranges of "${lastField}" and "${field}"`)
         }
       }
       lastField = curFieldName

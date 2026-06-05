@@ -5,7 +5,7 @@ import { writeFileSync } from 'fs'
 console.log('test1')
 const test_1 = new LZC({ dataWidth: 64 })
 try {
-  writeFileSync(`sv-examples/test_LZC_output/${test_1.name}.sv`, test_1.writeSystemVerilog())
+  writeFileSync(`sv-examples/test_LZC_output/${test_1.name}.sv`, test_1.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }
@@ -14,7 +14,7 @@ try {
 console.log('test2')
 const test_2 = new LZC({ dataWidth: 28 })
 try {
-  writeFileSync(`sv-examples/test_LZC_output/${test_2.name}.sv`, test_2.writeSystemVerilog())
+  writeFileSync(`sv-examples/test_LZC_output/${test_2.name}.sv`, test_2.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }
@@ -23,7 +23,7 @@ try {
 console.log('test3')
 const test_3 = new LZC({ dataWidth: 21 })
 try {
-  writeFileSync(`sv-examples/test_LZC_output/${test_3.name}.sv`, test_3.writeSystemVerilog())
+  writeFileSync(`sv-examples/test_LZC_output/${test_3.name}.sv`, test_3.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }

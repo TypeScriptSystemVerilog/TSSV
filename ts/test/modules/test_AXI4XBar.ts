@@ -69,7 +69,7 @@ tb_testRegBlock.addSubmodule(
 )
 
 try {
-  writeFileSync('sv-examples/tb_AXI4XBar.sv', tb_testRegBlock.writeSystemVerilog())
+  writeFileSync('sv-examples/tb_AXI4XBar.sv', tb_testRegBlock.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }

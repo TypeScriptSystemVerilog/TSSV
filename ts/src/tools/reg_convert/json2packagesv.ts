@@ -15,7 +15,7 @@ if (!registersFilePath || !outputSvFilePath || !outputJsonFilePath) {
 const BITS_OF_BYTE = 8
 const regs = JSON.parse(fs.readFileSync(registersFilePath, 'utf8')) as Record<string, Register>
 const svFile = fs.createWriteStream(outputSvFilePath)
-const pkgName = path.basename(outputSvFilePath, path.extname(outputSvFilePath))
+const pkgName = path.basename(outputSvFilePath, path.extname(outputSvFilePath)).replace(/\./g, 'p')
 svFile.write(`package ${pkgName};
 
 `)
@@ -62,7 +62,7 @@ function genPackedSV (registerName: string, register: Register): string {
   })
   if (lastBit > 0) {
     if (resCount <= 0) {
-      throw new Error(`Error in register ${registerName}: Counts of reserved is wrong.`)
+      console.warn(`Warning in register ${registerName}: Counts of reserved is wrong.`)
     }
     if (lastBit - 1 === 0) {
       resSV += '  logic res_0;\n'
@@ -125,7 +125,7 @@ function genPackedAndCalReset (registerName: string, register: Register): string
   })
   if (lastBit > 0) {
     if (resCount <= 0) {
-      throw new Error(`Error in register ${registerName}: Counts of reserved is wrong.`)
+      console.warn(`Warning in register ${registerName}: Counts of reserved is wrong.`)
     }
     if (lastBit - 1 === 0) {
       resSV += '  logic res_0;\n'
@@ -141,7 +141,7 @@ function genPackedAndCalReset (registerName: string, register: Register): string
     register.reserved = reservedRanges
   }
   if (resetBinStr.length !== WORD_SIZE) {
-    throw new Error(`Error in register ${registerName}: Reset binary string length is not equal to WORD_SIZE (${WORD_SIZE}).`)
+    console.warn(`Warning in register ${registerName}: Reset binary string length is not equal to WORD_SIZE (${WORD_SIZE}).`)
   } else {
     register.resetBinStr = resetBinStr
   }

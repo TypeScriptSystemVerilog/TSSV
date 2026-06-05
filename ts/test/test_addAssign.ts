@@ -63,7 +63,7 @@ try {
 `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${assign_tb.writeSystemVerilog()}
+      ${assign_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addAssign_output/assign_tb.sv', TB)
 } catch (err) {
@@ -137,7 +137,7 @@ try {
 `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${assignAdd_tb.writeSystemVerilog()}
+      ${assignAdd_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addAssign_output/assignAdd_tb.sv', TB)
 } catch (err) {
@@ -232,7 +232,7 @@ try {
 `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${assignM_tb.writeSystemVerilog()}
+      ${assignM_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addAssign_output/assignM_tb.sv', TB)
 } catch (err) {

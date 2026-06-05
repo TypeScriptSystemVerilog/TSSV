@@ -53,7 +53,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${saturate_tb.writeSystemVerilog()}
+    ${saturate_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSaturate_output/saturate_tb.sv', TB);
 }
@@ -108,7 +108,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${saturateS_tb.writeSystemVerilog()}
+    ${saturateS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSaturate_output/saturateS_tb.sv', TB);
 }
@@ -164,7 +164,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${saturateN_tb.writeSystemVerilog()}
+    ${saturateN_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSaturate_output/saturateN_tb.sv', TB);
 }
@@ -219,7 +219,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${saturateNS_tb.writeSystemVerilog()}
+    ${saturateNS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSaturate_output/saturateNS_tb.sv', TB);
 }
@@ -238,7 +238,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${saturateB_tb.writeSystemVerilog()}
+    ${saturateB_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSaturate_output/saturateB_tb.sv', TB);
 }
@@ -309,7 +309,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${saturateBS_tb.writeSystemVerilog()}
+    ${saturateBS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSaturate_output/saturateBS_tb.sv', TB);
 }

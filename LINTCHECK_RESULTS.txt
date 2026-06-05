@@ -1,0 +1,424 @@
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 8.906 MB
+OK: sv-examples/gold/AIGC_DEMO_reg_pkg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 8.859 MB
+OK: sv-examples/gold/Hard_Update2p0_pkg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 8.984 MB
+OK: sv-examples/reg_convert/AIGC_DEMO_Reg_pkg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 8.953 MB
+OK: sv-examples/reg_convert/CI_AIGC_DEMO_3.0/Hard_Update_pkg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 8.859 MB
+OK: sv-examples/reg_convert/Hard_Update2p0_reg_pkg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.150 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.019 s (elab=0.004, cvt=0.004, bld=0.000); cpu 0.019 s on 1 threads; allocated 13.688 MB
+OK: sv-examples/reg_convert/pcie_reg_pkg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.038 MB sources in 4 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.844 MB
+OK: sv-examples/IpxactComponent/apbComponentExample.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.051 MB sources in 4 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.009 s (elab=0.002, cvt=0.004, bld=0.000); cpu 0.009 s on 1 threads; allocated 11.672 MB
+OK: sv-examples/IpxactComponent/componentExample.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.672 MB
+OK: sv-examples/SRAM_32_256_1r_1w_byte_readBeforeWrite_default.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.025 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.984 MB
+OK: sv-examples/SRAM_8_32_1rw_bit_undefOnWrite_default.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.036 MB sources in 2 modules, into 0.074 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.008 s (elab=0.001, cvt=0.004, bld=0.000); cpu 0.008 s on 1 threads; allocated 11.234 MB
+OK: sv-examples/SRAM_8_32_2rw_bit_undefOnWrite_default.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.578 MB
+OK: sv-examples/comb_seq_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.055 MB sources in 4 modules, into 0.026 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.003, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.312 MB
+OK: sv-examples/gold/AIGC_DEMO_reg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.040 MB sources in 4 modules, into 0.010 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.516 MB
+OK: sv-examples/gold/APB_int_gold/tb_intAIGCAPB4reg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.043 MB sources in 6 modules, into 0.011 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.003, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.562 MB
+OK: sv-examples/gold/APB_int_gold/tb_testRegBlock1.0.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.051 MB sources in 4 modules, into 0.020 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.922 MB
+OK: sv-examples/gold/Hard_Update2.0.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.055 MB sources in 4 modules, into 0.027 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.007 s (elab=0.001, cvt=0.003, bld=0.000); cpu 0.007 s on 1 threads; allocated 10.625 MB
+OK: sv-examples/reg_convert/AIGC_DEMO_reg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.051 MB sources in 4 modules, into 0.020 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.922 MB
+OK: sv-examples/reg_convert/CI_AIGC_DEMO_3.0/Hard_Update.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.051 MB sources in 4 modules, into 0.021 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.891 MB
+OK: sv-examples/reg_convert/Hard_Update2.0_reg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.659 MB sources in 4 modules, into 0.549 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.194 s (elab=0.030, cvt=0.122, bld=0.000); cpu 0.194 s on 1 threads; allocated 48.078 MB
+OK: sv-examples/reg_convert/pcie_reg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.040 MB sources in 4 modules, into 0.010 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.297 MB
+OK: sv-examples/reg_convert/tb_intAIGCAPB4reg.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.043 MB sources in 6 modules, into 0.011 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.562 MB
+OK: sv-examples/tb_testRegBlock.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.058 MB sources in 6 modules, into 0.010 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.594 MB
+OK: sv-examples/tb_testRegBlock2.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.058 MB sources in 6 modules, into 0.011 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.007 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.007 s on 1 threads; allocated 10.891 MB
+OK: sv-examples/tb_testRegBlock3.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.058 MB sources in 6 modules, into 0.010 MB in 4 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.656 MB
+OK: sv-examples/tb_testRegBlock4.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.038 MB sources in 6 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.006 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.006 s on 1 threads; allocated 10.109 MB
+OK: sv-examples/test1.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.003 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.344 MB
+OK: sv-examples/testAddrDecode1.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.008 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.531 MB
+OK: sv-examples/testMem1.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.014 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_FIR_output/FIR_1o23b0s_8_9_2.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.012 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.812 MB
+OK: sv-examples/test_FIR_output/myFIR.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.038 MB sources in 2 modules, into 0.018 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.219 MB
+OK: sv-examples/test_FIR_output/myFIR3.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.039 MB sources in 3 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.001, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.188 MB
+OK: sv-examples/test_FIR_output/tb_lpFIR.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.021 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.906 MB
+OK: sv-examples/test_LZC_output/LZC_21.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.022 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.953 MB
+OK: sv-examples/test_LZC_output/LZC_28.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.037 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.094 MB
+OK: sv-examples/test_LZC_output/LZC_64.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.009 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.578 MB
+OK: sv-examples/test_ROM_output/ROM_16_6_normal_array_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.011 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.547 MB
+OK: sv-examples/test_ROM_output/ROM_25_4_big_InitialFile8_NonMul8_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.012 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.578 MB
+OK: sv-examples/test_ROM_output/ROM_31_16_uint8array_NonMul8_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.009 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.516 MB
+OK: sv-examples/test_ROM_output/ROM_32_4_big_InitialFile8_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.010 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.531 MB
+OK: sv-examples/test_ROM_output/ROM_32_4_little_InitialFile8_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.010 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.578 MB
+OK: sv-examples/test_ROM_output/ROM_32_4_uint8array_little_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.010 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.578 MB
+OK: sv-examples/test_ROM_output/ROM_32_big_interal.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.036 MB sources in 4 modules, into 0.019 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.891 MB
+OK: sv-examples/test_ROM_output/ROM_32_big_split2two.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.009 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.562 MB
+OK: sv-examples/test_ROM_output/ROM_9_5_normal_array_test.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.036 MB sources in 3 modules, into 0.024 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.000 MB
+OK: sv-examples/test_SFIFO_output/SFIFO_8_16_none_1r_1w.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.036 MB sources in 3 modules, into 0.023 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.906 MB
+OK: sv-examples/test_SFIFO_output/SFIFO_8_1_none_1r_1w.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.037 MB sources in 3 modules, into 0.028 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.000 MB
+OK: sv-examples/test_SFIFO_output/SFIFO_9_25_InclAlmostDepth_1r_1w.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.036 MB sources in 3 modules, into 0.025 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.984 MB
+OK: sv-examples/test_SFIFO_output/SFIFO_9_25_InclAlmostDepth_1rw.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.036 MB sources in 3 modules, into 0.025 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 10.047 MB
+OK: sv-examples/test_SFIFO_output/SFIFO_9_25_none_1r_1w.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.719 MB
+OK: sv-examples/test_addAdder_output/addB_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.719 MB
+OK: sv-examples/test_addAdder_output/addSU_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.734 MB
+OK: sv-examples/test_addAdder_output/addS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.005 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.005 s on 1 threads; allocated 9.875 MB
+OK: sv-examples/test_addAdder_output/addUS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.734 MB
+OK: sv-examples/test_addAdder_output/add_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.766 MB
+OK: sv-examples/test_addAssign_output/assignAdd_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.017 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.844 MB
+OK: sv-examples/test_addAssign_output/assignM_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.011 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addAssign_output/assign_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.031 MB
+OK: sv-examples/test_addCombAlways_output/combN_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.719 MB
+OK: sv-examples/test_addCombAlways_output/comb_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.328 MB
+OK: sv-examples/test_addMultiplier_output/multB_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.766 MB
+OK: sv-examples/test_addMultiplier_output/multSB_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.766 MB
+OK: sv-examples/test_addMultiplier_output/multSU_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addMultiplier_output/multS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addMultiplier_output/multUB_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.797 MB
+OK: sv-examples/test_addMultiplier_output/multUS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addMultiplier_output/mult_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.018 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addMux_output/muxD_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.019 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addMux_output/muxE_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.020 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.891 MB
+OK: sv-examples/test_addMux_output/muxS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addMux_output/mux_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.013 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.688 MB
+OK: sv-examples/test_addRegister_output/regMod.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.014 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.688 MB
+OK: sv-examples/test_addRegister_output/regMod2.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.012 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.672 MB
+OK: sv-examples/test_addRegister_output/regMod3.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.013 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.688 MB
+OK: sv-examples/test_addRegister_output/regMod4.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.012 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.719 MB
+OK: sv-examples/test_addRegister_output/regMod5.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.013 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.688 MB
+OK: sv-examples/test_addRegister_output/regMod6.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.014 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.672 MB
+OK: sv-examples/test_addRegister_output/regMod7.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.013 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.672 MB
+OK: sv-examples/test_addRegister_output/regMod8.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.019 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addRound_output/roundA_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.734 MB
+OK: sv-examples/test_addRound_output/roundD_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.019 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addRound_output/roundE_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.017 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.734 MB
+OK: sv-examples/test_addRound_output/roundRS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.734 MB
+OK: sv-examples/test_addRound_output/roundS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.017 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addRound_output/roundU_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.018 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.812 MB
+OK: sv-examples/test_addRound_output/roundZ_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.719 MB
+OK: sv-examples/test_addRound_output/round_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.020 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.828 MB
+OK: sv-examples/test_addSaturate_output/saturateBS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.017 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.797 MB
+OK: sv-examples/test_addSaturate_output/saturateB_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.018 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addSaturate_output/saturateNS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.013 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.688 MB
+OK: sv-examples/test_addSaturate_output/saturateN_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.017 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addSaturate_output/saturateS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.017 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addSaturate_output/saturate_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 2 modules, into 0.013 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.672 MB
+OK: sv-examples/test_addSequentialAlways_output/seq_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 3 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.844 MB
+OK: sv-examples/test_addSubmodule_output/subA_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 3 modules, into 0.002 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.672 MB
+OK: sv-examples/test_addSubmodule_output/subI_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 3 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.891 MB
+OK: sv-examples/test_addSubmodule_output/subU_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 3 modules, into 0.016 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.891 MB
+OK: sv-examples/test_addSubmodule_output/sub_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.750 MB
+OK: sv-examples/test_addSubtractor_output/subSU_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.002, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.719 MB
+OK: sv-examples/test_addSubtractor_output/subS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.781 MB
+OK: sv-examples/test_addSubtractor_output/subUS_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.034 MB sources in 2 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.734 MB
+OK: sv-examples/test_addSubtractor_output/sub_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.035 MB sources in 3 modules, into 0.015 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.828 MB
+OK: sv-examples/test_import_output/import_tb.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.011 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.453 MB
+OK: sv-examples/test_shift_output/shift_16_left_5_unsigned.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.011 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.004 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.004 s on 1 threads; allocated 9.484 MB
+OK: sv-examples/test_shift_output/shift_16_right_5_signed.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.011 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.484 MB
+OK: sv-examples/test_shift_output/shift_16_right_5_unsigned.sv
+- V e r i l a t i o n   R e p o r t: Verilator 5.048 2026-04-26 rev vUNKNOWN-built20260426
+- Verilator: Built from 0.033 MB sources in 2 modules, into 0.011 MB in 3 C++ files needing 0.000 MB
+- Verilator: Walltime 0.003 s (elab=0.000, cvt=0.001, bld=0.000); cpu 0.003 s on 1 threads; allocated 9.469 MB
+OK: sv-examples/test_shift_output/shift_5_right_3_unsigned.sv

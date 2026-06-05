@@ -60,7 +60,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${add_tb.writeSystemVerilog()}
+    ${add_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addAdder_output/add_tb.sv', TB);
 }
@@ -123,7 +123,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${addS_tb.writeSystemVerilog()}
+    ${addS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addAdder_output/addS_tb.sv', TB);
 }
@@ -186,7 +186,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${addUS_tb.writeSystemVerilog()}
+    ${addUS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addAdder_output/addUS_tb.sv', TB);
 }
@@ -249,7 +249,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${addSU_tb.writeSystemVerilog()}
+    ${addSU_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addAdder_output/addSU_tb.sv', TB);
 }
@@ -313,7 +313,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${addB_tb.writeSystemVerilog()}
+    ${addB_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addAdder_output/addB_tb.sv', TB);
 }

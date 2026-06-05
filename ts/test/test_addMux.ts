@@ -70,7 +70,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${mux_tb.writeSystemVerilog()}
+  ${mux_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addMux_output/mux_tb.sv', TB)
 } catch (err) {
@@ -165,7 +165,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${muxS_tb.writeSystemVerilog()}
+  ${muxS_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addMux_output/muxS_tb.sv', TB)
 } catch (err) {
@@ -244,7 +244,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${muxE_tb.writeSystemVerilog()}
+  ${muxE_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addMux_output/muxE_tb.sv', TB)
 } catch (err) {
@@ -326,7 +326,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${muxD_tb.writeSystemVerilog()}
+  ${muxD_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addMux_output/muxD_tb.sv', TB)
 } catch (err) {

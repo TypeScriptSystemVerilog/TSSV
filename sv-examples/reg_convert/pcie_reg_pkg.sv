@@ -1,8 +1,8 @@
 package pcie_reg_pkg;
 
 // =============================================================================
-// Generated Register Block 1.0
-// Commit ID: 4b5fe2f1c2c38996f19271c3c4a85fca8bbc7b61
+// Register bit field definition
+// Commit ID: 20a6af013fd07393de4c64eaf9009a282150fbc9
 // =============================================================================
 
 typedef struct packed {
@@ -129,8 +129,7 @@ typedef struct packed {
   logic phy0_mplla_force_en;
   logic [0:0] res_1;
   logic phy0_cr_para_sel;
-  logic [0:0] res_0;
-  logic reserved;
+  logic [1:0] res_0;
 } PCIEPHY_CTRL_4_t;
 
 typedef struct packed {
@@ -138,7 +137,7 @@ typedef struct packed {
   logic phy0_refb_clk_div2_en;
   logic phy0_refa_raw_clk_div2_en;
   logic phy0_refa_clk_div2_en;
-  logic reserved;
+  logic [0:0] res_0;
   logic phy0_sram_ext_ld_done;
   logic phy0_sram_ecc_en;
   logic phy0_sram_bypass;
@@ -180,8 +179,7 @@ typedef struct packed {
   logic phy1_mplla_force_en;
   logic [0:0] res_1;
   logic phy1_cr_para_sel;
-  logic [0:0] res_0;
-  logic reserved;
+  logic [1:0] res_0;
 } PCIEPHY_CTRL_7_t;
 
 typedef struct packed {
@@ -189,7 +187,7 @@ typedef struct packed {
   logic phy1_refb_clk_div2_en;
   logic phy1_refa_raw_clk_div2_en;
   logic phy1_refa_clk_div2_en;
-  logic reserved;
+  logic [0:0] res_0;
   logic phy1_sram_ext_ld_done;
   logic phy1_sram_ecc_en;
   logic phy1_sram_bypass;
@@ -231,8 +229,7 @@ typedef struct packed {
   logic phy2_mplla_force_en;
   logic [0:0] res_1;
   logic phy2_cr_para_sel;
-  logic [0:0] res_0;
-  logic reserved;
+  logic [1:0] res_0;
 } PCIEPHY_CTRL_10_t;
 
 typedef struct packed {
@@ -240,7 +237,7 @@ typedef struct packed {
   logic phy2_refb_clk_div2_en;
   logic phy2_refa_raw_clk_div2_en;
   logic phy2_refa_clk_div2_en;
-  logic reserved;
+  logic [0:0] res_0;
   logic phy2_sram_ext_ld_done;
   logic phy2_sram_ecc_en;
   logic phy2_sram_bypass;
@@ -282,8 +279,7 @@ typedef struct packed {
   logic phy3_mplla_force_en;
   logic [0:0] res_1;
   logic phy3_cr_para_sel;
-  logic [0:0] res_0;
-  logic reserved;
+  logic [1:0] res_0;
 } PCIEPHY_CTRL_13_t;
 
 typedef struct packed {
@@ -291,7 +287,7 @@ typedef struct packed {
   logic phy3_refb_clk_div2_en;
   logic phy3_refa_raw_clk_div2_en;
   logic phy3_refa_clk_div2_en;
-  logic reserved;
+  logic [0:0] res_0;
   logic phy3_sram_ext_ld_done;
   logic phy3_sram_ecc_en;
   logic phy3_sram_bypass;
@@ -403,9 +399,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_18_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx0_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_19_t;
 
 typedef struct packed {
@@ -416,9 +412,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_20_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx1_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_21_t;
 
 typedef struct packed {
@@ -429,9 +425,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_22_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx2_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_23_t;
 
 typedef struct packed {
@@ -442,9 +438,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_24_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx3_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_25_t;
 
 typedef struct packed {
@@ -455,9 +451,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_26_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx4_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_27_t;
 
 typedef struct packed {
@@ -468,9 +464,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_28_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx5_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_29_t;
 
 typedef struct packed {
@@ -481,9 +477,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_30_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx6_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_31_t;
 
 typedef struct packed {
@@ -494,9 +490,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_32_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx7_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_33_t;
 
 typedef struct packed {
@@ -507,9 +503,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_34_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx8_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_35_t;
 
 typedef struct packed {
@@ -520,9 +516,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_36_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx9_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_37_t;
 
 typedef struct packed {
@@ -533,9 +529,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_38_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx10_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_39_t;
 
 typedef struct packed {
@@ -546,9 +542,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_40_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx11_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_41_t;
 
 typedef struct packed {
@@ -559,9 +555,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_42_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx12_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_43_t;
 
 typedef struct packed {
@@ -572,9 +568,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_44_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx13_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_45_t;
 
 typedef struct packed {
@@ -585,9 +581,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_46_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx14_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_47_t;
 
 typedef struct packed {
@@ -598,9 +594,9 @@ typedef struct packed {
 } PCIEPHY_CTRL_48_t;
 
 typedef struct packed {
-  logic [17:0] res_0;
+  logic [17:0] res_1;
   logic [7: 0] phy_rx15_cntx_sel_g1;
-  logic [5: 0] reserved;
+  logic [5:0] res_0;
 } PCIEPHY_CTRL_49_t;
 
 typedef struct packed {

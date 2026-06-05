@@ -32,7 +32,7 @@ function createRegConstruts (regs: Record<string, RegWoFdsUnfoldRep>): Record<st
 }
 
 function generateSVerilog (regBlock: RegisterBlock<any>, outSvFilePath: string, regs: Record<string, RegWoFdsUnfoldRep>, regsFieldOut: Record<string, Register>): void {
-  const rawVerilog = regBlock.writeSystemVerilog()
+  const rawVerilog = regBlock.writeSystemVerilog(true)
   let adjustedVerilog = replaceSignalTypes(rawVerilog, WORD_SIZE, regs)
   adjustedVerilog = splitWdataByRes(adjustedVerilog, WORD_SIZE, regs)
   adjustedVerilog = outRegField(adjustedVerilog, WORD_SIZE, regsFieldOut)
@@ -59,7 +59,7 @@ function main (): void {
   const regsPath = process.argv[2]
   const outputSvFilePath = process.argv[3]
   const busAddrW = parseInt(process.argv[4] ?? '32', 10) // Default to 32 if not provided
-  const name = outputSvFilePath.split('/').pop()?.replace(/\.sv$/, '') || ''
+  const name = (outputSvFilePath.split('/').pop()?.replace(/\.sv$/, '') || '').replace(/\./g, 'p')
   const outVFilePath = outputSvFilePath.replace('.sv', '.v')
 
   const regs = parseRegWoFdsUnfoldRep(regsPath)

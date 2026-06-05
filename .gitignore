@@ -17,6 +17,7 @@ runRegBlockGen
 \#*\#
 .\#*
 obj_dir
+out/
 *.vcd
 .local-pack
 docs

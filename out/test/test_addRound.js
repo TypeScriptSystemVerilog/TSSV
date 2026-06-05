@@ -52,7 +52,7 @@ try {
     const TB = `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${round_tb.writeSystemVerilog()}
+  ${round_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/round_tb.sv', TB);
 }
@@ -107,7 +107,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundS_tb.writeSystemVerilog()}
+${roundS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundS_tb.sv', TB);
 }
@@ -171,7 +171,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundRS_tb.writeSystemVerilog()}
+${roundRS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundRS_tb.sv', TB);
 }
@@ -235,7 +235,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundD_tb.writeSystemVerilog()}
+${roundD_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundD_tb.sv', TB);
 }
@@ -299,7 +299,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundZ_tb.writeSystemVerilog()}
+${roundZ_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundZ_tb.sv', TB);
 }
@@ -363,7 +363,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundU_tb.writeSystemVerilog()}
+${roundU_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundU_tb.sv', TB);
 }
@@ -437,7 +437,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundE_tb.writeSystemVerilog()}
+${roundE_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundE_tb.sv', TB);
 }
@@ -511,7 +511,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${roundA_tb.writeSystemVerilog()}
+${roundA_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRound_output/roundA_tb.sv', TB);
 }

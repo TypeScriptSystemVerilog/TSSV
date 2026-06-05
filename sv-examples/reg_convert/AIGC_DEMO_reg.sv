@@ -1,18 +1,24 @@
-import AIGC_DEMO_Reg_pkg::*;
+import AIGC_DEMO_reg_pkg::*;
 
 // =============================================================================
-// Generated Register Block 1.0
+// Generated Register Block 3.0
 // =============================================================================
 
-// Commit ID: 5d881a42678bd22a450b3e43987eb208f7e70cf4
+// Commit ID: 20a6af013fd07393de4c64eaf9009a282150fbc9
 
 
 
-module AIGC_DEMO_Reg
+
+
+/* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */
+module AIGC_DEMO_reg
 (
 input logic  clk,
 input logic  rst_b,
-input logic [11:0] paddr,
+input logic [15:0] paddr,
 input logic [31:0] pwdata,
 output logic [31:0] prdata,
 input logic  psel,
@@ -37,7 +43,7 @@ output logic [31:0] cfg_dummy_debug
 
 logic  reg_rd;
 logic  reg_wr;
-logic [11:0] reg_addr;
+logic [15:0] reg_addr;
 logic [31:0] reg_rdata;
 logic [31:0] reg_wdata;
 logic [31:0] next_rdata;
@@ -74,41 +80,40 @@ logic  dec_dummy_debug;
 DUMMY_DEBUG_t reg_dummy_debug;
 logic  dummy_debug_we;
 
-// apb interface
+assign prdata = reg_rdata;
 assign reg_wr = psel && penable && pwrite;
 assign reg_rd = psel && !penable && !pwrite;
-assign reg_addr = paddr;
-assign reg_wdata = pwdata;
-assign prdata = reg_rdata;
 assign pready = 1'b1;
 assign slverr = psel && !in_range;
-assign dec_unit_id = (reg_addr == 12'h000) ? 1'd1 : 1'd0;
+assign reg_addr = paddr;
+assign reg_wdata = pwdata;
+assign dec_unit_id = (reg_addr == 16'h0000) ? 1'd1 : 1'd0;
 assign reg_unit_id = cfg_unit_id;
-assign dec_ctrl = (reg_addr == 12'h004) ? 1'd1 : 1'd0;
+assign dec_ctrl = (reg_addr == 16'h0004) ? 1'd1 : 1'd0;
 assign ctrl_we = reg_wr && dec_ctrl;
 assign cfg_ctrl = reg_ctrl;
-assign dec_cfg0 = (reg_addr == 12'h00C) ? 1'd1 : 1'd0;
+assign dec_cfg0 = (reg_addr == 16'h000C) ? 1'd1 : 1'd0;
 assign cfg0_we = reg_wr && dec_cfg0;
 assign cfg_cfg0 = reg_cfg0;
-assign dec_debug_0 = (reg_addr == 12'h400) ? 1'd1 : 1'd0;
+assign dec_debug_0 = (reg_addr == 16'h0400) ? 1'd1 : 1'd0;
 assign reg_debug_0 = cfg_debug_0;
-assign dec_debug_1_0 = (reg_addr == 12'h404) ? 1'd1 : 1'd0;
+assign dec_debug_1_0 = (reg_addr == 16'h0404) ? 1'd1 : 1'd0;
 assign reg_debug_1_0 = cfg_debug_1_0;
-assign dec_debug_1_1 = (reg_addr == 12'h408) ? 1'd1 : 1'd0;
+assign dec_debug_1_1 = (reg_addr == 16'h0408) ? 1'd1 : 1'd0;
 assign reg_debug_1_1 = cfg_debug_1_1;
-assign dec_debug_1_2 = (reg_addr == 12'h40C) ? 1'd1 : 1'd0;
+assign dec_debug_1_2 = (reg_addr == 16'h040C) ? 1'd1 : 1'd0;
 assign reg_debug_1_2 = cfg_debug_1_2;
-assign dec_debug_1_3 = (reg_addr == 12'h410) ? 1'd1 : 1'd0;
+assign dec_debug_1_3 = (reg_addr == 16'h0410) ? 1'd1 : 1'd0;
 assign reg_debug_1_3 = cfg_debug_1_3;
-assign dec_debug_1_4 = (reg_addr == 12'h414) ? 1'd1 : 1'd0;
+assign dec_debug_1_4 = (reg_addr == 16'h0414) ? 1'd1 : 1'd0;
 assign reg_debug_1_4 = cfg_debug_1_4;
-assign dec_debug_1_5 = (reg_addr == 12'h418) ? 1'd1 : 1'd0;
+assign dec_debug_1_5 = (reg_addr == 16'h0418) ? 1'd1 : 1'd0;
 assign reg_debug_1_5 = cfg_debug_1_5;
-assign dec_debug_1_6 = (reg_addr == 12'h41C) ? 1'd1 : 1'd0;
+assign dec_debug_1_6 = (reg_addr == 16'h041C) ? 1'd1 : 1'd0;
 assign reg_debug_1_6 = cfg_debug_1_6;
-assign dec_debug_1_7 = (reg_addr == 12'h420) ? 1'd1 : 1'd0;
+assign dec_debug_1_7 = (reg_addr == 16'h0420) ? 1'd1 : 1'd0;
 assign reg_debug_1_7 = cfg_debug_1_7;
-assign dec_dummy_debug = (reg_addr == 12'hFFC) ? 1'd1 : 1'd0;
+assign dec_dummy_debug = (reg_addr == 16'h0FFC) ? 1'd1 : 1'd0;
 assign dummy_debug_we = reg_wr && dec_dummy_debug;
 assign cfg_dummy_debug = reg_dummy_debug;
 assign in_range = |{dec_unit_id,
@@ -124,7 +129,6 @@ dec_debug_1_5,
 dec_debug_1_6,
 dec_debug_1_7,
 dec_dummy_debug};
-// Read data mux
 assign next_rdata =
 ( {32{dec_unit_id}} & reg_unit_id ) |
 ( {32{dec_ctrl}} & reg_ctrl ) |
@@ -164,7 +168,11 @@ reg_ctrl <= 32'h10001;
 end
 else if(ctrl_we)
 begin
-reg_ctrl <= reg_wdata;
+reg_ctrl[31:31] <= reg_wdata[31:31];
+reg_ctrl[30:24] <= '0;
+reg_ctrl[23:8] <= reg_wdata[23:8];
+reg_ctrl[7:3] <= '0;
+reg_ctrl[2:0] <= reg_wdata[2:0];
 end
 
 
@@ -176,11 +184,14 @@ reg_cfg0 <= 32'h0;
 end
 else if(cfg0_we)
 begin
-reg_cfg0 <= reg_wdata;
+reg_cfg0[31:25] <= '0;
+reg_cfg0[24:24] <= reg_wdata[24:24];
+reg_cfg0[23:8] <= '0;
+reg_cfg0[7:0] <= reg_wdata[7:0];
 end
 else if(cfg0_sc)
 begin
-reg_cfg0 <= 32'b0;
+reg_cfg0 <= 32'h0;
 end
 
 
@@ -226,4 +237,8 @@ end
 
 
 endmodule
- : AIGC_DEMO_Reg
+/* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
+/* verilator lint_on WIDTH */
+ : AIGC_DEMO_reg

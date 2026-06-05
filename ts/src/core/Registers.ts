@@ -5,8 +5,8 @@ import { Casex, type Field, type RegisterType, generateAPBStr, calculateDecMask,
 import { isObjectBindingPattern } from 'typescript'
 import { isBooleanObject } from 'util/types'
 
-function isIntRange16to64 (x: number | undefined): x is IntRange<16, 64> {
-  return typeof x === 'number' && Number.isInteger(x) && x >= 16 && x <= 64
+function isValidBusAddressWidth (x: number | undefined): x is 12 | 16 | 32 {
+  return x === 12 || x === 16 || x === 32
 }
 interface Register {
   type: RegisterType
@@ -266,12 +266,12 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   private genRegBlkMemory (regDefs: RegisterBlockDef<T>, params: RegisterBlockParameters): void {
     const addrWidth = params.busAddressWidth
 
-    if (!isIntRange16to64(addrWidth)) {
+    if (!isValidBusAddressWidth(addrWidth)) {
       throw new Error(`Invalid ADDR_WIDTH: ${addrWidth}, must be integer in [16, 64]`)
     }
     this.addInterface('regs', new Memory({
       DATA_WIDTH: regDefs.wordSize || 32,
-      ADDR_WIDTH: addrWidth
+      ADDR_WIDTH: addrWidth as IntRange<16, 64>
     }, 'inward'))
     for (const reg in regDefs.addrMap) {
       const [baseAddr, regName, matchSig, , thisReg] = this.setupMatchPack(params, reg, false)
@@ -343,12 +343,12 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   private genRegBlkAPB4 (regDefs: RegisterBlockDef<T>, params: RegisterBlockParameters): void {
     const addrWidth = params.busAddressWidth
 
-    if (!isIntRange16to64(addrWidth)) {
+    if (!isValidBusAddressWidth(addrWidth)) {
       throw new Error(`Invalid ADDR_WIDTH: ${addrWidth}, must be integer in [16, 64]`)
     }
     this.addInterface('regs', new APB4({
       DATA_WIDTH: regDefs.wordSize || 32,
-      ADDR_WIDTH: addrWidth
+      ADDR_WIDTH: addrWidth as IntRange<16, 64>
     }, 'inward'))
     const { signals, expressions } = this.setupSignalsExprs(regDefs, params, true, AIGC2APB4)
     const { reg_rd, reg_wr, reg_addr, reg_rdata, reg_wdata, next_rdata, inRange } = signals

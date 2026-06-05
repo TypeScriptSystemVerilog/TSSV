@@ -119,21 +119,21 @@ export class testAddrDecode extends Module {
 }
 const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 });
 try {
-    writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog());
+    writeFileSync('sv-examples/test1.sv', test1.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);
 }
 const testMem1 = new testMem({ dataWidth: 8, depth: 32n });
 try {
-    writeFileSync('sv-examples/testMem1.sv', testMem1.writeSystemVerilog());
+    writeFileSync('sv-examples/testMem1.sv', testMem1.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);
 }
 const testAddrDecode1 = new testAddrDecode({ numBlocks: 5, blockSize: 16n, addrWidth: 32, baseAddr: BigInt('0xabcdef00') });
 try {
-    writeFileSync('sv-examples/testAddrDecode1.sv', testAddrDecode1.writeSystemVerilog());
+    writeFileSync('sv-examples/testAddrDecode1.sv', testAddrDecode1.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);

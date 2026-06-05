@@ -60,7 +60,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${mult_tb.writeSystemVerilog()}
+    ${mult_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/mult_tb.sv', TB);
 }
@@ -123,7 +123,7 @@ try {
     const TB = `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${multS_tb.writeSystemVerilog()}
+      ${multS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/multS_tb.sv', TB);
 }
@@ -191,7 +191,7 @@ try {
     const TB = `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${multUS_tb.writeSystemVerilog()}
+      ${multUS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/multUS_tb.sv', TB);
 }
@@ -259,7 +259,7 @@ try {
     const TB = `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${multSU_tb.writeSystemVerilog()}
+      ${multSU_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/multSU_tb.sv', TB);
 }
@@ -300,7 +300,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${multB_tb.writeSystemVerilog()}
+    ${multB_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/multB_tb.sv', TB);
 }
@@ -360,7 +360,7 @@ try {
     const TB = `
       /* verilator lint_off DECLFILENAME */
       /* verilator lint_off UNUSED */
-      ${multUB_tb.writeSystemVerilog()}
+      ${multUB_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/multUB_tb.sv', TB);
 }
@@ -420,7 +420,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${multSB_tb.writeSystemVerilog()}
+    ${multSB_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addMultiplier_output/multSB_tb.sv', TB);
 }

@@ -1,18 +1,24 @@
 import pcie_reg_pkg::*;
 
 // =============================================================================
-// Generated Register Block 1.0
+// Generated Register Block 3.0
 // =============================================================================
 
-// Commit ID: 4b5fe2f1c2c38996f19271c3c4a85fca8bbc7b61
+// Commit ID: 20a6af013fd07393de4c64eaf9009a282150fbc9
 
 
 
+
+
+/* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */
 module pcie_reg
 (
 input logic  clk,
 input logic  rst_b,
-input logic [11:0] paddr,
+input logic [15:0] paddr,
 input logic [31:0] pwdata,
 output logic [31:0] prdata,
 input logic  psel,
@@ -614,7 +620,7 @@ input logic [31:0] cfg_pciephy_ctrl_589
 
 logic  reg_rd;
 logic  reg_wr;
-logic [11:0] reg_addr;
+logic [15:0] reg_addr;
 logic [31:0] reg_rdata;
 logic [31:0] reg_wdata;
 logic [31:0] next_rdata;
@@ -2365,7 +2371,6 @@ PCIEPHY_CTRL_588_t reg_pciephy_ctrl_588;
 logic  dec_pciephy_ctrl_589;
 PCIEPHY_CTRL_589_t reg_pciephy_ctrl_589;
 
-// apb interface
 assign prdata = reg_rdata;
 assign reg_wr = psel && penable && pwrite;
 assign reg_rd = psel && !penable && !pwrite;
@@ -2373,2339 +2378,1749 @@ assign pready = 1'b1;
 assign slverr = psel && !in_range;
 assign reg_addr = paddr;
 assign reg_wdata = pwdata;
-assign dec_pciephy_ctrl_0 = (reg_addr == 12'h000) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_0 = (reg_addr == 16'h0000) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_0_we = reg_wr && dec_pciephy_ctrl_0;
-// non-RO: output
 assign cfg_pciephy_ctrl_0 = reg_pciephy_ctrl_0;
-assign dec_pciephy_ctrl_1 = (reg_addr == 12'h004) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_1 = (reg_addr == 16'h0004) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_1_we = reg_wr && dec_pciephy_ctrl_1;
-// non-RO: output
 assign cfg_pciephy_ctrl_1 = reg_pciephy_ctrl_1;
-assign dec_pciephy_ctrl_2 = (reg_addr == 12'h008) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_2 = (reg_addr == 16'h0008) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_2 = cfg_pciephy_ctrl_2;
-assign dec_pciephy_ctrl_3 = (reg_addr == 12'h00C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_3 = (reg_addr == 16'h000C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_3_we = reg_wr && dec_pciephy_ctrl_3;
-// non-RO: output
 assign cfg_pciephy_ctrl_3 = reg_pciephy_ctrl_3;
-assign dec_pciephy_ctrl_4 = (reg_addr == 12'h010) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_4 = (reg_addr == 16'h0010) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_4_we = reg_wr && dec_pciephy_ctrl_4;
-// non-RO: output
 assign cfg_pciephy_ctrl_4 = reg_pciephy_ctrl_4;
-assign dec_pciephy_ctrl_5 = (reg_addr == 12'h014) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_5 = (reg_addr == 16'h0014) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_5_we = reg_wr && dec_pciephy_ctrl_5;
-// non-RO: output
 assign cfg_pciephy_ctrl_5 = reg_pciephy_ctrl_5;
-assign dec_pciephy_ctrl_6 = (reg_addr == 12'h018) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_6 = (reg_addr == 16'h0018) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_6_we = reg_wr && dec_pciephy_ctrl_6;
-// non-RO: output
 assign cfg_pciephy_ctrl_6 = reg_pciephy_ctrl_6;
-assign dec_pciephy_ctrl_7 = (reg_addr == 12'h01C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_7 = (reg_addr == 16'h001C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_7_we = reg_wr && dec_pciephy_ctrl_7;
-// non-RO: output
 assign cfg_pciephy_ctrl_7 = reg_pciephy_ctrl_7;
-assign dec_pciephy_ctrl_8 = (reg_addr == 12'h020) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_8 = (reg_addr == 16'h0020) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_8_we = reg_wr && dec_pciephy_ctrl_8;
-// non-RO: output
 assign cfg_pciephy_ctrl_8 = reg_pciephy_ctrl_8;
-assign dec_pciephy_ctrl_9 = (reg_addr == 12'h024) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_9 = (reg_addr == 16'h0024) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_9_we = reg_wr && dec_pciephy_ctrl_9;
-// non-RO: output
 assign cfg_pciephy_ctrl_9 = reg_pciephy_ctrl_9;
-assign dec_pciephy_ctrl_10 = (reg_addr == 12'h028) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_10 = (reg_addr == 16'h0028) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_10_we = reg_wr && dec_pciephy_ctrl_10;
-// non-RO: output
 assign cfg_pciephy_ctrl_10 = reg_pciephy_ctrl_10;
-assign dec_pciephy_ctrl_11 = (reg_addr == 12'h02C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_11 = (reg_addr == 16'h002C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_11_we = reg_wr && dec_pciephy_ctrl_11;
-// non-RO: output
 assign cfg_pciephy_ctrl_11 = reg_pciephy_ctrl_11;
-assign dec_pciephy_ctrl_12 = (reg_addr == 12'h030) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_12 = (reg_addr == 16'h0030) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_12_we = reg_wr && dec_pciephy_ctrl_12;
-// non-RO: output
 assign cfg_pciephy_ctrl_12 = reg_pciephy_ctrl_12;
-assign dec_pciephy_ctrl_13 = (reg_addr == 12'h034) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_13 = (reg_addr == 16'h0034) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_13_we = reg_wr && dec_pciephy_ctrl_13;
-// non-RO: output
 assign cfg_pciephy_ctrl_13 = reg_pciephy_ctrl_13;
-assign dec_pciephy_ctrl_14 = (reg_addr == 12'h038) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_14 = (reg_addr == 16'h0038) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_14_we = reg_wr && dec_pciephy_ctrl_14;
-// non-RO: output
 assign cfg_pciephy_ctrl_14 = reg_pciephy_ctrl_14;
-assign dec_pciephy_ctrl_15 = (reg_addr == 12'h03C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_15 = (reg_addr == 16'h003C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_15_we = reg_wr && dec_pciephy_ctrl_15;
-// non-RO: output
 assign cfg_pciephy_ctrl_15 = reg_pciephy_ctrl_15;
-assign dec_pciephy_ctrl_16 = (reg_addr == 12'h040) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_16 = (reg_addr == 16'h0040) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_16_we = reg_wr && dec_pciephy_ctrl_16;
-// non-RO: output
 assign cfg_pciephy_ctrl_16 = reg_pciephy_ctrl_16;
-assign dec_pciephy_ctrl_17 = (reg_addr == 12'h044) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_17 = (reg_addr == 16'h0044) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_17_we = reg_wr && dec_pciephy_ctrl_17;
-// non-RO: output
 assign cfg_pciephy_ctrl_17 = reg_pciephy_ctrl_17;
-assign dec_pciephy_ctrl_18 = (reg_addr == 12'h048) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_18 = (reg_addr == 16'h0048) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_18_we = reg_wr && dec_pciephy_ctrl_18;
-// non-RO: output
 assign cfg_pciephy_ctrl_18 = reg_pciephy_ctrl_18;
-assign dec_pciephy_ctrl_19 = (reg_addr == 12'h04C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_19 = (reg_addr == 16'h004C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_19_we = reg_wr && dec_pciephy_ctrl_19;
-// non-RO: output
 assign cfg_pciephy_ctrl_19 = reg_pciephy_ctrl_19;
-assign dec_pciephy_ctrl_20 = (reg_addr == 12'h050) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_20 = (reg_addr == 16'h0050) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_20_we = reg_wr && dec_pciephy_ctrl_20;
-// non-RO: output
 assign cfg_pciephy_ctrl_20 = reg_pciephy_ctrl_20;
-assign dec_pciephy_ctrl_21 = (reg_addr == 12'h054) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_21 = (reg_addr == 16'h0054) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_21_we = reg_wr && dec_pciephy_ctrl_21;
-// non-RO: output
 assign cfg_pciephy_ctrl_21 = reg_pciephy_ctrl_21;
-assign dec_pciephy_ctrl_22 = (reg_addr == 12'h058) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_22 = (reg_addr == 16'h0058) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_22_we = reg_wr && dec_pciephy_ctrl_22;
-// non-RO: output
 assign cfg_pciephy_ctrl_22 = reg_pciephy_ctrl_22;
-assign dec_pciephy_ctrl_23 = (reg_addr == 12'h05C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_23 = (reg_addr == 16'h005C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_23_we = reg_wr && dec_pciephy_ctrl_23;
-// non-RO: output
 assign cfg_pciephy_ctrl_23 = reg_pciephy_ctrl_23;
-assign dec_pciephy_ctrl_24 = (reg_addr == 12'h060) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_24 = (reg_addr == 16'h0060) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_24_we = reg_wr && dec_pciephy_ctrl_24;
-// non-RO: output
 assign cfg_pciephy_ctrl_24 = reg_pciephy_ctrl_24;
-assign dec_pciephy_ctrl_25 = (reg_addr == 12'h064) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_25 = (reg_addr == 16'h0064) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_25_we = reg_wr && dec_pciephy_ctrl_25;
-// non-RO: output
 assign cfg_pciephy_ctrl_25 = reg_pciephy_ctrl_25;
-assign dec_pciephy_ctrl_26 = (reg_addr == 12'h068) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_26 = (reg_addr == 16'h0068) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_26_we = reg_wr && dec_pciephy_ctrl_26;
-// non-RO: output
 assign cfg_pciephy_ctrl_26 = reg_pciephy_ctrl_26;
-assign dec_pciephy_ctrl_27 = (reg_addr == 12'h06C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_27 = (reg_addr == 16'h006C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_27_we = reg_wr && dec_pciephy_ctrl_27;
-// non-RO: output
 assign cfg_pciephy_ctrl_27 = reg_pciephy_ctrl_27;
-assign dec_pciephy_ctrl_28 = (reg_addr == 12'h070) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_28 = (reg_addr == 16'h0070) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_28_we = reg_wr && dec_pciephy_ctrl_28;
-// non-RO: output
 assign cfg_pciephy_ctrl_28 = reg_pciephy_ctrl_28;
-assign dec_pciephy_ctrl_29 = (reg_addr == 12'h074) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_29 = (reg_addr == 16'h0074) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_29_we = reg_wr && dec_pciephy_ctrl_29;
-// non-RO: output
 assign cfg_pciephy_ctrl_29 = reg_pciephy_ctrl_29;
-assign dec_pciephy_ctrl_30 = (reg_addr == 12'h078) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_30 = (reg_addr == 16'h0078) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_30_we = reg_wr && dec_pciephy_ctrl_30;
-// non-RO: output
 assign cfg_pciephy_ctrl_30 = reg_pciephy_ctrl_30;
-assign dec_pciephy_ctrl_31 = (reg_addr == 12'h07C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_31 = (reg_addr == 16'h007C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_31_we = reg_wr && dec_pciephy_ctrl_31;
-// non-RO: output
 assign cfg_pciephy_ctrl_31 = reg_pciephy_ctrl_31;
-assign dec_pciephy_ctrl_32 = (reg_addr == 12'h080) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_32 = (reg_addr == 16'h0080) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_32_we = reg_wr && dec_pciephy_ctrl_32;
-// non-RO: output
 assign cfg_pciephy_ctrl_32 = reg_pciephy_ctrl_32;
-assign dec_pciephy_ctrl_33 = (reg_addr == 12'h084) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_33 = (reg_addr == 16'h0084) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_33_we = reg_wr && dec_pciephy_ctrl_33;
-// non-RO: output
 assign cfg_pciephy_ctrl_33 = reg_pciephy_ctrl_33;
-assign dec_pciephy_ctrl_34 = (reg_addr == 12'h088) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_34 = (reg_addr == 16'h0088) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_34_we = reg_wr && dec_pciephy_ctrl_34;
-// non-RO: output
 assign cfg_pciephy_ctrl_34 = reg_pciephy_ctrl_34;
-assign dec_pciephy_ctrl_35 = (reg_addr == 12'h08C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_35 = (reg_addr == 16'h008C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_35_we = reg_wr && dec_pciephy_ctrl_35;
-// non-RO: output
 assign cfg_pciephy_ctrl_35 = reg_pciephy_ctrl_35;
-assign dec_pciephy_ctrl_36 = (reg_addr == 12'h090) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_36 = (reg_addr == 16'h0090) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_36_we = reg_wr && dec_pciephy_ctrl_36;
-// non-RO: output
 assign cfg_pciephy_ctrl_36 = reg_pciephy_ctrl_36;
-assign dec_pciephy_ctrl_37 = (reg_addr == 12'h094) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_37 = (reg_addr == 16'h0094) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_37_we = reg_wr && dec_pciephy_ctrl_37;
-// non-RO: output
 assign cfg_pciephy_ctrl_37 = reg_pciephy_ctrl_37;
-assign dec_pciephy_ctrl_38 = (reg_addr == 12'h098) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_38 = (reg_addr == 16'h0098) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_38_we = reg_wr && dec_pciephy_ctrl_38;
-// non-RO: output
 assign cfg_pciephy_ctrl_38 = reg_pciephy_ctrl_38;
-assign dec_pciephy_ctrl_39 = (reg_addr == 12'h09C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_39 = (reg_addr == 16'h009C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_39_we = reg_wr && dec_pciephy_ctrl_39;
-// non-RO: output
 assign cfg_pciephy_ctrl_39 = reg_pciephy_ctrl_39;
-assign dec_pciephy_ctrl_40 = (reg_addr == 12'h0A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_40 = (reg_addr == 16'h00A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_40_we = reg_wr && dec_pciephy_ctrl_40;
-// non-RO: output
 assign cfg_pciephy_ctrl_40 = reg_pciephy_ctrl_40;
-assign dec_pciephy_ctrl_41 = (reg_addr == 12'h0A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_41 = (reg_addr == 16'h00A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_41_we = reg_wr && dec_pciephy_ctrl_41;
-// non-RO: output
 assign cfg_pciephy_ctrl_41 = reg_pciephy_ctrl_41;
-assign dec_pciephy_ctrl_42 = (reg_addr == 12'h0A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_42 = (reg_addr == 16'h00A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_42_we = reg_wr && dec_pciephy_ctrl_42;
-// non-RO: output
 assign cfg_pciephy_ctrl_42 = reg_pciephy_ctrl_42;
-assign dec_pciephy_ctrl_43 = (reg_addr == 12'h0AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_43 = (reg_addr == 16'h00AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_43_we = reg_wr && dec_pciephy_ctrl_43;
-// non-RO: output
 assign cfg_pciephy_ctrl_43 = reg_pciephy_ctrl_43;
-assign dec_pciephy_ctrl_44 = (reg_addr == 12'h0B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_44 = (reg_addr == 16'h00B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_44_we = reg_wr && dec_pciephy_ctrl_44;
-// non-RO: output
 assign cfg_pciephy_ctrl_44 = reg_pciephy_ctrl_44;
-assign dec_pciephy_ctrl_45 = (reg_addr == 12'h0B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_45 = (reg_addr == 16'h00B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_45_we = reg_wr && dec_pciephy_ctrl_45;
-// non-RO: output
 assign cfg_pciephy_ctrl_45 = reg_pciephy_ctrl_45;
-assign dec_pciephy_ctrl_46 = (reg_addr == 12'h0B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_46 = (reg_addr == 16'h00B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_46_we = reg_wr && dec_pciephy_ctrl_46;
-// non-RO: output
 assign cfg_pciephy_ctrl_46 = reg_pciephy_ctrl_46;
-assign dec_pciephy_ctrl_47 = (reg_addr == 12'h0BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_47 = (reg_addr == 16'h00BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_47_we = reg_wr && dec_pciephy_ctrl_47;
-// non-RO: output
 assign cfg_pciephy_ctrl_47 = reg_pciephy_ctrl_47;
-assign dec_pciephy_ctrl_48 = (reg_addr == 12'h0C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_48 = (reg_addr == 16'h00C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_48_we = reg_wr && dec_pciephy_ctrl_48;
-// non-RO: output
 assign cfg_pciephy_ctrl_48 = reg_pciephy_ctrl_48;
-assign dec_pciephy_ctrl_49 = (reg_addr == 12'h0C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_49 = (reg_addr == 16'h00C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_49_we = reg_wr && dec_pciephy_ctrl_49;
-// non-RO: output
 assign cfg_pciephy_ctrl_49 = reg_pciephy_ctrl_49;
-assign dec_pciephy_ctrl_50 = (reg_addr == 12'h0C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_50 = (reg_addr == 16'h00C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_50_we = reg_wr && dec_pciephy_ctrl_50;
-// non-RO: output
 assign cfg_pciephy_ctrl_50 = reg_pciephy_ctrl_50;
-assign dec_pciephy_ctrl_51 = (reg_addr == 12'h0CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_51 = (reg_addr == 16'h00CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_51_we = reg_wr && dec_pciephy_ctrl_51;
-// non-RO: output
 assign cfg_pciephy_ctrl_51 = reg_pciephy_ctrl_51;
-assign dec_pciephy_ctrl_52 = (reg_addr == 12'h0D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_52 = (reg_addr == 16'h00D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_52_we = reg_wr && dec_pciephy_ctrl_52;
-// non-RO: output
 assign cfg_pciephy_ctrl_52 = reg_pciephy_ctrl_52;
-assign dec_pciephy_ctrl_53 = (reg_addr == 12'h0D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_53 = (reg_addr == 16'h00D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_53_we = reg_wr && dec_pciephy_ctrl_53;
-// non-RO: output
 assign cfg_pciephy_ctrl_53 = reg_pciephy_ctrl_53;
-assign dec_pciephy_ctrl_54 = (reg_addr == 12'h0D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_54 = (reg_addr == 16'h00D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_54_we = reg_wr && dec_pciephy_ctrl_54;
-// non-RO: output
 assign cfg_pciephy_ctrl_54 = reg_pciephy_ctrl_54;
-assign dec_pciephy_ctrl_55 = (reg_addr == 12'h0DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_55 = (reg_addr == 16'h00DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_55_we = reg_wr && dec_pciephy_ctrl_55;
-// non-RO: output
 assign cfg_pciephy_ctrl_55 = reg_pciephy_ctrl_55;
-assign dec_pciephy_ctrl_56 = (reg_addr == 12'h0E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_56 = (reg_addr == 16'h00E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_56_we = reg_wr && dec_pciephy_ctrl_56;
-// non-RO: output
 assign cfg_pciephy_ctrl_56 = reg_pciephy_ctrl_56;
-assign dec_pciephy_ctrl_57 = (reg_addr == 12'h0E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_57 = (reg_addr == 16'h00E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_57_we = reg_wr && dec_pciephy_ctrl_57;
-// non-RO: output
 assign cfg_pciephy_ctrl_57 = reg_pciephy_ctrl_57;
-assign dec_pciephy_ctrl_58 = (reg_addr == 12'h0E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_58 = (reg_addr == 16'h00E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_58_we = reg_wr && dec_pciephy_ctrl_58;
-// non-RO: output
 assign cfg_pciephy_ctrl_58 = reg_pciephy_ctrl_58;
-assign dec_pciephy_ctrl_59 = (reg_addr == 12'h0EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_59 = (reg_addr == 16'h00EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_59_we = reg_wr && dec_pciephy_ctrl_59;
-// non-RO: output
 assign cfg_pciephy_ctrl_59 = reg_pciephy_ctrl_59;
-assign dec_pciephy_ctrl_60 = (reg_addr == 12'h0F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_60 = (reg_addr == 16'h00F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_60_we = reg_wr && dec_pciephy_ctrl_60;
-// non-RO: output
 assign cfg_pciephy_ctrl_60 = reg_pciephy_ctrl_60;
-assign dec_pciephy_ctrl_61 = (reg_addr == 12'h0F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_61 = (reg_addr == 16'h00F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_61_we = reg_wr && dec_pciephy_ctrl_61;
-// non-RO: output
 assign cfg_pciephy_ctrl_61 = reg_pciephy_ctrl_61;
-assign dec_pciephy_ctrl_62 = (reg_addr == 12'h0F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_62 = (reg_addr == 16'h00F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_62_we = reg_wr && dec_pciephy_ctrl_62;
-// non-RO: output
 assign cfg_pciephy_ctrl_62 = reg_pciephy_ctrl_62;
-assign dec_pciephy_ctrl_63 = (reg_addr == 12'h0FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_63 = (reg_addr == 16'h00FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_63_we = reg_wr && dec_pciephy_ctrl_63;
-// non-RO: output
 assign cfg_pciephy_ctrl_63 = reg_pciephy_ctrl_63;
-assign dec_pciephy_ctrl_64 = (reg_addr == 12'h100) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_64 = (reg_addr == 16'h0100) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_64_we = reg_wr && dec_pciephy_ctrl_64;
-// non-RO: output
 assign cfg_pciephy_ctrl_64 = reg_pciephy_ctrl_64;
-assign dec_pciephy_ctrl_65 = (reg_addr == 12'h104) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_65 = (reg_addr == 16'h0104) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_65_we = reg_wr && dec_pciephy_ctrl_65;
-// non-RO: output
 assign cfg_pciephy_ctrl_65 = reg_pciephy_ctrl_65;
-assign dec_pciephy_ctrl_66 = (reg_addr == 12'h108) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_66 = (reg_addr == 16'h0108) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_66_we = reg_wr && dec_pciephy_ctrl_66;
-// non-RO: output
 assign cfg_pciephy_ctrl_66 = reg_pciephy_ctrl_66;
-assign dec_pciephy_ctrl_67 = (reg_addr == 12'h10C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_67 = (reg_addr == 16'h010C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_67_we = reg_wr && dec_pciephy_ctrl_67;
-// non-RO: output
 assign cfg_pciephy_ctrl_67 = reg_pciephy_ctrl_67;
-assign dec_pciephy_ctrl_68 = (reg_addr == 12'h110) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_68 = (reg_addr == 16'h0110) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_68_we = reg_wr && dec_pciephy_ctrl_68;
-// non-RO: output
 assign cfg_pciephy_ctrl_68 = reg_pciephy_ctrl_68;
-assign dec_pciephy_ctrl_69 = (reg_addr == 12'h114) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_69 = (reg_addr == 16'h0114) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_69_we = reg_wr && dec_pciephy_ctrl_69;
-// non-RO: output
 assign cfg_pciephy_ctrl_69 = reg_pciephy_ctrl_69;
-assign dec_pciephy_ctrl_70 = (reg_addr == 12'h118) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_70 = (reg_addr == 16'h0118) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_70_we = reg_wr && dec_pciephy_ctrl_70;
-// non-RO: output
 assign cfg_pciephy_ctrl_70 = reg_pciephy_ctrl_70;
-assign dec_pciephy_ctrl_71 = (reg_addr == 12'h11C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_71 = (reg_addr == 16'h011C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_71_we = reg_wr && dec_pciephy_ctrl_71;
-// non-RO: output
 assign cfg_pciephy_ctrl_71 = reg_pciephy_ctrl_71;
-assign dec_pciephy_ctrl_72 = (reg_addr == 12'h120) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_72 = (reg_addr == 16'h0120) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_72_we = reg_wr && dec_pciephy_ctrl_72;
-// non-RO: output
 assign cfg_pciephy_ctrl_72 = reg_pciephy_ctrl_72;
-assign dec_pciephy_ctrl_73 = (reg_addr == 12'h124) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_73 = (reg_addr == 16'h0124) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_73_we = reg_wr && dec_pciephy_ctrl_73;
-// non-RO: output
 assign cfg_pciephy_ctrl_73 = reg_pciephy_ctrl_73;
-assign dec_pciephy_ctrl_74 = (reg_addr == 12'h128) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_74 = (reg_addr == 16'h0128) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_74_we = reg_wr && dec_pciephy_ctrl_74;
-// non-RO: output
 assign cfg_pciephy_ctrl_74 = reg_pciephy_ctrl_74;
-assign dec_pciephy_ctrl_75 = (reg_addr == 12'h12C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_75 = (reg_addr == 16'h012C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_75_we = reg_wr && dec_pciephy_ctrl_75;
-// non-RO: output
 assign cfg_pciephy_ctrl_75 = reg_pciephy_ctrl_75;
-assign dec_pciephy_ctrl_76 = (reg_addr == 12'h130) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_76 = (reg_addr == 16'h0130) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_76_we = reg_wr && dec_pciephy_ctrl_76;
-// non-RO: output
 assign cfg_pciephy_ctrl_76 = reg_pciephy_ctrl_76;
-assign dec_pciephy_ctrl_77 = (reg_addr == 12'h134) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_77 = (reg_addr == 16'h0134) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_77_we = reg_wr && dec_pciephy_ctrl_77;
-// non-RO: output
 assign cfg_pciephy_ctrl_77 = reg_pciephy_ctrl_77;
-assign dec_pciephy_ctrl_78 = (reg_addr == 12'h138) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_78 = (reg_addr == 16'h0138) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_78_we = reg_wr && dec_pciephy_ctrl_78;
-// non-RO: output
 assign cfg_pciephy_ctrl_78 = reg_pciephy_ctrl_78;
-assign dec_pciephy_ctrl_79 = (reg_addr == 12'h13C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_79 = (reg_addr == 16'h013C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_79_we = reg_wr && dec_pciephy_ctrl_79;
-// non-RO: output
 assign cfg_pciephy_ctrl_79 = reg_pciephy_ctrl_79;
-assign dec_pciephy_ctrl_80 = (reg_addr == 12'h140) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_80 = (reg_addr == 16'h0140) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_80_we = reg_wr && dec_pciephy_ctrl_80;
-// non-RO: output
 assign cfg_pciephy_ctrl_80 = reg_pciephy_ctrl_80;
-assign dec_pciephy_ctrl_81 = (reg_addr == 12'h144) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_81 = (reg_addr == 16'h0144) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_81_we = reg_wr && dec_pciephy_ctrl_81;
-// non-RO: output
 assign cfg_pciephy_ctrl_81 = reg_pciephy_ctrl_81;
-assign dec_pciephy_ctrl_82 = (reg_addr == 12'h148) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_82 = (reg_addr == 16'h0148) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_82_we = reg_wr && dec_pciephy_ctrl_82;
-// non-RO: output
 assign cfg_pciephy_ctrl_82 = reg_pciephy_ctrl_82;
-assign dec_pciephy_ctrl_83 = (reg_addr == 12'h14C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_83 = (reg_addr == 16'h014C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_83_we = reg_wr && dec_pciephy_ctrl_83;
-// non-RO: output
 assign cfg_pciephy_ctrl_83 = reg_pciephy_ctrl_83;
-assign dec_pciephy_ctrl_84 = (reg_addr == 12'h150) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_84 = (reg_addr == 16'h0150) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_84_we = reg_wr && dec_pciephy_ctrl_84;
-// non-RO: output
 assign cfg_pciephy_ctrl_84 = reg_pciephy_ctrl_84;
-assign dec_pciephy_ctrl_85 = (reg_addr == 12'h154) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_85 = (reg_addr == 16'h0154) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_85_we = reg_wr && dec_pciephy_ctrl_85;
-// non-RO: output
 assign cfg_pciephy_ctrl_85 = reg_pciephy_ctrl_85;
-assign dec_pciephy_ctrl_86 = (reg_addr == 12'h158) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_86 = (reg_addr == 16'h0158) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_86_we = reg_wr && dec_pciephy_ctrl_86;
-// non-RO: output
 assign cfg_pciephy_ctrl_86 = reg_pciephy_ctrl_86;
-assign dec_pciephy_ctrl_87 = (reg_addr == 12'h15C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_87 = (reg_addr == 16'h015C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_87_we = reg_wr && dec_pciephy_ctrl_87;
-// non-RO: output
 assign cfg_pciephy_ctrl_87 = reg_pciephy_ctrl_87;
-assign dec_pciephy_ctrl_88 = (reg_addr == 12'h160) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_88 = (reg_addr == 16'h0160) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_88_we = reg_wr && dec_pciephy_ctrl_88;
-// non-RO: output
 assign cfg_pciephy_ctrl_88 = reg_pciephy_ctrl_88;
-assign dec_pciephy_ctrl_89 = (reg_addr == 12'h164) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_89 = (reg_addr == 16'h0164) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_89_we = reg_wr && dec_pciephy_ctrl_89;
-// non-RO: output
 assign cfg_pciephy_ctrl_89 = reg_pciephy_ctrl_89;
-assign dec_pciephy_ctrl_90 = (reg_addr == 12'h168) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_90 = (reg_addr == 16'h0168) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_90_we = reg_wr && dec_pciephy_ctrl_90;
-// non-RO: output
 assign cfg_pciephy_ctrl_90 = reg_pciephy_ctrl_90;
-assign dec_pciephy_ctrl_91 = (reg_addr == 12'h16C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_91 = (reg_addr == 16'h016C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_91_we = reg_wr && dec_pciephy_ctrl_91;
-// non-RO: output
 assign cfg_pciephy_ctrl_91 = reg_pciephy_ctrl_91;
-assign dec_pciephy_ctrl_92 = (reg_addr == 12'h170) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_92 = (reg_addr == 16'h0170) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_92_we = reg_wr && dec_pciephy_ctrl_92;
-// non-RO: output
 assign cfg_pciephy_ctrl_92 = reg_pciephy_ctrl_92;
-assign dec_pciephy_ctrl_93 = (reg_addr == 12'h174) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_93 = (reg_addr == 16'h0174) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_93_we = reg_wr && dec_pciephy_ctrl_93;
-// non-RO: output
 assign cfg_pciephy_ctrl_93 = reg_pciephy_ctrl_93;
-assign dec_pciephy_ctrl_94 = (reg_addr == 12'h178) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_94 = (reg_addr == 16'h0178) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_94_we = reg_wr && dec_pciephy_ctrl_94;
-// non-RO: output
 assign cfg_pciephy_ctrl_94 = reg_pciephy_ctrl_94;
-assign dec_pciephy_ctrl_95 = (reg_addr == 12'h17C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_95 = (reg_addr == 16'h017C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_95_we = reg_wr && dec_pciephy_ctrl_95;
-// non-RO: output
 assign cfg_pciephy_ctrl_95 = reg_pciephy_ctrl_95;
-assign dec_pciephy_ctrl_96 = (reg_addr == 12'h180) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_96 = (reg_addr == 16'h0180) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_96_we = reg_wr && dec_pciephy_ctrl_96;
-// non-RO: output
 assign cfg_pciephy_ctrl_96 = reg_pciephy_ctrl_96;
-assign dec_pciephy_ctrl_97 = (reg_addr == 12'h184) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_97 = (reg_addr == 16'h0184) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_97_we = reg_wr && dec_pciephy_ctrl_97;
-// non-RO: output
 assign cfg_pciephy_ctrl_97 = reg_pciephy_ctrl_97;
-assign dec_pciephy_ctrl_98 = (reg_addr == 12'h188) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_98 = (reg_addr == 16'h0188) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_98_we = reg_wr && dec_pciephy_ctrl_98;
-// non-RO: output
 assign cfg_pciephy_ctrl_98 = reg_pciephy_ctrl_98;
-assign dec_pciephy_ctrl_99 = (reg_addr == 12'h18C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_99 = (reg_addr == 16'h018C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_99_we = reg_wr && dec_pciephy_ctrl_99;
-// non-RO: output
 assign cfg_pciephy_ctrl_99 = reg_pciephy_ctrl_99;
-assign dec_pciephy_ctrl_100 = (reg_addr == 12'h190) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_100 = (reg_addr == 16'h0190) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_100_we = reg_wr && dec_pciephy_ctrl_100;
-// non-RO: output
 assign cfg_pciephy_ctrl_100 = reg_pciephy_ctrl_100;
-assign dec_pciephy_ctrl_101 = (reg_addr == 12'h194) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_101 = (reg_addr == 16'h0194) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_101_we = reg_wr && dec_pciephy_ctrl_101;
-// non-RO: output
 assign cfg_pciephy_ctrl_101 = reg_pciephy_ctrl_101;
-assign dec_pciephy_ctrl_102 = (reg_addr == 12'h198) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_102 = (reg_addr == 16'h0198) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_102_we = reg_wr && dec_pciephy_ctrl_102;
-// non-RO: output
 assign cfg_pciephy_ctrl_102 = reg_pciephy_ctrl_102;
-assign dec_pciephy_ctrl_103 = (reg_addr == 12'h19C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_103 = (reg_addr == 16'h019C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_103_we = reg_wr && dec_pciephy_ctrl_103;
-// non-RO: output
 assign cfg_pciephy_ctrl_103 = reg_pciephy_ctrl_103;
-assign dec_pciephy_ctrl_104 = (reg_addr == 12'h1A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_104 = (reg_addr == 16'h01A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_104_we = reg_wr && dec_pciephy_ctrl_104;
-// non-RO: output
 assign cfg_pciephy_ctrl_104 = reg_pciephy_ctrl_104;
-assign dec_pciephy_ctrl_105 = (reg_addr == 12'h1A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_105 = (reg_addr == 16'h01A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_105_we = reg_wr && dec_pciephy_ctrl_105;
-// non-RO: output
 assign cfg_pciephy_ctrl_105 = reg_pciephy_ctrl_105;
-assign dec_pciephy_ctrl_106 = (reg_addr == 12'h1A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_106 = (reg_addr == 16'h01A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_106_we = reg_wr && dec_pciephy_ctrl_106;
-// non-RO: output
 assign cfg_pciephy_ctrl_106 = reg_pciephy_ctrl_106;
-assign dec_pciephy_ctrl_107 = (reg_addr == 12'h1AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_107 = (reg_addr == 16'h01AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_107_we = reg_wr && dec_pciephy_ctrl_107;
-// non-RO: output
 assign cfg_pciephy_ctrl_107 = reg_pciephy_ctrl_107;
-assign dec_pciephy_ctrl_108 = (reg_addr == 12'h1B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_108 = (reg_addr == 16'h01B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_108_we = reg_wr && dec_pciephy_ctrl_108;
-// non-RO: output
 assign cfg_pciephy_ctrl_108 = reg_pciephy_ctrl_108;
-assign dec_pciephy_ctrl_109 = (reg_addr == 12'h1B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_109 = (reg_addr == 16'h01B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_109_we = reg_wr && dec_pciephy_ctrl_109;
-// non-RO: output
 assign cfg_pciephy_ctrl_109 = reg_pciephy_ctrl_109;
-assign dec_pciephy_ctrl_110 = (reg_addr == 12'h1B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_110 = (reg_addr == 16'h01B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_110_we = reg_wr && dec_pciephy_ctrl_110;
-// non-RO: output
 assign cfg_pciephy_ctrl_110 = reg_pciephy_ctrl_110;
-assign dec_pciephy_ctrl_111 = (reg_addr == 12'h1BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_111 = (reg_addr == 16'h01BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_111_we = reg_wr && dec_pciephy_ctrl_111;
-// non-RO: output
 assign cfg_pciephy_ctrl_111 = reg_pciephy_ctrl_111;
-assign dec_pciephy_ctrl_112 = (reg_addr == 12'h1C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_112 = (reg_addr == 16'h01C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_112_we = reg_wr && dec_pciephy_ctrl_112;
-// non-RO: output
 assign cfg_pciephy_ctrl_112 = reg_pciephy_ctrl_112;
-assign dec_pciephy_ctrl_113 = (reg_addr == 12'h1C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_113 = (reg_addr == 16'h01C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_113_we = reg_wr && dec_pciephy_ctrl_113;
-// non-RO: output
 assign cfg_pciephy_ctrl_113 = reg_pciephy_ctrl_113;
-assign dec_pciephy_ctrl_114 = (reg_addr == 12'h1C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_114 = (reg_addr == 16'h01C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_114_we = reg_wr && dec_pciephy_ctrl_114;
-// non-RO: output
 assign cfg_pciephy_ctrl_114 = reg_pciephy_ctrl_114;
-assign dec_pciephy_ctrl_115 = (reg_addr == 12'h1CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_115 = (reg_addr == 16'h01CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_115_we = reg_wr && dec_pciephy_ctrl_115;
-// non-RO: output
 assign cfg_pciephy_ctrl_115 = reg_pciephy_ctrl_115;
-assign dec_pciephy_ctrl_116 = (reg_addr == 12'h1D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_116 = (reg_addr == 16'h01D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_116_we = reg_wr && dec_pciephy_ctrl_116;
-// non-RO: output
 assign cfg_pciephy_ctrl_116 = reg_pciephy_ctrl_116;
-assign dec_pciephy_ctrl_117 = (reg_addr == 12'h1D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_117 = (reg_addr == 16'h01D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_117_we = reg_wr && dec_pciephy_ctrl_117;
-// non-RO: output
 assign cfg_pciephy_ctrl_117 = reg_pciephy_ctrl_117;
-assign dec_pciephy_ctrl_118 = (reg_addr == 12'h1D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_118 = (reg_addr == 16'h01D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_118_we = reg_wr && dec_pciephy_ctrl_118;
-// non-RO: output
 assign cfg_pciephy_ctrl_118 = reg_pciephy_ctrl_118;
-assign dec_pciephy_ctrl_119 = (reg_addr == 12'h1DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_119 = (reg_addr == 16'h01DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_119_we = reg_wr && dec_pciephy_ctrl_119;
-// non-RO: output
 assign cfg_pciephy_ctrl_119 = reg_pciephy_ctrl_119;
-assign dec_pciephy_ctrl_120 = (reg_addr == 12'h1E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_120 = (reg_addr == 16'h01E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_120_we = reg_wr && dec_pciephy_ctrl_120;
-// non-RO: output
 assign cfg_pciephy_ctrl_120 = reg_pciephy_ctrl_120;
-assign dec_pciephy_ctrl_121 = (reg_addr == 12'h1E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_121 = (reg_addr == 16'h01E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_121_we = reg_wr && dec_pciephy_ctrl_121;
-// non-RO: output
 assign cfg_pciephy_ctrl_121 = reg_pciephy_ctrl_121;
-assign dec_pciephy_ctrl_122 = (reg_addr == 12'h1E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_122 = (reg_addr == 16'h01E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_122_we = reg_wr && dec_pciephy_ctrl_122;
-// non-RO: output
 assign cfg_pciephy_ctrl_122 = reg_pciephy_ctrl_122;
-assign dec_pciephy_ctrl_123 = (reg_addr == 12'h1EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_123 = (reg_addr == 16'h01EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_123_we = reg_wr && dec_pciephy_ctrl_123;
-// non-RO: output
 assign cfg_pciephy_ctrl_123 = reg_pciephy_ctrl_123;
-assign dec_pciephy_ctrl_124 = (reg_addr == 12'h1F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_124 = (reg_addr == 16'h01F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_124_we = reg_wr && dec_pciephy_ctrl_124;
-// non-RO: output
 assign cfg_pciephy_ctrl_124 = reg_pciephy_ctrl_124;
-assign dec_pciephy_ctrl_125 = (reg_addr == 12'h1F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_125 = (reg_addr == 16'h01F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_125_we = reg_wr && dec_pciephy_ctrl_125;
-// non-RO: output
 assign cfg_pciephy_ctrl_125 = reg_pciephy_ctrl_125;
-assign dec_pciephy_ctrl_126 = (reg_addr == 12'h1F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_126 = (reg_addr == 16'h01F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_126_we = reg_wr && dec_pciephy_ctrl_126;
-// non-RO: output
 assign cfg_pciephy_ctrl_126 = reg_pciephy_ctrl_126;
-assign dec_pciephy_ctrl_127 = (reg_addr == 12'h1FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_127 = (reg_addr == 16'h01FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_127_we = reg_wr && dec_pciephy_ctrl_127;
-// non-RO: output
 assign cfg_pciephy_ctrl_127 = reg_pciephy_ctrl_127;
-assign dec_pciephy_ctrl_128 = (reg_addr == 12'h200) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_128 = (reg_addr == 16'h0200) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_128_we = reg_wr && dec_pciephy_ctrl_128;
-// non-RO: output
 assign cfg_pciephy_ctrl_128 = reg_pciephy_ctrl_128;
-assign dec_pciephy_ctrl_129 = (reg_addr == 12'h204) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_129 = (reg_addr == 16'h0204) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_129_we = reg_wr && dec_pciephy_ctrl_129;
-// non-RO: output
 assign cfg_pciephy_ctrl_129 = reg_pciephy_ctrl_129;
-assign dec_pciephy_ctrl_130 = (reg_addr == 12'h208) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_130 = (reg_addr == 16'h0208) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_130_we = reg_wr && dec_pciephy_ctrl_130;
-// non-RO: output
 assign cfg_pciephy_ctrl_130 = reg_pciephy_ctrl_130;
-assign dec_pciephy_ctrl_131 = (reg_addr == 12'h20C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_131 = (reg_addr == 16'h020C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_131_we = reg_wr && dec_pciephy_ctrl_131;
-// non-RO: output
 assign cfg_pciephy_ctrl_131 = reg_pciephy_ctrl_131;
-assign dec_pciephy_ctrl_132 = (reg_addr == 12'h210) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_132 = (reg_addr == 16'h0210) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_132_we = reg_wr && dec_pciephy_ctrl_132;
-// non-RO: output
 assign cfg_pciephy_ctrl_132 = reg_pciephy_ctrl_132;
-assign dec_pciephy_ctrl_133 = (reg_addr == 12'h214) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_133 = (reg_addr == 16'h0214) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_133_we = reg_wr && dec_pciephy_ctrl_133;
-// non-RO: output
 assign cfg_pciephy_ctrl_133 = reg_pciephy_ctrl_133;
-assign dec_pciephy_ctrl_134 = (reg_addr == 12'h218) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_134 = (reg_addr == 16'h0218) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_134_we = reg_wr && dec_pciephy_ctrl_134;
-// non-RO: output
 assign cfg_pciephy_ctrl_134 = reg_pciephy_ctrl_134;
-assign dec_pciephy_ctrl_135 = (reg_addr == 12'h21C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_135 = (reg_addr == 16'h021C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_135_we = reg_wr && dec_pciephy_ctrl_135;
-// non-RO: output
 assign cfg_pciephy_ctrl_135 = reg_pciephy_ctrl_135;
-assign dec_pciephy_ctrl_136 = (reg_addr == 12'h220) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_136 = (reg_addr == 16'h0220) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_136_we = reg_wr && dec_pciephy_ctrl_136;
-// non-RO: output
 assign cfg_pciephy_ctrl_136 = reg_pciephy_ctrl_136;
-assign dec_pciephy_ctrl_137 = (reg_addr == 12'h224) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_137 = (reg_addr == 16'h0224) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_137_we = reg_wr && dec_pciephy_ctrl_137;
-// non-RO: output
 assign cfg_pciephy_ctrl_137 = reg_pciephy_ctrl_137;
-assign dec_pciephy_ctrl_138 = (reg_addr == 12'h228) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_138 = (reg_addr == 16'h0228) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_138_we = reg_wr && dec_pciephy_ctrl_138;
-// non-RO: output
 assign cfg_pciephy_ctrl_138 = reg_pciephy_ctrl_138;
-assign dec_pciephy_ctrl_139 = (reg_addr == 12'h22C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_139 = (reg_addr == 16'h022C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_139_we = reg_wr && dec_pciephy_ctrl_139;
-// non-RO: output
 assign cfg_pciephy_ctrl_139 = reg_pciephy_ctrl_139;
-assign dec_pciephy_ctrl_140 = (reg_addr == 12'h230) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_140 = (reg_addr == 16'h0230) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_140_we = reg_wr && dec_pciephy_ctrl_140;
-// non-RO: output
 assign cfg_pciephy_ctrl_140 = reg_pciephy_ctrl_140;
-assign dec_pciephy_ctrl_141 = (reg_addr == 12'h234) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_141 = (reg_addr == 16'h0234) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_141_we = reg_wr && dec_pciephy_ctrl_141;
-// non-RO: output
 assign cfg_pciephy_ctrl_141 = reg_pciephy_ctrl_141;
-assign dec_pciephy_ctrl_142 = (reg_addr == 12'h238) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_142 = (reg_addr == 16'h0238) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_142_we = reg_wr && dec_pciephy_ctrl_142;
-// non-RO: output
 assign cfg_pciephy_ctrl_142 = reg_pciephy_ctrl_142;
-assign dec_pciephy_ctrl_143 = (reg_addr == 12'h23C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_143 = (reg_addr == 16'h023C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_143_we = reg_wr && dec_pciephy_ctrl_143;
-// non-RO: output
 assign cfg_pciephy_ctrl_143 = reg_pciephy_ctrl_143;
-assign dec_pciephy_ctrl_144 = (reg_addr == 12'h240) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_144 = (reg_addr == 16'h0240) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_144_we = reg_wr && dec_pciephy_ctrl_144;
-// non-RO: output
 assign cfg_pciephy_ctrl_144 = reg_pciephy_ctrl_144;
-assign dec_pciephy_ctrl_145 = (reg_addr == 12'h244) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_145 = (reg_addr == 16'h0244) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_145_we = reg_wr && dec_pciephy_ctrl_145;
-// non-RO: output
 assign cfg_pciephy_ctrl_145 = reg_pciephy_ctrl_145;
-assign dec_pciephy_ctrl_146 = (reg_addr == 12'h248) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_146 = (reg_addr == 16'h0248) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_146_we = reg_wr && dec_pciephy_ctrl_146;
-// non-RO: output
 assign cfg_pciephy_ctrl_146 = reg_pciephy_ctrl_146;
-assign dec_pciephy_ctrl_147 = (reg_addr == 12'h24C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_147 = (reg_addr == 16'h024C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_147_we = reg_wr && dec_pciephy_ctrl_147;
-// non-RO: output
 assign cfg_pciephy_ctrl_147 = reg_pciephy_ctrl_147;
-assign dec_pciephy_ctrl_148 = (reg_addr == 12'h250) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_148 = (reg_addr == 16'h0250) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_148_we = reg_wr && dec_pciephy_ctrl_148;
-// non-RO: output
 assign cfg_pciephy_ctrl_148 = reg_pciephy_ctrl_148;
-assign dec_pciephy_ctrl_149 = (reg_addr == 12'h254) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_149 = (reg_addr == 16'h0254) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_149_we = reg_wr && dec_pciephy_ctrl_149;
-// non-RO: output
 assign cfg_pciephy_ctrl_149 = reg_pciephy_ctrl_149;
-assign dec_pciephy_ctrl_150 = (reg_addr == 12'h258) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_150 = (reg_addr == 16'h0258) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_150_we = reg_wr && dec_pciephy_ctrl_150;
-// non-RO: output
 assign cfg_pciephy_ctrl_150 = reg_pciephy_ctrl_150;
-assign dec_pciephy_ctrl_151 = (reg_addr == 12'h25C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_151 = (reg_addr == 16'h025C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_151_we = reg_wr && dec_pciephy_ctrl_151;
-// non-RO: output
 assign cfg_pciephy_ctrl_151 = reg_pciephy_ctrl_151;
-assign dec_pciephy_ctrl_152 = (reg_addr == 12'h260) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_152 = (reg_addr == 16'h0260) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_152_we = reg_wr && dec_pciephy_ctrl_152;
-// non-RO: output
 assign cfg_pciephy_ctrl_152 = reg_pciephy_ctrl_152;
-assign dec_pciephy_ctrl_153 = (reg_addr == 12'h264) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_153 = (reg_addr == 16'h0264) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_153_we = reg_wr && dec_pciephy_ctrl_153;
-// non-RO: output
 assign cfg_pciephy_ctrl_153 = reg_pciephy_ctrl_153;
-assign dec_pciephy_ctrl_154 = (reg_addr == 12'h268) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_154 = (reg_addr == 16'h0268) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_154_we = reg_wr && dec_pciephy_ctrl_154;
-// non-RO: output
 assign cfg_pciephy_ctrl_154 = reg_pciephy_ctrl_154;
-assign dec_pciephy_ctrl_155 = (reg_addr == 12'h26C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_155 = (reg_addr == 16'h026C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_155_we = reg_wr && dec_pciephy_ctrl_155;
-// non-RO: output
 assign cfg_pciephy_ctrl_155 = reg_pciephy_ctrl_155;
-assign dec_pciephy_ctrl_156 = (reg_addr == 12'h270) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_156 = (reg_addr == 16'h0270) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_156_we = reg_wr && dec_pciephy_ctrl_156;
-// non-RO: output
 assign cfg_pciephy_ctrl_156 = reg_pciephy_ctrl_156;
-assign dec_pciephy_ctrl_157 = (reg_addr == 12'h274) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_157 = (reg_addr == 16'h0274) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_157_we = reg_wr && dec_pciephy_ctrl_157;
-// non-RO: output
 assign cfg_pciephy_ctrl_157 = reg_pciephy_ctrl_157;
-assign dec_pciephy_ctrl_158 = (reg_addr == 12'h278) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_158 = (reg_addr == 16'h0278) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_158_we = reg_wr && dec_pciephy_ctrl_158;
-// non-RO: output
 assign cfg_pciephy_ctrl_158 = reg_pciephy_ctrl_158;
-assign dec_pciephy_ctrl_159 = (reg_addr == 12'h27C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_159 = (reg_addr == 16'h027C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_159_we = reg_wr && dec_pciephy_ctrl_159;
-// non-RO: output
 assign cfg_pciephy_ctrl_159 = reg_pciephy_ctrl_159;
-assign dec_pciephy_ctrl_160 = (reg_addr == 12'h280) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_160 = (reg_addr == 16'h0280) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_160_we = reg_wr && dec_pciephy_ctrl_160;
-// non-RO: output
 assign cfg_pciephy_ctrl_160 = reg_pciephy_ctrl_160;
-assign dec_pciephy_ctrl_161 = (reg_addr == 12'h284) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_161 = (reg_addr == 16'h0284) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_161_we = reg_wr && dec_pciephy_ctrl_161;
-// non-RO: output
 assign cfg_pciephy_ctrl_161 = reg_pciephy_ctrl_161;
-assign dec_pciephy_ctrl_162 = (reg_addr == 12'h288) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_162 = (reg_addr == 16'h0288) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_162_we = reg_wr && dec_pciephy_ctrl_162;
-// non-RO: output
 assign cfg_pciephy_ctrl_162 = reg_pciephy_ctrl_162;
-assign dec_pciephy_ctrl_163 = (reg_addr == 12'h28C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_163 = (reg_addr == 16'h028C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_163_we = reg_wr && dec_pciephy_ctrl_163;
-// non-RO: output
 assign cfg_pciephy_ctrl_163 = reg_pciephy_ctrl_163;
-assign dec_pciephy_ctrl_164 = (reg_addr == 12'h290) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_164 = (reg_addr == 16'h0290) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_164_we = reg_wr && dec_pciephy_ctrl_164;
-// non-RO: output
 assign cfg_pciephy_ctrl_164 = reg_pciephy_ctrl_164;
-assign dec_pciephy_ctrl_165 = (reg_addr == 12'h294) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_165 = (reg_addr == 16'h0294) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_165_we = reg_wr && dec_pciephy_ctrl_165;
-// non-RO: output
 assign cfg_pciephy_ctrl_165 = reg_pciephy_ctrl_165;
-assign dec_pciephy_ctrl_166 = (reg_addr == 12'h298) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_166 = (reg_addr == 16'h0298) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_166_we = reg_wr && dec_pciephy_ctrl_166;
-// non-RO: output
 assign cfg_pciephy_ctrl_166 = reg_pciephy_ctrl_166;
-assign dec_pciephy_ctrl_167 = (reg_addr == 12'h29C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_167 = (reg_addr == 16'h029C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_167_we = reg_wr && dec_pciephy_ctrl_167;
-// non-RO: output
 assign cfg_pciephy_ctrl_167 = reg_pciephy_ctrl_167;
-assign dec_pciephy_ctrl_168 = (reg_addr == 12'h2A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_168 = (reg_addr == 16'h02A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_168_we = reg_wr && dec_pciephy_ctrl_168;
-// non-RO: output
 assign cfg_pciephy_ctrl_168 = reg_pciephy_ctrl_168;
-assign dec_pciephy_ctrl_169 = (reg_addr == 12'h2A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_169 = (reg_addr == 16'h02A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_169_we = reg_wr && dec_pciephy_ctrl_169;
-// non-RO: output
 assign cfg_pciephy_ctrl_169 = reg_pciephy_ctrl_169;
-assign dec_pciephy_ctrl_170 = (reg_addr == 12'h2A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_170 = (reg_addr == 16'h02A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_170_we = reg_wr && dec_pciephy_ctrl_170;
-// non-RO: output
 assign cfg_pciephy_ctrl_170 = reg_pciephy_ctrl_170;
-assign dec_pciephy_ctrl_171 = (reg_addr == 12'h2AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_171 = (reg_addr == 16'h02AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_171_we = reg_wr && dec_pciephy_ctrl_171;
-// non-RO: output
 assign cfg_pciephy_ctrl_171 = reg_pciephy_ctrl_171;
-assign dec_pciephy_ctrl_172 = (reg_addr == 12'h2B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_172 = (reg_addr == 16'h02B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_172_we = reg_wr && dec_pciephy_ctrl_172;
-// non-RO: output
 assign cfg_pciephy_ctrl_172 = reg_pciephy_ctrl_172;
-assign dec_pciephy_ctrl_173 = (reg_addr == 12'h2B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_173 = (reg_addr == 16'h02B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_173_we = reg_wr && dec_pciephy_ctrl_173;
-// non-RO: output
 assign cfg_pciephy_ctrl_173 = reg_pciephy_ctrl_173;
-assign dec_pciephy_ctrl_174 = (reg_addr == 12'h2B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_174 = (reg_addr == 16'h02B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_174_we = reg_wr && dec_pciephy_ctrl_174;
-// non-RO: output
 assign cfg_pciephy_ctrl_174 = reg_pciephy_ctrl_174;
-assign dec_pciephy_ctrl_175 = (reg_addr == 12'h2BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_175 = (reg_addr == 16'h02BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_175_we = reg_wr && dec_pciephy_ctrl_175;
-// non-RO: output
 assign cfg_pciephy_ctrl_175 = reg_pciephy_ctrl_175;
-assign dec_pciephy_ctrl_176 = (reg_addr == 12'h2C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_176 = (reg_addr == 16'h02C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_176_we = reg_wr && dec_pciephy_ctrl_176;
-// non-RO: output
 assign cfg_pciephy_ctrl_176 = reg_pciephy_ctrl_176;
-assign dec_pciephy_ctrl_177 = (reg_addr == 12'h2C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_177 = (reg_addr == 16'h02C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_177_we = reg_wr && dec_pciephy_ctrl_177;
-// non-RO: output
 assign cfg_pciephy_ctrl_177 = reg_pciephy_ctrl_177;
-assign dec_pciephy_ctrl_178 = (reg_addr == 12'h2C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_178 = (reg_addr == 16'h02C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_178_we = reg_wr && dec_pciephy_ctrl_178;
-// non-RO: output
 assign cfg_pciephy_ctrl_178 = reg_pciephy_ctrl_178;
-assign dec_pciephy_ctrl_179 = (reg_addr == 12'h2CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_179 = (reg_addr == 16'h02CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_179_we = reg_wr && dec_pciephy_ctrl_179;
-// non-RO: output
 assign cfg_pciephy_ctrl_179 = reg_pciephy_ctrl_179;
-assign dec_pciephy_ctrl_180 = (reg_addr == 12'h2D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_180 = (reg_addr == 16'h02D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_180_we = reg_wr && dec_pciephy_ctrl_180;
-// non-RO: output
 assign cfg_pciephy_ctrl_180 = reg_pciephy_ctrl_180;
-assign dec_pciephy_ctrl_181 = (reg_addr == 12'h2D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_181 = (reg_addr == 16'h02D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_181_we = reg_wr && dec_pciephy_ctrl_181;
-// non-RO: output
 assign cfg_pciephy_ctrl_181 = reg_pciephy_ctrl_181;
-assign dec_pciephy_ctrl_182 = (reg_addr == 12'h2D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_182 = (reg_addr == 16'h02D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_182_we = reg_wr && dec_pciephy_ctrl_182;
-// non-RO: output
 assign cfg_pciephy_ctrl_182 = reg_pciephy_ctrl_182;
-assign dec_pciephy_ctrl_183 = (reg_addr == 12'h2DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_183 = (reg_addr == 16'h02DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_183_we = reg_wr && dec_pciephy_ctrl_183;
-// non-RO: output
 assign cfg_pciephy_ctrl_183 = reg_pciephy_ctrl_183;
-assign dec_pciephy_ctrl_184 = (reg_addr == 12'h2E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_184 = (reg_addr == 16'h02E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_184_we = reg_wr && dec_pciephy_ctrl_184;
-// non-RO: output
 assign cfg_pciephy_ctrl_184 = reg_pciephy_ctrl_184;
-assign dec_pciephy_ctrl_185 = (reg_addr == 12'h2E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_185 = (reg_addr == 16'h02E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_185_we = reg_wr && dec_pciephy_ctrl_185;
-// non-RO: output
 assign cfg_pciephy_ctrl_185 = reg_pciephy_ctrl_185;
-assign dec_pciephy_ctrl_186 = (reg_addr == 12'h2E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_186 = (reg_addr == 16'h02E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_186_we = reg_wr && dec_pciephy_ctrl_186;
-// non-RO: output
 assign cfg_pciephy_ctrl_186 = reg_pciephy_ctrl_186;
-assign dec_pciephy_ctrl_187 = (reg_addr == 12'h2EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_187 = (reg_addr == 16'h02EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_187_we = reg_wr && dec_pciephy_ctrl_187;
-// non-RO: output
 assign cfg_pciephy_ctrl_187 = reg_pciephy_ctrl_187;
-assign dec_pciephy_ctrl_188 = (reg_addr == 12'h2F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_188 = (reg_addr == 16'h02F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_188_we = reg_wr && dec_pciephy_ctrl_188;
-// non-RO: output
 assign cfg_pciephy_ctrl_188 = reg_pciephy_ctrl_188;
-assign dec_pciephy_ctrl_189 = (reg_addr == 12'h2F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_189 = (reg_addr == 16'h02F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_189_we = reg_wr && dec_pciephy_ctrl_189;
-// non-RO: output
 assign cfg_pciephy_ctrl_189 = reg_pciephy_ctrl_189;
-assign dec_pciephy_ctrl_190 = (reg_addr == 12'h2F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_190 = (reg_addr == 16'h02F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_190_we = reg_wr && dec_pciephy_ctrl_190;
-// non-RO: output
 assign cfg_pciephy_ctrl_190 = reg_pciephy_ctrl_190;
-assign dec_pciephy_ctrl_191 = (reg_addr == 12'h2FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_191 = (reg_addr == 16'h02FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_191_we = reg_wr && dec_pciephy_ctrl_191;
-// non-RO: output
 assign cfg_pciephy_ctrl_191 = reg_pciephy_ctrl_191;
-assign dec_pciephy_ctrl_192 = (reg_addr == 12'h300) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_192 = (reg_addr == 16'h0300) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_192_we = reg_wr && dec_pciephy_ctrl_192;
-// non-RO: output
 assign cfg_pciephy_ctrl_192 = reg_pciephy_ctrl_192;
-assign dec_pciephy_ctrl_193 = (reg_addr == 12'h304) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_193 = (reg_addr == 16'h0304) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_193_we = reg_wr && dec_pciephy_ctrl_193;
-// non-RO: output
 assign cfg_pciephy_ctrl_193 = reg_pciephy_ctrl_193;
-assign dec_pciephy_ctrl_194 = (reg_addr == 12'h308) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_194 = (reg_addr == 16'h0308) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_194_we = reg_wr && dec_pciephy_ctrl_194;
-// non-RO: output
 assign cfg_pciephy_ctrl_194 = reg_pciephy_ctrl_194;
-assign dec_pciephy_ctrl_195 = (reg_addr == 12'h30C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_195 = (reg_addr == 16'h030C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_195_we = reg_wr && dec_pciephy_ctrl_195;
-// non-RO: output
 assign cfg_pciephy_ctrl_195 = reg_pciephy_ctrl_195;
-assign dec_pciephy_ctrl_196 = (reg_addr == 12'h310) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_196 = (reg_addr == 16'h0310) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_196_we = reg_wr && dec_pciephy_ctrl_196;
-// non-RO: output
 assign cfg_pciephy_ctrl_196 = reg_pciephy_ctrl_196;
-assign dec_pciephy_ctrl_197 = (reg_addr == 12'h314) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_197 = (reg_addr == 16'h0314) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_197_we = reg_wr && dec_pciephy_ctrl_197;
-// non-RO: output
 assign cfg_pciephy_ctrl_197 = reg_pciephy_ctrl_197;
-assign dec_pciephy_ctrl_198 = (reg_addr == 12'h318) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_198 = (reg_addr == 16'h0318) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_198_we = reg_wr && dec_pciephy_ctrl_198;
-// non-RO: output
 assign cfg_pciephy_ctrl_198 = reg_pciephy_ctrl_198;
-assign dec_pciephy_ctrl_199 = (reg_addr == 12'h31C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_199 = (reg_addr == 16'h031C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_199_we = reg_wr && dec_pciephy_ctrl_199;
-// non-RO: output
 assign cfg_pciephy_ctrl_199 = reg_pciephy_ctrl_199;
-assign dec_pciephy_ctrl_200 = (reg_addr == 12'h320) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_200 = (reg_addr == 16'h0320) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_200_we = reg_wr && dec_pciephy_ctrl_200;
-// non-RO: output
 assign cfg_pciephy_ctrl_200 = reg_pciephy_ctrl_200;
-assign dec_pciephy_ctrl_201 = (reg_addr == 12'h324) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_201 = (reg_addr == 16'h0324) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_201_we = reg_wr && dec_pciephy_ctrl_201;
-// non-RO: output
 assign cfg_pciephy_ctrl_201 = reg_pciephy_ctrl_201;
-assign dec_pciephy_ctrl_202 = (reg_addr == 12'h328) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_202 = (reg_addr == 16'h0328) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_202_we = reg_wr && dec_pciephy_ctrl_202;
-// non-RO: output
 assign cfg_pciephy_ctrl_202 = reg_pciephy_ctrl_202;
-assign dec_pciephy_ctrl_203 = (reg_addr == 12'h32C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_203 = (reg_addr == 16'h032C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_203_we = reg_wr && dec_pciephy_ctrl_203;
-// non-RO: output
 assign cfg_pciephy_ctrl_203 = reg_pciephy_ctrl_203;
-assign dec_pciephy_ctrl_204 = (reg_addr == 12'h330) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_204 = (reg_addr == 16'h0330) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_204_we = reg_wr && dec_pciephy_ctrl_204;
-// non-RO: output
 assign cfg_pciephy_ctrl_204 = reg_pciephy_ctrl_204;
-assign dec_pciephy_ctrl_205 = (reg_addr == 12'h334) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_205 = (reg_addr == 16'h0334) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_205_we = reg_wr && dec_pciephy_ctrl_205;
-// non-RO: output
 assign cfg_pciephy_ctrl_205 = reg_pciephy_ctrl_205;
-assign dec_pciephy_ctrl_206 = (reg_addr == 12'h338) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_206 = (reg_addr == 16'h0338) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_206_we = reg_wr && dec_pciephy_ctrl_206;
-// non-RO: output
 assign cfg_pciephy_ctrl_206 = reg_pciephy_ctrl_206;
-assign dec_pciephy_ctrl_207 = (reg_addr == 12'h33C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_207 = (reg_addr == 16'h033C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_207_we = reg_wr && dec_pciephy_ctrl_207;
-// non-RO: output
 assign cfg_pciephy_ctrl_207 = reg_pciephy_ctrl_207;
-assign dec_pciephy_ctrl_208 = (reg_addr == 12'h340) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_208 = (reg_addr == 16'h0340) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_208_we = reg_wr && dec_pciephy_ctrl_208;
-// non-RO: output
 assign cfg_pciephy_ctrl_208 = reg_pciephy_ctrl_208;
-assign dec_pciephy_ctrl_209 = (reg_addr == 12'h344) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_209 = (reg_addr == 16'h0344) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_209_we = reg_wr && dec_pciephy_ctrl_209;
-// non-RO: output
 assign cfg_pciephy_ctrl_209 = reg_pciephy_ctrl_209;
-assign dec_pciephy_ctrl_210 = (reg_addr == 12'h348) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_210 = (reg_addr == 16'h0348) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_210_we = reg_wr && dec_pciephy_ctrl_210;
-// non-RO: output
 assign cfg_pciephy_ctrl_210 = reg_pciephy_ctrl_210;
-assign dec_pciephy_ctrl_211 = (reg_addr == 12'h34C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_211 = (reg_addr == 16'h034C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_211_we = reg_wr && dec_pciephy_ctrl_211;
-// non-RO: output
 assign cfg_pciephy_ctrl_211 = reg_pciephy_ctrl_211;
-assign dec_pciephy_ctrl_212 = (reg_addr == 12'h350) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_212 = (reg_addr == 16'h0350) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_212_we = reg_wr && dec_pciephy_ctrl_212;
-// non-RO: output
 assign cfg_pciephy_ctrl_212 = reg_pciephy_ctrl_212;
-assign dec_pciephy_ctrl_213 = (reg_addr == 12'h354) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_213 = (reg_addr == 16'h0354) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_213_we = reg_wr && dec_pciephy_ctrl_213;
-// non-RO: output
 assign cfg_pciephy_ctrl_213 = reg_pciephy_ctrl_213;
-assign dec_pciephy_ctrl_214 = (reg_addr == 12'h358) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_214 = (reg_addr == 16'h0358) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_214_we = reg_wr && dec_pciephy_ctrl_214;
-// non-RO: output
 assign cfg_pciephy_ctrl_214 = reg_pciephy_ctrl_214;
-assign dec_pciephy_ctrl_215 = (reg_addr == 12'h35C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_215 = (reg_addr == 16'h035C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_215_we = reg_wr && dec_pciephy_ctrl_215;
-// non-RO: output
 assign cfg_pciephy_ctrl_215 = reg_pciephy_ctrl_215;
-assign dec_pciephy_ctrl_216 = (reg_addr == 12'h360) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_216 = (reg_addr == 16'h0360) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_216_we = reg_wr && dec_pciephy_ctrl_216;
-// non-RO: output
 assign cfg_pciephy_ctrl_216 = reg_pciephy_ctrl_216;
-assign dec_pciephy_ctrl_217 = (reg_addr == 12'h364) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_217 = (reg_addr == 16'h0364) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_217_we = reg_wr && dec_pciephy_ctrl_217;
-// non-RO: output
 assign cfg_pciephy_ctrl_217 = reg_pciephy_ctrl_217;
-assign dec_pciephy_ctrl_218 = (reg_addr == 12'h368) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_218 = (reg_addr == 16'h0368) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_218_we = reg_wr && dec_pciephy_ctrl_218;
-// non-RO: output
 assign cfg_pciephy_ctrl_218 = reg_pciephy_ctrl_218;
-assign dec_pciephy_ctrl_219 = (reg_addr == 12'h36C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_219 = (reg_addr == 16'h036C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_219_we = reg_wr && dec_pciephy_ctrl_219;
-// non-RO: output
 assign cfg_pciephy_ctrl_219 = reg_pciephy_ctrl_219;
-assign dec_pciephy_ctrl_220 = (reg_addr == 12'h370) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_220 = (reg_addr == 16'h0370) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_220_we = reg_wr && dec_pciephy_ctrl_220;
-// non-RO: output
 assign cfg_pciephy_ctrl_220 = reg_pciephy_ctrl_220;
-assign dec_pciephy_ctrl_221 = (reg_addr == 12'h374) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_221 = (reg_addr == 16'h0374) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_221_we = reg_wr && dec_pciephy_ctrl_221;
-// non-RO: output
 assign cfg_pciephy_ctrl_221 = reg_pciephy_ctrl_221;
-assign dec_pciephy_ctrl_222 = (reg_addr == 12'h378) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_222 = (reg_addr == 16'h0378) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_222_we = reg_wr && dec_pciephy_ctrl_222;
-// non-RO: output
 assign cfg_pciephy_ctrl_222 = reg_pciephy_ctrl_222;
-assign dec_pciephy_ctrl_223 = (reg_addr == 12'h37C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_223 = (reg_addr == 16'h037C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_223_we = reg_wr && dec_pciephy_ctrl_223;
-// non-RO: output
 assign cfg_pciephy_ctrl_223 = reg_pciephy_ctrl_223;
-assign dec_pciephy_ctrl_224 = (reg_addr == 12'h380) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_224 = (reg_addr == 16'h0380) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_224_we = reg_wr && dec_pciephy_ctrl_224;
-// non-RO: output
 assign cfg_pciephy_ctrl_224 = reg_pciephy_ctrl_224;
-assign dec_pciephy_ctrl_225 = (reg_addr == 12'h384) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_225 = (reg_addr == 16'h0384) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_225_we = reg_wr && dec_pciephy_ctrl_225;
-// non-RO: output
 assign cfg_pciephy_ctrl_225 = reg_pciephy_ctrl_225;
-assign dec_pciephy_ctrl_226 = (reg_addr == 12'h388) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_226 = (reg_addr == 16'h0388) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_226_we = reg_wr && dec_pciephy_ctrl_226;
-// non-RO: output
 assign cfg_pciephy_ctrl_226 = reg_pciephy_ctrl_226;
-assign dec_pciephy_ctrl_227 = (reg_addr == 12'h38C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_227 = (reg_addr == 16'h038C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_227_we = reg_wr && dec_pciephy_ctrl_227;
-// non-RO: output
 assign cfg_pciephy_ctrl_227 = reg_pciephy_ctrl_227;
-assign dec_pciephy_ctrl_228 = (reg_addr == 12'h390) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_228 = (reg_addr == 16'h0390) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_228_we = reg_wr && dec_pciephy_ctrl_228;
-// non-RO: output
 assign cfg_pciephy_ctrl_228 = reg_pciephy_ctrl_228;
-assign dec_pciephy_ctrl_229 = (reg_addr == 12'h394) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_229 = (reg_addr == 16'h0394) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_229_we = reg_wr && dec_pciephy_ctrl_229;
-// non-RO: output
 assign cfg_pciephy_ctrl_229 = reg_pciephy_ctrl_229;
-assign dec_pciephy_ctrl_230 = (reg_addr == 12'h398) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_230 = (reg_addr == 16'h0398) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_230_we = reg_wr && dec_pciephy_ctrl_230;
-// non-RO: output
 assign cfg_pciephy_ctrl_230 = reg_pciephy_ctrl_230;
-assign dec_pciephy_ctrl_231 = (reg_addr == 12'h39C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_231 = (reg_addr == 16'h039C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_231_we = reg_wr && dec_pciephy_ctrl_231;
-// non-RO: output
 assign cfg_pciephy_ctrl_231 = reg_pciephy_ctrl_231;
-assign dec_pciephy_ctrl_232 = (reg_addr == 12'h3A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_232 = (reg_addr == 16'h03A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_232_we = reg_wr && dec_pciephy_ctrl_232;
-// non-RO: output
 assign cfg_pciephy_ctrl_232 = reg_pciephy_ctrl_232;
-assign dec_pciephy_ctrl_233 = (reg_addr == 12'h3A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_233 = (reg_addr == 16'h03A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_233_we = reg_wr && dec_pciephy_ctrl_233;
-// non-RO: output
 assign cfg_pciephy_ctrl_233 = reg_pciephy_ctrl_233;
-assign dec_pciephy_ctrl_234 = (reg_addr == 12'h3A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_234 = (reg_addr == 16'h03A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_234_we = reg_wr && dec_pciephy_ctrl_234;
-// non-RO: output
 assign cfg_pciephy_ctrl_234 = reg_pciephy_ctrl_234;
-assign dec_pciephy_ctrl_235 = (reg_addr == 12'h3AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_235 = (reg_addr == 16'h03AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_235_we = reg_wr && dec_pciephy_ctrl_235;
-// non-RO: output
 assign cfg_pciephy_ctrl_235 = reg_pciephy_ctrl_235;
-assign dec_pciephy_ctrl_236 = (reg_addr == 12'h3B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_236 = (reg_addr == 16'h03B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_236_we = reg_wr && dec_pciephy_ctrl_236;
-// non-RO: output
 assign cfg_pciephy_ctrl_236 = reg_pciephy_ctrl_236;
-assign dec_pciephy_ctrl_237 = (reg_addr == 12'h3B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_237 = (reg_addr == 16'h03B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_237_we = reg_wr && dec_pciephy_ctrl_237;
-// non-RO: output
 assign cfg_pciephy_ctrl_237 = reg_pciephy_ctrl_237;
-assign dec_pciephy_ctrl_238 = (reg_addr == 12'h3B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_238 = (reg_addr == 16'h03B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_238_we = reg_wr && dec_pciephy_ctrl_238;
-// non-RO: output
 assign cfg_pciephy_ctrl_238 = reg_pciephy_ctrl_238;
-assign dec_pciephy_ctrl_239 = (reg_addr == 12'h3BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_239 = (reg_addr == 16'h03BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_239_we = reg_wr && dec_pciephy_ctrl_239;
-// non-RO: output
 assign cfg_pciephy_ctrl_239 = reg_pciephy_ctrl_239;
-assign dec_pciephy_ctrl_240 = (reg_addr == 12'h3C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_240 = (reg_addr == 16'h03C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_240_we = reg_wr && dec_pciephy_ctrl_240;
-// non-RO: output
 assign cfg_pciephy_ctrl_240 = reg_pciephy_ctrl_240;
-assign dec_pciephy_ctrl_241 = (reg_addr == 12'h3C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_241 = (reg_addr == 16'h03C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_241_we = reg_wr && dec_pciephy_ctrl_241;
-// non-RO: output
 assign cfg_pciephy_ctrl_241 = reg_pciephy_ctrl_241;
-assign dec_pciephy_ctrl_242 = (reg_addr == 12'h3C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_242 = (reg_addr == 16'h03C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_242_we = reg_wr && dec_pciephy_ctrl_242;
-// non-RO: output
 assign cfg_pciephy_ctrl_242 = reg_pciephy_ctrl_242;
-assign dec_pciephy_ctrl_243 = (reg_addr == 12'h3CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_243 = (reg_addr == 16'h03CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_243_we = reg_wr && dec_pciephy_ctrl_243;
-// non-RO: output
 assign cfg_pciephy_ctrl_243 = reg_pciephy_ctrl_243;
-assign dec_pciephy_ctrl_244 = (reg_addr == 12'h3D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_244 = (reg_addr == 16'h03D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_244_we = reg_wr && dec_pciephy_ctrl_244;
-// non-RO: output
 assign cfg_pciephy_ctrl_244 = reg_pciephy_ctrl_244;
-assign dec_pciephy_ctrl_245 = (reg_addr == 12'h3D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_245 = (reg_addr == 16'h03D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_245_we = reg_wr && dec_pciephy_ctrl_245;
-// non-RO: output
 assign cfg_pciephy_ctrl_245 = reg_pciephy_ctrl_245;
-assign dec_pciephy_ctrl_246 = (reg_addr == 12'h3D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_246 = (reg_addr == 16'h03D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_246_we = reg_wr && dec_pciephy_ctrl_246;
-// non-RO: output
 assign cfg_pciephy_ctrl_246 = reg_pciephy_ctrl_246;
-assign dec_pciephy_ctrl_247 = (reg_addr == 12'h3DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_247 = (reg_addr == 16'h03DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_247_we = reg_wr && dec_pciephy_ctrl_247;
-// non-RO: output
 assign cfg_pciephy_ctrl_247 = reg_pciephy_ctrl_247;
-assign dec_pciephy_ctrl_248 = (reg_addr == 12'h3E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_248 = (reg_addr == 16'h03E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_248_we = reg_wr && dec_pciephy_ctrl_248;
-// non-RO: output
 assign cfg_pciephy_ctrl_248 = reg_pciephy_ctrl_248;
-assign dec_pciephy_ctrl_249 = (reg_addr == 12'h3E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_249 = (reg_addr == 16'h03E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_249_we = reg_wr && dec_pciephy_ctrl_249;
-// non-RO: output
 assign cfg_pciephy_ctrl_249 = reg_pciephy_ctrl_249;
-assign dec_pciephy_ctrl_250 = (reg_addr == 12'h3E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_250 = (reg_addr == 16'h03E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_250_we = reg_wr && dec_pciephy_ctrl_250;
-// non-RO: output
 assign cfg_pciephy_ctrl_250 = reg_pciephy_ctrl_250;
-assign dec_pciephy_ctrl_251 = (reg_addr == 12'h3EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_251 = (reg_addr == 16'h03EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_251_we = reg_wr && dec_pciephy_ctrl_251;
-// non-RO: output
 assign cfg_pciephy_ctrl_251 = reg_pciephy_ctrl_251;
-assign dec_pciephy_ctrl_252 = (reg_addr == 12'h3F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_252 = (reg_addr == 16'h03F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_252_we = reg_wr && dec_pciephy_ctrl_252;
-// non-RO: output
 assign cfg_pciephy_ctrl_252 = reg_pciephy_ctrl_252;
-assign dec_pciephy_ctrl_253 = (reg_addr == 12'h3F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_253 = (reg_addr == 16'h03F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_253_we = reg_wr && dec_pciephy_ctrl_253;
-// non-RO: output
 assign cfg_pciephy_ctrl_253 = reg_pciephy_ctrl_253;
-assign dec_pciephy_ctrl_254 = (reg_addr == 12'h3F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_254 = (reg_addr == 16'h03F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_254_we = reg_wr && dec_pciephy_ctrl_254;
-// non-RO: output
 assign cfg_pciephy_ctrl_254 = reg_pciephy_ctrl_254;
-assign dec_pciephy_ctrl_255 = (reg_addr == 12'h3FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_255 = (reg_addr == 16'h03FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_255_we = reg_wr && dec_pciephy_ctrl_255;
-// non-RO: output
 assign cfg_pciephy_ctrl_255 = reg_pciephy_ctrl_255;
-assign dec_pciephy_ctrl_256 = (reg_addr == 12'h400) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_256 = (reg_addr == 16'h0400) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_256_we = reg_wr && dec_pciephy_ctrl_256;
-// non-RO: output
 assign cfg_pciephy_ctrl_256 = reg_pciephy_ctrl_256;
-assign dec_pciephy_ctrl_257 = (reg_addr == 12'h404) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_257 = (reg_addr == 16'h0404) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_257_we = reg_wr && dec_pciephy_ctrl_257;
-// non-RO: output
 assign cfg_pciephy_ctrl_257 = reg_pciephy_ctrl_257;
-assign dec_pciephy_ctrl_258 = (reg_addr == 12'h408) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_258 = (reg_addr == 16'h0408) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_258_we = reg_wr && dec_pciephy_ctrl_258;
-// non-RO: output
 assign cfg_pciephy_ctrl_258 = reg_pciephy_ctrl_258;
-assign dec_pciephy_ctrl_259 = (reg_addr == 12'h40C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_259 = (reg_addr == 16'h040C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_259_we = reg_wr && dec_pciephy_ctrl_259;
-// non-RO: output
 assign cfg_pciephy_ctrl_259 = reg_pciephy_ctrl_259;
-assign dec_pciephy_ctrl_260 = (reg_addr == 12'h410) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_260 = (reg_addr == 16'h0410) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_260_we = reg_wr && dec_pciephy_ctrl_260;
-// non-RO: output
 assign cfg_pciephy_ctrl_260 = reg_pciephy_ctrl_260;
-assign dec_pciephy_ctrl_261 = (reg_addr == 12'h414) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_261 = (reg_addr == 16'h0414) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_261_we = reg_wr && dec_pciephy_ctrl_261;
-// non-RO: output
 assign cfg_pciephy_ctrl_261 = reg_pciephy_ctrl_261;
-assign dec_pciephy_ctrl_262 = (reg_addr == 12'h418) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_262 = (reg_addr == 16'h0418) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_262_we = reg_wr && dec_pciephy_ctrl_262;
-// non-RO: output
 assign cfg_pciephy_ctrl_262 = reg_pciephy_ctrl_262;
-assign dec_pciephy_ctrl_263 = (reg_addr == 12'h41C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_263 = (reg_addr == 16'h041C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_263_we = reg_wr && dec_pciephy_ctrl_263;
-// non-RO: output
 assign cfg_pciephy_ctrl_263 = reg_pciephy_ctrl_263;
-assign dec_pciephy_ctrl_264 = (reg_addr == 12'h420) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_264 = (reg_addr == 16'h0420) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_264_we = reg_wr && dec_pciephy_ctrl_264;
-// non-RO: output
 assign cfg_pciephy_ctrl_264 = reg_pciephy_ctrl_264;
-assign dec_pciephy_ctrl_265 = (reg_addr == 12'h424) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_265 = (reg_addr == 16'h0424) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_265_we = reg_wr && dec_pciephy_ctrl_265;
-// non-RO: output
 assign cfg_pciephy_ctrl_265 = reg_pciephy_ctrl_265;
-assign dec_pciephy_ctrl_266 = (reg_addr == 12'h428) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_266 = (reg_addr == 16'h0428) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_266_we = reg_wr && dec_pciephy_ctrl_266;
-// non-RO: output
 assign cfg_pciephy_ctrl_266 = reg_pciephy_ctrl_266;
-assign dec_pciephy_ctrl_267 = (reg_addr == 12'h42C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_267 = (reg_addr == 16'h042C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_267_we = reg_wr && dec_pciephy_ctrl_267;
-// non-RO: output
 assign cfg_pciephy_ctrl_267 = reg_pciephy_ctrl_267;
-assign dec_pciephy_ctrl_268 = (reg_addr == 12'h430) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_268 = (reg_addr == 16'h0430) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_268_we = reg_wr && dec_pciephy_ctrl_268;
-// non-RO: output
 assign cfg_pciephy_ctrl_268 = reg_pciephy_ctrl_268;
-assign dec_pciephy_ctrl_269 = (reg_addr == 12'h434) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_269 = (reg_addr == 16'h0434) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_269_we = reg_wr && dec_pciephy_ctrl_269;
-// non-RO: output
 assign cfg_pciephy_ctrl_269 = reg_pciephy_ctrl_269;
-assign dec_pciephy_ctrl_270 = (reg_addr == 12'h438) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_270 = (reg_addr == 16'h0438) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_270_we = reg_wr && dec_pciephy_ctrl_270;
-// non-RO: output
 assign cfg_pciephy_ctrl_270 = reg_pciephy_ctrl_270;
-assign dec_pciephy_ctrl_271 = (reg_addr == 12'h43C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_271 = (reg_addr == 16'h043C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_271_we = reg_wr && dec_pciephy_ctrl_271;
-// non-RO: output
 assign cfg_pciephy_ctrl_271 = reg_pciephy_ctrl_271;
-assign dec_pciephy_ctrl_272 = (reg_addr == 12'h440) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_272 = (reg_addr == 16'h0440) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_272_we = reg_wr && dec_pciephy_ctrl_272;
-// non-RO: output
 assign cfg_pciephy_ctrl_272 = reg_pciephy_ctrl_272;
-assign dec_pciephy_ctrl_273 = (reg_addr == 12'h444) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_273 = (reg_addr == 16'h0444) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_273_we = reg_wr && dec_pciephy_ctrl_273;
-// non-RO: output
 assign cfg_pciephy_ctrl_273 = reg_pciephy_ctrl_273;
-assign dec_pciephy_ctrl_274 = (reg_addr == 12'h448) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_274 = (reg_addr == 16'h0448) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_274_we = reg_wr && dec_pciephy_ctrl_274;
-// non-RO: output
 assign cfg_pciephy_ctrl_274 = reg_pciephy_ctrl_274;
-assign dec_pciephy_ctrl_275 = (reg_addr == 12'h44C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_275 = (reg_addr == 16'h044C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_275_we = reg_wr && dec_pciephy_ctrl_275;
-// non-RO: output
 assign cfg_pciephy_ctrl_275 = reg_pciephy_ctrl_275;
-assign dec_pciephy_ctrl_276 = (reg_addr == 12'h450) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_276 = (reg_addr == 16'h0450) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_276_we = reg_wr && dec_pciephy_ctrl_276;
-// non-RO: output
 assign cfg_pciephy_ctrl_276 = reg_pciephy_ctrl_276;
-assign dec_pciephy_ctrl_277 = (reg_addr == 12'h454) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_277 = (reg_addr == 16'h0454) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_277_we = reg_wr && dec_pciephy_ctrl_277;
-// non-RO: output
 assign cfg_pciephy_ctrl_277 = reg_pciephy_ctrl_277;
-assign dec_pciephy_ctrl_278 = (reg_addr == 12'h458) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_278 = (reg_addr == 16'h0458) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_278_we = reg_wr && dec_pciephy_ctrl_278;
-// non-RO: output
 assign cfg_pciephy_ctrl_278 = reg_pciephy_ctrl_278;
-assign dec_pciephy_ctrl_279 = (reg_addr == 12'h45C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_279 = (reg_addr == 16'h045C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_279_we = reg_wr && dec_pciephy_ctrl_279;
-// non-RO: output
 assign cfg_pciephy_ctrl_279 = reg_pciephy_ctrl_279;
-assign dec_pciephy_ctrl_280 = (reg_addr == 12'h460) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_280 = (reg_addr == 16'h0460) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_280_we = reg_wr && dec_pciephy_ctrl_280;
-// non-RO: output
 assign cfg_pciephy_ctrl_280 = reg_pciephy_ctrl_280;
-assign dec_pciephy_ctrl_281 = (reg_addr == 12'h464) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_281 = (reg_addr == 16'h0464) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_281_we = reg_wr && dec_pciephy_ctrl_281;
-// non-RO: output
 assign cfg_pciephy_ctrl_281 = reg_pciephy_ctrl_281;
-assign dec_pciephy_ctrl_282 = (reg_addr == 12'h468) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_282 = (reg_addr == 16'h0468) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_282_we = reg_wr && dec_pciephy_ctrl_282;
-// non-RO: output
 assign cfg_pciephy_ctrl_282 = reg_pciephy_ctrl_282;
-assign dec_pciephy_ctrl_283 = (reg_addr == 12'h46C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_283 = (reg_addr == 16'h046C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_283_we = reg_wr && dec_pciephy_ctrl_283;
-// non-RO: output
 assign cfg_pciephy_ctrl_283 = reg_pciephy_ctrl_283;
-assign dec_pciephy_ctrl_284 = (reg_addr == 12'h470) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_284 = (reg_addr == 16'h0470) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_284_we = reg_wr && dec_pciephy_ctrl_284;
-// non-RO: output
 assign cfg_pciephy_ctrl_284 = reg_pciephy_ctrl_284;
-assign dec_pciephy_ctrl_285 = (reg_addr == 12'h474) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_285 = (reg_addr == 16'h0474) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_285_we = reg_wr && dec_pciephy_ctrl_285;
-// non-RO: output
 assign cfg_pciephy_ctrl_285 = reg_pciephy_ctrl_285;
-assign dec_pciephy_ctrl_286 = (reg_addr == 12'h478) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_286 = (reg_addr == 16'h0478) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_286_we = reg_wr && dec_pciephy_ctrl_286;
-// non-RO: output
 assign cfg_pciephy_ctrl_286 = reg_pciephy_ctrl_286;
-assign dec_pciephy_ctrl_287 = (reg_addr == 12'h47C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_287 = (reg_addr == 16'h047C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_287_we = reg_wr && dec_pciephy_ctrl_287;
-// non-RO: output
 assign cfg_pciephy_ctrl_287 = reg_pciephy_ctrl_287;
-assign dec_pciephy_ctrl_288 = (reg_addr == 12'h480) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_288 = (reg_addr == 16'h0480) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_288_we = reg_wr && dec_pciephy_ctrl_288;
-// non-RO: output
 assign cfg_pciephy_ctrl_288 = reg_pciephy_ctrl_288;
-assign dec_pciephy_ctrl_289 = (reg_addr == 12'h484) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_289 = (reg_addr == 16'h0484) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_289_we = reg_wr && dec_pciephy_ctrl_289;
-// non-RO: output
 assign cfg_pciephy_ctrl_289 = reg_pciephy_ctrl_289;
-assign dec_pciephy_ctrl_290 = (reg_addr == 12'h488) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_290 = (reg_addr == 16'h0488) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_290_we = reg_wr && dec_pciephy_ctrl_290;
-// non-RO: output
 assign cfg_pciephy_ctrl_290 = reg_pciephy_ctrl_290;
-assign dec_pciephy_ctrl_291 = (reg_addr == 12'h48C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_291 = (reg_addr == 16'h048C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_291_we = reg_wr && dec_pciephy_ctrl_291;
-// non-RO: output
 assign cfg_pciephy_ctrl_291 = reg_pciephy_ctrl_291;
-assign dec_pciephy_ctrl_292 = (reg_addr == 12'h490) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_292 = (reg_addr == 16'h0490) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_292_we = reg_wr && dec_pciephy_ctrl_292;
-// non-RO: output
 assign cfg_pciephy_ctrl_292 = reg_pciephy_ctrl_292;
-assign dec_pciephy_ctrl_293 = (reg_addr == 12'h494) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_293 = (reg_addr == 16'h0494) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_293_we = reg_wr && dec_pciephy_ctrl_293;
-// non-RO: output
 assign cfg_pciephy_ctrl_293 = reg_pciephy_ctrl_293;
-assign dec_pciephy_ctrl_294 = (reg_addr == 12'h498) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_294 = (reg_addr == 16'h0498) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_294_we = reg_wr && dec_pciephy_ctrl_294;
-// non-RO: output
 assign cfg_pciephy_ctrl_294 = reg_pciephy_ctrl_294;
-assign dec_pciephy_ctrl_295 = (reg_addr == 12'h49C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_295 = (reg_addr == 16'h049C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_295_we = reg_wr && dec_pciephy_ctrl_295;
-// non-RO: output
 assign cfg_pciephy_ctrl_295 = reg_pciephy_ctrl_295;
-assign dec_pciephy_ctrl_296 = (reg_addr == 12'h4A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_296 = (reg_addr == 16'h04A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_296_we = reg_wr && dec_pciephy_ctrl_296;
-// non-RO: output
 assign cfg_pciephy_ctrl_296 = reg_pciephy_ctrl_296;
-assign dec_pciephy_ctrl_297 = (reg_addr == 12'h4A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_297 = (reg_addr == 16'h04A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_297_we = reg_wr && dec_pciephy_ctrl_297;
-// non-RO: output
 assign cfg_pciephy_ctrl_297 = reg_pciephy_ctrl_297;
-assign dec_pciephy_ctrl_298 = (reg_addr == 12'h4A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_298 = (reg_addr == 16'h04A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_298_we = reg_wr && dec_pciephy_ctrl_298;
-// non-RO: output
 assign cfg_pciephy_ctrl_298 = reg_pciephy_ctrl_298;
-assign dec_pciephy_ctrl_299 = (reg_addr == 12'h4AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_299 = (reg_addr == 16'h04AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_299_we = reg_wr && dec_pciephy_ctrl_299;
-// non-RO: output
 assign cfg_pciephy_ctrl_299 = reg_pciephy_ctrl_299;
-assign dec_pciephy_ctrl_300 = (reg_addr == 12'h4B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_300 = (reg_addr == 16'h04B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_300_we = reg_wr && dec_pciephy_ctrl_300;
-// non-RO: output
 assign cfg_pciephy_ctrl_300 = reg_pciephy_ctrl_300;
-assign dec_pciephy_ctrl_301 = (reg_addr == 12'h4B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_301 = (reg_addr == 16'h04B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_301_we = reg_wr && dec_pciephy_ctrl_301;
-// non-RO: output
 assign cfg_pciephy_ctrl_301 = reg_pciephy_ctrl_301;
-assign dec_pciephy_ctrl_302 = (reg_addr == 12'h4B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_302 = (reg_addr == 16'h04B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_302_we = reg_wr && dec_pciephy_ctrl_302;
-// non-RO: output
 assign cfg_pciephy_ctrl_302 = reg_pciephy_ctrl_302;
-assign dec_pciephy_ctrl_303 = (reg_addr == 12'h4BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_303 = (reg_addr == 16'h04BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_303_we = reg_wr && dec_pciephy_ctrl_303;
-// non-RO: output
 assign cfg_pciephy_ctrl_303 = reg_pciephy_ctrl_303;
-assign dec_pciephy_ctrl_304 = (reg_addr == 12'h4C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_304 = (reg_addr == 16'h04C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_304_we = reg_wr && dec_pciephy_ctrl_304;
-// non-RO: output
 assign cfg_pciephy_ctrl_304 = reg_pciephy_ctrl_304;
-assign dec_pciephy_ctrl_305 = (reg_addr == 12'h4C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_305 = (reg_addr == 16'h04C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_305_we = reg_wr && dec_pciephy_ctrl_305;
-// non-RO: output
 assign cfg_pciephy_ctrl_305 = reg_pciephy_ctrl_305;
-assign dec_pciephy_ctrl_306 = (reg_addr == 12'h4C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_306 = (reg_addr == 16'h04C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_306_we = reg_wr && dec_pciephy_ctrl_306;
-// non-RO: output
 assign cfg_pciephy_ctrl_306 = reg_pciephy_ctrl_306;
-assign dec_pciephy_ctrl_307 = (reg_addr == 12'h4CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_307 = (reg_addr == 16'h04CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_307_we = reg_wr && dec_pciephy_ctrl_307;
-// non-RO: output
 assign cfg_pciephy_ctrl_307 = reg_pciephy_ctrl_307;
-assign dec_pciephy_ctrl_308 = (reg_addr == 12'h4D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_308 = (reg_addr == 16'h04D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_308_we = reg_wr && dec_pciephy_ctrl_308;
-// non-RO: output
 assign cfg_pciephy_ctrl_308 = reg_pciephy_ctrl_308;
-assign dec_pciephy_ctrl_309 = (reg_addr == 12'h4D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_309 = (reg_addr == 16'h04D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_309_we = reg_wr && dec_pciephy_ctrl_309;
-// non-RO: output
 assign cfg_pciephy_ctrl_309 = reg_pciephy_ctrl_309;
-assign dec_pciephy_ctrl_310 = (reg_addr == 12'h4D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_310 = (reg_addr == 16'h04D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_310_we = reg_wr && dec_pciephy_ctrl_310;
-// non-RO: output
 assign cfg_pciephy_ctrl_310 = reg_pciephy_ctrl_310;
-assign dec_pciephy_ctrl_311 = (reg_addr == 12'h4DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_311 = (reg_addr == 16'h04DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_311_we = reg_wr && dec_pciephy_ctrl_311;
-// non-RO: output
 assign cfg_pciephy_ctrl_311 = reg_pciephy_ctrl_311;
-assign dec_pciephy_ctrl_312 = (reg_addr == 12'h4E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_312 = (reg_addr == 16'h04E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_312_we = reg_wr && dec_pciephy_ctrl_312;
-// non-RO: output
 assign cfg_pciephy_ctrl_312 = reg_pciephy_ctrl_312;
-assign dec_pciephy_ctrl_313 = (reg_addr == 12'h4E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_313 = (reg_addr == 16'h04E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_313_we = reg_wr && dec_pciephy_ctrl_313;
-// non-RO: output
 assign cfg_pciephy_ctrl_313 = reg_pciephy_ctrl_313;
-assign dec_pciephy_ctrl_314 = (reg_addr == 12'h4E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_314 = (reg_addr == 16'h04E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_314_we = reg_wr && dec_pciephy_ctrl_314;
-// non-RO: output
 assign cfg_pciephy_ctrl_314 = reg_pciephy_ctrl_314;
-assign dec_pciephy_ctrl_315 = (reg_addr == 12'h4EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_315 = (reg_addr == 16'h04EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_315_we = reg_wr && dec_pciephy_ctrl_315;
-// non-RO: output
 assign cfg_pciephy_ctrl_315 = reg_pciephy_ctrl_315;
-assign dec_pciephy_ctrl_316 = (reg_addr == 12'h4F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_316 = (reg_addr == 16'h04F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_316_we = reg_wr && dec_pciephy_ctrl_316;
-// non-RO: output
 assign cfg_pciephy_ctrl_316 = reg_pciephy_ctrl_316;
-assign dec_pciephy_ctrl_317 = (reg_addr == 12'h4F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_317 = (reg_addr == 16'h04F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_317_we = reg_wr && dec_pciephy_ctrl_317;
-// non-RO: output
 assign cfg_pciephy_ctrl_317 = reg_pciephy_ctrl_317;
-assign dec_pciephy_ctrl_318 = (reg_addr == 12'h4F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_318 = (reg_addr == 16'h04F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_318_we = reg_wr && dec_pciephy_ctrl_318;
-// non-RO: output
 assign cfg_pciephy_ctrl_318 = reg_pciephy_ctrl_318;
-assign dec_pciephy_ctrl_319 = (reg_addr == 12'h4FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_319 = (reg_addr == 16'h04FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_319_we = reg_wr && dec_pciephy_ctrl_319;
-// non-RO: output
 assign cfg_pciephy_ctrl_319 = reg_pciephy_ctrl_319;
-assign dec_pciephy_ctrl_320 = (reg_addr == 12'h500) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_320 = (reg_addr == 16'h0500) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_320_we = reg_wr && dec_pciephy_ctrl_320;
-// non-RO: output
 assign cfg_pciephy_ctrl_320 = reg_pciephy_ctrl_320;
-assign dec_pciephy_ctrl_321 = (reg_addr == 12'h504) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_321 = (reg_addr == 16'h0504) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_321_we = reg_wr && dec_pciephy_ctrl_321;
-// non-RO: output
 assign cfg_pciephy_ctrl_321 = reg_pciephy_ctrl_321;
-assign dec_pciephy_ctrl_322 = (reg_addr == 12'h508) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_322 = (reg_addr == 16'h0508) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_322_we = reg_wr && dec_pciephy_ctrl_322;
-// non-RO: output
 assign cfg_pciephy_ctrl_322 = reg_pciephy_ctrl_322;
-assign dec_pciephy_ctrl_323 = (reg_addr == 12'h50C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_323 = (reg_addr == 16'h050C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_323_we = reg_wr && dec_pciephy_ctrl_323;
-// non-RO: output
 assign cfg_pciephy_ctrl_323 = reg_pciephy_ctrl_323;
-assign dec_pciephy_ctrl_324 = (reg_addr == 12'h510) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_324 = (reg_addr == 16'h0510) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_324_we = reg_wr && dec_pciephy_ctrl_324;
-// non-RO: output
 assign cfg_pciephy_ctrl_324 = reg_pciephy_ctrl_324;
-assign dec_pciephy_ctrl_325 = (reg_addr == 12'h514) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_325 = (reg_addr == 16'h0514) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_325_we = reg_wr && dec_pciephy_ctrl_325;
-// non-RO: output
 assign cfg_pciephy_ctrl_325 = reg_pciephy_ctrl_325;
-assign dec_pciephy_ctrl_326 = (reg_addr == 12'h518) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_326 = (reg_addr == 16'h0518) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_326_we = reg_wr && dec_pciephy_ctrl_326;
-// non-RO: output
 assign cfg_pciephy_ctrl_326 = reg_pciephy_ctrl_326;
-assign dec_pciephy_ctrl_327 = (reg_addr == 12'h51C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_327 = (reg_addr == 16'h051C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_327_we = reg_wr && dec_pciephy_ctrl_327;
-// non-RO: output
 assign cfg_pciephy_ctrl_327 = reg_pciephy_ctrl_327;
-assign dec_pciephy_ctrl_328 = (reg_addr == 12'h520) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_328 = (reg_addr == 16'h0520) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_328_we = reg_wr && dec_pciephy_ctrl_328;
-// non-RO: output
 assign cfg_pciephy_ctrl_328 = reg_pciephy_ctrl_328;
-assign dec_pciephy_ctrl_329 = (reg_addr == 12'h524) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_329 = (reg_addr == 16'h0524) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_329_we = reg_wr && dec_pciephy_ctrl_329;
-// non-RO: output
 assign cfg_pciephy_ctrl_329 = reg_pciephy_ctrl_329;
-assign dec_pciephy_ctrl_330 = (reg_addr == 12'h528) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_330 = (reg_addr == 16'h0528) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_330_we = reg_wr && dec_pciephy_ctrl_330;
-// non-RO: output
 assign cfg_pciephy_ctrl_330 = reg_pciephy_ctrl_330;
-assign dec_pciephy_ctrl_331 = (reg_addr == 12'h52C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_331 = (reg_addr == 16'h052C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_331_we = reg_wr && dec_pciephy_ctrl_331;
-// non-RO: output
 assign cfg_pciephy_ctrl_331 = reg_pciephy_ctrl_331;
-assign dec_pciephy_ctrl_332 = (reg_addr == 12'h530) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_332 = (reg_addr == 16'h0530) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_332_we = reg_wr && dec_pciephy_ctrl_332;
-// non-RO: output
 assign cfg_pciephy_ctrl_332 = reg_pciephy_ctrl_332;
-assign dec_pciephy_ctrl_333 = (reg_addr == 12'h534) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_333 = (reg_addr == 16'h0534) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_333_we = reg_wr && dec_pciephy_ctrl_333;
-// non-RO: output
 assign cfg_pciephy_ctrl_333 = reg_pciephy_ctrl_333;
-assign dec_pciephy_ctrl_334 = (reg_addr == 12'h538) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_334 = (reg_addr == 16'h0538) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_334_we = reg_wr && dec_pciephy_ctrl_334;
-// non-RO: output
 assign cfg_pciephy_ctrl_334 = reg_pciephy_ctrl_334;
-assign dec_pciephy_ctrl_335 = (reg_addr == 12'h53C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_335 = (reg_addr == 16'h053C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_335_we = reg_wr && dec_pciephy_ctrl_335;
-// non-RO: output
 assign cfg_pciephy_ctrl_335 = reg_pciephy_ctrl_335;
-assign dec_pciephy_ctrl_336 = (reg_addr == 12'h540) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_336 = (reg_addr == 16'h0540) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_336_we = reg_wr && dec_pciephy_ctrl_336;
-// non-RO: output
 assign cfg_pciephy_ctrl_336 = reg_pciephy_ctrl_336;
-assign dec_pciephy_ctrl_337 = (reg_addr == 12'h544) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_337 = (reg_addr == 16'h0544) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_337_we = reg_wr && dec_pciephy_ctrl_337;
-// non-RO: output
 assign cfg_pciephy_ctrl_337 = reg_pciephy_ctrl_337;
-assign dec_pciephy_ctrl_338 = (reg_addr == 12'h548) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_338 = (reg_addr == 16'h0548) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_338_we = reg_wr && dec_pciephy_ctrl_338;
-// non-RO: output
 assign cfg_pciephy_ctrl_338 = reg_pciephy_ctrl_338;
-assign dec_pciephy_ctrl_339 = (reg_addr == 12'h54C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_339 = (reg_addr == 16'h054C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_339_we = reg_wr && dec_pciephy_ctrl_339;
-// non-RO: output
 assign cfg_pciephy_ctrl_339 = reg_pciephy_ctrl_339;
-assign dec_pciephy_ctrl_340 = (reg_addr == 12'h550) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_340 = (reg_addr == 16'h0550) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_340_we = reg_wr && dec_pciephy_ctrl_340;
-// non-RO: output
 assign cfg_pciephy_ctrl_340 = reg_pciephy_ctrl_340;
-assign dec_pciephy_ctrl_341 = (reg_addr == 12'h554) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_341 = (reg_addr == 16'h0554) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_341_we = reg_wr && dec_pciephy_ctrl_341;
-// non-RO: output
 assign cfg_pciephy_ctrl_341 = reg_pciephy_ctrl_341;
-assign dec_pciephy_ctrl_342 = (reg_addr == 12'h558) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_342 = (reg_addr == 16'h0558) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_342_we = reg_wr && dec_pciephy_ctrl_342;
-// non-RO: output
 assign cfg_pciephy_ctrl_342 = reg_pciephy_ctrl_342;
-assign dec_pciephy_ctrl_343 = (reg_addr == 12'h55C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_343 = (reg_addr == 16'h055C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_343_we = reg_wr && dec_pciephy_ctrl_343;
-// non-RO: output
 assign cfg_pciephy_ctrl_343 = reg_pciephy_ctrl_343;
-assign dec_pciephy_ctrl_344 = (reg_addr == 12'h560) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_344 = (reg_addr == 16'h0560) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_344_we = reg_wr && dec_pciephy_ctrl_344;
-// non-RO: output
 assign cfg_pciephy_ctrl_344 = reg_pciephy_ctrl_344;
-assign dec_pciephy_ctrl_345 = (reg_addr == 12'h564) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_345 = (reg_addr == 16'h0564) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_345_we = reg_wr && dec_pciephy_ctrl_345;
-// non-RO: output
 assign cfg_pciephy_ctrl_345 = reg_pciephy_ctrl_345;
-assign dec_pciephy_ctrl_346 = (reg_addr == 12'h568) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_346 = (reg_addr == 16'h0568) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_346_we = reg_wr && dec_pciephy_ctrl_346;
-// non-RO: output
 assign cfg_pciephy_ctrl_346 = reg_pciephy_ctrl_346;
-assign dec_pciephy_ctrl_347 = (reg_addr == 12'h56C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_347 = (reg_addr == 16'h056C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_347_we = reg_wr && dec_pciephy_ctrl_347;
-// non-RO: output
 assign cfg_pciephy_ctrl_347 = reg_pciephy_ctrl_347;
-assign dec_pciephy_ctrl_348 = (reg_addr == 12'h570) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_348 = (reg_addr == 16'h0570) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_348_we = reg_wr && dec_pciephy_ctrl_348;
-// non-RO: output
 assign cfg_pciephy_ctrl_348 = reg_pciephy_ctrl_348;
-assign dec_pciephy_ctrl_349 = (reg_addr == 12'h574) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_349 = (reg_addr == 16'h0574) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_349_we = reg_wr && dec_pciephy_ctrl_349;
-// non-RO: output
 assign cfg_pciephy_ctrl_349 = reg_pciephy_ctrl_349;
-assign dec_pciephy_ctrl_350 = (reg_addr == 12'h578) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_350 = (reg_addr == 16'h0578) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_350_we = reg_wr && dec_pciephy_ctrl_350;
-// non-RO: output
 assign cfg_pciephy_ctrl_350 = reg_pciephy_ctrl_350;
-assign dec_pciephy_ctrl_351 = (reg_addr == 12'h57C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_351 = (reg_addr == 16'h057C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_351_we = reg_wr && dec_pciephy_ctrl_351;
-// non-RO: output
 assign cfg_pciephy_ctrl_351 = reg_pciephy_ctrl_351;
-assign dec_pciephy_ctrl_352 = (reg_addr == 12'h580) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_352 = (reg_addr == 16'h0580) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_352_we = reg_wr && dec_pciephy_ctrl_352;
-// non-RO: output
 assign cfg_pciephy_ctrl_352 = reg_pciephy_ctrl_352;
-assign dec_pciephy_ctrl_353 = (reg_addr == 12'h584) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_353 = (reg_addr == 16'h0584) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_353_we = reg_wr && dec_pciephy_ctrl_353;
-// non-RO: output
 assign cfg_pciephy_ctrl_353 = reg_pciephy_ctrl_353;
-assign dec_pciephy_ctrl_354 = (reg_addr == 12'h588) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_354 = (reg_addr == 16'h0588) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_354_we = reg_wr && dec_pciephy_ctrl_354;
-// non-RO: output
 assign cfg_pciephy_ctrl_354 = reg_pciephy_ctrl_354;
-assign dec_pciephy_ctrl_355 = (reg_addr == 12'h58C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_355 = (reg_addr == 16'h058C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_355_we = reg_wr && dec_pciephy_ctrl_355;
-// non-RO: output
 assign cfg_pciephy_ctrl_355 = reg_pciephy_ctrl_355;
-assign dec_pciephy_ctrl_356 = (reg_addr == 12'h590) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_356 = (reg_addr == 16'h0590) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_356_we = reg_wr && dec_pciephy_ctrl_356;
-// non-RO: output
 assign cfg_pciephy_ctrl_356 = reg_pciephy_ctrl_356;
-assign dec_pciephy_ctrl_357 = (reg_addr == 12'h594) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_357 = (reg_addr == 16'h0594) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_357_we = reg_wr && dec_pciephy_ctrl_357;
-// non-RO: output
 assign cfg_pciephy_ctrl_357 = reg_pciephy_ctrl_357;
-assign dec_pciephy_ctrl_358 = (reg_addr == 12'h598) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_358 = (reg_addr == 16'h0598) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_358_we = reg_wr && dec_pciephy_ctrl_358;
-// non-RO: output
 assign cfg_pciephy_ctrl_358 = reg_pciephy_ctrl_358;
-assign dec_pciephy_ctrl_359 = (reg_addr == 12'h59C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_359 = (reg_addr == 16'h059C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_359_we = reg_wr && dec_pciephy_ctrl_359;
-// non-RO: output
 assign cfg_pciephy_ctrl_359 = reg_pciephy_ctrl_359;
-assign dec_pciephy_ctrl_360 = (reg_addr == 12'h5A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_360 = (reg_addr == 16'h05A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_360_we = reg_wr && dec_pciephy_ctrl_360;
-// non-RO: output
 assign cfg_pciephy_ctrl_360 = reg_pciephy_ctrl_360;
-assign dec_pciephy_ctrl_361 = (reg_addr == 12'h5A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_361 = (reg_addr == 16'h05A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_361_we = reg_wr && dec_pciephy_ctrl_361;
-// non-RO: output
 assign cfg_pciephy_ctrl_361 = reg_pciephy_ctrl_361;
-assign dec_pciephy_ctrl_362 = (reg_addr == 12'h5A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_362 = (reg_addr == 16'h05A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_362_we = reg_wr && dec_pciephy_ctrl_362;
-// non-RO: output
 assign cfg_pciephy_ctrl_362 = reg_pciephy_ctrl_362;
-assign dec_pciephy_ctrl_363 = (reg_addr == 12'h5AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_363 = (reg_addr == 16'h05AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_363_we = reg_wr && dec_pciephy_ctrl_363;
-// non-RO: output
 assign cfg_pciephy_ctrl_363 = reg_pciephy_ctrl_363;
-assign dec_pciephy_ctrl_364 = (reg_addr == 12'h5B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_364 = (reg_addr == 16'h05B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_364_we = reg_wr && dec_pciephy_ctrl_364;
-// non-RO: output
 assign cfg_pciephy_ctrl_364 = reg_pciephy_ctrl_364;
-assign dec_pciephy_ctrl_365 = (reg_addr == 12'h5B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_365 = (reg_addr == 16'h05B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_365_we = reg_wr && dec_pciephy_ctrl_365;
-// non-RO: output
 assign cfg_pciephy_ctrl_365 = reg_pciephy_ctrl_365;
-assign dec_pciephy_ctrl_366 = (reg_addr == 12'h5B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_366 = (reg_addr == 16'h05B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_366_we = reg_wr && dec_pciephy_ctrl_366;
-// non-RO: output
 assign cfg_pciephy_ctrl_366 = reg_pciephy_ctrl_366;
-assign dec_pciephy_ctrl_367 = (reg_addr == 12'h5BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_367 = (reg_addr == 16'h05BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_367_we = reg_wr && dec_pciephy_ctrl_367;
-// non-RO: output
 assign cfg_pciephy_ctrl_367 = reg_pciephy_ctrl_367;
-assign dec_pciephy_ctrl_368 = (reg_addr == 12'h5C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_368 = (reg_addr == 16'h05C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_368_we = reg_wr && dec_pciephy_ctrl_368;
-// non-RO: output
 assign cfg_pciephy_ctrl_368 = reg_pciephy_ctrl_368;
-assign dec_pciephy_ctrl_369 = (reg_addr == 12'h5C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_369 = (reg_addr == 16'h05C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_369_we = reg_wr && dec_pciephy_ctrl_369;
-// non-RO: output
 assign cfg_pciephy_ctrl_369 = reg_pciephy_ctrl_369;
-assign dec_pciephy_ctrl_370 = (reg_addr == 12'h5C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_370 = (reg_addr == 16'h05C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_370_we = reg_wr && dec_pciephy_ctrl_370;
-// non-RO: output
 assign cfg_pciephy_ctrl_370 = reg_pciephy_ctrl_370;
-assign dec_pciephy_ctrl_371 = (reg_addr == 12'h5CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_371 = (reg_addr == 16'h05CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_371_we = reg_wr && dec_pciephy_ctrl_371;
-// non-RO: output
 assign cfg_pciephy_ctrl_371 = reg_pciephy_ctrl_371;
-assign dec_pciephy_ctrl_372 = (reg_addr == 12'h5D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_372 = (reg_addr == 16'h05D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_372_we = reg_wr && dec_pciephy_ctrl_372;
-// non-RO: output
 assign cfg_pciephy_ctrl_372 = reg_pciephy_ctrl_372;
-assign dec_pciephy_ctrl_373 = (reg_addr == 12'h5D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_373 = (reg_addr == 16'h05D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_373_we = reg_wr && dec_pciephy_ctrl_373;
-// non-RO: output
 assign cfg_pciephy_ctrl_373 = reg_pciephy_ctrl_373;
-assign dec_pciephy_ctrl_374 = (reg_addr == 12'h5D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_374 = (reg_addr == 16'h05D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_374_we = reg_wr && dec_pciephy_ctrl_374;
-// non-RO: output
 assign cfg_pciephy_ctrl_374 = reg_pciephy_ctrl_374;
-assign dec_pciephy_ctrl_375 = (reg_addr == 12'h5DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_375 = (reg_addr == 16'h05DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_375_we = reg_wr && dec_pciephy_ctrl_375;
-// non-RO: output
 assign cfg_pciephy_ctrl_375 = reg_pciephy_ctrl_375;
-assign dec_pciephy_ctrl_376 = (reg_addr == 12'h5E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_376 = (reg_addr == 16'h05E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_376_we = reg_wr && dec_pciephy_ctrl_376;
-// non-RO: output
 assign cfg_pciephy_ctrl_376 = reg_pciephy_ctrl_376;
-assign dec_pciephy_ctrl_377 = (reg_addr == 12'h5E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_377 = (reg_addr == 16'h05E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_377_we = reg_wr && dec_pciephy_ctrl_377;
-// non-RO: output
 assign cfg_pciephy_ctrl_377 = reg_pciephy_ctrl_377;
-assign dec_pciephy_ctrl_378 = (reg_addr == 12'h5E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_378 = (reg_addr == 16'h05E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_378_we = reg_wr && dec_pciephy_ctrl_378;
-// non-RO: output
 assign cfg_pciephy_ctrl_378 = reg_pciephy_ctrl_378;
-assign dec_pciephy_ctrl_379 = (reg_addr == 12'h5EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_379 = (reg_addr == 16'h05EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_379_we = reg_wr && dec_pciephy_ctrl_379;
-// non-RO: output
 assign cfg_pciephy_ctrl_379 = reg_pciephy_ctrl_379;
-assign dec_pciephy_ctrl_380 = (reg_addr == 12'h5F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_380 = (reg_addr == 16'h05F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_380_we = reg_wr && dec_pciephy_ctrl_380;
-// non-RO: output
 assign cfg_pciephy_ctrl_380 = reg_pciephy_ctrl_380;
-assign dec_pciephy_ctrl_381 = (reg_addr == 12'h5F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_381 = (reg_addr == 16'h05F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_381_we = reg_wr && dec_pciephy_ctrl_381;
-// non-RO: output
 assign cfg_pciephy_ctrl_381 = reg_pciephy_ctrl_381;
-assign dec_pciephy_ctrl_382 = (reg_addr == 12'h5F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_382 = (reg_addr == 16'h05F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_382_we = reg_wr && dec_pciephy_ctrl_382;
-// non-RO: output
 assign cfg_pciephy_ctrl_382 = reg_pciephy_ctrl_382;
-assign dec_pciephy_ctrl_383 = (reg_addr == 12'h5FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_383 = (reg_addr == 16'h05FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_383_we = reg_wr && dec_pciephy_ctrl_383;
-// non-RO: output
 assign cfg_pciephy_ctrl_383 = reg_pciephy_ctrl_383;
-assign dec_pciephy_ctrl_384 = (reg_addr == 12'h600) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_384 = (reg_addr == 16'h0600) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_384_we = reg_wr && dec_pciephy_ctrl_384;
-// non-RO: output
 assign cfg_pciephy_ctrl_384 = reg_pciephy_ctrl_384;
-assign dec_pciephy_ctrl_385 = (reg_addr == 12'h604) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_385 = (reg_addr == 16'h0604) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_385_we = reg_wr && dec_pciephy_ctrl_385;
-// non-RO: output
 assign cfg_pciephy_ctrl_385 = reg_pciephy_ctrl_385;
-assign dec_pciephy_ctrl_386 = (reg_addr == 12'h608) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_386 = (reg_addr == 16'h0608) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_386_we = reg_wr && dec_pciephy_ctrl_386;
-// non-RO: output
 assign cfg_pciephy_ctrl_386 = reg_pciephy_ctrl_386;
-assign dec_pciephy_ctrl_387 = (reg_addr == 12'h60C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_387 = (reg_addr == 16'h060C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_387_we = reg_wr && dec_pciephy_ctrl_387;
-// non-RO: output
 assign cfg_pciephy_ctrl_387 = reg_pciephy_ctrl_387;
-assign dec_pciephy_ctrl_388 = (reg_addr == 12'h610) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_388 = (reg_addr == 16'h0610) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_388_we = reg_wr && dec_pciephy_ctrl_388;
-// non-RO: output
 assign cfg_pciephy_ctrl_388 = reg_pciephy_ctrl_388;
-assign dec_pciephy_ctrl_389 = (reg_addr == 12'h614) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_389 = (reg_addr == 16'h0614) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_389_we = reg_wr && dec_pciephy_ctrl_389;
-// non-RO: output
 assign cfg_pciephy_ctrl_389 = reg_pciephy_ctrl_389;
-assign dec_pciephy_ctrl_390 = (reg_addr == 12'h618) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_390 = (reg_addr == 16'h0618) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_390_we = reg_wr && dec_pciephy_ctrl_390;
-// non-RO: output
 assign cfg_pciephy_ctrl_390 = reg_pciephy_ctrl_390;
-assign dec_pciephy_ctrl_391 = (reg_addr == 12'h61C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_391 = (reg_addr == 16'h061C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_391_we = reg_wr && dec_pciephy_ctrl_391;
-// non-RO: output
 assign cfg_pciephy_ctrl_391 = reg_pciephy_ctrl_391;
-assign dec_pciephy_ctrl_392 = (reg_addr == 12'h620) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_392 = (reg_addr == 16'h0620) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_392_we = reg_wr && dec_pciephy_ctrl_392;
-// non-RO: output
 assign cfg_pciephy_ctrl_392 = reg_pciephy_ctrl_392;
-assign dec_pciephy_ctrl_393 = (reg_addr == 12'h624) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_393 = (reg_addr == 16'h0624) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_393_we = reg_wr && dec_pciephy_ctrl_393;
-// non-RO: output
 assign cfg_pciephy_ctrl_393 = reg_pciephy_ctrl_393;
-assign dec_pciephy_ctrl_394 = (reg_addr == 12'h628) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_394 = (reg_addr == 16'h0628) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_394_we = reg_wr && dec_pciephy_ctrl_394;
-// non-RO: output
 assign cfg_pciephy_ctrl_394 = reg_pciephy_ctrl_394;
-assign dec_pciephy_ctrl_395 = (reg_addr == 12'h62C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_395 = (reg_addr == 16'h062C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_395_we = reg_wr && dec_pciephy_ctrl_395;
-// non-RO: output
 assign cfg_pciephy_ctrl_395 = reg_pciephy_ctrl_395;
-assign dec_pciephy_ctrl_396 = (reg_addr == 12'h630) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_396 = (reg_addr == 16'h0630) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_396_we = reg_wr && dec_pciephy_ctrl_396;
-// non-RO: output
 assign cfg_pciephy_ctrl_396 = reg_pciephy_ctrl_396;
-assign dec_pciephy_ctrl_397 = (reg_addr == 12'h634) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_397 = (reg_addr == 16'h0634) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_397_we = reg_wr && dec_pciephy_ctrl_397;
-// non-RO: output
 assign cfg_pciephy_ctrl_397 = reg_pciephy_ctrl_397;
-assign dec_pciephy_ctrl_398 = (reg_addr == 12'h638) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_398 = (reg_addr == 16'h0638) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_398_we = reg_wr && dec_pciephy_ctrl_398;
-// non-RO: output
 assign cfg_pciephy_ctrl_398 = reg_pciephy_ctrl_398;
-assign dec_pciephy_ctrl_399 = (reg_addr == 12'h63C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_399 = (reg_addr == 16'h063C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_399_we = reg_wr && dec_pciephy_ctrl_399;
-// non-RO: output
 assign cfg_pciephy_ctrl_399 = reg_pciephy_ctrl_399;
-assign dec_pciephy_ctrl_400 = (reg_addr == 12'h640) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_400 = (reg_addr == 16'h0640) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_400_we = reg_wr && dec_pciephy_ctrl_400;
-// non-RO: output
 assign cfg_pciephy_ctrl_400 = reg_pciephy_ctrl_400;
-assign dec_pciephy_ctrl_401 = (reg_addr == 12'h644) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_401 = (reg_addr == 16'h0644) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_401_we = reg_wr && dec_pciephy_ctrl_401;
-// non-RO: output
 assign cfg_pciephy_ctrl_401 = reg_pciephy_ctrl_401;
-assign dec_pciephy_ctrl_402 = (reg_addr == 12'h648) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_402 = (reg_addr == 16'h0648) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_402_we = reg_wr && dec_pciephy_ctrl_402;
-// non-RO: output
 assign cfg_pciephy_ctrl_402 = reg_pciephy_ctrl_402;
-assign dec_pciephy_ctrl_403 = (reg_addr == 12'h64C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_403 = (reg_addr == 16'h064C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_403_we = reg_wr && dec_pciephy_ctrl_403;
-// non-RO: output
 assign cfg_pciephy_ctrl_403 = reg_pciephy_ctrl_403;
-assign dec_pciephy_ctrl_404 = (reg_addr == 12'h650) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_404 = (reg_addr == 16'h0650) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_404_we = reg_wr && dec_pciephy_ctrl_404;
-// non-RO: output
 assign cfg_pciephy_ctrl_404 = reg_pciephy_ctrl_404;
-assign dec_pciephy_ctrl_405 = (reg_addr == 12'h654) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_405 = (reg_addr == 16'h0654) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_405_we = reg_wr && dec_pciephy_ctrl_405;
-// non-RO: output
 assign cfg_pciephy_ctrl_405 = reg_pciephy_ctrl_405;
-assign dec_pciephy_ctrl_406 = (reg_addr == 12'h658) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_406 = (reg_addr == 16'h0658) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_406_we = reg_wr && dec_pciephy_ctrl_406;
-// non-RO: output
 assign cfg_pciephy_ctrl_406 = reg_pciephy_ctrl_406;
-assign dec_pciephy_ctrl_407 = (reg_addr == 12'h65C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_407 = (reg_addr == 16'h065C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_407_we = reg_wr && dec_pciephy_ctrl_407;
-// non-RO: output
 assign cfg_pciephy_ctrl_407 = reg_pciephy_ctrl_407;
-assign dec_pciephy_ctrl_408 = (reg_addr == 12'h660) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_408 = (reg_addr == 16'h0660) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_408_we = reg_wr && dec_pciephy_ctrl_408;
-// non-RO: output
 assign cfg_pciephy_ctrl_408 = reg_pciephy_ctrl_408;
-assign dec_pciephy_ctrl_409 = (reg_addr == 12'h664) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_409 = (reg_addr == 16'h0664) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_409_we = reg_wr && dec_pciephy_ctrl_409;
-// non-RO: output
 assign cfg_pciephy_ctrl_409 = reg_pciephy_ctrl_409;
-assign dec_pciephy_ctrl_410 = (reg_addr == 12'h668) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_410 = (reg_addr == 16'h0668) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_410_we = reg_wr && dec_pciephy_ctrl_410;
-// non-RO: output
 assign cfg_pciephy_ctrl_410 = reg_pciephy_ctrl_410;
-assign dec_pciephy_ctrl_411 = (reg_addr == 12'h66C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_411 = (reg_addr == 16'h066C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_411_we = reg_wr && dec_pciephy_ctrl_411;
-// non-RO: output
 assign cfg_pciephy_ctrl_411 = reg_pciephy_ctrl_411;
-assign dec_pciephy_ctrl_412 = (reg_addr == 12'h670) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_412 = (reg_addr == 16'h0670) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_412_we = reg_wr && dec_pciephy_ctrl_412;
-// non-RO: output
 assign cfg_pciephy_ctrl_412 = reg_pciephy_ctrl_412;
-assign dec_pciephy_ctrl_413 = (reg_addr == 12'h674) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_413 = (reg_addr == 16'h0674) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_413_we = reg_wr && dec_pciephy_ctrl_413;
-// non-RO: output
 assign cfg_pciephy_ctrl_413 = reg_pciephy_ctrl_413;
-assign dec_pciephy_ctrl_414 = (reg_addr == 12'h678) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_414 = (reg_addr == 16'h0678) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_414_we = reg_wr && dec_pciephy_ctrl_414;
-// non-RO: output
 assign cfg_pciephy_ctrl_414 = reg_pciephy_ctrl_414;
-assign dec_pciephy_ctrl_415 = (reg_addr == 12'h67C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_415 = (reg_addr == 16'h067C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_415_we = reg_wr && dec_pciephy_ctrl_415;
-// non-RO: output
 assign cfg_pciephy_ctrl_415 = reg_pciephy_ctrl_415;
-assign dec_pciephy_ctrl_416 = (reg_addr == 12'h680) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_416 = (reg_addr == 16'h0680) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_416_we = reg_wr && dec_pciephy_ctrl_416;
-// non-RO: output
 assign cfg_pciephy_ctrl_416 = reg_pciephy_ctrl_416;
-assign dec_pciephy_ctrl_417 = (reg_addr == 12'h684) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_417 = (reg_addr == 16'h0684) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_417_we = reg_wr && dec_pciephy_ctrl_417;
-// non-RO: output
 assign cfg_pciephy_ctrl_417 = reg_pciephy_ctrl_417;
-assign dec_pciephy_ctrl_418 = (reg_addr == 12'h688) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_418 = (reg_addr == 16'h0688) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_418_we = reg_wr && dec_pciephy_ctrl_418;
-// non-RO: output
 assign cfg_pciephy_ctrl_418 = reg_pciephy_ctrl_418;
-assign dec_pciephy_ctrl_419 = (reg_addr == 12'h68C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_419 = (reg_addr == 16'h068C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_419_we = reg_wr && dec_pciephy_ctrl_419;
-// non-RO: output
 assign cfg_pciephy_ctrl_419 = reg_pciephy_ctrl_419;
-assign dec_pciephy_ctrl_420 = (reg_addr == 12'h690) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_420 = (reg_addr == 16'h0690) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_420_we = reg_wr && dec_pciephy_ctrl_420;
-// non-RO: output
 assign cfg_pciephy_ctrl_420 = reg_pciephy_ctrl_420;
-assign dec_pciephy_ctrl_421 = (reg_addr == 12'h694) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_421 = (reg_addr == 16'h0694) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_421_we = reg_wr && dec_pciephy_ctrl_421;
-// non-RO: output
 assign cfg_pciephy_ctrl_421 = reg_pciephy_ctrl_421;
-assign dec_pciephy_ctrl_422 = (reg_addr == 12'h698) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_422 = (reg_addr == 16'h0698) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_422_we = reg_wr && dec_pciephy_ctrl_422;
-// non-RO: output
 assign cfg_pciephy_ctrl_422 = reg_pciephy_ctrl_422;
-assign dec_pciephy_ctrl_423 = (reg_addr == 12'h69C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_423 = (reg_addr == 16'h069C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_423_we = reg_wr && dec_pciephy_ctrl_423;
-// non-RO: output
 assign cfg_pciephy_ctrl_423 = reg_pciephy_ctrl_423;
-assign dec_pciephy_ctrl_424 = (reg_addr == 12'h6A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_424 = (reg_addr == 16'h06A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_424_we = reg_wr && dec_pciephy_ctrl_424;
-// non-RO: output
 assign cfg_pciephy_ctrl_424 = reg_pciephy_ctrl_424;
-assign dec_pciephy_ctrl_425 = (reg_addr == 12'h6A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_425 = (reg_addr == 16'h06A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_425_we = reg_wr && dec_pciephy_ctrl_425;
-// non-RO: output
 assign cfg_pciephy_ctrl_425 = reg_pciephy_ctrl_425;
-assign dec_pciephy_ctrl_426 = (reg_addr == 12'h6A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_426 = (reg_addr == 16'h06A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_426_we = reg_wr && dec_pciephy_ctrl_426;
-// non-RO: output
 assign cfg_pciephy_ctrl_426 = reg_pciephy_ctrl_426;
-assign dec_pciephy_ctrl_427 = (reg_addr == 12'h6AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_427 = (reg_addr == 16'h06AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_427_we = reg_wr && dec_pciephy_ctrl_427;
-// non-RO: output
 assign cfg_pciephy_ctrl_427 = reg_pciephy_ctrl_427;
-assign dec_pciephy_ctrl_428 = (reg_addr == 12'h6B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_428 = (reg_addr == 16'h06B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_428_we = reg_wr && dec_pciephy_ctrl_428;
-// non-RO: output
 assign cfg_pciephy_ctrl_428 = reg_pciephy_ctrl_428;
-assign dec_pciephy_ctrl_429 = (reg_addr == 12'h6B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_429 = (reg_addr == 16'h06B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_429_we = reg_wr && dec_pciephy_ctrl_429;
-// non-RO: output
 assign cfg_pciephy_ctrl_429 = reg_pciephy_ctrl_429;
-assign dec_pciephy_ctrl_430 = (reg_addr == 12'h6B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_430 = (reg_addr == 16'h06B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_430_we = reg_wr && dec_pciephy_ctrl_430;
-// non-RO: output
 assign cfg_pciephy_ctrl_430 = reg_pciephy_ctrl_430;
-assign dec_pciephy_ctrl_431 = (reg_addr == 12'h6BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_431 = (reg_addr == 16'h06BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_431_we = reg_wr && dec_pciephy_ctrl_431;
-// non-RO: output
 assign cfg_pciephy_ctrl_431 = reg_pciephy_ctrl_431;
-assign dec_pciephy_ctrl_432 = (reg_addr == 12'h6C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_432 = (reg_addr == 16'h06C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_432_we = reg_wr && dec_pciephy_ctrl_432;
-// non-RO: output
 assign cfg_pciephy_ctrl_432 = reg_pciephy_ctrl_432;
-assign dec_pciephy_ctrl_433 = (reg_addr == 12'h6C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_433 = (reg_addr == 16'h06C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_433_we = reg_wr && dec_pciephy_ctrl_433;
-// non-RO: output
 assign cfg_pciephy_ctrl_433 = reg_pciephy_ctrl_433;
-assign dec_pciephy_ctrl_434 = (reg_addr == 12'h6C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_434 = (reg_addr == 16'h06C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_434_we = reg_wr && dec_pciephy_ctrl_434;
-// non-RO: output
 assign cfg_pciephy_ctrl_434 = reg_pciephy_ctrl_434;
-assign dec_pciephy_ctrl_435 = (reg_addr == 12'h6CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_435 = (reg_addr == 16'h06CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_435_we = reg_wr && dec_pciephy_ctrl_435;
-// non-RO: output
 assign cfg_pciephy_ctrl_435 = reg_pciephy_ctrl_435;
-assign dec_pciephy_ctrl_436 = (reg_addr == 12'h6D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_436 = (reg_addr == 16'h06D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_436_we = reg_wr && dec_pciephy_ctrl_436;
-// non-RO: output
 assign cfg_pciephy_ctrl_436 = reg_pciephy_ctrl_436;
-assign dec_pciephy_ctrl_437 = (reg_addr == 12'h6D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_437 = (reg_addr == 16'h06D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_437_we = reg_wr && dec_pciephy_ctrl_437;
-// non-RO: output
 assign cfg_pciephy_ctrl_437 = reg_pciephy_ctrl_437;
-assign dec_pciephy_ctrl_438 = (reg_addr == 12'h6D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_438 = (reg_addr == 16'h06D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_438_we = reg_wr && dec_pciephy_ctrl_438;
-// non-RO: output
 assign cfg_pciephy_ctrl_438 = reg_pciephy_ctrl_438;
-assign dec_pciephy_ctrl_439 = (reg_addr == 12'h6DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_439 = (reg_addr == 16'h06DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_439_we = reg_wr && dec_pciephy_ctrl_439;
-// non-RO: output
 assign cfg_pciephy_ctrl_439 = reg_pciephy_ctrl_439;
-assign dec_pciephy_ctrl_440 = (reg_addr == 12'h6E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_440 = (reg_addr == 16'h06E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_440_we = reg_wr && dec_pciephy_ctrl_440;
-// non-RO: output
 assign cfg_pciephy_ctrl_440 = reg_pciephy_ctrl_440;
-assign dec_pciephy_ctrl_441 = (reg_addr == 12'h6E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_441 = (reg_addr == 16'h06E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_441_we = reg_wr && dec_pciephy_ctrl_441;
-// non-RO: output
 assign cfg_pciephy_ctrl_441 = reg_pciephy_ctrl_441;
-assign dec_pciephy_ctrl_442 = (reg_addr == 12'h6E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_442 = (reg_addr == 16'h06E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_442_we = reg_wr && dec_pciephy_ctrl_442;
-// non-RO: output
 assign cfg_pciephy_ctrl_442 = reg_pciephy_ctrl_442;
-assign dec_pciephy_ctrl_443 = (reg_addr == 12'h6EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_443 = (reg_addr == 16'h06EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_443_we = reg_wr && dec_pciephy_ctrl_443;
-// non-RO: output
 assign cfg_pciephy_ctrl_443 = reg_pciephy_ctrl_443;
-assign dec_pciephy_ctrl_444 = (reg_addr == 12'h6F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_444 = (reg_addr == 16'h06F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_444_we = reg_wr && dec_pciephy_ctrl_444;
-// non-RO: output
 assign cfg_pciephy_ctrl_444 = reg_pciephy_ctrl_444;
-assign dec_pciephy_ctrl_445 = (reg_addr == 12'h6F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_445 = (reg_addr == 16'h06F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_445_we = reg_wr && dec_pciephy_ctrl_445;
-// non-RO: output
 assign cfg_pciephy_ctrl_445 = reg_pciephy_ctrl_445;
-assign dec_pciephy_ctrl_446 = (reg_addr == 12'h6F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_446 = (reg_addr == 16'h06F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_446_we = reg_wr && dec_pciephy_ctrl_446;
-// non-RO: output
 assign cfg_pciephy_ctrl_446 = reg_pciephy_ctrl_446;
-assign dec_pciephy_ctrl_447 = (reg_addr == 12'h6FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_447 = (reg_addr == 16'h06FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_447_we = reg_wr && dec_pciephy_ctrl_447;
-// non-RO: output
 assign cfg_pciephy_ctrl_447 = reg_pciephy_ctrl_447;
-assign dec_pciephy_ctrl_448 = (reg_addr == 12'h700) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_448 = (reg_addr == 16'h0700) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_448_we = reg_wr && dec_pciephy_ctrl_448;
-// non-RO: output
 assign cfg_pciephy_ctrl_448 = reg_pciephy_ctrl_448;
-assign dec_pciephy_ctrl_449 = (reg_addr == 12'h704) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_449 = (reg_addr == 16'h0704) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_449_we = reg_wr && dec_pciephy_ctrl_449;
-// non-RO: output
 assign cfg_pciephy_ctrl_449 = reg_pciephy_ctrl_449;
-assign dec_pciephy_ctrl_450 = (reg_addr == 12'h708) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_450 = (reg_addr == 16'h0708) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_450_we = reg_wr && dec_pciephy_ctrl_450;
-// non-RO: output
 assign cfg_pciephy_ctrl_450 = reg_pciephy_ctrl_450;
-assign dec_pciephy_ctrl_451 = (reg_addr == 12'h70C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_451 = (reg_addr == 16'h070C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_451_we = reg_wr && dec_pciephy_ctrl_451;
-// non-RO: output
 assign cfg_pciephy_ctrl_451 = reg_pciephy_ctrl_451;
-assign dec_pciephy_ctrl_452 = (reg_addr == 12'h710) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_452 = (reg_addr == 16'h0710) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_452_we = reg_wr && dec_pciephy_ctrl_452;
-// non-RO: output
 assign cfg_pciephy_ctrl_452 = reg_pciephy_ctrl_452;
-assign dec_pciephy_ctrl_453 = (reg_addr == 12'h714) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_453 = (reg_addr == 16'h0714) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_453_we = reg_wr && dec_pciephy_ctrl_453;
-// non-RO: output
 assign cfg_pciephy_ctrl_453 = reg_pciephy_ctrl_453;
-assign dec_pciephy_ctrl_454 = (reg_addr == 12'h718) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_454 = (reg_addr == 16'h0718) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_454_we = reg_wr && dec_pciephy_ctrl_454;
-// non-RO: output
 assign cfg_pciephy_ctrl_454 = reg_pciephy_ctrl_454;
-assign dec_pciephy_ctrl_455 = (reg_addr == 12'h71C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_455 = (reg_addr == 16'h071C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_455_we = reg_wr && dec_pciephy_ctrl_455;
-// non-RO: output
 assign cfg_pciephy_ctrl_455 = reg_pciephy_ctrl_455;
-assign dec_pciephy_ctrl_456 = (reg_addr == 12'h720) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_456 = (reg_addr == 16'h0720) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_456_we = reg_wr && dec_pciephy_ctrl_456;
-// non-RO: output
 assign cfg_pciephy_ctrl_456 = reg_pciephy_ctrl_456;
-assign dec_pciephy_ctrl_457 = (reg_addr == 12'h724) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_457 = (reg_addr == 16'h0724) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_457_we = reg_wr && dec_pciephy_ctrl_457;
-// non-RO: output
 assign cfg_pciephy_ctrl_457 = reg_pciephy_ctrl_457;
-assign dec_pciephy_ctrl_458 = (reg_addr == 12'h728) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_458 = (reg_addr == 16'h0728) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_458_we = reg_wr && dec_pciephy_ctrl_458;
-// non-RO: output
 assign cfg_pciephy_ctrl_458 = reg_pciephy_ctrl_458;
-assign dec_pciephy_ctrl_459 = (reg_addr == 12'h72C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_459 = (reg_addr == 16'h072C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_459_we = reg_wr && dec_pciephy_ctrl_459;
-// non-RO: output
 assign cfg_pciephy_ctrl_459 = reg_pciephy_ctrl_459;
-assign dec_pciephy_ctrl_460 = (reg_addr == 12'h730) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_460 = (reg_addr == 16'h0730) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_460_we = reg_wr && dec_pciephy_ctrl_460;
-// non-RO: output
 assign cfg_pciephy_ctrl_460 = reg_pciephy_ctrl_460;
-assign dec_pciephy_ctrl_461 = (reg_addr == 12'h734) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_461 = (reg_addr == 16'h0734) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_461_we = reg_wr && dec_pciephy_ctrl_461;
-// non-RO: output
 assign cfg_pciephy_ctrl_461 = reg_pciephy_ctrl_461;
-assign dec_pciephy_ctrl_462 = (reg_addr == 12'h738) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_462 = (reg_addr == 16'h0738) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_462_we = reg_wr && dec_pciephy_ctrl_462;
-// non-RO: output
 assign cfg_pciephy_ctrl_462 = reg_pciephy_ctrl_462;
-assign dec_pciephy_ctrl_463 = (reg_addr == 12'h73C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_463 = (reg_addr == 16'h073C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_463_we = reg_wr && dec_pciephy_ctrl_463;
-// non-RO: output
 assign cfg_pciephy_ctrl_463 = reg_pciephy_ctrl_463;
-assign dec_pciephy_ctrl_464 = (reg_addr == 12'h740) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_464 = (reg_addr == 16'h0740) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_464_we = reg_wr && dec_pciephy_ctrl_464;
-// non-RO: output
 assign cfg_pciephy_ctrl_464 = reg_pciephy_ctrl_464;
-assign dec_pciephy_ctrl_465 = (reg_addr == 12'h744) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_465 = (reg_addr == 16'h0744) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_465_we = reg_wr && dec_pciephy_ctrl_465;
-// non-RO: output
 assign cfg_pciephy_ctrl_465 = reg_pciephy_ctrl_465;
-assign dec_pciephy_ctrl_466 = (reg_addr == 12'h748) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_466 = (reg_addr == 16'h0748) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_466_we = reg_wr && dec_pciephy_ctrl_466;
-// non-RO: output
 assign cfg_pciephy_ctrl_466 = reg_pciephy_ctrl_466;
-assign dec_pciephy_ctrl_467 = (reg_addr == 12'h74C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_467 = (reg_addr == 16'h074C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_467_we = reg_wr && dec_pciephy_ctrl_467;
-// non-RO: output
 assign cfg_pciephy_ctrl_467 = reg_pciephy_ctrl_467;
-assign dec_pciephy_ctrl_468 = (reg_addr == 12'h750) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_468 = (reg_addr == 16'h0750) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_468_we = reg_wr && dec_pciephy_ctrl_468;
-// non-RO: output
 assign cfg_pciephy_ctrl_468 = reg_pciephy_ctrl_468;
-assign dec_pciephy_ctrl_469 = (reg_addr == 12'h754) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_469 = (reg_addr == 16'h0754) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_469_we = reg_wr && dec_pciephy_ctrl_469;
-// non-RO: output
 assign cfg_pciephy_ctrl_469 = reg_pciephy_ctrl_469;
-assign dec_pciephy_ctrl_470 = (reg_addr == 12'h758) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_470 = (reg_addr == 16'h0758) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_470_we = reg_wr && dec_pciephy_ctrl_470;
-// non-RO: output
 assign cfg_pciephy_ctrl_470 = reg_pciephy_ctrl_470;
-assign dec_pciephy_ctrl_471 = (reg_addr == 12'h75C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_471 = (reg_addr == 16'h075C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_471_we = reg_wr && dec_pciephy_ctrl_471;
-// non-RO: output
 assign cfg_pciephy_ctrl_471 = reg_pciephy_ctrl_471;
-assign dec_pciephy_ctrl_472 = (reg_addr == 12'h760) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_472 = (reg_addr == 16'h0760) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_472_we = reg_wr && dec_pciephy_ctrl_472;
-// non-RO: output
 assign cfg_pciephy_ctrl_472 = reg_pciephy_ctrl_472;
-assign dec_pciephy_ctrl_473 = (reg_addr == 12'h764) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_473 = (reg_addr == 16'h0764) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_473_we = reg_wr && dec_pciephy_ctrl_473;
-// non-RO: output
 assign cfg_pciephy_ctrl_473 = reg_pciephy_ctrl_473;
-assign dec_pciephy_ctrl_474 = (reg_addr == 12'h768) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_474 = (reg_addr == 16'h0768) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_474_we = reg_wr && dec_pciephy_ctrl_474;
-// non-RO: output
 assign cfg_pciephy_ctrl_474 = reg_pciephy_ctrl_474;
-assign dec_pciephy_ctrl_475 = (reg_addr == 12'h76C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_475 = (reg_addr == 16'h076C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_475_we = reg_wr && dec_pciephy_ctrl_475;
-// non-RO: output
 assign cfg_pciephy_ctrl_475 = reg_pciephy_ctrl_475;
-assign dec_pciephy_ctrl_476 = (reg_addr == 12'h770) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_476 = (reg_addr == 16'h0770) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_476_we = reg_wr && dec_pciephy_ctrl_476;
-// non-RO: output
 assign cfg_pciephy_ctrl_476 = reg_pciephy_ctrl_476;
-assign dec_pciephy_ctrl_477 = (reg_addr == 12'h774) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_477 = (reg_addr == 16'h0774) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_477_we = reg_wr && dec_pciephy_ctrl_477;
-// non-RO: output
 assign cfg_pciephy_ctrl_477 = reg_pciephy_ctrl_477;
-assign dec_pciephy_ctrl_478 = (reg_addr == 12'h778) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_478 = (reg_addr == 16'h0778) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_478_we = reg_wr && dec_pciephy_ctrl_478;
-// non-RO: output
 assign cfg_pciephy_ctrl_478 = reg_pciephy_ctrl_478;
-assign dec_pciephy_ctrl_479 = (reg_addr == 12'h77C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_479 = (reg_addr == 16'h077C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_479_we = reg_wr && dec_pciephy_ctrl_479;
-// non-RO: output
 assign cfg_pciephy_ctrl_479 = reg_pciephy_ctrl_479;
-assign dec_pciephy_ctrl_480 = (reg_addr == 12'h780) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_480 = (reg_addr == 16'h0780) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_480_we = reg_wr && dec_pciephy_ctrl_480;
-// non-RO: output
 assign cfg_pciephy_ctrl_480 = reg_pciephy_ctrl_480;
-assign dec_pciephy_ctrl_481 = (reg_addr == 12'h784) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_481 = (reg_addr == 16'h0784) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_481_we = reg_wr && dec_pciephy_ctrl_481;
-// non-RO: output
 assign cfg_pciephy_ctrl_481 = reg_pciephy_ctrl_481;
-assign dec_pciephy_ctrl_482 = (reg_addr == 12'h788) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_482 = (reg_addr == 16'h0788) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_482_we = reg_wr && dec_pciephy_ctrl_482;
-// non-RO: output
 assign cfg_pciephy_ctrl_482 = reg_pciephy_ctrl_482;
-assign dec_pciephy_ctrl_483 = (reg_addr == 12'h78C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_483 = (reg_addr == 16'h078C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_483_we = reg_wr && dec_pciephy_ctrl_483;
-// non-RO: output
 assign cfg_pciephy_ctrl_483 = reg_pciephy_ctrl_483;
-assign dec_pciephy_ctrl_484 = (reg_addr == 12'h790) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_484 = (reg_addr == 16'h0790) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_484_we = reg_wr && dec_pciephy_ctrl_484;
-// non-RO: output
 assign cfg_pciephy_ctrl_484 = reg_pciephy_ctrl_484;
-assign dec_pciephy_ctrl_485 = (reg_addr == 12'h794) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_485 = (reg_addr == 16'h0794) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_485_we = reg_wr && dec_pciephy_ctrl_485;
-// non-RO: output
 assign cfg_pciephy_ctrl_485 = reg_pciephy_ctrl_485;
-assign dec_pciephy_ctrl_486 = (reg_addr == 12'h798) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_486 = (reg_addr == 16'h0798) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_486_we = reg_wr && dec_pciephy_ctrl_486;
-// non-RO: output
 assign cfg_pciephy_ctrl_486 = reg_pciephy_ctrl_486;
-assign dec_pciephy_ctrl_487 = (reg_addr == 12'h79C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_487 = (reg_addr == 16'h079C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_487_we = reg_wr && dec_pciephy_ctrl_487;
-// non-RO: output
 assign cfg_pciephy_ctrl_487 = reg_pciephy_ctrl_487;
-assign dec_pciephy_ctrl_488 = (reg_addr == 12'h7A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_488 = (reg_addr == 16'h07A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_488_we = reg_wr && dec_pciephy_ctrl_488;
-// non-RO: output
 assign cfg_pciephy_ctrl_488 = reg_pciephy_ctrl_488;
-assign dec_pciephy_ctrl_489 = (reg_addr == 12'h7A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_489 = (reg_addr == 16'h07A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_489_we = reg_wr && dec_pciephy_ctrl_489;
-// non-RO: output
 assign cfg_pciephy_ctrl_489 = reg_pciephy_ctrl_489;
-assign dec_pciephy_ctrl_490 = (reg_addr == 12'h7A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_490 = (reg_addr == 16'h07A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_490_we = reg_wr && dec_pciephy_ctrl_490;
-// non-RO: output
 assign cfg_pciephy_ctrl_490 = reg_pciephy_ctrl_490;
-assign dec_pciephy_ctrl_491 = (reg_addr == 12'h7AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_491 = (reg_addr == 16'h07AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_491_we = reg_wr && dec_pciephy_ctrl_491;
-// non-RO: output
 assign cfg_pciephy_ctrl_491 = reg_pciephy_ctrl_491;
-assign dec_pciephy_ctrl_492 = (reg_addr == 12'h7B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_492 = (reg_addr == 16'h07B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_492_we = reg_wr && dec_pciephy_ctrl_492;
-// non-RO: output
 assign cfg_pciephy_ctrl_492 = reg_pciephy_ctrl_492;
-assign dec_pciephy_ctrl_493 = (reg_addr == 12'h7B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_493 = (reg_addr == 16'h07B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_493_we = reg_wr && dec_pciephy_ctrl_493;
-// non-RO: output
 assign cfg_pciephy_ctrl_493 = reg_pciephy_ctrl_493;
-assign dec_pciephy_ctrl_494 = (reg_addr == 12'h7B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_494 = (reg_addr == 16'h07B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_494_we = reg_wr && dec_pciephy_ctrl_494;
-// non-RO: output
 assign cfg_pciephy_ctrl_494 = reg_pciephy_ctrl_494;
-assign dec_pciephy_ctrl_495 = (reg_addr == 12'h7BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_495 = (reg_addr == 16'h07BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_495_we = reg_wr && dec_pciephy_ctrl_495;
-// non-RO: output
 assign cfg_pciephy_ctrl_495 = reg_pciephy_ctrl_495;
-assign dec_pciephy_ctrl_496 = (reg_addr == 12'h7C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_496 = (reg_addr == 16'h07C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_496_we = reg_wr && dec_pciephy_ctrl_496;
-// non-RO: output
 assign cfg_pciephy_ctrl_496 = reg_pciephy_ctrl_496;
-assign dec_pciephy_ctrl_497 = (reg_addr == 12'h7C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_497 = (reg_addr == 16'h07C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_497_we = reg_wr && dec_pciephy_ctrl_497;
-// non-RO: output
 assign cfg_pciephy_ctrl_497 = reg_pciephy_ctrl_497;
-assign dec_pciephy_ctrl_498 = (reg_addr == 12'h7C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_498 = (reg_addr == 16'h07C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_498_we = reg_wr && dec_pciephy_ctrl_498;
-// non-RO: output
 assign cfg_pciephy_ctrl_498 = reg_pciephy_ctrl_498;
-assign dec_pciephy_ctrl_499 = (reg_addr == 12'h7CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_499 = (reg_addr == 16'h07CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_499_we = reg_wr && dec_pciephy_ctrl_499;
-// non-RO: output
 assign cfg_pciephy_ctrl_499 = reg_pciephy_ctrl_499;
-assign dec_pciephy_ctrl_500 = (reg_addr == 12'h7D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_500 = (reg_addr == 16'h07D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_500_we = reg_wr && dec_pciephy_ctrl_500;
-// non-RO: output
 assign cfg_pciephy_ctrl_500 = reg_pciephy_ctrl_500;
-assign dec_pciephy_ctrl_501 = (reg_addr == 12'h7D4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_501 = (reg_addr == 16'h07D4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_501_we = reg_wr && dec_pciephy_ctrl_501;
-// non-RO: output
 assign cfg_pciephy_ctrl_501 = reg_pciephy_ctrl_501;
-assign dec_pciephy_ctrl_502 = (reg_addr == 12'h7D8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_502 = (reg_addr == 16'h07D8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_502_we = reg_wr && dec_pciephy_ctrl_502;
-// non-RO: output
 assign cfg_pciephy_ctrl_502 = reg_pciephy_ctrl_502;
-assign dec_pciephy_ctrl_503 = (reg_addr == 12'h7DC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_503 = (reg_addr == 16'h07DC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_503_we = reg_wr && dec_pciephy_ctrl_503;
-// non-RO: output
 assign cfg_pciephy_ctrl_503 = reg_pciephy_ctrl_503;
-assign dec_pciephy_ctrl_504 = (reg_addr == 12'h7E0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_504 = (reg_addr == 16'h07E0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_504_we = reg_wr && dec_pciephy_ctrl_504;
-// non-RO: output
 assign cfg_pciephy_ctrl_504 = reg_pciephy_ctrl_504;
-assign dec_pciephy_ctrl_505 = (reg_addr == 12'h7E4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_505 = (reg_addr == 16'h07E4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_505_we = reg_wr && dec_pciephy_ctrl_505;
-// non-RO: output
 assign cfg_pciephy_ctrl_505 = reg_pciephy_ctrl_505;
-assign dec_pciephy_ctrl_506 = (reg_addr == 12'h7E8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_506 = (reg_addr == 16'h07E8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_506_we = reg_wr && dec_pciephy_ctrl_506;
-// non-RO: output
 assign cfg_pciephy_ctrl_506 = reg_pciephy_ctrl_506;
-assign dec_pciephy_ctrl_507 = (reg_addr == 12'h7EC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_507 = (reg_addr == 16'h07EC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_507_we = reg_wr && dec_pciephy_ctrl_507;
-// non-RO: output
 assign cfg_pciephy_ctrl_507 = reg_pciephy_ctrl_507;
-assign dec_pciephy_ctrl_508 = (reg_addr == 12'h7F0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_508 = (reg_addr == 16'h07F0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_508_we = reg_wr && dec_pciephy_ctrl_508;
-// non-RO: output
 assign cfg_pciephy_ctrl_508 = reg_pciephy_ctrl_508;
-assign dec_pciephy_ctrl_509 = (reg_addr == 12'h7F4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_509 = (reg_addr == 16'h07F4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_509_we = reg_wr && dec_pciephy_ctrl_509;
-// non-RO: output
 assign cfg_pciephy_ctrl_509 = reg_pciephy_ctrl_509;
-assign dec_pciephy_ctrl_510 = (reg_addr == 12'h7F8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_510 = (reg_addr == 16'h07F8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_510_we = reg_wr && dec_pciephy_ctrl_510;
-// non-RO: output
 assign cfg_pciephy_ctrl_510 = reg_pciephy_ctrl_510;
-assign dec_pciephy_ctrl_511 = (reg_addr == 12'h7FC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_511 = (reg_addr == 16'h07FC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_511_we = reg_wr && dec_pciephy_ctrl_511;
-// non-RO: output
 assign cfg_pciephy_ctrl_511 = reg_pciephy_ctrl_511;
-assign dec_pciephy_ctrl_512 = (reg_addr == 12'h800) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_512 = (reg_addr == 16'h0800) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_512_we = reg_wr && dec_pciephy_ctrl_512;
-// non-RO: output
 assign cfg_pciephy_ctrl_512 = reg_pciephy_ctrl_512;
-assign dec_pciephy_ctrl_513 = (reg_addr == 12'h804) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_513 = (reg_addr == 16'h0804) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_513_we = reg_wr && dec_pciephy_ctrl_513;
-// non-RO: output
 assign cfg_pciephy_ctrl_513 = reg_pciephy_ctrl_513;
-assign dec_pciephy_ctrl_514 = (reg_addr == 12'h808) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_514 = (reg_addr == 16'h0808) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_514_we = reg_wr && dec_pciephy_ctrl_514;
-// non-RO: output
 assign cfg_pciephy_ctrl_514 = reg_pciephy_ctrl_514;
-assign dec_pciephy_ctrl_515 = (reg_addr == 12'h80C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_515 = (reg_addr == 16'h080C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_515_we = reg_wr && dec_pciephy_ctrl_515;
-// non-RO: output
 assign cfg_pciephy_ctrl_515 = reg_pciephy_ctrl_515;
-assign dec_pciephy_ctrl_516 = (reg_addr == 12'h810) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_516 = (reg_addr == 16'h0810) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_516_we = reg_wr && dec_pciephy_ctrl_516;
-// non-RO: output
 assign cfg_pciephy_ctrl_516 = reg_pciephy_ctrl_516;
-assign dec_pciephy_ctrl_517 = (reg_addr == 12'h814) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_517 = (reg_addr == 16'h0814) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_517_we = reg_wr && dec_pciephy_ctrl_517;
-// non-RO: output
 assign cfg_pciephy_ctrl_517 = reg_pciephy_ctrl_517;
-assign dec_pciephy_ctrl_518 = (reg_addr == 12'h818) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_518 = (reg_addr == 16'h0818) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_518_we = reg_wr && dec_pciephy_ctrl_518;
-// non-RO: output
 assign cfg_pciephy_ctrl_518 = reg_pciephy_ctrl_518;
-assign dec_pciephy_ctrl_519 = (reg_addr == 12'h81C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_519 = (reg_addr == 16'h081C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_519_we = reg_wr && dec_pciephy_ctrl_519;
-// non-RO: output
 assign cfg_pciephy_ctrl_519 = reg_pciephy_ctrl_519;
-assign dec_pciephy_ctrl_520 = (reg_addr == 12'h820) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_520 = (reg_addr == 16'h0820) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_520_we = reg_wr && dec_pciephy_ctrl_520;
-// non-RO: output
 assign cfg_pciephy_ctrl_520 = reg_pciephy_ctrl_520;
-assign dec_pciephy_ctrl_521 = (reg_addr == 12'h824) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_521 = (reg_addr == 16'h0824) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_521_we = reg_wr && dec_pciephy_ctrl_521;
-// non-RO: output
 assign cfg_pciephy_ctrl_521 = reg_pciephy_ctrl_521;
-assign dec_pciephy_ctrl_522 = (reg_addr == 12'h828) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_522 = (reg_addr == 16'h0828) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_522_we = reg_wr && dec_pciephy_ctrl_522;
-// non-RO: output
 assign cfg_pciephy_ctrl_522 = reg_pciephy_ctrl_522;
-assign dec_pciephy_ctrl_523 = (reg_addr == 12'h82C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_523 = (reg_addr == 16'h082C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_523_we = reg_wr && dec_pciephy_ctrl_523;
-// non-RO: output
 assign cfg_pciephy_ctrl_523 = reg_pciephy_ctrl_523;
-assign dec_pciephy_ctrl_524 = (reg_addr == 12'h830) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_524 = (reg_addr == 16'h0830) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_524_we = reg_wr && dec_pciephy_ctrl_524;
-// non-RO: output
 assign cfg_pciephy_ctrl_524 = reg_pciephy_ctrl_524;
-assign dec_pciephy_ctrl_525 = (reg_addr == 12'h834) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_525 = (reg_addr == 16'h0834) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_525_we = reg_wr && dec_pciephy_ctrl_525;
-// non-RO: output
 assign cfg_pciephy_ctrl_525 = reg_pciephy_ctrl_525;
-assign dec_pciephy_ctrl_526 = (reg_addr == 12'h838) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_526 = (reg_addr == 16'h0838) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_526_we = reg_wr && dec_pciephy_ctrl_526;
-// non-RO: output
 assign cfg_pciephy_ctrl_526 = reg_pciephy_ctrl_526;
-assign dec_pciephy_ctrl_527 = (reg_addr == 12'h83C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_527 = (reg_addr == 16'h083C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_527_we = reg_wr && dec_pciephy_ctrl_527;
-// non-RO: output
 assign cfg_pciephy_ctrl_527 = reg_pciephy_ctrl_527;
-assign dec_pciephy_ctrl_528 = (reg_addr == 12'h840) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_528 = (reg_addr == 16'h0840) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_528_we = reg_wr && dec_pciephy_ctrl_528;
-// non-RO: output
 assign cfg_pciephy_ctrl_528 = reg_pciephy_ctrl_528;
-assign dec_pciephy_ctrl_529 = (reg_addr == 12'h844) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_529 = (reg_addr == 16'h0844) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_529_we = reg_wr && dec_pciephy_ctrl_529;
-// non-RO: output
 assign cfg_pciephy_ctrl_529 = reg_pciephy_ctrl_529;
-assign dec_pciephy_ctrl_530 = (reg_addr == 12'h848) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_530 = (reg_addr == 16'h0848) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_530_we = reg_wr && dec_pciephy_ctrl_530;
-// non-RO: output
 assign cfg_pciephy_ctrl_530 = reg_pciephy_ctrl_530;
-assign dec_pciephy_ctrl_531 = (reg_addr == 12'h84C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_531 = (reg_addr == 16'h084C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_531_we = reg_wr && dec_pciephy_ctrl_531;
-// non-RO: output
 assign cfg_pciephy_ctrl_531 = reg_pciephy_ctrl_531;
-assign dec_pciephy_ctrl_532 = (reg_addr == 12'h850) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_532 = (reg_addr == 16'h0850) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_532_we = reg_wr && dec_pciephy_ctrl_532;
-// non-RO: output
 assign cfg_pciephy_ctrl_532 = reg_pciephy_ctrl_532;
-assign dec_pciephy_ctrl_533 = (reg_addr == 12'h854) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_533 = (reg_addr == 16'h0854) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_533_we = reg_wr && dec_pciephy_ctrl_533;
-// non-RO: output
 assign cfg_pciephy_ctrl_533 = reg_pciephy_ctrl_533;
-assign dec_pciephy_ctrl_534 = (reg_addr == 12'h858) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_534 = (reg_addr == 16'h0858) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_534_we = reg_wr && dec_pciephy_ctrl_534;
-// non-RO: output
 assign cfg_pciephy_ctrl_534 = reg_pciephy_ctrl_534;
-assign dec_pciephy_ctrl_535 = (reg_addr == 12'h85C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_535 = (reg_addr == 16'h085C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_535_we = reg_wr && dec_pciephy_ctrl_535;
-// non-RO: output
 assign cfg_pciephy_ctrl_535 = reg_pciephy_ctrl_535;
-assign dec_pciephy_ctrl_536 = (reg_addr == 12'h860) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_536 = (reg_addr == 16'h0860) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_536_we = reg_wr && dec_pciephy_ctrl_536;
-// non-RO: output
 assign cfg_pciephy_ctrl_536 = reg_pciephy_ctrl_536;
-assign dec_pciephy_ctrl_537 = (reg_addr == 12'h864) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_537 = (reg_addr == 16'h0864) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_537_we = reg_wr && dec_pciephy_ctrl_537;
-// non-RO: output
 assign cfg_pciephy_ctrl_537 = reg_pciephy_ctrl_537;
-assign dec_pciephy_ctrl_538 = (reg_addr == 12'h868) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_538 = (reg_addr == 16'h0868) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_538_we = reg_wr && dec_pciephy_ctrl_538;
-// non-RO: output
 assign cfg_pciephy_ctrl_538 = reg_pciephy_ctrl_538;
-assign dec_pciephy_ctrl_539 = (reg_addr == 12'h86C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_539 = (reg_addr == 16'h086C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_539_we = reg_wr && dec_pciephy_ctrl_539;
-// non-RO: output
 assign cfg_pciephy_ctrl_539 = reg_pciephy_ctrl_539;
-assign dec_pciephy_ctrl_540 = (reg_addr == 12'h870) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_540 = (reg_addr == 16'h0870) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_540_we = reg_wr && dec_pciephy_ctrl_540;
-// non-RO: output
 assign cfg_pciephy_ctrl_540 = reg_pciephy_ctrl_540;
-assign dec_pciephy_ctrl_541 = (reg_addr == 12'h874) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_541 = (reg_addr == 16'h0874) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_541_we = reg_wr && dec_pciephy_ctrl_541;
-// non-RO: output
 assign cfg_pciephy_ctrl_541 = reg_pciephy_ctrl_541;
-assign dec_pciephy_ctrl_542 = (reg_addr == 12'h878) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_542 = (reg_addr == 16'h0878) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_542_we = reg_wr && dec_pciephy_ctrl_542;
-// non-RO: output
 assign cfg_pciephy_ctrl_542 = reg_pciephy_ctrl_542;
-assign dec_pciephy_ctrl_543 = (reg_addr == 12'h87C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_543 = (reg_addr == 16'h087C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_543_we = reg_wr && dec_pciephy_ctrl_543;
-// non-RO: output
 assign cfg_pciephy_ctrl_543 = reg_pciephy_ctrl_543;
-assign dec_pciephy_ctrl_544 = (reg_addr == 12'h880) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_544 = (reg_addr == 16'h0880) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_544_we = reg_wr && dec_pciephy_ctrl_544;
-// non-RO: output
 assign cfg_pciephy_ctrl_544 = reg_pciephy_ctrl_544;
-assign dec_pciephy_ctrl_545 = (reg_addr == 12'h884) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_545 = (reg_addr == 16'h0884) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_545_we = reg_wr && dec_pciephy_ctrl_545;
-// non-RO: output
 assign cfg_pciephy_ctrl_545 = reg_pciephy_ctrl_545;
-assign dec_pciephy_ctrl_546 = (reg_addr == 12'h888) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_546 = (reg_addr == 16'h0888) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_546_we = reg_wr && dec_pciephy_ctrl_546;
-// non-RO: output
 assign cfg_pciephy_ctrl_546 = reg_pciephy_ctrl_546;
-assign dec_pciephy_ctrl_547 = (reg_addr == 12'h88C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_547 = (reg_addr == 16'h088C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_547_we = reg_wr && dec_pciephy_ctrl_547;
-// non-RO: output
 assign cfg_pciephy_ctrl_547 = reg_pciephy_ctrl_547;
-assign dec_pciephy_ctrl_548 = (reg_addr == 12'h890) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_548 = (reg_addr == 16'h0890) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_548_we = reg_wr && dec_pciephy_ctrl_548;
-// non-RO: output
 assign cfg_pciephy_ctrl_548 = reg_pciephy_ctrl_548;
-assign dec_pciephy_ctrl_549 = (reg_addr == 12'h894) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_549 = (reg_addr == 16'h0894) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_549_we = reg_wr && dec_pciephy_ctrl_549;
-// non-RO: output
 assign cfg_pciephy_ctrl_549 = reg_pciephy_ctrl_549;
-assign dec_pciephy_ctrl_550 = (reg_addr == 12'h898) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_550 = (reg_addr == 16'h0898) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_550_we = reg_wr && dec_pciephy_ctrl_550;
-// non-RO: output
 assign cfg_pciephy_ctrl_550 = reg_pciephy_ctrl_550;
-assign dec_pciephy_ctrl_551 = (reg_addr == 12'h89C) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_551 = (reg_addr == 16'h089C) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_551_we = reg_wr && dec_pciephy_ctrl_551;
-// non-RO: output
 assign cfg_pciephy_ctrl_551 = reg_pciephy_ctrl_551;
-assign dec_pciephy_ctrl_552 = (reg_addr == 12'h8A0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_552 = (reg_addr == 16'h08A0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_552_we = reg_wr && dec_pciephy_ctrl_552;
-// non-RO: output
 assign cfg_pciephy_ctrl_552 = reg_pciephy_ctrl_552;
-assign dec_pciephy_ctrl_553 = (reg_addr == 12'h8A4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_553 = (reg_addr == 16'h08A4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_553_we = reg_wr && dec_pciephy_ctrl_553;
-// non-RO: output
 assign cfg_pciephy_ctrl_553 = reg_pciephy_ctrl_553;
-assign dec_pciephy_ctrl_554 = (reg_addr == 12'h8A8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_554 = (reg_addr == 16'h08A8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_554_we = reg_wr && dec_pciephy_ctrl_554;
-// non-RO: output
 assign cfg_pciephy_ctrl_554 = reg_pciephy_ctrl_554;
-assign dec_pciephy_ctrl_555 = (reg_addr == 12'h8AC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_555 = (reg_addr == 16'h08AC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_555_we = reg_wr && dec_pciephy_ctrl_555;
-// non-RO: output
 assign cfg_pciephy_ctrl_555 = reg_pciephy_ctrl_555;
-assign dec_pciephy_ctrl_556 = (reg_addr == 12'h8B0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_556 = (reg_addr == 16'h08B0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_556_we = reg_wr && dec_pciephy_ctrl_556;
-// non-RO: output
 assign cfg_pciephy_ctrl_556 = reg_pciephy_ctrl_556;
-assign dec_pciephy_ctrl_557 = (reg_addr == 12'h8B4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_557 = (reg_addr == 16'h08B4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_557_we = reg_wr && dec_pciephy_ctrl_557;
-// non-RO: output
 assign cfg_pciephy_ctrl_557 = reg_pciephy_ctrl_557;
-assign dec_pciephy_ctrl_558 = (reg_addr == 12'h8B8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_558 = (reg_addr == 16'h08B8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_558_we = reg_wr && dec_pciephy_ctrl_558;
-// non-RO: output
 assign cfg_pciephy_ctrl_558 = reg_pciephy_ctrl_558;
-assign dec_pciephy_ctrl_559 = (reg_addr == 12'h8BC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_559 = (reg_addr == 16'h08BC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_559_we = reg_wr && dec_pciephy_ctrl_559;
-// non-RO: output
 assign cfg_pciephy_ctrl_559 = reg_pciephy_ctrl_559;
-assign dec_pciephy_ctrl_560 = (reg_addr == 12'h8C0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_560 = (reg_addr == 16'h08C0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_560_we = reg_wr && dec_pciephy_ctrl_560;
-// non-RO: output
 assign cfg_pciephy_ctrl_560 = reg_pciephy_ctrl_560;
-assign dec_pciephy_ctrl_561 = (reg_addr == 12'h8C4) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_561 = (reg_addr == 16'h08C4) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_561_we = reg_wr && dec_pciephy_ctrl_561;
-// non-RO: output
 assign cfg_pciephy_ctrl_561 = reg_pciephy_ctrl_561;
-assign dec_pciephy_ctrl_562 = (reg_addr == 12'h8C8) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_562 = (reg_addr == 16'h08C8) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_562_we = reg_wr && dec_pciephy_ctrl_562;
-// non-RO: output
 assign cfg_pciephy_ctrl_562 = reg_pciephy_ctrl_562;
-assign dec_pciephy_ctrl_563 = (reg_addr == 12'h8CC) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_563 = (reg_addr == 16'h08CC) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_563_we = reg_wr && dec_pciephy_ctrl_563;
-// non-RO: output
 assign cfg_pciephy_ctrl_563 = reg_pciephy_ctrl_563;
-assign dec_pciephy_ctrl_564 = (reg_addr == 12'h8D0) ? 1'd1 : 1'd0;
+assign dec_pciephy_ctrl_564 = (reg_addr == 16'h08D0) ? 1'd1 : 1'd0;
 assign pciephy_ctrl_564_we = reg_wr && dec_pciephy_ctrl_564;
-// non-RO: output
 assign cfg_pciephy_ctrl_564 = reg_pciephy_ctrl_564;
-assign dec_pciephy_ctrl_565 = (reg_addr == 12'h8D4) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_565 = (reg_addr == 16'h08D4) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_565 = cfg_pciephy_ctrl_565;
-assign dec_pciephy_ctrl_566 = (reg_addr == 12'h8D8) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_566 = (reg_addr == 16'h08D8) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_566 = cfg_pciephy_ctrl_566;
-assign dec_pciephy_ctrl_567 = (reg_addr == 12'h8DC) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_567 = (reg_addr == 16'h08DC) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_567 = cfg_pciephy_ctrl_567;
-assign dec_pciephy_ctrl_568 = (reg_addr == 12'h8E0) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_568 = (reg_addr == 16'h08E0) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_568 = cfg_pciephy_ctrl_568;
-assign dec_pciephy_ctrl_569 = (reg_addr == 12'h8E4) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_569 = (reg_addr == 16'h08E4) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_569 = cfg_pciephy_ctrl_569;
-assign dec_pciephy_ctrl_570 = (reg_addr == 12'h8E8) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_570 = (reg_addr == 16'h08E8) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_570 = cfg_pciephy_ctrl_570;
-assign dec_pciephy_ctrl_571 = (reg_addr == 12'h8EC) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_571 = (reg_addr == 16'h08EC) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_571 = cfg_pciephy_ctrl_571;
-assign dec_pciephy_ctrl_572 = (reg_addr == 12'h8F0) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_572 = (reg_addr == 16'h08F0) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_572 = cfg_pciephy_ctrl_572;
-assign dec_pciephy_ctrl_573 = (reg_addr == 12'h8F4) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_573 = (reg_addr == 16'h08F4) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_573 = cfg_pciephy_ctrl_573;
-assign dec_pciephy_ctrl_574 = (reg_addr == 12'h8F8) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_574 = (reg_addr == 16'h08F8) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_574 = cfg_pciephy_ctrl_574;
-assign dec_pciephy_ctrl_575 = (reg_addr == 12'h8FC) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_575 = (reg_addr == 16'h08FC) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_575 = cfg_pciephy_ctrl_575;
-assign dec_pciephy_ctrl_576 = (reg_addr == 12'h900) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_576 = (reg_addr == 16'h0900) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_576 = cfg_pciephy_ctrl_576;
-assign dec_pciephy_ctrl_577 = (reg_addr == 12'h904) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_577 = (reg_addr == 16'h0904) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_577 = cfg_pciephy_ctrl_577;
-assign dec_pciephy_ctrl_578 = (reg_addr == 12'h908) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_578 = (reg_addr == 16'h0908) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_578 = cfg_pciephy_ctrl_578;
-assign dec_pciephy_ctrl_579 = (reg_addr == 12'h90C) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_579 = (reg_addr == 16'h090C) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_579 = cfg_pciephy_ctrl_579;
-assign dec_pciephy_ctrl_580 = (reg_addr == 12'h910) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_580 = (reg_addr == 16'h0910) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_580 = cfg_pciephy_ctrl_580;
-assign dec_pciephy_ctrl_581 = (reg_addr == 12'h914) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_581 = (reg_addr == 16'h0914) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_581 = cfg_pciephy_ctrl_581;
-assign dec_pciephy_ctrl_582 = (reg_addr == 12'h918) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_582 = (reg_addr == 16'h0918) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_582 = cfg_pciephy_ctrl_582;
-assign dec_pciephy_ctrl_583 = (reg_addr == 12'h91C) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_583 = (reg_addr == 16'h091C) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_583 = cfg_pciephy_ctrl_583;
-assign dec_pciephy_ctrl_584 = (reg_addr == 12'h920) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_584 = (reg_addr == 16'h0920) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_584 = cfg_pciephy_ctrl_584;
-assign dec_pciephy_ctrl_585 = (reg_addr == 12'h924) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_585 = (reg_addr == 16'h0924) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_585 = cfg_pciephy_ctrl_585;
-assign dec_pciephy_ctrl_586 = (reg_addr == 12'h928) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_586 = (reg_addr == 16'h0928) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_586 = cfg_pciephy_ctrl_586;
-assign dec_pciephy_ctrl_587 = (reg_addr == 12'h92C) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_587 = (reg_addr == 16'h092C) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_587 = cfg_pciephy_ctrl_587;
-assign dec_pciephy_ctrl_588 = (reg_addr == 12'h930) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_588 = (reg_addr == 16'h0930) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_588 = cfg_pciephy_ctrl_588;
-assign dec_pciephy_ctrl_589 = (reg_addr == 12'h934) ? 1'd1 : 1'd0;
-// RO reg: input
+assign dec_pciephy_ctrl_589 = (reg_addr == 16'h0934) ? 1'd1 : 1'd0;
 assign reg_pciephy_ctrl_589 = cfg_pciephy_ctrl_589;
 assign in_range = |{dec_pciephy_ctrl_0,
 dec_pciephy_ctrl_1,
@@ -5297,7 +4712,6 @@ dec_pciephy_ctrl_586,
 dec_pciephy_ctrl_587,
 dec_pciephy_ctrl_588,
 dec_pciephy_ctrl_589};
-// Read data mux
 assign next_rdata =
 ( {32{dec_pciephy_ctrl_0}} & reg_pciephy_ctrl_0 ) |
 ( {32{dec_pciephy_ctrl_1}} & reg_pciephy_ctrl_1 ) |
@@ -5938,7 +5352,8 @@ reg_pciephy_ctrl_3 <= 32'h2111088;
 end
 else if(pciephy_ctrl_3_we)
 begin
-reg_pciephy_ctrl_3 <= reg_wdata;
+reg_pciephy_ctrl_3[31:26] <= '0;
+reg_pciephy_ctrl_3[25:0] <= reg_wdata[25:0];
 end
 
 
@@ -5950,7 +5365,20 @@ reg_pciephy_ctrl_4 <= 32'h3117C104;
 end
 else if(pciephy_ctrl_4_we)
 begin
-reg_pciephy_ctrl_4 <= reg_wdata;
+reg_pciephy_ctrl_4[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_4[27:27] <= '0;
+reg_pciephy_ctrl_4[26:24] <= reg_wdata[26:24];
+reg_pciephy_ctrl_4[23:23] <= '0;
+reg_pciephy_ctrl_4[22:14] <= reg_wdata[22:14];
+reg_pciephy_ctrl_4[13:13] <= '0;
+reg_pciephy_ctrl_4[12:10] <= reg_wdata[12:10];
+reg_pciephy_ctrl_4[9:9] <= '0;
+reg_pciephy_ctrl_4[8:8] <= reg_wdata[8:8];
+reg_pciephy_ctrl_4[7:7] <= '0;
+reg_pciephy_ctrl_4[6:4] <= reg_wdata[6:4];
+reg_pciephy_ctrl_4[3:3] <= '0;
+reg_pciephy_ctrl_4[2:2] <= reg_wdata[2:2];
+reg_pciephy_ctrl_4[1:0] <= '0;
 end
 
 
@@ -5962,7 +5390,9 @@ reg_pciephy_ctrl_5 <= 32'h1800000;
 end
 else if(pciephy_ctrl_5_we)
 begin
-reg_pciephy_ctrl_5 <= reg_wdata;
+reg_pciephy_ctrl_5[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_5[27:27] <= '0;
+reg_pciephy_ctrl_5[26:0] <= reg_wdata[26:0];
 end
 
 
@@ -5974,7 +5404,8 @@ reg_pciephy_ctrl_6 <= 32'h33;
 end
 else if(pciephy_ctrl_6_we)
 begin
-reg_pciephy_ctrl_6 <= reg_wdata;
+reg_pciephy_ctrl_6[31:31] <= '0;
+reg_pciephy_ctrl_6[30:0] <= reg_wdata[30:0];
 end
 
 
@@ -5986,7 +5417,20 @@ reg_pciephy_ctrl_7 <= 32'h3117C104;
 end
 else if(pciephy_ctrl_7_we)
 begin
-reg_pciephy_ctrl_7 <= reg_wdata;
+reg_pciephy_ctrl_7[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_7[27:27] <= '0;
+reg_pciephy_ctrl_7[26:24] <= reg_wdata[26:24];
+reg_pciephy_ctrl_7[23:23] <= '0;
+reg_pciephy_ctrl_7[22:14] <= reg_wdata[22:14];
+reg_pciephy_ctrl_7[13:13] <= '0;
+reg_pciephy_ctrl_7[12:10] <= reg_wdata[12:10];
+reg_pciephy_ctrl_7[9:9] <= '0;
+reg_pciephy_ctrl_7[8:8] <= reg_wdata[8:8];
+reg_pciephy_ctrl_7[7:7] <= '0;
+reg_pciephy_ctrl_7[6:4] <= reg_wdata[6:4];
+reg_pciephy_ctrl_7[3:3] <= '0;
+reg_pciephy_ctrl_7[2:2] <= reg_wdata[2:2];
+reg_pciephy_ctrl_7[1:0] <= '0;
 end
 
 
@@ -5998,7 +5442,9 @@ reg_pciephy_ctrl_8 <= 32'h1800000;
 end
 else if(pciephy_ctrl_8_we)
 begin
-reg_pciephy_ctrl_8 <= reg_wdata;
+reg_pciephy_ctrl_8[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_8[27:27] <= '0;
+reg_pciephy_ctrl_8[26:0] <= reg_wdata[26:0];
 end
 
 
@@ -6010,7 +5456,8 @@ reg_pciephy_ctrl_9 <= 32'h33;
 end
 else if(pciephy_ctrl_9_we)
 begin
-reg_pciephy_ctrl_9 <= reg_wdata;
+reg_pciephy_ctrl_9[31:31] <= '0;
+reg_pciephy_ctrl_9[30:0] <= reg_wdata[30:0];
 end
 
 
@@ -6022,7 +5469,20 @@ reg_pciephy_ctrl_10 <= 32'h3117C104;
 end
 else if(pciephy_ctrl_10_we)
 begin
-reg_pciephy_ctrl_10 <= reg_wdata;
+reg_pciephy_ctrl_10[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_10[27:27] <= '0;
+reg_pciephy_ctrl_10[26:24] <= reg_wdata[26:24];
+reg_pciephy_ctrl_10[23:23] <= '0;
+reg_pciephy_ctrl_10[22:14] <= reg_wdata[22:14];
+reg_pciephy_ctrl_10[13:13] <= '0;
+reg_pciephy_ctrl_10[12:10] <= reg_wdata[12:10];
+reg_pciephy_ctrl_10[9:9] <= '0;
+reg_pciephy_ctrl_10[8:8] <= reg_wdata[8:8];
+reg_pciephy_ctrl_10[7:7] <= '0;
+reg_pciephy_ctrl_10[6:4] <= reg_wdata[6:4];
+reg_pciephy_ctrl_10[3:3] <= '0;
+reg_pciephy_ctrl_10[2:2] <= reg_wdata[2:2];
+reg_pciephy_ctrl_10[1:0] <= '0;
 end
 
 
@@ -6034,7 +5494,9 @@ reg_pciephy_ctrl_11 <= 32'h1800000;
 end
 else if(pciephy_ctrl_11_we)
 begin
-reg_pciephy_ctrl_11 <= reg_wdata;
+reg_pciephy_ctrl_11[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_11[27:27] <= '0;
+reg_pciephy_ctrl_11[26:0] <= reg_wdata[26:0];
 end
 
 
@@ -6046,7 +5508,8 @@ reg_pciephy_ctrl_12 <= 32'h33;
 end
 else if(pciephy_ctrl_12_we)
 begin
-reg_pciephy_ctrl_12 <= reg_wdata;
+reg_pciephy_ctrl_12[31:31] <= '0;
+reg_pciephy_ctrl_12[30:0] <= reg_wdata[30:0];
 end
 
 
@@ -6058,7 +5521,20 @@ reg_pciephy_ctrl_13 <= 32'h3117C104;
 end
 else if(pciephy_ctrl_13_we)
 begin
-reg_pciephy_ctrl_13 <= reg_wdata;
+reg_pciephy_ctrl_13[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_13[27:27] <= '0;
+reg_pciephy_ctrl_13[26:24] <= reg_wdata[26:24];
+reg_pciephy_ctrl_13[23:23] <= '0;
+reg_pciephy_ctrl_13[22:14] <= reg_wdata[22:14];
+reg_pciephy_ctrl_13[13:13] <= '0;
+reg_pciephy_ctrl_13[12:10] <= reg_wdata[12:10];
+reg_pciephy_ctrl_13[9:9] <= '0;
+reg_pciephy_ctrl_13[8:8] <= reg_wdata[8:8];
+reg_pciephy_ctrl_13[7:7] <= '0;
+reg_pciephy_ctrl_13[6:4] <= reg_wdata[6:4];
+reg_pciephy_ctrl_13[3:3] <= '0;
+reg_pciephy_ctrl_13[2:2] <= reg_wdata[2:2];
+reg_pciephy_ctrl_13[1:0] <= '0;
 end
 
 
@@ -6070,7 +5546,9 @@ reg_pciephy_ctrl_14 <= 32'h1800000;
 end
 else if(pciephy_ctrl_14_we)
 begin
-reg_pciephy_ctrl_14 <= reg_wdata;
+reg_pciephy_ctrl_14[31:28] <= reg_wdata[31:28];
+reg_pciephy_ctrl_14[27:27] <= '0;
+reg_pciephy_ctrl_14[26:0] <= reg_wdata[26:0];
 end
 
 
@@ -6082,7 +5560,8 @@ reg_pciephy_ctrl_15 <= 32'h33;
 end
 else if(pciephy_ctrl_15_we)
 begin
-reg_pciephy_ctrl_15 <= reg_wdata;
+reg_pciephy_ctrl_15[31:31] <= '0;
+reg_pciephy_ctrl_15[30:0] <= reg_wdata[30:0];
 end
 
 
@@ -6094,7 +5573,8 @@ reg_pciephy_ctrl_16 <= 32'h18C6318C;
 end
 else if(pciephy_ctrl_16_we)
 begin
-reg_pciephy_ctrl_16 <= reg_wdata;
+reg_pciephy_ctrl_16[31:30] <= '0;
+reg_pciephy_ctrl_16[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -6106,7 +5586,8 @@ reg_pciephy_ctrl_17 <= 32'h18C6318C;
 end
 else if(pciephy_ctrl_17_we)
 begin
-reg_pciephy_ctrl_17 <= reg_wdata;
+reg_pciephy_ctrl_17[31:30] <= '0;
+reg_pciephy_ctrl_17[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -6118,7 +5599,8 @@ reg_pciephy_ctrl_18 <= 32'h116318C;
 end
 else if(pciephy_ctrl_18_we)
 begin
-reg_pciephy_ctrl_18 <= reg_wdata;
+reg_pciephy_ctrl_18[31:28] <= '0;
+reg_pciephy_ctrl_18[27:0] <= reg_wdata[27:0];
 end
 
 
@@ -6126,11 +5608,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_19 <= 32'h1;
+reg_pciephy_ctrl_19 <= 32'h0;
 end
 else if(pciephy_ctrl_19_we)
 begin
-reg_pciephy_ctrl_19 <= reg_wdata;
+reg_pciephy_ctrl_19[31:14] <= '0;
+reg_pciephy_ctrl_19[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_19[5:0] <= '0;
 end
 
 
@@ -6150,11 +5634,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_21 <= 32'h1;
+reg_pciephy_ctrl_21 <= 32'h0;
 end
 else if(pciephy_ctrl_21_we)
 begin
-reg_pciephy_ctrl_21 <= reg_wdata;
+reg_pciephy_ctrl_21[31:14] <= '0;
+reg_pciephy_ctrl_21[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_21[5:0] <= '0;
 end
 
 
@@ -6174,11 +5660,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_23 <= 32'h1;
+reg_pciephy_ctrl_23 <= 32'h0;
 end
 else if(pciephy_ctrl_23_we)
 begin
-reg_pciephy_ctrl_23 <= reg_wdata;
+reg_pciephy_ctrl_23[31:14] <= '0;
+reg_pciephy_ctrl_23[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_23[5:0] <= '0;
 end
 
 
@@ -6198,11 +5686,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_25 <= 32'h1;
+reg_pciephy_ctrl_25 <= 32'h0;
 end
 else if(pciephy_ctrl_25_we)
 begin
-reg_pciephy_ctrl_25 <= reg_wdata;
+reg_pciephy_ctrl_25[31:14] <= '0;
+reg_pciephy_ctrl_25[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_25[5:0] <= '0;
 end
 
 
@@ -6222,11 +5712,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_27 <= 32'h1;
+reg_pciephy_ctrl_27 <= 32'h0;
 end
 else if(pciephy_ctrl_27_we)
 begin
-reg_pciephy_ctrl_27 <= reg_wdata;
+reg_pciephy_ctrl_27[31:14] <= '0;
+reg_pciephy_ctrl_27[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_27[5:0] <= '0;
 end
 
 
@@ -6246,11 +5738,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_29 <= 32'h1;
+reg_pciephy_ctrl_29 <= 32'h0;
 end
 else if(pciephy_ctrl_29_we)
 begin
-reg_pciephy_ctrl_29 <= reg_wdata;
+reg_pciephy_ctrl_29[31:14] <= '0;
+reg_pciephy_ctrl_29[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_29[5:0] <= '0;
 end
 
 
@@ -6270,11 +5764,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_31 <= 32'h1;
+reg_pciephy_ctrl_31 <= 32'h0;
 end
 else if(pciephy_ctrl_31_we)
 begin
-reg_pciephy_ctrl_31 <= reg_wdata;
+reg_pciephy_ctrl_31[31:14] <= '0;
+reg_pciephy_ctrl_31[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_31[5:0] <= '0;
 end
 
 
@@ -6294,11 +5790,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_33 <= 32'h1;
+reg_pciephy_ctrl_33 <= 32'h0;
 end
 else if(pciephy_ctrl_33_we)
 begin
-reg_pciephy_ctrl_33 <= reg_wdata;
+reg_pciephy_ctrl_33[31:14] <= '0;
+reg_pciephy_ctrl_33[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_33[5:0] <= '0;
 end
 
 
@@ -6318,11 +5816,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_35 <= 32'h1;
+reg_pciephy_ctrl_35 <= 32'h0;
 end
 else if(pciephy_ctrl_35_we)
 begin
-reg_pciephy_ctrl_35 <= reg_wdata;
+reg_pciephy_ctrl_35[31:14] <= '0;
+reg_pciephy_ctrl_35[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_35[5:0] <= '0;
 end
 
 
@@ -6342,11 +5842,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_37 <= 32'h1;
+reg_pciephy_ctrl_37 <= 32'h0;
 end
 else if(pciephy_ctrl_37_we)
 begin
-reg_pciephy_ctrl_37 <= reg_wdata;
+reg_pciephy_ctrl_37[31:14] <= '0;
+reg_pciephy_ctrl_37[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_37[5:0] <= '0;
 end
 
 
@@ -6366,11 +5868,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_39 <= 32'h1;
+reg_pciephy_ctrl_39 <= 32'h0;
 end
 else if(pciephy_ctrl_39_we)
 begin
-reg_pciephy_ctrl_39 <= reg_wdata;
+reg_pciephy_ctrl_39[31:14] <= '0;
+reg_pciephy_ctrl_39[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_39[5:0] <= '0;
 end
 
 
@@ -6390,11 +5894,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_41 <= 32'h1;
+reg_pciephy_ctrl_41 <= 32'h0;
 end
 else if(pciephy_ctrl_41_we)
 begin
-reg_pciephy_ctrl_41 <= reg_wdata;
+reg_pciephy_ctrl_41[31:14] <= '0;
+reg_pciephy_ctrl_41[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_41[5:0] <= '0;
 end
 
 
@@ -6414,11 +5920,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_43 <= 32'h1;
+reg_pciephy_ctrl_43 <= 32'h0;
 end
 else if(pciephy_ctrl_43_we)
 begin
-reg_pciephy_ctrl_43 <= reg_wdata;
+reg_pciephy_ctrl_43[31:14] <= '0;
+reg_pciephy_ctrl_43[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_43[5:0] <= '0;
 end
 
 
@@ -6438,11 +5946,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_45 <= 32'h1;
+reg_pciephy_ctrl_45 <= 32'h0;
 end
 else if(pciephy_ctrl_45_we)
 begin
-reg_pciephy_ctrl_45 <= reg_wdata;
+reg_pciephy_ctrl_45[31:14] <= '0;
+reg_pciephy_ctrl_45[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_45[5:0] <= '0;
 end
 
 
@@ -6462,11 +5972,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_47 <= 32'h1;
+reg_pciephy_ctrl_47 <= 32'h0;
 end
 else if(pciephy_ctrl_47_we)
 begin
-reg_pciephy_ctrl_47 <= reg_wdata;
+reg_pciephy_ctrl_47[31:14] <= '0;
+reg_pciephy_ctrl_47[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_47[5:0] <= '0;
 end
 
 
@@ -6486,11 +5998,13 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_pciephy_ctrl_49 <= 32'h1;
+reg_pciephy_ctrl_49 <= 32'h0;
 end
 else if(pciephy_ctrl_49_we)
 begin
-reg_pciephy_ctrl_49 <= reg_wdata;
+reg_pciephy_ctrl_49[31:14] <= '0;
+reg_pciephy_ctrl_49[13:6] <= reg_wdata[13:6];
+reg_pciephy_ctrl_49[5:0] <= '0;
 end
 
 
@@ -6994,7 +6508,8 @@ reg_pciephy_ctrl_91 <= 32'h1;
 end
 else if(pciephy_ctrl_91_we)
 begin
-reg_pciephy_ctrl_91 <= reg_wdata;
+reg_pciephy_ctrl_91[31:16] <= '0;
+reg_pciephy_ctrl_91[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -7006,7 +6521,8 @@ reg_pciephy_ctrl_92 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_92_we)
 begin
-reg_pciephy_ctrl_92 <= reg_wdata;
+reg_pciephy_ctrl_92[31:24] <= '0;
+reg_pciephy_ctrl_92[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7018,7 +6534,8 @@ reg_pciephy_ctrl_93 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_93_we)
 begin
-reg_pciephy_ctrl_93 <= reg_wdata;
+reg_pciephy_ctrl_93[31:24] <= '0;
+reg_pciephy_ctrl_93[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7030,7 +6547,8 @@ reg_pciephy_ctrl_94 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_94_we)
 begin
-reg_pciephy_ctrl_94 <= reg_wdata;
+reg_pciephy_ctrl_94[31:24] <= '0;
+reg_pciephy_ctrl_94[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7042,7 +6560,8 @@ reg_pciephy_ctrl_95 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_95_we)
 begin
-reg_pciephy_ctrl_95 <= reg_wdata;
+reg_pciephy_ctrl_95[31:24] <= '0;
+reg_pciephy_ctrl_95[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7054,7 +6573,8 @@ reg_pciephy_ctrl_96 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_96_we)
 begin
-reg_pciephy_ctrl_96 <= reg_wdata;
+reg_pciephy_ctrl_96[31:24] <= '0;
+reg_pciephy_ctrl_96[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7066,7 +6586,8 @@ reg_pciephy_ctrl_97 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_97_we)
 begin
-reg_pciephy_ctrl_97 <= reg_wdata;
+reg_pciephy_ctrl_97[31:24] <= '0;
+reg_pciephy_ctrl_97[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7078,7 +6599,8 @@ reg_pciephy_ctrl_98 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_98_we)
 begin
-reg_pciephy_ctrl_98 <= reg_wdata;
+reg_pciephy_ctrl_98[31:24] <= '0;
+reg_pciephy_ctrl_98[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7090,7 +6612,8 @@ reg_pciephy_ctrl_99 <= 32'h3E03E;
 end
 else if(pciephy_ctrl_99_we)
 begin
-reg_pciephy_ctrl_99 <= reg_wdata;
+reg_pciephy_ctrl_99[31:24] <= '0;
+reg_pciephy_ctrl_99[23:0] <= reg_wdata[23:0];
 end
 
 
@@ -7102,7 +6625,8 @@ reg_pciephy_ctrl_100 <= 32'h0;
 end
 else if(pciephy_ctrl_100_we)
 begin
-reg_pciephy_ctrl_100 <= reg_wdata;
+reg_pciephy_ctrl_100[31:30] <= '0;
+reg_pciephy_ctrl_100[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -7114,7 +6638,8 @@ reg_pciephy_ctrl_101 <= 32'h0;
 end
 else if(pciephy_ctrl_101_we)
 begin
-reg_pciephy_ctrl_101 <= reg_wdata;
+reg_pciephy_ctrl_101[31:30] <= '0;
+reg_pciephy_ctrl_101[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -7126,7 +6651,8 @@ reg_pciephy_ctrl_102 <= 32'h0;
 end
 else if(pciephy_ctrl_102_we)
 begin
-reg_pciephy_ctrl_102 <= reg_wdata;
+reg_pciephy_ctrl_102[31:30] <= '0;
+reg_pciephy_ctrl_102[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -7138,7 +6664,8 @@ reg_pciephy_ctrl_103 <= 32'h0;
 end
 else if(pciephy_ctrl_103_we)
 begin
-reg_pciephy_ctrl_103 <= reg_wdata;
+reg_pciephy_ctrl_103[31:30] <= '0;
+reg_pciephy_ctrl_103[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -7150,7 +6677,8 @@ reg_pciephy_ctrl_104 <= 32'h0;
 end
 else if(pciephy_ctrl_104_we)
 begin
-reg_pciephy_ctrl_104 <= reg_wdata;
+reg_pciephy_ctrl_104[31:30] <= '0;
+reg_pciephy_ctrl_104[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -7162,7 +6690,8 @@ reg_pciephy_ctrl_105 <= 32'h21400;
 end
 else if(pciephy_ctrl_105_we)
 begin
-reg_pciephy_ctrl_105 <= reg_wdata;
+reg_pciephy_ctrl_105[31:23] <= '0;
+reg_pciephy_ctrl_105[22:0] <= reg_wdata[22:0];
 end
 
 
@@ -7174,7 +6703,8 @@ reg_pciephy_ctrl_106 <= 32'h0;
 end
 else if(pciephy_ctrl_106_we)
 begin
-reg_pciephy_ctrl_106 <= reg_wdata;
+reg_pciephy_ctrl_106[31:16] <= '0;
+reg_pciephy_ctrl_106[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -7186,7 +6716,8 @@ reg_pciephy_ctrl_107 <= 32'h0;
 end
 else if(pciephy_ctrl_107_we)
 begin
-reg_pciephy_ctrl_107 <= reg_wdata;
+reg_pciephy_ctrl_107[31:7] <= '0;
+reg_pciephy_ctrl_107[6:0] <= reg_wdata[6:0];
 end
 
 
@@ -7330,7 +6861,8 @@ reg_pciephy_ctrl_119 <= 32'h0;
 end
 else if(pciephy_ctrl_119_we)
 begin
-reg_pciephy_ctrl_119 <= reg_wdata;
+reg_pciephy_ctrl_119[31:27] <= '0;
+reg_pciephy_ctrl_119[26:0] <= reg_wdata[26:0];
 end
 
 
@@ -7390,7 +6922,8 @@ reg_pciephy_ctrl_124 <= 32'h0;
 end
 else if(pciephy_ctrl_124_we)
 begin
-reg_pciephy_ctrl_124 <= reg_wdata;
+reg_pciephy_ctrl_124[31:22] <= '0;
+reg_pciephy_ctrl_124[21:0] <= reg_wdata[21:0];
 end
 
 
@@ -7438,7 +6971,8 @@ reg_pciephy_ctrl_128 <= 32'h0;
 end
 else if(pciephy_ctrl_128_we)
 begin
-reg_pciephy_ctrl_128 <= reg_wdata;
+reg_pciephy_ctrl_128[31:22] <= '0;
+reg_pciephy_ctrl_128[21:0] <= reg_wdata[21:0];
 end
 
 
@@ -7450,7 +6984,8 @@ reg_pciephy_ctrl_129 <= 32'h0;
 end
 else if(pciephy_ctrl_129_we)
 begin
-reg_pciephy_ctrl_129 <= reg_wdata;
+reg_pciephy_ctrl_129[31:6] <= '0;
+reg_pciephy_ctrl_129[5:0] <= reg_wdata[5:0];
 end
 
 
@@ -7546,7 +7081,8 @@ reg_pciephy_ctrl_137 <= 32'h0;
 end
 else if(pciephy_ctrl_137_we)
 begin
-reg_pciephy_ctrl_137 <= reg_wdata;
+reg_pciephy_ctrl_137[31:16] <= '0;
+reg_pciephy_ctrl_137[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -7738,7 +7274,8 @@ reg_pciephy_ctrl_153 <= 32'h0;
 end
 else if(pciephy_ctrl_153_we)
 begin
-reg_pciephy_ctrl_153 <= reg_wdata;
+reg_pciephy_ctrl_153[31:16] <= '0;
+reg_pciephy_ctrl_153[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -7750,7 +7287,8 @@ reg_pciephy_ctrl_154 <= 32'h0;
 end
 else if(pciephy_ctrl_154_we)
 begin
-reg_pciephy_ctrl_154 <= reg_wdata;
+reg_pciephy_ctrl_154[31:16] <= '0;
+reg_pciephy_ctrl_154[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -7762,7 +7300,8 @@ reg_pciephy_ctrl_155 <= 32'h0;
 end
 else if(pciephy_ctrl_155_we)
 begin
-reg_pciephy_ctrl_155 <= reg_wdata;
+reg_pciephy_ctrl_155[31:16] <= '0;
+reg_pciephy_ctrl_155[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -8218,7 +7757,8 @@ reg_pciephy_ctrl_193 <= 32'h0;
 end
 else if(pciephy_ctrl_193_we)
 begin
-reg_pciephy_ctrl_193 <= reg_wdata;
+reg_pciephy_ctrl_193[31:8] <= '0;
+reg_pciephy_ctrl_193[7:0] <= reg_wdata[7:0];
 end
 
 
@@ -8374,7 +7914,8 @@ reg_pciephy_ctrl_206 <= 32'h0;
 end
 else if(pciephy_ctrl_206_we)
 begin
-reg_pciephy_ctrl_206 <= reg_wdata;
+reg_pciephy_ctrl_206[31:16] <= '0;
+reg_pciephy_ctrl_206[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -8830,7 +8371,8 @@ reg_pciephy_ctrl_244 <= 32'h0;
 end
 else if(pciephy_ctrl_244_we)
 begin
-reg_pciephy_ctrl_244 <= reg_wdata;
+reg_pciephy_ctrl_244[31:16] <= '0;
+reg_pciephy_ctrl_244[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -8926,7 +8468,8 @@ reg_pciephy_ctrl_252 <= 32'h0;
 end
 else if(pciephy_ctrl_252_we)
 begin
-reg_pciephy_ctrl_252 <= reg_wdata;
+reg_pciephy_ctrl_252[31:16] <= '0;
+reg_pciephy_ctrl_252[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -9082,7 +8625,8 @@ reg_pciephy_ctrl_265 <= 32'h0;
 end
 else if(pciephy_ctrl_265_we)
 begin
-reg_pciephy_ctrl_265 <= reg_wdata;
+reg_pciephy_ctrl_265[31:16] <= '0;
+reg_pciephy_ctrl_265[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -9178,7 +8722,8 @@ reg_pciephy_ctrl_273 <= 32'h0;
 end
 else if(pciephy_ctrl_273_we)
 begin
-reg_pciephy_ctrl_273 <= reg_wdata;
+reg_pciephy_ctrl_273[31:16] <= '0;
+reg_pciephy_ctrl_273[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -9454,7 +8999,8 @@ reg_pciephy_ctrl_296 <= 32'h0;
 end
 else if(pciephy_ctrl_296_we)
 begin
-reg_pciephy_ctrl_296 <= reg_wdata;
+reg_pciephy_ctrl_296[31:16] <= '0;
+reg_pciephy_ctrl_296[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -9478,7 +9024,8 @@ reg_pciephy_ctrl_298 <= 32'h0;
 end
 else if(pciephy_ctrl_298_we)
 begin
-reg_pciephy_ctrl_298 <= reg_wdata;
+reg_pciephy_ctrl_298[31:28] <= '0;
+reg_pciephy_ctrl_298[27:0] <= reg_wdata[27:0];
 end
 
 
@@ -9490,7 +9037,8 @@ reg_pciephy_ctrl_299 <= 32'h0;
 end
 else if(pciephy_ctrl_299_we)
 begin
-reg_pciephy_ctrl_299 <= reg_wdata;
+reg_pciephy_ctrl_299[31:11] <= '0;
+reg_pciephy_ctrl_299[10:0] <= reg_wdata[10:0];
 end
 
 
@@ -10162,7 +9710,8 @@ reg_pciephy_ctrl_355 <= 32'h0;
 end
 else if(pciephy_ctrl_355_we)
 begin
-reg_pciephy_ctrl_355 <= reg_wdata;
+reg_pciephy_ctrl_355[31:28] <= '0;
+reg_pciephy_ctrl_355[27:0] <= reg_wdata[27:0];
 end
 
 
@@ -10174,7 +9723,8 @@ reg_pciephy_ctrl_356 <= 32'h0;
 end
 else if(pciephy_ctrl_356_we)
 begin
-reg_pciephy_ctrl_356 <= reg_wdata;
+reg_pciephy_ctrl_356[31:30] <= '0;
+reg_pciephy_ctrl_356[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -10186,7 +9736,8 @@ reg_pciephy_ctrl_357 <= 32'h0;
 end
 else if(pciephy_ctrl_357_we)
 begin
-reg_pciephy_ctrl_357 <= reg_wdata;
+reg_pciephy_ctrl_357[31:12] <= '0;
+reg_pciephy_ctrl_357[11:0] <= reg_wdata[11:0];
 end
 
 
@@ -10198,7 +9749,8 @@ reg_pciephy_ctrl_358 <= 32'h0;
 end
 else if(pciephy_ctrl_358_we)
 begin
-reg_pciephy_ctrl_358 <= reg_wdata;
+reg_pciephy_ctrl_358[31:26] <= '0;
+reg_pciephy_ctrl_358[25:0] <= reg_wdata[25:0];
 end
 
 
@@ -10210,7 +9762,8 @@ reg_pciephy_ctrl_359 <= 32'h0;
 end
 else if(pciephy_ctrl_359_we)
 begin
-reg_pciephy_ctrl_359 <= reg_wdata;
+reg_pciephy_ctrl_359[31:26] <= '0;
+reg_pciephy_ctrl_359[25:0] <= reg_wdata[25:0];
 end
 
 
@@ -10222,7 +9775,8 @@ reg_pciephy_ctrl_360 <= 32'h0;
 end
 else if(pciephy_ctrl_360_we)
 begin
-reg_pciephy_ctrl_360 <= reg_wdata;
+reg_pciephy_ctrl_360[31:30] <= '0;
+reg_pciephy_ctrl_360[29:0] <= reg_wdata[29:0];
 end
 
 
@@ -10234,7 +9788,8 @@ reg_pciephy_ctrl_361 <= 32'h0;
 end
 else if(pciephy_ctrl_361_we)
 begin
-reg_pciephy_ctrl_361 <= reg_wdata;
+reg_pciephy_ctrl_361[31:28] <= '0;
+reg_pciephy_ctrl_361[27:0] <= reg_wdata[27:0];
 end
 
 
@@ -10450,7 +10005,8 @@ reg_pciephy_ctrl_379 <= 32'h0;
 end
 else if(pciephy_ctrl_379_we)
 begin
-reg_pciephy_ctrl_379 <= reg_wdata;
+reg_pciephy_ctrl_379[31:16] <= '0;
+reg_pciephy_ctrl_379[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -10606,7 +10162,8 @@ reg_pciephy_ctrl_392 <= 32'h0;
 end
 else if(pciephy_ctrl_392_we)
 begin
-reg_pciephy_ctrl_392 <= reg_wdata;
+reg_pciephy_ctrl_392[31:16] <= '0;
+reg_pciephy_ctrl_392[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -10762,7 +10319,8 @@ reg_pciephy_ctrl_405 <= 32'h0;
 end
 else if(pciephy_ctrl_405_we)
 begin
-reg_pciephy_ctrl_405 <= reg_wdata;
+reg_pciephy_ctrl_405[31:21] <= '0;
+reg_pciephy_ctrl_405[20:0] <= reg_wdata[20:0];
 end
 
 
@@ -12118,7 +11676,8 @@ reg_pciephy_ctrl_518 <= 32'h0;
 end
 else if(pciephy_ctrl_518_we)
 begin
-reg_pciephy_ctrl_518 <= reg_wdata;
+reg_pciephy_ctrl_518[31:16] <= '0;
+reg_pciephy_ctrl_518[15:0] <= reg_wdata[15:0];
 end
 
 
@@ -12670,7 +12229,8 @@ reg_pciephy_ctrl_564 <= 32'h0;
 end
 else if(pciephy_ctrl_564_we)
 begin
-reg_pciephy_ctrl_564 <= reg_wdata;
+reg_pciephy_ctrl_564[31:20] <= '0;
+reg_pciephy_ctrl_564[19:0] <= reg_wdata[19:0];
 end
 
 
@@ -12688,4 +12248,8 @@ end
 
 
 endmodule
+/* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
+/* verilator lint_on WIDTH */
  : pcie_reg

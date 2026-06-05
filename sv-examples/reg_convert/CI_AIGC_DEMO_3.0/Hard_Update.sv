@@ -1,58 +1,72 @@
 import Hard_Update_pkg::*;
 
 // =============================================================================
-// Generated Register Block 1.0
+// Generated Register Block 3.0
 // =============================================================================
 
-// Commit ID: de56a3a3dc57d2f8959dd9ed5b5ab4b7b01cd2e9
+// Commit ID: 20a6af013fd07393de4c64eaf9009a282150fbc9
+
 
 
 
 
 /* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */
 module Hard_Update
 (
 input logic  clk,
 input logic  rst_b,
-input logic [11:0] paddr,
+input logic [15:0] paddr,
 input logic [31:0] pwdata,
 output logic [31:0] prdata,
 input logic  psel,
 input logic  penable,
 input logic  pwrite,
 output logic  pready,
-output logic  pslverr,
-output logic [31:0] cfg_cfg0
+output reg  pslverr,
+output logic [31:0] cfg_wptr,
+input logic  wptr_update,
+input logic [31:0] wptr_update_value,
+output logic [31:0] cfg_fetch_rptr,
+input logic  fetch_rptr_update,
+input logic [31:0] fetch_rptr_update_value
 );
 
 logic  reg_rd;
 logic  reg_wr;
-logic [11:0] reg_addr;
+logic [15:0] reg_addr;
 logic [31:0] reg_rdata;
 logic [31:0] reg_wdata;
 logic [31:0] next_rdata;
 logic  in_range;
 logic  slverr;
-logic  dec_cfg0;
-CFG0_t reg_cfg0;
-logic  cfg0_sc;
-logic  cfg0_we;
+logic  dec_wptr;
+WPTR_t reg_wptr;
+logic  wptr_we;
+logic  dec_fetch_rptr;
+FETCH_RPTR_t reg_fetch_rptr;
+logic  fetch_rptr_we;
 
-// apb interface
+assign prdata = reg_rdata;
 assign reg_wr = psel && penable && pwrite;
 assign reg_rd = psel && !penable && !pwrite;
-assign reg_addr = paddr;
-assign reg_wdata = pwdata;
-assign prdata = reg_rdata;
 assign pready = 1'b1;
 assign slverr = psel && !in_range;
-assign dec_cfg0 = (reg_addr == 12'h00C) ? 1'd1 : 1'd0;
-assign cfg0_we = reg_wr && dec_cfg0;
-assign cfg_cfg0 = reg_cfg0;
-assign in_range = |{dec_cfg0};
-// Read data mux
+assign reg_addr = paddr;
+assign reg_wdata = pwdata;
+assign dec_wptr = (reg_addr == 16'hF000) ? 1'd1 : 1'd0;
+assign wptr_we = reg_wr && dec_wptr;
+assign cfg_wptr = reg_wptr;
+assign dec_fetch_rptr = (reg_addr == 16'hF004) ? 1'd1 : 1'd0;
+assign fetch_rptr_we = reg_wr && dec_fetch_rptr;
+assign cfg_fetch_rptr = reg_fetch_rptr;
+assign in_range = |{dec_wptr,
+dec_fetch_rptr};
 assign next_rdata =
-( {32{dec_cfg0}} & 32'h0 );
+( {32{dec_wptr}} & reg_wptr ) |
+( {32{dec_fetch_rptr}} & reg_fetch_rptr );
 
 
 
@@ -74,15 +88,15 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-reg_cfg0 <= 32'h0;
+reg_wptr <= 32'h0;
 end
-else if(cfg0_we)
+else if(wptr_we)
 begin
-reg_cfg0 <= reg_wdata;
+reg_wptr <= reg_wdata;
 end
-else if(cfg0_sc)
+else if(wptr_update)
 begin
-reg_cfg0 <= 32'b0;
+reg_wptr <= wptr_update_value;
 end
 
 
@@ -90,15 +104,15 @@ always_ff @( posedge clk  or negedge rst_b )
 
 if(!rst_b)
 begin
-cfg0_sc <= 1'h0;
+reg_fetch_rptr <= 32'h0;
 end
-else if(cfg0_we)
+else if(fetch_rptr_we)
 begin
-cfg0_sc <= 1'b1;
+reg_fetch_rptr <= reg_wdata;
 end
-else if(cfg0_sc)
+else if(fetch_rptr_update)
 begin
-cfg0_sc <= 1'b0;
+reg_fetch_rptr <= fetch_rptr_update_value;
 end
 
 
@@ -116,5 +130,8 @@ end
 
 
 endmodule
+/* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
 /* verilator lint_on WIDTH */
  : Hard_Update

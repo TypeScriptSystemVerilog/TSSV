@@ -119,7 +119,7 @@ endinterface
 */
 export class Module {
     /**
-       * base constructor
+       * base constructor: obtain name by connecting parameters by '_'
        * @param params parameter value bundle
        * @param IOs IO port bundle
        * @param signals signal bundle
@@ -159,6 +159,10 @@ export class Module {
         this.interfaces = {};
         this.verilogParams = {};
     }
+    /**
+       * setVerilogParameter: add a parameter to verilogParams which record whether a parameter should be included in the generated verilog
+       * @param param parameter name to add to verilogParams
+    */
     setVerilogParameter(param) {
         if (!this.params[param]) {
             throw Error(`${param} does not exist!`);
@@ -422,6 +426,21 @@ export class Module {
             throw Error(`${name} signal already exists`);
         this.signals[name] = signal;
         return new Sig(name);
+    }
+    /**
+     * Retrieves an existing signal or adds a new one if it doesn't exist.
+     * @param signalName The name of the signal to retrieve or add.
+     * @param width The width of the signal.
+     * @param type The type of the signal, either 'wire' or 'reg'.
+     * @returns The signal object.
+     */
+    getOrAddSignal(signalName, width, type = 'wire') {
+        if (signalName in this.IOs) {
+            return new Sig(signalName);
+        }
+        else {
+            return this.addSignal(signalName, { width, type });
+        }
     }
     /**
        * add a DFF register(can be multi-bit) to the d input
@@ -1031,6 +1050,29 @@ ${caseAssignments}
         return outRhs;
     }
     /**
+     * Generates SystemVerilog code for buffer instances using a generate block.
+     * If the size is 1, it generates a single instance without the generate block.
+     * @param bufferName The base name of the buffer.
+     * @param instanceName The name of the instance to be used in the generate block.
+     * @param size The number of instances to generate.
+     * @returns The generated SystemVerilog code as a string.
+     */
+    generateBufferInstances(bufferName, bufferOut, instanceName, size) {
+        let svCode = '';
+        if (size === 1) {
+            svCode += `    ${instanceName} u_${bufferName} (.in(buf_in_${bufferName}[0]), .out(${bufferName}[0]));\n`;
+        }
+        else {
+            svCode += 'genvar i;\n';
+            svCode += 'generate\n';
+            svCode += `    for(i=0; i<${size}; i=i+1) begin: GEN_${bufferName}\n`;
+            svCode += `        ${instanceName} u_${bufferName} (.in(${bufferName}[i]), .out(${bufferOut}[i]));\n`;
+            svCode += '    end\n';
+            svCode += 'endgenerate\n';
+        }
+        return svCode;
+    }
+    /**
        * print some debug information to the console
        */
     debug() {
@@ -1049,7 +1091,7 @@ ${caseAssignments}
             const [_, value] = entry;
             return typeof value === 'number';
         })
-        .map(([key, value]) => `parameter ${key} = ${value.toString()}`);
+            .map(([key, value]) => `parameter ${key} = ${value.toString()}`);
         return paramsArray.length > 0 ? `    #(${paramsArray.join(',\n    ')})` : '';
     }
     assembleIODefinition(isSystemVerilog = true) {
@@ -1070,7 +1112,8 @@ ${caseAssignments}
             else {
                 if (io.type === 'reg') {
                     IOArray.push(`${this.IOs[key].direction} ${io.type} ${signString} ${rangeString} ${key}`);
-                } else {
+                }
+                else {
                     IOArray.push(`${this.IOs[key].direction} ${signString} ${rangeString} ${key}`);
                 }
             }
@@ -1157,7 +1200,7 @@ ${caseAssignments}
     }
     assembleRegisterBlock(sensitivity, resetCondition, enable, isSystemVerilog) {
         const regs = this.registerBlocks[sensitivity][resetCondition][enable];
-        const resetString = this.assembleResetString(resetCondition, regs);
+        const resetString = resetCondition === '' ? '' : this.assembleResetString(resetCondition, regs);
         const enableString = enable === '#NONE#' ? '' : `if(${enable})`;
         const functionalAssignments = this.assembleFunctionalAssignments(regs);
         const alwaysKeyword = isSystemVerilog ? 'always_ff' : 'always';
@@ -1184,22 +1227,22 @@ ${caseAssignments}
   ${functionalAssignments}
   end
   `;
-}
-const alwaysKeyword = isSystemVerilog ? 'always_ff' : 'always';
-return `
-${alwaysKeyword} ${sensitivity}
-${resetString}${enableandFunctionString}
-`;
-}
-assembleResetString(resetCondition, regs) {
-    if (resetCondition === '#NONE#' || '')
-        return '   ';
-    // 此处将不同的q合并在一个Reset Block之中
-    const resetAssignments = Object.entries(regs)
-    .map(([key, reg]) => `           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`)
-    .join('\n');
+        }
+        const alwaysKeyword = isSystemVerilog ? 'always_ff' : 'always';
+        return `
+     ${alwaysKeyword} ${sensitivity}
+  ${resetString}${enableandFunctionString}
+  `;
+    }
+    assembleResetString(resetCondition, regs) {
+        if (resetCondition === '#NONE#' || '')
+            return '   ';
+        // 此处将不同的q合并在一个Reset Block之中
+        const resetAssignments = Object.entries(regs)
+            .map(([key, reg]) => `           ${key} <= ${this.signals[key]?.width ?? this.IOs[key]?.width ?? 1}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`)
+            .join('\n');
         return `     if(${resetCondition})
-        begin
+begin
 ${resetAssignments}
 end
       else `;
@@ -1214,12 +1257,12 @@ end
                 break;
             }
         }
-                const resetAssignment = `${qName} <= ${this.signals[qName]?.width || this.IOs[qName]?.width}'h${resetVal.toString(16).toUpperCase()};`;
+        const resetAssignment = `${qName} <= ${this.signals[qName]?.width ?? this.IOs[qName]?.width ?? 1}'h${resetVal.toString(16).toUpperCase()};`;
         return `
        if(${resetCondition})
-       begin
+  begin
     ${resetAssignment}
-      end
+  end
   `;
     }
     assembleFunctionalAssignments(regs) {
@@ -1231,15 +1274,15 @@ end
     assembleReorderFunctAssignment(qName, reg) {
         return `${qName} <= ${reg.d};`;
     }
-    assembleSubmodules() {
-            let definitions = '';
-            let instantiations = '';
+    assembleSubmodules(includeVerilatorDirectives = false) {
+        let definitions = '';
+        let instantiations = '';
         const printed = {};
         Object.entries(this.submodules).forEach(([moduleInstance, thisSubmodule]) => {
             // Generate module definition if not already printed
             if (!printed[thisSubmodule.module.name]) {
                 printed[thisSubmodule.module.name] = true;
-                definitions += thisSubmodule.module.writeSystemVerilog();
+                definitions += thisSubmodule.module.writeSystemVerilog(includeVerilatorDirectives);
             }
             // Generate module instantiation
             const paramsBind = this.assembleParamsBind(thisSubmodule);
@@ -1273,413 +1316,80 @@ end
             .map(([binding, value]) => `        .${binding}(${value.toString()})`)
             .join(',\n');
     }
-        /**
+    /**
        * write the generated SystemVerilog code to a string
        * @returns string containing the generated SystemVerilog code for this module
        */
-        writeSystemVerilog() {
-            const paramsString = this.assembleParameters();
-            const { IOString, interfacesString, signalArray } = this.assembleIODefinition();
-            const signalString = this.assembleSignals(signalArray);
-            // const registerBlocksString = this.assembleRegisterBlocks()
-            const regBlksReorderString = this.assembleRegBlksReorder();
-            const { definitions, instantiations } = this.assembleSubmodules();
-            const verilog = `
-        ${interfacesString}        
-        ${definitions}        
-        module ${this.name} ${paramsString}
-           (
-        ${IOString}
-           );
-        
-        ${signalString}
-        
-        ${this.body}
-    
-        ${instantiations}
-    
-        ${regBlksReorderString}
-        
-        endmodule        
-        `;
-            return verilog;
-        }
-        writeVerilog() {
-            // assemble TSSVParameters
-            const paramsString = this.assembleParameters();
-            // construct IO definition
-            const { IOString, interfacesString, signalArray } = this.assembleIODefinition(false);
-            const signalString = this.assembleSignals(signalArray, false);
-            // const registerBlocksString = this.assembleRegisterBlocks(false)
-            const regBlksReorderString = this.assembleRegBlksReorder(false);
-            const { definitions, instantiations } = this.assembleSubmodules();
-            const verilog = `
-        ${interfacesString}        
-        ${definitions}       
-        module ${this.name} ${paramsString}
-           (
-        ${IOString}
-           );
-        
-        ${signalString}
-        
-        ${this.body}
-    
-        ${instantiations}
-    
-        ${regBlksReorderString}
-        
-        endmodule
-        `;
-            return verilog;
-        }
-    }
-    Module.printedInterfaces = {};
-    export function extractNumberFromPattern(pattern) {
-        const match = pattern.match(/^(\d+)'/);
-        return match ? parseInt(match[1], 10) : null;
-    }
-    export function serialize(obj, indent, bigIntSuffix = 'n') {
-        const serialized = JSON.stringify(obj, function (key, value) {
-            if (typeof value === 'bigint') {
-                return `0x${value.toString(16)}${bigIntSuffix}`;
-            }
-            return value;
-        }, indent);
-        return serialized;
-    }
-    export function deserialize(serialized) {
-        const revived = JSON.parse(serialized, (key, value) => {
-            const hexPattern = /^0x[0-9a-fA-F]+n$/;
-            if (typeof value === 'string' && hexPattern.test(value)) {
-                return BigInt(value.slice(0, -1));
-            }
-            return value;
-        });
-        return revived;
-    }
-    export default { Module, Sig, Expr };
-/*----------------------------------------------------------------    
-    writeSystemVerilog() {
-        // assemble TSSVParameters
-        const paramsArray = [];
-        if (this.params) {
-            // FIXME - need separate SV Verilog parameter container
-            
-        }
-        let paramsString = '';
-        if (paramsArray.length > 0) {
-            paramsString = `    #(${paramsArray.join(',\n    ')})`;
-        }
-        const IOArray = [];
-        const signalArray = [];
-        let interfacesString = '';
-        Object.keys(this.IOs).forEach((key) => {
-            let rangeString = '';
-            const signString = (this.IOs[key].isSigned) ? ' signed' : '';
-            if (this.IOs[key].isArray)
-                throw Error(`${key}: Array IOs not supported`);
-            if ((this.IOs[key].width || 0) > 1) {
-                rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
-            }
-            IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`);
-        });
-        Object.keys(this.interfaces).forEach((key) => {
-            const thisInterface = this.interfaces[key];
-            if (thisInterface.role) {
-                if (thisInterface.modports) {
-                    const thisModports = thisInterface.modports[thisInterface.role];
-                    if (!thisModports)
-                        throw Error(`${thisInterface.name} : inconsistent modports`);
-                    if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
-                        interfacesString += thisInterface.writeSystemVerilog();
-                        Module.printedInterfaces[thisInterface.interfaceName()] = true;
-                    }
-                    IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`);
-                }
-                else {
-                    throw Error(`${thisInterface.name} has role/modport inconsistency`);
-                }
-            }
-            else {
-                signalArray.push(`${thisInterface.interfaceName()} ${key}()`);
-            }
-        });
-        const IOString = `   ${IOArray.join(',\n   ')}`;
-        Object.keys(this.signals).forEach((key) => {
-            const thisSignal = this.signals[key];
-            if (thisSignal) {
-                let rangeString = '';
-                let arrayString = '';
-                let valueString = '';
-                const signString = (thisSignal.isSigned) ? ' signed' : '';
-                if ((thisSignal.width || 0) > 1) {
-                    rangeString = `[${Number(thisSignal.width) - 1}:0]`;
-                }
-                if (thisSignal.isArray && ((thisSignal.isArray || 0) > 1)) {
-                    arrayString = ` [0:${(thisSignal.isArray || 0n) - 1n}]`;
-                }
-                if (thisSignal.type === 'const logic') {
-                    valueString = ` = ${(thisSignal.value || 0n).toString()}`;
-                }
-                signalArray.push(`${'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
-            }
-        });
-        let signalString = `   ${signalArray.join(';\n   ')}`;
-        if (signalArray.length > 0)
-            signalString += ';';
-        for (const sensitivity in this.registerBlocks) {
-            for (const resetCondition in this.registerBlocks[sensitivity]) {
-                for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
-                    const regs = this.registerBlocks[sensitivity][resetCondition][enable];
-                    let resetString = '   ';
-                    if (resetCondition !== '#NONE#') {
-                        const resetAssignments = [];
-                        Object.keys(regs).forEach((key) => {
-                            const reg = regs[key];
-                            resetAssignments.push(`           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`);
-                        });
-                        resetString =
-                            `     if(${resetCondition})
-        begin
-${resetAssignments.join('\n')}
-        end
-      else `;
-                    }
-                    const enableString = (enable === '#NONE#') ? '' : `if(${enable})`;
-                    const functionalAssigments = [];
-                    Object.keys(regs).forEach((key) => {
-                        const reg = regs[key];
-                        // console.log(reg)
-                        functionalAssigments.push(`           ${key} <= ${reg.d};`);
-                    });
-                    this.body +=
-                        `
-   always_ff ${sensitivity}
-${resetString}${enableString}
-        begin
-${functionalAssigments.join('\n')}
-        end
-`;
-                }
-            }
-        }
-        let subModulesString = '';
-        const printed = {};
-        for (const moduleInstance in this.submodules) {
-            const thisSubmodule = this.submodules[moduleInstance];
-            let paramsBind = '';
-            if (!printed[thisSubmodule.module.name]) {
-                printed[thisSubmodule.module.name] = true;
-                subModulesString += thisSubmodule.module.writeSystemVerilog();
-            }
-            const bindingsArray = [];
-            for (const binding in thisSubmodule.bindings) {
-                bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding].toString()})`);
-            }
-            const vParamsArray = [];
-            for (const p in thisSubmodule.module.verilogParams) {
-                let pString;
-                if ((typeof thisSubmodule.module.params[p] === 'number') ||
-                    (typeof thisSubmodule.module.params[p] === 'bigint')) {
-                    pString = thisSubmodule.module.params[p]?.toString();
-                }
-                else if (typeof thisSubmodule.module.params[p] === 'string') {
-                    pString = `"${thisSubmodule.module.params[p]?.toString()}"`;
-                }
-                if (pString !== undefined) {
-                    vParamsArray.push(`.${p}(${pString})`);
-                }
-            }
-            if (vParamsArray.length > 0) {
-                paramsBind = `#(${vParamsArray.join(',')}) `;
-            }
-            this.body +=
-                `
-    ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
-      (
-${bindingsArray.join(',\n')}        
-      );
-`;
-        }
+    writeSystemVerilog(includeVerilatorDirectives = false) {
+        const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */\n/* verilator lint_off MULTIDRIVEN */\n/* verilator lint_off WIDTHTRUNC */\n/* verilator lint_off WIDTHEXPAND */' : '';
+        const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTHEXPAND */\n/* verilator lint_on WIDTHTRUNC */\n/* verilator lint_on MULTIDRIVEN */\n/* verilator lint_on WIDTH */' : '';
+        const paramsString = this.assembleParameters();
+        const { IOString, interfacesString, signalArray } = this.assembleIODefinition();
+        const signalString = this.assembleSignals(signalArray);
+        // const registerBlocksString = this.assembleRegisterBlocks()
+        const regBlksReorderString = this.assembleRegBlksReorder();
+        const { definitions, instantiations } = this.assembleSubmodules(includeVerilatorDirectives);
         const verilog = `
-${interfacesString}        
-${subModulesString}
-        
-module ${this.name} ${paramsString}
-   (
-${IOString}
-   );
+    ${interfacesString}        
+    ${definitions}
+            
+    ${verilatorOff}        
+    module ${this.name} ${paramsString}
+       (
+    ${IOString}
+       );
+    
+    ${signalString}
+    
+    ${this.body}
 
-${signalString}
+    ${instantiations}
 
-${this.body}
-
-endmodule`;
+    ${regBlksReorderString}
+    
+    endmodule
+    ${verilatorOn}       
+    `;
         return verilog;
     }
-    writeVerilog() {
-        // assemble TSSVParameters
-        const paramsArray = [];
-        if (this.params) {
-            // FIXME - need separate SV Verilog parameter container
-            
-        }
-        let paramsString = '';
-        if (paramsArray.length > 0) {
-            paramsString = `    #(${paramsArray.join(',\n    ')})`;
-        }
-        // construct IO definition
-        const IOArray = [];
-        const signalArray = [];
-        let interfacesString = '';
-        Object.keys(this.IOs).forEach((key) => {
-            let rangeString = '';
-            const signString = (this.IOs[key].isSigned) ? ' signed' : '';
-            if (this.IOs[key].isArray)
-                throw Error(`${key}: Array IOs not supported`);
-            if ((this.IOs[key].width || 0) > 1) {
-                rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
-            }
-            IOArray.push(`${this.IOs[key].direction} ${signString} ${rangeString} ${key}`);
-        });
-        Object.keys(this.interfaces).forEach((key) => {
-            const thisInterface = this.interfaces[key];
-            if (thisInterface.role) {
-                if (thisInterface.modports) {
-                    const thisModports = thisInterface.modports[thisInterface.role];
-                    if (!thisModports)
-                        throw Error(`${thisInterface.name} : inconsistent modports`);
-                    if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
-                        interfacesString += thisInterface.writeSystemVerilog();
-                        Module.printedInterfaces[thisInterface.interfaceName()] = true;
-                    }
-                    IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`);
-                }
-                else {
-                    throw Error(`${thisInterface.name} has role/modport inconsistency`);
-                }
-            }
-            else {
-                signalArray.push(`${thisInterface.interfaceName()} ${key}()`);
-            }
-        });
-        const IOString = `   ${IOArray.join(',\n   ')}`;
-        // construct signal list
-        Object.keys(this.signals).forEach((key) => {
-            const thisSignal = this.signals[key];
-            if (thisSignal) {
-                let rangeString = '';
-                let arrayString = '';
-                let valueString = '';
-                const signString = (thisSignal.isSigned) ? ' signed' : '';
-                if ((thisSignal.width || 0) > 1) {
-                    rangeString = `[${Number(thisSignal.width) - 1}:0]`;
-                }
-                if (thisSignal.isArray && ((thisSignal.isArray || 0) > 1)) {
-                    arrayString = ` [0:${(thisSignal.isArray || 0n) - 1n}]`;
-                }
-                if (thisSignal.type === 'const logic') {
-                    valueString = ` = ${(thisSignal.value || 0n).toString()}`;
-                }
-                signalArray.push(`${thisSignal.type}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
-            }
-        });
-        let signalString = `   ${signalArray.join(';\n   ')}`;
-        if (signalArray.length > 0)
-            signalString += ';';
-        for (const sensitivity in this.registerBlocks) {
-            for (const resetCondition in this.registerBlocks[sensitivity]) {
-                for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
-                    const regs = this.registerBlocks[sensitivity][resetCondition][enable];
-                    let resetString = '   ';
-                    if (resetCondition !== '#NONE#') {
-                        const resetAssignments = [];
-                        Object.keys(regs).forEach((key) => {
-                            const reg = regs[key];
-                            resetAssignments.push(`           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`);
-                        });
-                        resetString =
-                            `     if(${resetCondition})
-        begin
-${resetAssignments.join('\n')}
-        end
-      else `;
-                    }
-                    const enableString = (enable === '#NONE#') ? '' : `if(${enable})`;
-                    const functionalAssigments = [];
-                    Object.keys(regs).forEach((key) => {
-                        const reg = regs[key];
-                        // console.log(reg)
-                        functionalAssigments.push(`           ${key} <= ${reg.d};`);
-                    });
-                    this.body +=
-                        `
-   always ${sensitivity}
-${resetString}${enableString}
-        begin
-${functionalAssigments.join('\n')}
-        end
-`;
-                }
-            }
-        }
-        let subModulesString = '';
-        const printed = {};
-        for (const moduleInstance in this.submodules) {
-            const thisSubmodule = this.submodules[moduleInstance];
-            let paramsBind = '';
-            if (!printed[thisSubmodule.module.name]) {
-                printed[thisSubmodule.module.name] = true;
-                subModulesString += thisSubmodule.module.writeVerilog();
-            }
-            const bindingsArray = [];
-            for (const binding in thisSubmodule.bindings) {
-                bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding].toString()})`);
-            }
-            const vParamsArray = [];
-            for (const p in thisSubmodule.module.verilogParams) {
-                let pString;
-                if ((typeof thisSubmodule.module.params[p] === 'number') ||
-                    (typeof thisSubmodule.module.params[p] === 'bigint')) {
-                    pString = thisSubmodule.module.params[p]?.toString();
-                }
-                else if (typeof thisSubmodule.module.params[p] === 'string') {
-                    pString = `"${thisSubmodule.module.params[p]?.toString()}"`;
-                }
-                if (pString !== undefined) {
-                    vParamsArray.push(`.${p}(${pString})`);
-                }
-            }
-            if (vParamsArray.length > 0) {
-                paramsBind = `#(${vParamsArray.join(',')}) `;
-            }
-            this.body +=
-                `
-    ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
-      (
-${bindingsArray.join(',\n')}        
-      );
-`;
-        }
+    writeVerilog(includeVerilatorDirectives = false) {
+        const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */\n/* verilator lint_off MULTIDRIVEN */\n/* verilator lint_off WIDTHTRUNC */\n/* verilator lint_off WIDTHEXPAND */' : '';
+        const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTHEXPAND */\n/* verilator lint_on WIDTHTRUNC */\n/* verilator lint_on MULTIDRIVEN */\n/* verilator lint_on WIDTH */' : '';
+        const paramsString = this.assembleParameters();
+        const { IOString, interfacesString, signalArray } = this.assembleIODefinition(false);
+        const signalString = this.assembleSignals(signalArray, false);
+        // const registerBlocksString = this.assembleRegisterBlocks(false)
+        const regBlksReorderString = this.assembleRegBlksReorder(false);
+        const { definitions, instantiations } = this.assembleSubmodules(includeVerilatorDirectives);
         const verilog = `
-${interfacesString}        
-${subModulesString}
-        
-module ${this.name} ${paramsString}
-   (
-${IOString}
-   );
+    ${interfacesString}        
+    ${definitions}
+            
+    ${verilatorOff}         
+    module ${this.name} ${paramsString}
+       (
+    ${IOString}
+       );
+    
+    ${signalString}
+    
+    ${this.body}
 
-${signalString}
+    ${instantiations}
 
-${this.body}
-
-endmodule`;
+    ${regBlksReorderString}
+    
+    endmodule
+    ${verilatorOn}  
+    `;
         return verilog;
     }
 }
 Module.printedInterfaces = {};
+export function extractNumberFromPattern(pattern) {
+    const match = pattern.match(/^(\d+)'/);
+    return match ? parseInt(match[1], 10) : null;
+}
 export function serialize(obj, indent, bigIntSuffix = 'n') {
     const serialized = JSON.stringify(obj, function (key, value) {
         if (typeof value === 'bigint') {
@@ -1700,4 +1410,3 @@ export function deserialize(serialized) {
     return revived;
 }
 export default { Module, Sig, Expr };
-*/
