@@ -1,0 +1,36 @@
+{
+    "sram_config3": {
+      "output_dir": "./sv-examples/test_memWrapper",
+      "sram_type": "ln05lpe_a00_mc_rd2r_hsr_lvt",
+      "muxBankCd": "m2b1c0",
+
+      "suffix": "_wrapper_WRP1_I1O1",
+      "width": 1026,
+      "depth": 256,
+      "split_direction": "width",
+      "origination": [
+        {
+          "module": "ln05lpe_a00_mc_rd2r_hsr_lvt_256x256m2b1c0_wrapper_WRP1_I1O1",
+          "width": 256,
+          "depth": 256,
+          "type": "SRAM",
+          "number": 2
+        },
+        {
+          "module": "ln05lpe_a00_mc_rd2r_hsr_lvt_256x512m2b1c0_wrapper_WRP1_I1O1",
+          "width": 512,
+          "depth": 256,
+          "type": "SRAM",
+          "number": 1
+        },
+        {
+          "module": "reg_array_256x2",
+          "width": 2,
+          "depth": 256,
+          "type": "REG",
+          "number": 1
+        }
+      ]
+    }
+  }
+  

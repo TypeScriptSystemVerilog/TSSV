@@ -1,0 +1,6 @@
+#!/bin/bash
+TSSV_DIR=$(dirname "$0")
+rm "$TSSV_DIR/sv-examples/test_memWrapper/ln05lpe_a00_mc_rd2r_hsr_lvt_1026x256m2b1c0_wrapper_WRP1_I0O0_wrapper.v"
+touch "$TSSV_DIR/sv-examples/test_memWrapper/sram_list"
+node "$TSSV_DIR/out/test/gen_sram_wrapper/gen_sram_wrapper.js" "$TSSV_DIR/sv-examples/test_memWrapper/sram_config1.json" "$TSSV_DIR/sv-examples/test_memWrapper/sram_list"
+code "$TSSV_DIR/sv-examples/test_memWrapper/ln05lpe_a00_mc_rd2r_hsr_lvt_1026x256m2b1c0_wrapper_WRP1_I0O0_wrapper.v"
