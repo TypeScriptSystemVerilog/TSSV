@@ -2,6 +2,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Module, Expr } from 'tssv/lib/core/TSSV';
 import { SRAM } from 'tssv/lib/modules/SRAM';
+const logStream = fs.createWriteStream('cpu_convert.log', { flags: 'a' });
+console.log = function (message) {
+    logStream.write(`[LOG] ${message}\n`);
+};
+console.warn = function (message) {
+    logStream.write(`[WARN] ${message}\n`);
+};
+console.error = function (message) {
+    logStream.write(`[ERROR] ${message}\n`);
+};
 const predefinedConstants = {};
 function readVerilogFile(filePath) {
     // Read the content of the current file
@@ -32,7 +42,7 @@ function generatePredefinedConstants(verilogCode) {
         const [, , paramName, paramValue] = match;
         predefinedConstants[paramName] = parseInt(paramValue, 10);
     }
-    console.log(predefinedConstants);
+    console.log(JSON.stringify(predefinedConstants, null, 2));
 }
 function evaluateExpression(expr) {
     try {
@@ -99,12 +109,12 @@ function extractSramModules(verilogCode) {
                 const finalValue = processParameter(paramValue);
                 params[paramName] = finalValue;
             }
-            console.log(params);
+            console.log(JSON.stringify(params, null, 2));
             const sramModule = {
-                moduleName: '',
+                moduleName: moduleName,
                 instanceName: removeLastCharacter(instanceName),
-                dataWidth: params.DATA_W || 0,
-                addressWidth: params.ADDR_W || 0,
+                dataWidth: params.DATA_W,
+                addressWidth: params.ADDR_W || NaN,
                 depth: params.DEPTH || 0,
                 port,
                 sw: params.WREN_W === 1 ? 0 : 1
@@ -256,7 +266,6 @@ function jsonToCsv(jsonData) {
         'Port (Mandatory) 1p11/2p11/2p12/2p22',
         'Number (NA)',
         'Width (NB) (Mandatory)',
-        // 'Address Width (NB) (Mandatory)',
         'Depth (NW) (Mandatory)',
         'Total (KB) (NA)',
         'SW (Bit Write) (Mandatory)',
@@ -272,6 +281,10 @@ function jsonToCsv(jsonData) {
         'write_assist (Mandatory)',
         'pvt_enable'
     ];
+    const hasInvalidData = jsonData.some(sram => isNaN(sram.dataWidth) || isNaN(sram.depth));
+    if (hasInvalidData) {
+        return 'Error: Unable to generate CSV because some modules have null dataWidth or depth.';
+    }
     // Add header row
     let csvContent = headers.join(',') + '\n';
     // Add each sramModule row
@@ -351,8 +364,8 @@ function main() {
         fs.writeFileSync(`${outputPath}_rhc.json`, sramModulesJson);
         const csvContent = jsonToCsv(sramModules);
         splitCsvContent(csvContent, `${outputPath}_info_rhc`);
-        const libStringRHC = createLibrary(sramModules, type);
-        fs.writeFileSync(`${outputPath}_rhc_library.sv`, libStringRHC);
+        // const libStringRHC = createLibrary(sramModules, type)
+        // fs.writeFileSync(`${outputPath}_rhc_library.sv`, libStringRHC)
     }
 }
 main();
