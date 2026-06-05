@@ -1174,7 +1174,10 @@ ${caseAssignments}
         const resetString = this.assembleReorderRstStr(qName, resetCondition, regs);
         let enableandFunctionString = '';
         for (const enable in regs) {
-            const enableString = enable === '#NONE#' ? 'else' : `else if(${enable})`;
+            let enableString = enable === ('#NONE#' || '') ? 'else' : `else if(${enable})`;
+            if (resetString === ('   ' || '#NONE#')) {
+                enableString = (enable === '#NONE#') ? '' : `if(${enable})`;
+            }
             const functionalAssignments = this.assembleReorderFunctAssignment(qName, regs[enable]);
             enableandFunctionString = enableandFunctionString + `${enableString}
   begin
@@ -1189,7 +1192,7 @@ ${resetString}${enableandFunctionString}
 `;
 }
 assembleResetString(resetCondition, regs) {
-    if (resetCondition === '#NONE#')
+    if (resetCondition === '#NONE#' || '')
         return '   ';
     // 此处将不同的q合并在一个Reset Block之中
     const resetAssignments = Object.entries(regs)
@@ -1332,6 +1335,10 @@ end
         }
     }
     Module.printedInterfaces = {};
+    export function extractNumberFromPattern(pattern) {
+        const match = pattern.match(/^(\d+)'/);
+        return match ? parseInt(match[1], 10) : null;
+    }
     export function serialize(obj, indent, bigIntSuffix = 'n') {
         const serialized = JSON.stringify(obj, function (key, value) {
             if (typeof value === 'bigint') {

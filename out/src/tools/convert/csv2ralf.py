@@ -5,16 +5,14 @@ import os
 
 
 def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
-    block_name = os.path.splitext(os.path.basename(csv_filename))[0]
-    # 打开CSV文件进行读取
+    #block_name = os.path.splitext(os.path.basename(csv_filename))[0]
     with open(csv_filename, 'r') as csvfile:
         csvreader = csv.reader(csvfile)
         rows = list(csvreader)
 
-    # 打开目标RALF文件
     with open(dst_filename, 'w') as file_obj:
         print(f"Processing CSV file: {csv_filename}")    
-        # 获取CSV的列索引，假设第一行是表头
+        # CSV Column Index
         header = rows[0]
         block_column = header.index('Block Name')
         reg_column = header.index('Register Name')
@@ -29,31 +27,38 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
         bits_column = header.index('Bits')
         function_column = header.index('Field Description')
 
-        # 写入 block 的开头部分
-        file_obj.write(f"block {block_name} {{\n")
-        file_obj.write(f"    bytes {block_bytes};\n")
         incr = block_bytes
-        currentBlockName = ''
+        curBlkNm = ''
         curBlkOffset = ''
         curRegName = ''
         start_address = 0
         reg_access = ''
         repeat = 1
 
-        # 遍历每一行（从第二行开始，因为第一行是表头）
+        # start from 2nd row, as 1st is header
         i = 1
-        while i < len(rows) and i < 100:        
+        firstBlk = True
+        while i < len(rows) and i < 10000:        
             row = rows[i]
             print(f"Processing row {i}: {row}")
+            if (row[block_column] != '') :
+                curBlkNm = row[block_column]
+                curBlkOffset = row[block_address_column]
+                if firstBlk == True:
+                    
+                    firstBlk = False
+                else:
+                    file_obj.write("}\n")
+                    
+                file_obj.write(f"block {curBlkNm} {{\n")
+                file_obj.write(f"    bytes {block_bytes};\n")                    
+                i += 1
+                continue
             if (row[block_column] == '' and row[reg_column] == '' and row[field_column] == ''):
                 i += 1
                 continue
 
-            if (row[block_column] != '') :
-                currentBlockName = row[block_column]
-                curBlkOffset = row[block_address_column]
-                i += 1
-                continue
+
             
             if (row[reg_column] != '') :
                 curRegName = row[reg_column]
@@ -66,18 +71,19 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
                 i += 1
                 continue
 
-            if (repeat == 1) :  # 处理单个寄存器的情况
+            if (repeat == 1) :
                 reg_addr = f"0x{start_address:X}"
                 file_obj.write(f"    register {curRegName} @{reg_addr} {{\n")
+                file_obj.write(f"    bytes {block_bytes};\n")
                 #file_obj.write(f"        left_to_right;\n")
 
-                # 寻找该寄存器的所有字段
+                # Process all fields of this register
                 fields = []
                 while i < len(rows) and rows[i][reg_column] == '' and rows[i][field_column] != '':
                     row = rows[i]
                     field_name = row[field_column]
                     field_access = row[field_access_column]
-                    field_reset = str(row[reset_value_column])  # 去除0x前缀
+                    field_reset = str(row[reset_value_column])  # remove 0x prefix
                     field_bits = row[bits_column]
 
                     if ':' in field_bits:
@@ -89,7 +95,7 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
                         field_bit_start = field_bit_end = int(field_bits)
                         field_bits_count = 1
 
-                    # 将字段信息添加到字段列表中
+                    # Field Info
                     fields.append({
                         'name': field_name,
                         'access': field_access,
@@ -100,10 +106,8 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
                     })
                     i += 1
 
-                # 按照 field_bit_start 从低到高对字段进行排序
+                # sort field_bit_start from low to high
                 fields.sort(key=lambda field: field['bit_start'])
-
-                # 输出字段信息
                 for field in fields:
                     if field['bit_start'] == 0:
                         file_obj.write(f"        field {field['name']} {{\n")
@@ -116,15 +120,15 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
 
                 file_obj.write("    }\n")
 
-            else:  # repeat > 1 时
+            else:  # repeat > 1
                 for j in range(repeat):
                     reg_name = f"{curRegName}_{j}"
                     reg_offset = start_address + j * block_bytes
                     reg_addr = f"0x{reg_offset:X}"
                     file_obj.write(f"    register {reg_name} @{reg_addr} {{\n")
+                    file_obj.write(f"    bytes {block_bytes};\n")
                     file_obj.write(f"        left_to_right;\n")
 
-                    # 寻找该寄存器的所有字段
                     fields = []
                     k = i
                     while k < len(rows) and rows[k][reg_column] == '' and rows[k][field_column] != '':
@@ -143,7 +147,6 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
                             field_bit_start = field_bit_end = int(field_bits)
                             field_bits_count = 1
 
-                        # 将字段信息添加到字段列表中
                         fields.append({
                             'name': field_name,
                             'access': field_access,
@@ -153,11 +156,7 @@ def csv_to_ralf(csv_filename, dst_filename, block_bytes=4):
                             'bits_count': field_bits_count
                         })
                         k += 1
-
-                    # 按照 field_bit_start 从低到高对字段进行排序
                     fields.sort(key=lambda field: field['bit_start'])
-
-                    # 输出字段信息
                     for field in fields:
                         if field['bit_start'] == 0:
                             file_obj.write(f"        field {field['name']} {{\n")

@@ -46,9 +46,8 @@ function modifySignalTypes(content, wordSize, regs) {
         const trimmedLine = line.trim();
         if (!(trimmedLine.includes('reg_wdata') || trimmedLine.includes('*reg_rdata*'))) {
             for (const [key, reg] of Object.entries(regs)) {
-                const keyPattern = `reg_${key.toLowerCase()}`;
+                const keyPattern = `reg_${key.toLowerCase()};`;
                 if (trimmedLine.includes(keyPattern)) {
-                    // const signalName = reg.packName
                     return trimmedLine.replace(`logic [${wordSize - 1}:0]`, reg.packName);
                 }
             }
