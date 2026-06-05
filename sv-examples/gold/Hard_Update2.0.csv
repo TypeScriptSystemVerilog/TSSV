@@ -1,0 +1,6 @@
+Block Name,Block Offset,Register Name,Register Offset,Access Mode(RW/RO/WO/W1C/W1T/W1S),Repeat,Register Description,Field,Bits,Access Type(RW/RO/WO/W1C/W1T/W1S),Reset Value,HDL Path,Field Description,Write Out
+Update,0x0000F000,,,,,,,,,,,,,
+,,WPTR,0x0,RWU,,,,,,,,,
+,,,,,,,wptr,31:0,RWU,0x0,,,,
+,,FETCH_RPTR,0x4,RWU,,,,,,,,,
+,,,,,,,fetch_rptr,31:0,RWU,0x0,,,,

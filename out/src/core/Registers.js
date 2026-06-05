@@ -12,56 +12,181 @@ export class RegAddr {
         return nextAddr;
     }
 }
-/**
- * WRITE
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "01.0......"},
- *     {"name": "      re", "wave": "0........."},
- *     {"name": " data_rd", "wave": "0........."},
- *     {"name": "   ready", "wave": "10.1......"}
- *   ]
- * }
- * ```
- */
-/**
- * READ
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "0........."},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "0........."},
- *     {"name": "      re", "wave": "01.0......"},
- *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
- *     {"name": "   ready", "wave": "10......1."}
- *   ]
- * }
- * ```
- */
-// private setupRORegister(regName: string, thisReg: Register): void {
-//   // RO register setup logic
-// }
-// private setupWORegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
-//   // WO register setup logic
-// }
-// private setupROMRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
-//   // ROM register setup logic
-// }
-// private setupRAMRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
-//   // RAM register setup logic
-// }
+function generateAPBStr(AIGCStr, mappings = {}) {
+    if (mappings === undefined) {
+        return AIGCStr;
+    }
+    else {
+        let APBStr = AIGCStr;
+        for (const [key, value] of Object.entries(mappings)) {
+            const regex = new RegExp(`\\b${key}\\b`, 'g');
+            APBStr = APBStr.replace(regex, value);
+        }
+        return APBStr;
+    }
+}
+const AIGC2APB4 = {
+    psel: 'regs.PSELx',
+    penable: 'regs.PENABLE',
+    pwrite: 'regs.PWRITE',
+    paddr: 'regs.PADDR',
+    pwdata: 'regs.PWDATA',
+    prdata: 'regs.PRDATA',
+    pready: 'regs.PREADY',
+    pslverr: 'regs.PSLVERR'
+};
 export class RegisterBlock extends Module {
-    setupRWRegister(regName, thisReg, params, baseAddr, matchSig) {
+    // Create signals and logic for this whole register block
+    setupSignalsExprs(useComb, regDefs, params, mappings = {}) {
+        const reg_rd = this.addSignal('reg_rd', { width: 1, type: 'wire' });
+        const reg_wr = this.addSignal('reg_wr', { width: 1, type: 'wire' });
+        const reg_addr = this.addSignal('reg_addr', { width: params.busAddressWidth || 12, type: 'wire' });
+        const reg_rdata = this.addSignal('reg_rdata', { width: regDefs.wordSize || 32, type: 'reg' });
+        const reg_wdata = this.addSignal('reg_wdata', { width: regDefs.wordSize || 32, type: 'wire' });
+        const next_rdata = this.addSignal('next_rdata', { width: regDefs.wordSize || 32, type: 'wire' });
+        const inRange = this.addSignal('in_range', { width: 1, type: 'wire' });
+        const next_rdataExpr = new Expr('');
+        const inRangeExpr = new Expr('');
+        const signals = {
+            reg_rd,
+            reg_wr,
+            reg_addr,
+            reg_rdata,
+            reg_wdata,
+            next_rdata,
+            inRange
+        };
+        const expressions = {
+            next_rdataExpr,
+            inRangeExpr
+        };
+        this.body += '// apb interface\n';
+        if (useComb) {
+            this.addCombAlways({
+                outputs: ['reg_wr', 'reg_rd', 'reg_addr', 'reg_wdata', generateAPBStr('prdata', mappings), generateAPBStr('pready', mappings)]
+            }, generateAPBStr(this.AIGCStr, mappings));
+        }
+        else {
+            this.addAssign({ in: new Expr(reg_rdata.toString()), out: generateAPBStr('prdata', mappings) });
+            this.addAssign({ in: new Expr(generateAPBStr('psel && penable && pwrite', mappings)), out: reg_wr });
+            this.addAssign({ in: new Expr(generateAPBStr('psel && !penable && !pwrite', mappings)), out: reg_rd });
+            this.addAssign({ in: new Expr('1\'b1'), out: generateAPBStr('pready', mappings) });
+        }
+        this.slverrHandler(mappings);
+        return { signals, expressions };
+    }
+    extendIOs(busAddrWidth, wordSize) {
+        this.IOs = {
+            ...this.IOs,
+            paddr: { direction: 'input', width: busAddrWidth || 12 },
+            pwdata: { direction: 'input', width: wordSize || 32 },
+            prdata: { direction: 'output', width: wordSize || 32 },
+            psel: { direction: 'input', width: 1 },
+            penable: { direction: 'input', width: 1 },
+            pwrite: { direction: 'input', width: 1 },
+            pready: { direction: 'output', width: 1 },
+            pslverr: { direction: 'output', width: 1, type: 'reg' }
+        };
+    }
+    slverrHandler(mappings = {}) {
+        this.addSignal('slverr', { width: 1, type: 'wire' });
+        this.addAssign({ in: new Expr(generateAPBStr('psel && !in_range', mappings)), out: 'slverr' });
+        this.addRegister({
+            d: 'slverr',
+            clk: 'clk',
+            reset: 'rst_b',
+            q: generateAPBStr('pslverr', mappings),
+            resetVal: 0n
+        });
+    }
+    setupMatchPack(params, reg) {
+        const regName = reg.toLowerCase();
+        const registers = this.regDefs.registers;
+        const baseAddr = this.regDefs.addrMap[reg];
+        let thisReg = {
+            type: 'RW',
+            width: this.regDefs.wordSize || 32
+        };
+        if (registers[reg] !== undefined) {
+            thisReg = registers[reg] || thisReg;
+        }
+        const matchSig = this.addSignal(`dec_${regName}`, { width: 1, type: 'wire' });
+        this.addAssign({ in: new Expr(`(reg_addr == ${params.busAddressWidth}'h${this.padZeroes(baseAddr.toString(16).toUpperCase(), (params.busAddressWidth || 32) / 4)}) ? 1'd1 : 1'd0`), out: matchSig });
+        const pkSig = this.addSignal(`reg_${regName}`, { width: this.regDefs.wordSize || 32, type: (thisReg.type === 'RO') ? 'wire' : 'reg' });
+        return [regName, matchSig, pkSig, thisReg];
+    }
+    setupWOReg(regName, matchSig, pkSig, reg_wdata, thisReg) {
+        const SC_Sig = this.addSignal(`${regName}_sc`, { width: 1, type: 'reg' });
+        const WE_Sig = this.addSignal(`${regName}_we`, { width: 1, type: 'wire' });
+        this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: WE_Sig });
+        this.body += '// non-RO: output\n';
+        this.IOs[`cfg_${regName}`] = {
+            direction: 'output',
+            width: thisReg.width || this.regDefs.wordSize,
+            isSigned: thisReg.isSigned || false
+        };
+        this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
+        // this.body += '// WO self clear reg\n'
+        this.addRegister({
+            d: reg_wdata,
+            clk: 'clk',
+            reset: 'rst_b',
+            q: pkSig,
+            en: WE_Sig,
+            resetVal: thisReg.reset || 0n
+        });
+        this.addRegister({
+            d: '32\'h0',
+            clk: 'clk',
+            reset: 'rst_b',
+            q: pkSig,
+            en: SC_Sig,
+            resetVal: thisReg.reset || 0n
+        });
+        this.addRegister({
+            d: '1\'b1',
+            clk: 'clk',
+            reset: 'rst_b',
+            q: SC_Sig,
+            en: WE_Sig,
+            resetVal: 0n
+        });
+        this.addRegister({
+            d: '1\'b0',
+            clk: 'clk',
+            reset: 'rst_b',
+            q: SC_Sig,
+            en: SC_Sig,
+            resetVal: 0n
+        });
+    }
+    setupROReg(regName, pkSig, thisReg) {
+        this.body += '// RO reg: input\n';
+        this.IOs['cfg_' + regName.toString()] = {
+            direction: 'input',
+            width: thisReg.width || this.regDefs.wordSize,
+            isSigned: thisReg.isSigned || false
+        };
+        this.addAssign({ in: new Expr(`cfg_${regName}`), out: pkSig });
+    }
+    setupRWReg(regName, matchSig, pkSig, reg_wdata, thisReg, update = false) {
+        const WE_Sig = this.addSignal(`${regName}_we`, { width: 1, type: 'wire' });
+        this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: WE_Sig });
+        this.IOs['cfg_' + regName.toString()] = {
+            direction: 'output',
+            width: thisReg.width || this.regDefs.wordSize,
+            isSigned: thisReg.isSigned || false
+        };
+        this.body += '// non-RO: output\n';
+        this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
+        this.addRegister({ d: reg_wdata, clk: 'clk', reset: 'rst_b', q: pkSig, en: WE_Sig, resetVal: thisReg.reset || 0n });
+        if (update) {
+            this.IOs[`${regName}_update`] = { direction: 'input', width: 1, isSigned: false };
+            this.IOs[`${regName}_update_value`] = { direction: 'input', width: thisReg.width || this.regDefs.wordSize, isSigned: thisReg.isSigned || false };
+            this.addRegister({ d: `${regName}_update_value`, clk: 'clk', reset: 'rst_b', q: pkSig, en: `${regName}_update`, resetVal: thisReg.reset || 0n });
+        }
+    }
+    setupMemoryIntRWRegister(regName, thisReg, params, baseAddr, matchSig) {
         const wstrbWidth = (params.busAddressWidth || 8) / 8;
         const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
         this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchSig });
@@ -108,10 +233,64 @@ export class RegisterBlock extends Module {
             });
         }
         //   if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-        //     this.setupRWRegisterWithFields(regName, thisReg, WE_Sig, wstrb)
+        //     this.setupMemoryIntRWRegisterWithFields(regName, thisReg, WE_Sig, wstrb)
         //   } else {
-        //     this.setupRWRegisterWithoutFields(regName, thisReg, WE_Sig)
+        //     this.setupMemoryIntRWRegisterWithoutFields(regName, thisReg, WE_Sig)
         //   }
+    }
+    handleWriteOneClearOrToggle(regName, pkSig, matchSig, thisReg, regDefs, type) {
+        const reg_wdata = this.addSignal(`${pkSig.toString()}_${type.toLowerCase()}`, { width: regDefs.wordSize || 32, type: 'wire' });
+        const resetExpr = type === 'W1C' ? '& ~reg_wdata' : '^ reg_wdata';
+        this.addAssign({ in: new Expr(`${pkSig.toString()} ${resetExpr}`), out: reg_wdata });
+        const enableSignal = this.addSignal(`${regName}_${type.toLowerCase()}e`, { width: 1, type: 'wire' });
+        this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: enableSignal });
+        this.IOs['cfg_' + regName.toString()] = {
+            direction: 'output',
+            width: thisReg.width || regDefs.wordSize,
+            isSigned: thisReg.isSigned || false
+        };
+        this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
+        this.addRegister({
+            d: reg_wdata,
+            clk: 'clk',
+            reset: 'rst_b',
+            q: pkSig,
+            en: enableSignal,
+            resetVal: thisReg.reset || 0n
+        });
+    }
+    replaceZerosWithX(binaryStr) {
+        // Replace all '0's with 'X's
+        let modifiedStr = binaryStr.replace(/0/g, 'X');
+        // Check if there is no '1' in the string
+        if (!modifiedStr.includes('1')) {
+            modifiedStr += 'X';
+        }
+        return modifiedStr;
+    }
+    padZeroes(address, width) {
+        const padLength = width - address.length;
+        if (padLength <= 0)
+            return address;
+        return '0'.repeat(padLength) + address;
+    }
+    padZeroesRight(address, width) {
+        const padLength = width - address.length;
+        if (padLength <= 0)
+            return address;
+        return address + '0'.repeat(padLength);
+    }
+    calculateDecMask(size) {
+        if (size === undefined)
+            return '0';
+        const sizeBits = size.toString(2).length;
+        return `${sizeBits}'b${'1'.repeat(sizeBits / 2).padEnd(sizeBits, '0')}`;
+    }
+    calculatePassMask(size) {
+        if (size === undefined)
+            return '0';
+        const sizeBits = size.toString(2).length;
+        return `${sizeBits}'b${'0'.repeat(sizeBits / 2).padEnd(sizeBits, '1')}`;
     }
     constructor(params, regDefs, busInterface) {
         super({
@@ -119,6 +298,17 @@ export class RegisterBlock extends Module {
             busInterface: params.busInterface || 'Memory',
             endianess: params.endianess || 'little'
         });
+        this.AIGCStr = `begin
+  reg_wr = psel && penable && pwrite;
+  reg_rd = psel && !penable && !pwrite;
+  reg_addr = paddr;
+  reg_wdata = pwdata;
+  prdata = reg_rdata;
+  
+  pready = 1'b1;
+  end
+  
+  `;
         this.regDefs = regDefs;
         this.IOs = {
             clk: { direction: 'input', isClock: 'posedge' },
@@ -145,55 +335,9 @@ export class RegisterBlock extends Module {
                     thisReg = registers[regName] || thisReg;
                 }
                 if (thisReg.type === 'RW') {
-                    // this.setupRWRegister(regName, thisReg, params, baseAddr, matchSig)
-                    const wstrbWidth = (params.busAddressWidth || 8) / 8;
-                    const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
-                    this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchSig });
-                    const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
-                    const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
-                    this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.RE`), out: RE_Sig });
-                    this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.WE`), out: WE_Sig });
-                    this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb });
-                    if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-                        Object.keys(thisReg.fields).forEach((fieldName, index) => {
-                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            const field = thisReg.fields[fieldName];
-                            const fieldSigName = `${regName}_field${index}`;
-                            this.IOs[fieldSigName] = {
-                                direction: 'output',
-                                width: field.bitRange[0] - field.bitRange[1] + 1,
-                                isSigned: field.isSigned
-                            };
-                            this.addRegister({
-                                d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
-                                clk: 'clk',
-                                reset: 'rst_b',
-                                q: fieldSigName,
-                                en: `${regName}_WE && ${wstrb.toString()}`, // added && ${wstrb.toString()}
-                                resetVal: field.reset || 0n
-                            });
-                        });
-                    }
-                    else {
-                        this.IOs[regName.toString()] = {
-                            direction: 'output',
-                            width: thisReg.width || regDefs.wordSize,
-                            isSigned: thisReg.isSigned
-                        };
-                        this.addSignal(`${regName}_d`, { width: regDefs.wordSize });
-                        this.addAssign({ in: new Expr(`regs.DATA_WR & ${wstrb.toString()}`), out: `${regName}_d` });
-                        this.addRegister({
-                            d: 'regs.DATA_WR',
-                            clk: 'clk',
-                            reset: 'rst_b',
-                            q: regName.toString(),
-                            en: `${regName}_WE`,
-                            resetVal: thisReg.reset || 0n
-                        });
-                    }
+                    this.setupMemoryIntRWRegister(regName, thisReg, params, baseAddr, matchSig);
                 }
                 else if (thisReg.type === 'RO') {
-                    // Use original address for logic
                     this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchSig });
                     const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
                     this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.RE`), out: RE_Sig });
@@ -218,7 +362,6 @@ export class RegisterBlock extends Module {
                     this.addAssign({ in: new Expr('regs.DATA_WR'), out: regName.toString() });
                 }
                 else if (thisReg.type === 'ROM') {
-                    // Use original address for logic
                     if (thisReg.size) {
                         this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchSig });
                     }
@@ -251,7 +394,6 @@ export class RegisterBlock extends Module {
                     });
                 }
                 else if (thisReg.type === 'RAM') {
-                    // Use original address for logic
                     if (thisReg.size) {
                         this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchSig });
                     }
@@ -324,7 +466,7 @@ export class RegisterBlock extends Module {
                         q: `${regName}_we`
                     });
                     this.addRegister({
-                        d: new Expr('1'), // Assuming a simple write strobe signal
+                        d: new Expr('1'),
                         clk: 'clk',
                         reset: 'rst_b',
                         en: `${regName}_WE`,
@@ -345,7 +487,7 @@ export class RegisterBlock extends Module {
                 const baseAddr = this.regDefs.addrMap[regName];
                 let readSignal = '';
                 const register = this.regDefs.registers?.[regName];
-                if (register?.type === 'ROM') { //  || register?.type === 'RAM'
+                if (register?.type === 'ROM') {
                     readSignal = `${regName}_rdata`;
                     inputs.push(`${regName}_rdata`);
                     readyStr = `${regName}_ready`;
@@ -416,239 +558,61 @@ export class RegisterBlock extends Module {
             this.body += casexString;
         }
         else if (busInterface instanceof APB4) {
-            const useComb = true;
             this.addInterface('regs', new APB4({
                 DATA_WIDTH: regDefs.wordSize || 32,
                 ADDR_WIDTH: params.busAddressWidth
             }, 'inward'));
-            // Create signals and logic for this whole module
-            const reg_rd = this.addSignal('reg_rd', { width: 1 });
-            const reg_wr = this.addSignal('reg_wr', { width: 1 });
-            const reg_addr = this.addSignal('reg_addr', { width: params.busAddressWidth || 12 });
-            const reg_rdata = this.addSignal('reg_rdata', { width: regDefs.wordSize || 32 });
-            const reg_wdata = this.addSignal('reg_wdata', { width: regDefs.wordSize || 32 });
-            const next_rdata = this.addSignal('next_rdata', { width: regDefs.wordSize || 32 });
-            let next_rdataExpr = new Expr('');
-            const inRange = this.addSignal('in_range', { width: 1 });
-            let inRangeExpr = new Expr('');
-            const clrzeros = this.addSignal('clrzeros', { width: regDefs.wordSize || 32 });
-            this.addAssign({ in: new Expr(`${regDefs.wordSize || 32}'h0`), out: 'clrzeros' });
-            this.body += '// apb interface\n';
-            if (useComb) {
-                this.addCombAlways({
-                    outputs: ['reg_wr', 'reg_rd', 'reg_addr', 'reg_wdata', 'regs.PRDATA', 'regs.PREADY', 'regs.PREADY']
-                }, `begin
-reg_wr = regs.PSELx && regs.PENABLE && regs.PWRITE;
-reg_rd = regs.PSELx && !regs.PENABLE && !regs.PWRITE;
-reg_addr = regs.PADDR;
-reg_wdata = regs.PWDATA;
-regs.PRDATA = reg_rdata;
-  
-regs.PREADY = 1'b1;
-end
-
-`);
-            }
-            else {
-                this.addAssign({ in: new Expr(reg_rdata.toString()), out: 'regs.PRDATA' });
-                this.addAssign({ in: new Expr('regs.PSELx && regs.PENABLE && regs.PWRITE'), out: reg_wr });
-                this.addAssign({ in: new Expr('regs.PSELx && !regs.PENABLE && !regs.PWRITE'), out: reg_rd });
-                this.addAssign({ in: new Expr('1\'b1'), out: 'regs.PREADY' });
-            }
-            this.addSignal('slverr', { width: 1 });
-            this.addAssign({ in: new Expr('regs.PSELx && !in_range'), out: 'slverr' });
-            this.addRegister({
-                d: 'slverr',
-                clk: 'clk',
-                reset: 'rst_b',
-                q: 'regs.PSLVERR',
-                resetVal: 0n
-            });
-            // Create signals and logic for each register
+            const { signals, expressions } = this.setupSignalsExprs(true, regDefs, params, AIGC2APB4);
+            const { reg_rd, reg_wr, reg_addr, reg_rdata, reg_wdata, next_rdata, inRange } = signals;
+            let { next_rdataExpr, inRangeExpr } = expressions;
             for (const reg in this.regDefs.addrMap) {
-                const regName = reg.toLowerCase();
-                const registers = this.regDefs.registers;
-                const baseAddr = this.regDefs.addrMap[reg];
-                let thisReg = {
-                    type: 'RW',
-                    width: regDefs.wordSize || 32
-                };
-                if (registers[reg] !== undefined) {
-                    thisReg = registers[reg] || thisReg;
-                }
-                const matchSig = this.addSignal(`dec_${regName}`, { width: 1 });
-                this.addAssign({ in: new Expr(`(reg_addr == ${params.busAddressWidth}'h${this.padZeroes(baseAddr.toString(16).toUpperCase(), (params.busAddressWidth || 32) / 4)}) ? 1'd1 : 1'd0`), out: matchSig });
-                const pkSig = this.addSignal(`reg_${regName}`, { width: regDefs.wordSize || 32 });
+                const [regName, matchSig, pkSig, thisReg] = this.setupMatchPack(params, reg);
                 if (thisReg.type === 'RW') {
                     const RE_Sig = this.addSignal(`${regName}_re`, { width: 1 });
-                    const WE_Sig = this.addSignal(`${regName}_we`, { width: 1 });
                     this.addAssign({ in: new Expr(`reg_rd && ${matchSig.toString()}`), out: RE_Sig });
-                    this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: WE_Sig });
-                    this.IOs['cfg_' + regName.toString()] = {
-                        direction: 'output',
-                        width: thisReg.width || regDefs.wordSize,
-                        isSigned: thisReg.isSigned || false
-                    };
-                    this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
-                    this.addRegister({
-                        d: reg_wdata,
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: pkSig,
-                        en: WE_Sig,
-                        resetVal: thisReg.reset || 0n
-                    });
+                    this.setupRWReg(regName, matchSig, pkSig, reg_wdata, thisReg);
                 }
                 else if (thisReg.type === 'WO') {
-                    const SC_Sig = this.addSignal(`${regName}_sc`, { width: 1 });
-                    const WE_Sig = this.addSignal(`${regName}_we`, { width: 1 });
-                    this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: WE_Sig });
-                    this.IOs[`cfg_${regName}`] = {
-                        direction: 'output',
-                        width: thisReg.width || regDefs.wordSize,
-                        isSigned: thisReg.isSigned || false
-                    };
-                    this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
-                    this.addRegister({
-                        d: reg_wdata,
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: pkSig,
-                        en: WE_Sig,
-                        resetVal: thisReg.reset || 0n
-                    });
-                    this.addRegister({
-                        d: clrzeros,
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: pkSig,
-                        en: SC_Sig,
-                        resetVal: thisReg.reset || 0n
-                    });
+                    this.setupWOReg(regName, matchSig, pkSig, reg_wdata, thisReg);
                 }
                 else if (thisReg.type === 'RO') {
-                    this.IOs['cfg_' + regName.toString()] = {
-                        direction: 'input',
-                        width: thisReg.width || regDefs.wordSize,
-                        isSigned: thisReg.isSigned || false
-                    };
-                    this.addAssign({ in: new Expr(`cfg_${regName}`), out: pkSig });
+                    this.setupROReg(regName, pkSig, thisReg);
                 }
                 const readSignal = { a: matchSig, b: thisReg.type === 'WO' ? '32\'h0' : pkSig };
                 next_rdataExpr = new Expr(this.addReadMux(readSignal, next_rdataExpr.toString(), regDefs.wordSize || 32));
                 inRangeExpr = new Expr(this.addInRange({ a: matchSig, b: inRangeExpr.toString() }));
             }
+            this.body += '// address decode\n';
             this.addAssign({ in: inRangeExpr, out: inRange });
             this.body += '// Read data mux\n';
             this.addAssign({ in: next_rdataExpr, out: next_rdata });
-            this.addRegister({
-                d: next_rdata,
-                clk: 'clk',
-                reset: 'rst_b',
-                q: reg_rdata,
-                en: reg_rd,
-                resetVal: 0n
-            });
+            this.addRegister({ d: next_rdata, clk: 'clk', reset: 'rst_b', q: reg_rdata, en: reg_rd, resetVal: 0n });
         }
         else {
-            this.IOs = {
-                ...this.IOs,
-                paddr: { direction: 'input', width: params.busAddressWidth || 12 },
-                pwdata: { direction: 'input', width: regDefs.wordSize || 32 },
-                prdata: { direction: 'output', width: regDefs.wordSize || 32 },
-                psel: { direction: 'input', width: 1 },
-                penable: { direction: 'input', width: 1 },
-                pwrite: { direction: 'input', width: 1 },
-                pready: { direction: 'output', width: 1 },
-                pslverr: { direction: 'output', width: 1, type: 'reg' }
-            };
-            // Create signals and logic for this register block
-            const reg_rd = this.addSignal('reg_rd', { width: 1, type: 'wire' });
-            const reg_wr = this.addSignal('reg_wr', { width: 1, type: 'wire' });
-            const reg_addr = this.addSignal('reg_addr', { width: params.busAddressWidth || 12, type: 'wire' });
-            const reg_rdata = this.addSignal('reg_rdata', { width: regDefs.wordSize || 32, type: 'reg' });
-            const reg_wdata = this.addSignal('reg_wdata', { width: regDefs.wordSize || 32, type: 'wire' });
-            const next_rdata = this.addSignal('next_rdata', { width: regDefs.wordSize || 32, type: 'wire' });
-            let next_rdataExpr = new Expr('');
-            const inRange = this.addSignal('in_range', { width: 1, type: 'wire' });
-            let inRangeExpr = new Expr('');
-            const useComb = false;
-            this.body += '// apb interface\n';
-            if (useComb) {
-            this.addCombAlways({
-                outputs: ['reg_wr', 'reg_rd', 'reg_addr', 'reg_wdata', 'prdata', 'pready']
-            }, `begin
-reg_wr = psel && penable && pwrite;
-reg_rd = psel && !penable && !pwrite;
-reg_addr = paddr;
-reg_wdata = pwdata;
-prdata = reg_rdata;
-  
-pready = 1'b1;
-end
-
-`);
-            }
-            else {
-                this.addAssign({ in: new Expr('psel && penable && pwrite'), out: reg_wr });
-                this.addAssign({ in: new Expr('psel && !penable && !pwrite'), out: reg_rd });
+            this.extendIOs(params.busAddressWidth, regDefs.wordSize);
+            const { signals, expressions } = this.setupSignalsExprs(false, regDefs, params);
+            const { reg_rd, reg_wr, reg_addr, reg_rdata, reg_wdata, next_rdata, inRange } = signals;
+            let { next_rdataExpr, inRangeExpr } = expressions;
                 this.addAssign({ in: new Expr('paddr'), out: reg_addr });
                 this.addAssign({ in: new Expr('pwdata'), out: reg_wdata });
-                this.addAssign({ in: new Expr(reg_rdata.toString()), out: 'prdata' });
-                this.addAssign({ in: new Expr('1\'b1'), out: 'pready' });
-            }
-            this.addSignal('slverr', { width: 1, type: 'wire' });
-            this.addAssign({ in: new Expr('psel && !in_range'), out: 'slverr' });
-            this.addRegister({
-                d: 'slverr',
-                clk: 'clk',
-                reset: 'rst_b',
-                q: 'pslverr',
-                resetVal: 0n
-            });
-            // Create signals and logic for each register
             for (const reg in this.regDefs.addrMap) {
-                const regName = reg.toLowerCase();
-                const registers = this.regDefs.registers;
-                const baseAddr = this.regDefs.addrMap[reg];
-                let thisReg = {
-                    type: 'RW',
-                    width: regDefs.wordSize || 32
-                };
-                if (registers[reg] !== undefined) {
-                    thisReg = registers[reg] || thisReg;
-                }
-                const matchSig = this.addSignal(`dec_${regName}`, { width: 1, type: 'wire' });
-                this.addAssign({ in: new Expr(`(reg_addr == ${params.busAddressWidth}'h${this.padZeroes(baseAddr.toString(16).toUpperCase(), (params.busAddressWidth || 32) / 4)}) ? 1'd1 : 1'd0`), out: matchSig });
-                const pkSig = this.addSignal(`reg_${regName}`, { width: regDefs.wordSize || 32, type: (thisReg.type === 'RO') ? 'wire' : 'reg' });
+                const [regName, matchSig, pkSig, thisReg] = this.setupMatchPack(params, reg);
                 if (thisReg.type === 'RW') {
-                    const WE_Sig = this.addSignal(`${regName}_we`, { width: 1, type: 'wire' });
-                    this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: WE_Sig });
-                    this.IOs['cfg_' + regName.toString()] = {
-                        direction: 'output',
-                        width: thisReg.width || regDefs.wordSize,
-                        isSigned: thisReg.isSigned || false
-                    };
-                    this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
-                    this.addRegister({
-                        d: reg_wdata,
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: pkSig,
-                        en: WE_Sig,
-                        resetVal: thisReg.reset || 0n
-                    });
-                    if (thisReg.hardUpdate === 1) {
+                    this.setupRWReg(regName, matchSig, pkSig, reg_wdata, thisReg);
+                }
+                else if (thisReg.type === 'RWU') {
+                    this.setupRWReg(regName, matchSig, pkSig, reg_wdata, thisReg, true);
+                    /*
                         this.IOs[`${regName}_update`] = {
                             direction: 'input',
                             width: 1,
                             isSigned: false
-                        };
+                    }
                         this.IOs[`${regName}_update_value`] = {
                             direction: 'input',
                             width: thisReg.width || regDefs.wordSize,
                             isSigned: thisReg.isSigned || false
-                        };
+                    }
                         this.addRegister({
                             d: `${regName}_update_value`,
                             clk: 'clk',
@@ -656,61 +620,14 @@ end
                             q: pkSig,
                             en: `${regName}_update`,
                             resetVal: thisReg.reset || 0n
-                        });
-                    }
+                    })
+                    */
                 }
                 else if (thisReg.type === 'WO') {
-                    const SC_Sig = this.addSignal(`${regName}_sc`, { width: 1, type: 'reg' });
-                    const WE_Sig = this.addSignal(`${regName}_we`, { width: 1, type: 'wire' });
-                    this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: WE_Sig });
-                    this.IOs[`cfg_${regName}`] = {
-                        direction: 'output',
-                        width: thisReg.width || regDefs.wordSize,
-                        isSigned: thisReg.isSigned || false
-                    };
-                    this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
-                    // this.body += '// WO self clear reg\n'
-                    this.addRegister({
-                        d: reg_wdata,
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: pkSig,
-                        en: WE_Sig,
-                        resetVal: thisReg.reset || 0n
-                    });
-                    this.addRegister({
-                        d: `${regDefs.wordSize || 32}'b0`,
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: pkSig,
-                        en: SC_Sig,
-                        resetVal: thisReg.reset || 0n
-                    });
-                    this.addRegister({
-                        d: '1\'b1',
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: SC_Sig,
-                        en: WE_Sig,
-                        resetVal: 0n
-                    });
-                    this.addRegister({
-                        d: '1\'b0',
-                        clk: 'clk',
-                        reset: 'rst_b',
-                        q: SC_Sig,
-                        en: SC_Sig,
-                        resetVal: 0n
-                    });
+                    this.setupWOReg(regName, matchSig, pkSig, reg_wdata, thisReg);
                 }
                 else if (thisReg.type === 'RO') {
-
-                    this.IOs['cfg_' + regName.toString()] = {
-                        direction: 'input',
-                        width: thisReg.width || regDefs.wordSize,
-                        isSigned: thisReg.isSigned || false
-                    };
-                    this.addAssign({ in: new Expr(`cfg_${regName}`), out: pkSig });
+                    this.setupROReg(regName, pkSig, thisReg);
                 }
                 else if (thisReg.type === 'W1C') {
                     this.handleWriteOneClearOrToggle(regName, pkSig, matchSig, thisReg, regDefs, 'W1C');
@@ -718,21 +635,6 @@ end
                 else if (thisReg.type === 'W1T') {
                     this.handleWriteOneClearOrToggle(regName, pkSig, matchSig, thisReg, regDefs, 'W1T');
                 }
-                else if (thisReg.type === 'W1S') {
-                    this.handleWriteOneClearOrToggle(regName, pkSig, matchSig, thisReg, regDefs, 'W1S');
-                }
-                /*
-                else if (thisReg.type === 'W1P') {
-                  this.handleWriteOneClearOrToggle(
-                    regName,
-                    pkSig,
-                    matchSig,
-                    thisReg,
-                    regDefs,
-                    'W1P'
-                  )
-                }
-                */
                 const readSignal = { a: matchSig, b: thisReg.type === 'WO' ? '32\'h0' : pkSig };
                 next_rdataExpr = new Expr(this.addReadMux(readSignal, next_rdataExpr.toString(), regDefs.wordSize || 32));
                 inRangeExpr = new Expr(this.addInRange({ a: matchSig, b: inRangeExpr.toString() }));
@@ -740,77 +642,7 @@ end
             this.addAssign({ in: inRangeExpr, out: inRange });
             this.body += '// Read data mux\n';
             this.addAssign({ in: next_rdataExpr, out: next_rdata });
-            this.addRegister({
-                d: next_rdata,
-                clk: 'clk',
-                reset: 'rst_b',
-                q: reg_rdata,
-                en: reg_rd,
-                resetVal: 0n
-            });
-        }
+            this.addRegister({ d: next_rdata, clk: 'clk', reset: 'rst_b', q: reg_rdata, en: reg_rd, resetVal: 0n });
     }
-    handleWriteOneClearOrToggle(regName, pkSig, matchSig, thisReg, regDefs, type) {
-        const reg_wdata_hdl = this.addSignal(`${pkSig.toString()}_${type.toLowerCase()}`, { width: regDefs.wordSize || 32 });
-        let resetOp = '';
-        if (type === 'W1C') {
-            resetOp = '& ~';
-        }
-        else if (type === 'W1T') {
-            resetOp = '^ ';
-        }
-        else if (type === 'W1S') {
-            resetOp = '| ';
-        }
-        this.addAssign({ in: new Expr(`${pkSig.toString()} ${resetOp}reg_wdata`), out: reg_wdata_hdl });
-        const enableSignal = this.addSignal(`${regName}_${type.toLowerCase()}e`, { width: 1 });
-        this.addAssign({ in: new Expr(`reg_wr && ${matchSig.toString()}`), out: enableSignal });
-        this.IOs['cfg_' + regName.toString()] = {
-            direction: 'output',
-            width: thisReg.width || regDefs.wordSize,
-            isSigned: thisReg.isSigned || false
-        };
-        this.addAssign({ in: new Expr(pkSig.toString()), out: `cfg_${regName}` });
-        this.addRegister({
-            d: reg_wdata_hdl,
-            clk: 'clk',
-            reset: 'rst_b',
-            q: pkSig,
-            en: enableSignal,
-            resetVal: thisReg.reset || 0n
-        });
-    }
-    replaceZerosWithX(binaryStr) {
-        // Replace all '0's with 'X's
-        let modifiedStr = binaryStr.replace(/0/g, 'X');
-        // Check if there is no '1' in the string
-        if (!modifiedStr.includes('1')) {
-            modifiedStr += 'X';
-        }
-        return modifiedStr;
-    }
-    padZeroes(address, width) {
-        const padLength = width - address.length;
-        if (padLength <= 0)
-            return address;
-        return '0'.repeat(padLength) + address;
-    }
-    padZeroesRight(address, width) {
-        const padLength = width - address.length;
-        if (padLength <= 0)
-            return address;
-        return address + '0'.repeat(padLength);
-    }
-    calculateDecMask(size) {
-        if (size === undefined)
-            return '0';
-        const sizeBits = size.toString(2).length;
-        return `${sizeBits}'b${'1'.repeat(sizeBits / 2).padEnd(sizeBits, '0')}`;
-    }
-    calculatePassMask(size) {
-        if (size === undefined)
-            return '0';
-        const sizeBits = size.toString(2).length;
-        return `${sizeBits}'b${'0'.repeat(sizeBits / 2).padEnd(sizeBits, '1')}`;
     }
 }

@@ -449,7 +449,6 @@ export class Module {
                     qSig.type = 'logic';
                     break;
                 case 'reg':
-                // case 'output reg':
                 case 'logic':
                     break;
                 default:
