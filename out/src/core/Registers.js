@@ -12,8 +12,107 @@ export class RegAddr {
         return nextAddr;
     }
 }
-
+/**
+ * WRITE
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
+ *     {"name": "    addr", "wave": "04........", "data": ["A"]},
+ *     {"name": "      we", "wave": "01.0......"},
+ *     {"name": "      re", "wave": "0........."},
+ *     {"name": " data_rd", "wave": "0........."},
+ *     {"name": "   ready", "wave": "10.1......"}
+ *   ]
+ * }
+ * ```
+ */
+/**
+ * READ
+ *
+ * @wavedrom
+ * ```json
+ * {
+ *   "signal": [
+ *     {"name": "     clk", "wave": "p........."},
+ *     {"name": " data_wr", "wave": "0........."},
+ *     {"name": "    addr", "wave": "04........", "data": ["A"]},
+ *     {"name": "      we", "wave": "0........."},
+ *     {"name": "      re", "wave": "01.0......"},
+ *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
+ *     {"name": "   ready", "wave": "10......1."}
+ *   ]
+ * }
+ * ```
+ */
+// private setupRORegister(regName: string, thisReg: Register): void {
+//   // RO register setup logic
+// }
+// private setupWORegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+//   // WO register setup logic
+// }
+// private setupROMRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+//   // ROM register setup logic
+// }
+// private setupRAMRegister(regName: string, thisReg: Register, params: RegisterBlockParameters): void {
+//   // RAM register setup logic
+// }
 export class RegisterBlock extends Module {
+    setupRWRegister(regName, thisReg, params, baseAddr, matchSig) {
+        const wstrbWidth = (params.busAddressWidth || 8) / 8;
+        const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
+        this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchSig });
+        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
+        const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
+        this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.RE`), out: RE_Sig });
+        this.addAssign({ in: new Expr(`${matchSig.toString()} && regs.WE`), out: WE_Sig });
+        this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb });
+        if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
+            Object.keys(thisReg.fields).forEach((fieldName, index) => {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const field = thisReg.fields[fieldName];
+                const fieldSigName = `${regName}_field${index}`;
+                this.IOs[fieldSigName] = {
+                    direction: 'output',
+                    width: field.bitRange[0] - field.bitRange[1] + 1,
+                    isSigned: field.isSigned
+                };
+                this.addRegister({
+                    d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
+                    clk: 'clk',
+                    reset: 'rst_b',
+                    q: fieldSigName,
+                    en: `${regName}_WE && ${wstrb.toString()}`,
+                    resetVal: field.reset || 0n
+                });
+            });
+        }
+        else {
+            this.IOs[regName.toString()] = {
+                direction: 'output',
+                width: thisReg.width || this.regDefs.wordSize,
+                isSigned: thisReg.isSigned
+            };
+            this.addSignal(`${regName}_d`, { width: this.regDefs.wordSize });
+            this.addAssign({ in: new Expr(`regs.DATA_WR & ${wstrb.toString()}`), out: `${regName}_d` });
+            this.addRegister({
+                d: 'regs.DATA_WR',
+                clk: 'clk',
+                reset: 'rst_b',
+                q: regName.toString(),
+                en: `${regName}_WE`,
+                resetVal: thisReg.reset || 0n
+            });
+        }
+        //   if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
+        //     this.setupRWRegisterWithFields(regName, thisReg, WE_Sig, wstrb)
+        //   } else {
+        //     this.setupRWRegisterWithoutFields(regName, thisReg, WE_Sig)
+        //   }
+    }
     constructor(params, regDefs, busInterface) {
         super({
             name: params.name,
@@ -21,7 +120,6 @@ export class RegisterBlock extends Module {
             endianess: params.endianess || 'little'
         });
         this.regDefs = regDefs;
-        // Define IO signals
         this.IOs = {
             clk: { direction: 'input', isClock: 'posedge' },
             rst_b: { direction: 'input', isReset: 'lowasync' }
@@ -47,9 +145,9 @@ export class RegisterBlock extends Module {
                     thisReg = registers[regName] || thisReg;
                 }
                 if (thisReg.type === 'RW') {
+                    // this.setupRWRegister(regName, thisReg, params, baseAddr, matchSig)
                     const wstrbWidth = (params.busAddressWidth || 8) / 8;
                     const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
-                    // Use original address for logic
                     this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchSig });
                     const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
                     const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
@@ -323,7 +421,7 @@ export class RegisterBlock extends Module {
                 DATA_WIDTH: regDefs.wordSize || 32,
                 ADDR_WIDTH: params.busAddressWidth
             }, 'inward'));
-            // Create signals and logic for this register block
+            // Create signals and logic for this whole module
             const reg_rd = this.addSignal('reg_rd', { width: 1 });
             const reg_wr = this.addSignal('reg_wr', { width: 1 });
             const reg_addr = this.addSignal('reg_addr', { width: params.busAddressWidth || 12 });
@@ -462,7 +560,7 @@ end
                 penable: { direction: 'input', width: 1 },
                 pwrite: { direction: 'input', width: 1 },
                 pready: { direction: 'output', width: 1 },
-                pslverr: { direction: 'output', width: 1 }
+                pslverr: { direction: 'output', width: 1, type: 'reg' }
             };
             // Create signals and logic for this register block
             const reg_rd = this.addSignal('reg_rd', { width: 1, type: 'wire' });
@@ -540,6 +638,26 @@ end
                         en: WE_Sig,
                         resetVal: thisReg.reset || 0n
                     });
+                    if (thisReg.hardUpdate === 1) {
+                        this.IOs[`${regName}_update`] = {
+                            direction: 'input',
+                            width: 1,
+                            isSigned: false
+                        };
+                        this.IOs[`${regName}_update_value`] = {
+                            direction: 'input',
+                            width: thisReg.width || regDefs.wordSize,
+                            isSigned: thisReg.isSigned || false
+                        };
+                        this.addRegister({
+                            d: `${regName}_update_value`,
+                            clk: 'clk',
+                            reset: 'rst_b',
+                            q: pkSig,
+                            en: `${regName}_update`,
+                            resetVal: thisReg.reset || 0n
+                        });
+                    }
                 }
                 else if (thisReg.type === 'WO') {
                     const SC_Sig = this.addSignal(`${regName}_sc`, { width: 1, type: 'reg' });
@@ -603,6 +721,18 @@ end
                 else if (thisReg.type === 'W1S') {
                     this.handleWriteOneClearOrToggle(regName, pkSig, matchSig, thisReg, regDefs, 'W1S');
                 }
+                /*
+                else if (thisReg.type === 'W1P') {
+                  this.handleWriteOneClearOrToggle(
+                    regName,
+                    pkSig,
+                    matchSig,
+                    thisReg,
+                    regDefs,
+                    'W1P'
+                  )
+                }
+                */
                 const readSignal = { a: matchSig, b: thisReg.type === 'WO' ? '32\'h0' : pkSig };
                 next_rdataExpr = new Expr(this.addReadMux(readSignal, next_rdataExpr.toString(), regDefs.wordSize || 32));
                 inRangeExpr = new Expr(this.addInRange({ a: matchSig, b: inRangeExpr.toString() }));
