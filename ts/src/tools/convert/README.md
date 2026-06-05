@@ -35,10 +35,10 @@ An example use case of this would look like:
 ```
 cd ~/TSSV
 npx tsc
-node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/pc_top.v ts/src/tools/example1
+node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/pc/pc_top.v ts/src/tools/pc/example1
 ```
 
-This will take this example [file](../../../../sv-examples/cpu_convert/pc_top.v) and produce four files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example [file](../../../../sv-examples/cpu_convert/pc/pc_top.v) and produce four files in this same tools directory, although it would make more sense to save it in an external directory.
 
 ## RHC SPRAM
 
@@ -59,10 +59,10 @@ An example use of this case would look like this:
 ```
 cd ~/TSSV
 npx tsc
-node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/rhcexample.sv ts/src/tools/example3
+node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/rhc/rhcexample.sv ts/src/tools/example3
 ```
 
-This will take this example [file](../../../../sv-examples/cpu_convert/rhcexample.sv) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example [file](../../../../sv-examples/cpu_convert/rhc/rhcexample.sv) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
 
 ## UX900 GNRL RAM
 
@@ -83,7 +83,7 @@ An example use of this case would look like this:
 ```
 cd ~/TSSV
 npx tsc
-node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/ux900_rams_wrapper.v ts/src/tools/example2
+node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/ux900/ux900_rams_wrapper.v ts/src/tools/example2
 ```
 
-This will take this example [file](../../../../sv-examples/cpu_convert/ux900_rams_wrapper.v) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example [file](../../../../sv-examples/cpu_convert/ux900/ux900_rams_wrapper.v) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
