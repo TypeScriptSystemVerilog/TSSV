@@ -1,0 +1,67 @@
+graph TD
+
+  subgraph 输入文件
+    XML[axiSample.xml]
+    ARCH[architectureSample.sv]
+  end
+
+  subgraph 接口构建
+    XML --> Builder[xml_interface_build.ts]
+    Builder --> AXITS[AXI.ts]
+  end
+
+  subgraph 组件封装
+    XML --> ComponentTS[componentExample.ts]graph TD
+
+  subgraph 输入文件
+    XML[axiSample.xml]
+    ARCH[architectureSample.sv]
+  end
+
+  subgraph 接口构建
+    XML --> Builder[xml_interface_build.ts]
+    Builder --> AXITS[AXI.ts]
+  end
+
+  subgraph 组件封装
+    XML --> ComponentTS[componentExample.ts]
+    ARCH --> ComponentTS
+    ComponentTS --> IPX[IpXactComponent.ts]
+    IPX --> AXISV[axiComponentExample.sv]
+  end
+
+  AXITS:::output
+  AXISV:::output
+
+  classDef output fill=#dff0d8,stroke=#468847,stroke-width=2graph TD
+
+  subgraph 输入文件
+    XML[axiSample.xml]
+    ARCH[architectureSample.sv]
+  end
+
+  subgraph 接口构建
+    XML --> Builder[xml_interface_build.ts]
+    Builder --> AXITS[AXI.ts]
+  end
+
+  subgraph 组件封装
+    XML --> ComponentTS[componentExample.ts]
+    ARCH --> ComponentTS
+    ComponentTS --> IPX[IpXactComponent.ts]
+    IPX --> AXISV[axiComponentExample.sv]
+  end
+
+  AXITS:::output
+  AXISV:::output
+
+  classDef output fill=#dff0d8,stroke=#468847,stroke-width=2
+    ARCH --> ComponentTS
+    ComponentTS --> IPX[IpXactComponent.ts]
+    IPX --> AXISV[axiComponentExample.sv]
+  end
+
+  AXITS:::output
+  AXISV:::output
+
+  classDef output fill=#dff0d8,stroke=#468847,stroke-width=2

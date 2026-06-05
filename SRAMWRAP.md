@@ -10,7 +10,7 @@ cd TSSV
 ### Run the flow
 此flow用于生成SV文件和RALF文件。
 ```bash
-bsub -q be -Is /home/runzhe.liu/tssv2redzone/runSramWrapper /home/runzhe.liu/tssv2redzone/sv-examples/test_memWrapper/sram_config1.json 
+bsub -Is /home/runzhe.liu/tssv2redzone/runSramWrapper /home/runzhe.liu/tssv2redzone/sv-examples/test_memWrapper/sram_config1.json 
 ```
 
 如将wrapper沿depth方向切分，需要指定address mask和en_ptn，参考/sv-examples/test_memWrapper/sram_config4.json文件
