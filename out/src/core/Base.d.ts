@@ -68,7 +68,7 @@ export interface Signal extends baseSignal {
     value?: bigint | bigint[];
 }
 export type Signals = Record<string, Signal | undefined>;
-interface OperationIO {
+export interface OperationIO {
     a: string | Sig | bigint;
     b: string | Sig | bigint;
     result?: string | Sig;
@@ -264,6 +264,8 @@ export declare class Module {
         out: string | Sig;
         default?: string | Sig | Expr;
     }): Sig;
+    addInRange(io: OperationIO): string;
+    addReadMux(io: OperationIO, outExpr: string, wordSize: number): string;
     /**
        * print some debug information to the console
        */

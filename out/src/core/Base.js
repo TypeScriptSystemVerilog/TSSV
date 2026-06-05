@@ -428,12 +428,14 @@ export class Module {
        */
     addRegister(io) {
         let qName = io.q;
-        if ((typeof io.d === 'string') || (io.d.type === 'Sig')) {
+        // Regular expression to match Verilog numeric literals
+        const verilogNumberPattern = /^\d+'[bBoOdDhH][0-9a-fA-FxXzZ]+$/;
+        if ((typeof io.d === 'string' && !verilogNumberPattern.test(io.d)) || (io.d instanceof Sig && io.d.type === 'Sig')) {
             const dSig = this.findSignal(io.d, true, this.addRegister, true);
             if (io.q === undefined) {
                 qName = `${io.d.toString()}_q`;
                 if (this.signals[qName] || this.IOs[qName])
-                    throw Error(`${qName} signal already exists`);
+                    throw Error(`generate ${qName} in addRegister as io.q is undefined, but ${qName} signal already exists`);
                 this.signals[qName] = { ...dSig, type: 'logic' };
             }
         }
@@ -488,8 +490,6 @@ export class Module {
         if (io.en !== undefined) {
             enableExpr = io.en.toString();
         }
-        // console.log(`d: ${d}`)
-        // console.log(`sensitivity: ${sensitivityList}`)
         if (!this.registerBlocks[sensitivityList]) {
             this.registerBlocks[sensitivityList] = {};
         }
@@ -919,7 +919,7 @@ export class Module {
         if (outSig.type && (!(outSig.type === 'wire' || outSig.type === 'logic'))) {
             throw Error(`${io.out.toString()} signal must be either wire or logic in assign statement`);
         }
-        this.body += `  assign ${io.out.toString()} = ${io.in.toString()};\n`;
+        this.body += `assign ${io.out.toString()} = ${io.in.toString()};\n`;
         if (typeof io.out === 'string') {
             return new Sig(io.out);
         }
@@ -975,6 +975,33 @@ ${caseAssignments}
             return new Sig(io.out);
         }
         return io.out;
+    }
+    addInRange(io) {
+        if (io.b instanceof Sig) {
+            throw Error('unsupported type of io.b in addInRange()');
+        }
+        else {
+            if (io.b.toString() !== '') {
+                io.b = io.b.toString().slice(0, -1);
+                const decExpr = `,\n${io.a.toString()}}`;
+                io.b += decExpr;
+            }
+            else {
+                io.b += `|{${io.a.toString()}}`;
+            }
+            return io.b.toString();
+        }
+    }
+    addReadMux(io, outExpr, wordSize) {
+        const readSignal = `( {${wordSize}{${io.a.toString()}}} & ${io.b.toString()} )`;
+        if (outExpr !== '') {
+            const modifiedReadExpr = ` |\n${readSignal}`;
+            outExpr += modifiedReadExpr;
+        }
+        else {
+            outExpr += `\n${readSignal}`;
+        }
+        return outExpr;
     }
     /**
        * print some debug information to the console
@@ -1075,7 +1102,7 @@ ${caseAssignments}
                 if (thisSignal.type === 'const logic') {
                     valueString = ` = ${(thisSignal.value || 0n).toString()}`;
                 }
-                signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
+                signalArray.push(`${'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
             }
         });
         let signalString = `   ${signalArray.join(';\n   ')}`;
@@ -1090,8 +1117,7 @@ ${caseAssignments}
                         const resetAssignments = [];
                         Object.keys(regs).forEach((key) => {
                             const reg = regs[key];
-                            // console.log(reg)
-                            resetAssignments.push(`           ${key} <= 'd${reg.resetVal || 0};`);
+                            resetAssignments.push(`           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`);
                         });
                         resetString =
                             `     if(${resetCondition})
@@ -1160,7 +1186,6 @@ ${bindingsArray.join(',\n')}
 ${interfacesString}        
 ${subModulesString}
         
-/* verilator lint_off WIDTH */        
 module ${this.name} ${paramsString}
    (
 ${IOString}
@@ -1170,9 +1195,175 @@ ${signalString}
 
 ${this.body}
 
-endmodule
-/* verilator lint_on WIDTH */        
+endmodule`;
+        return verilog;
+    }
+    writeVerilog() {
+        // assemble TSSVParameters
+        const paramsArray = [];
+        if (this.params) {
+            // FIXME - need separate SV Verilog parameter container
+            /*
+                    for (var key of Object.keys(this.params)) {
+                    let param = this.params[key]
+                    // console.log(`${key}: ${param} ${typeof param}`)
+                    if(typeof param === 'number') {
+                    paramsArray.push(`parameter ${key} = ${param.toString()}`)
+                    }
+                    }
+                  */
+        }
+        let paramsString = '';
+        if (paramsArray.length > 0) {
+            paramsString = `    #(${paramsArray.join(',\n    ')})`;
+        }
+        // construct IO definition
+        const IOArray = [];
+        const signalArray = [];
+        let interfacesString = '';
+        Object.keys(this.IOs).forEach((key) => {
+            let rangeString = '';
+            const signString = (this.IOs[key].isSigned) ? ' signed' : '';
+            if (this.IOs[key].isArray)
+                throw Error(`${key}: Array IOs not supported`);
+            if ((this.IOs[key].width || 0) > 1) {
+                rangeString = `[${Number(this.IOs[key].width) - 1}:0]`;
+            }
+            IOArray.push(`${this.IOs[key].direction} ${signString} ${rangeString} ${key}`);
+        });
+        Object.keys(this.interfaces).forEach((key) => {
+            const thisInterface = this.interfaces[key];
+            if (thisInterface.role) {
+                if (thisInterface.modports) {
+                    const thisModports = thisInterface.modports[thisInterface.role];
+                    if (!thisModports)
+                        throw Error(`${thisInterface.name} : inconsistent modports`);
+                    if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
+                        interfacesString += thisInterface.writeSystemVerilog();
+                        Module.printedInterfaces[thisInterface.interfaceName()] = true;
+                    }
+                    IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`);
+                }
+                else {
+                    throw Error(`${thisInterface.name} has role/modport inconsistency`);
+                }
+            }
+            else {
+                signalArray.push(`${thisInterface.interfaceName()} ${key}()`);
+            }
+        });
+        const IOString = `   ${IOArray.join(',\n   ')}`;
+        // construct signal list
+        Object.keys(this.signals).forEach((key) => {
+            const thisSignal = this.signals[key];
+            if (thisSignal) {
+                let rangeString = '';
+                let arrayString = '';
+                let valueString = '';
+                const signString = (thisSignal.isSigned) ? ' signed' : '';
+                if ((thisSignal.width || 0) > 1) {
+                    rangeString = `[${Number(thisSignal.width) - 1}:0]`;
+                }
+                if (thisSignal.isArray && ((thisSignal.isArray || 0) > 1)) {
+                    arrayString = ` [0:${(thisSignal.isArray || 0n) - 1n}]`;
+                }
+                if (thisSignal.type === 'const logic') {
+                    valueString = ` = ${(thisSignal.value || 0n).toString()}`;
+                }
+                signalArray.push(`${thisSignal.type}${signString} ${rangeString} ${key}${arrayString}${valueString}`);
+            }
+        });
+        let signalString = `   ${signalArray.join(';\n   ')}`;
+        if (signalArray.length > 0)
+            signalString += ';';
+        for (const sensitivity in this.registerBlocks) {
+            for (const resetCondition in this.registerBlocks[sensitivity]) {
+                for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
+                    const regs = this.registerBlocks[sensitivity][resetCondition][enable];
+                    let resetString = '   ';
+                    if (resetCondition !== '#NONE#') {
+                        const resetAssignments = [];
+                        Object.keys(regs).forEach((key) => {
+                            const reg = regs[key];
+                            resetAssignments.push(`           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`);
+                        });
+                        resetString =
+                            `     if(${resetCondition})
+        begin
+${resetAssignments.join('\n')}
+        end
+      else `;
+                    }
+                    const enableString = (enable === '#NONE#') ? '' : `if(${enable})`;
+                    const functionalAssigments = [];
+                    Object.keys(regs).forEach((key) => {
+                        const reg = regs[key];
+                        // console.log(reg)
+                        functionalAssigments.push(`           ${key} <= ${reg.d};`);
+                    });
+                    this.body +=
+                        `
+   always ${sensitivity}
+${resetString}${enableString}
+        begin
+${functionalAssigments.join('\n')}
+        end
 `;
+                }
+            }
+        }
+        let subModulesString = '';
+        const printed = {};
+        for (const moduleInstance in this.submodules) {
+            const thisSubmodule = this.submodules[moduleInstance];
+            let paramsBind = '';
+            if (!printed[thisSubmodule.module.name]) {
+                printed[thisSubmodule.module.name] = true;
+                subModulesString += thisSubmodule.module.writeVerilog();
+            }
+            const bindingsArray = [];
+            for (const binding in thisSubmodule.bindings) {
+                bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding].toString()})`);
+            }
+            const vParamsArray = [];
+            for (const p in thisSubmodule.module.verilogParams) {
+                let pString;
+                if ((typeof thisSubmodule.module.params[p] === 'number') ||
+                    (typeof thisSubmodule.module.params[p] === 'bigint')) {
+                    pString = thisSubmodule.module.params[p]?.toString();
+                }
+                else if (typeof thisSubmodule.module.params[p] === 'string') {
+                    pString = `"${thisSubmodule.module.params[p]?.toString()}"`;
+                }
+                if (pString !== undefined) {
+                    vParamsArray.push(`.${p}(${pString})`);
+                }
+            }
+            if (vParamsArray.length > 0) {
+                paramsBind = `#(${vParamsArray.join(',')}) `;
+            }
+            this.body +=
+                `
+    ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
+      (
+${bindingsArray.join(',\n')}        
+      );
+`;
+        }
+        const verilog = `
+${interfacesString}        
+${subModulesString}
+        
+module ${this.name} ${paramsString}
+   (
+${IOString}
+   );
+
+${signalString}
+
+${this.body}
+
+endmodule`;
         return verilog;
     }
 }
