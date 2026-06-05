@@ -29,7 +29,7 @@ try {
 `
     // verilator lint_off DECLFILENAME
     // verilator lint_off UNUSED
-    ${component.writeSystemVerilog()}
+    ${component.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/IpxactComponent/componentExample.sv', TB)
 } catch (err) {
@@ -54,7 +54,7 @@ try {
   `
       // verilator lint_off DECLFILENAME
       // verilator lint_off UNUSED
-      ${apbComponent.writeSystemVerilog()}
+      ${apbComponent.writeSystemVerilog(true)}
   `
   writeFileSync('sv-examples/IpxactComponent/apbComponentExample.sv', TB)
 } catch (err) {

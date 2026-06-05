@@ -142,7 +142,7 @@ tb_testRegBlock.addSubmodule(
 )
 
 try {
-  fs.writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog())
+  fs.writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }

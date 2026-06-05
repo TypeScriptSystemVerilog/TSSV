@@ -60,7 +60,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${sub_tb.writeSystemVerilog()}
+    ${sub_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubtractor_output/sub_tb.sv', TB);
 }
@@ -123,7 +123,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${subS_tb.writeSystemVerilog()}
+    ${subS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubtractor_output/subS_tb.sv', TB);
 }
@@ -186,7 +186,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${subUS_tb.writeSystemVerilog()}
+    ${subUS_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubtractor_output/subUS_tb.sv', TB);
 }
@@ -249,7 +249,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${subSU_tb.writeSystemVerilog()}
+    ${subSU_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubtractor_output/subSU_tb.sv', TB);
 }

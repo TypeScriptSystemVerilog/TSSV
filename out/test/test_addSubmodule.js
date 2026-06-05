@@ -78,9 +78,15 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${sub_tb.writeSystemVerilog()}
+    ${sub_tb.writeSystemVerilog(true)}
+`;
+    const TBv = `
+    /* verilator lint_off DECLFILENAME */
+    /* verilator lint_off UNUSED */
+    ${sub_tb.writeVerilog()}
 `;
     writeFileSync('sv-examples/test_addSubmodule_output/sub_tb.sv', TB);
+    writeFileSync('sv-examples/test_addSubmodule_output/sub_tb.v', TBv);
 }
 catch (err) {
     console.error(err);
@@ -157,7 +163,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${subA_tb.writeSystemVerilog()}
+    ${subA_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubmodule_output/subA_tb.sv', TB);
 }
@@ -221,7 +227,7 @@ try {
     const TB = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${subU_tb.writeSystemVerilog()}
+    ${subU_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubmodule_output/subU_tb.sv', TB);
 }
@@ -240,7 +246,7 @@ try {
     const TB = `
     // verilator lint_off DECLFILENAME
     // verilator lint_off UNUSED
-    ${subC_tb.writeSystemVerilog()}
+    ${subC_tb.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB);
 }

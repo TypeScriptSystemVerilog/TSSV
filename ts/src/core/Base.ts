@@ -1382,7 +1382,7 @@ ${caseAssignments}
     if (resetCondition === '#NONE#' || '') return '   '
     // 此处将不同的q合并在一个Reset Block之中
     const resetAssignments = Object.entries(regs)
-      .map(([key, reg]) => `           ${key} <= ${this.signals[key]?.width || this.IOs[key]?.width}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`)
+      .map(([key, reg]) => `           ${key} <= ${this.signals[key]?.width ?? this.IOs[key]?.width ?? 1}'h${(reg.resetVal || 0).toString(16).toUpperCase()};`)
       .join('\n')
 
     return `     if(${resetCondition})
@@ -1401,7 +1401,7 @@ end
         break
       }
     }
-    const resetAssignment = `${qName} <= ${this.signals[qName]?.width || this.IOs[qName]?.width}'h${resetVal.toString(16).toUpperCase()};`
+    const resetAssignment = `${qName} <= ${this.signals[qName]?.width ?? this.IOs[qName]?.width ?? 1}'h${resetVal.toString(16).toUpperCase()};`
     return `
        if(${resetCondition})
   begin
@@ -1421,7 +1421,7 @@ end
     return `${qName} <= ${reg.d};`
   }
 
-  private assembleSubmodules (): { definitions: string, instantiations: string } {
+  private assembleSubmodules (includeVerilatorDirectives: boolean = false): { definitions: string, instantiations: string } {
     let definitions = ''
     let instantiations = ''
     const printed: Record<string, boolean> = {}
@@ -1430,7 +1430,7 @@ end
       // Generate module definition if not already printed
       if (!printed[thisSubmodule.module.name]) {
         printed[thisSubmodule.module.name] = true
-        definitions += thisSubmodule.module.writeSystemVerilog()
+        definitions += thisSubmodule.module.writeSystemVerilog(includeVerilatorDirectives)
       }
 
       // Generate module instantiation
@@ -1475,14 +1475,14 @@ end
      * @returns string containing the generated SystemVerilog code for this module
      */
   writeSystemVerilog (includeVerilatorDirectives: boolean = false): string {
-    const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */' : ''
-    const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTH */' : ''
+    const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */\n/* verilator lint_off MULTIDRIVEN */\n/* verilator lint_off WIDTHTRUNC */\n/* verilator lint_off WIDTHEXPAND */' : ''
+    const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTHEXPAND */\n/* verilator lint_on WIDTHTRUNC */\n/* verilator lint_on MULTIDRIVEN */\n/* verilator lint_on WIDTH */' : ''
     const paramsString = this.assembleParameters()
     const { IOString, interfacesString, signalArray } = this.assembleIODefinition()
     const signalString = this.assembleSignals(signalArray)
     // const registerBlocksString = this.assembleRegisterBlocks()
     const regBlksReorderString = this.assembleRegBlksReorder()
-    const { definitions, instantiations } = this.assembleSubmodules()
+    const { definitions, instantiations } = this.assembleSubmodules(includeVerilatorDirectives)
     const verilog: string =
     `
     ${interfacesString}        
@@ -1509,15 +1509,15 @@ end
   }
 
   writeVerilog (includeVerilatorDirectives: boolean = false): string {
-    const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */' : ''
-    const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTH */' : ''
+    const verilatorOff = includeVerilatorDirectives ? '/* verilator lint_off WIDTH */\n/* verilator lint_off MULTIDRIVEN */\n/* verilator lint_off WIDTHTRUNC */\n/* verilator lint_off WIDTHEXPAND */' : ''
+    const verilatorOn = includeVerilatorDirectives ? '/* verilator lint_on WIDTHEXPAND */\n/* verilator lint_on WIDTHTRUNC */\n/* verilator lint_on MULTIDRIVEN */\n/* verilator lint_on WIDTH */' : ''
     const paramsString = this.assembleParameters()
 
     const { IOString, interfacesString, signalArray } = this.assembleIODefinition(false)
     const signalString = this.assembleSignals(signalArray, false)
     // const registerBlocksString = this.assembleRegisterBlocks(false)
     const regBlksReorderString = this.assembleRegBlksReorder(false)
-    const { definitions, instantiations } = this.assembleSubmodules()
+    const { definitions, instantiations } = this.assembleSubmodules(includeVerilatorDirectives)
     const verilog: string =
     `
     ${interfacesString}        

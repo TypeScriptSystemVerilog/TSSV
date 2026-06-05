@@ -1,6 +1,6 @@
 import { Module, Expr, extractNumberFromPattern } from 'tssv/lib/core/TSSV';
 export class SRAM_WRAPPER extends Module {
-    constructor(params) {
+    constructor(params, compSrams = []) {
         super({
             name: params.name,
             dataWidth: params.dataWidth,
@@ -12,14 +12,22 @@ export class SRAM_WRAPPER extends Module {
             subSrams: params.subSrams || []
         });
         this.IOs = this.setupIOs(this.params.depth, this.params.dataWidth, this.params.ports, this.params.writeEnableMask);
-        this.subSrams = this.params.subSrams || [];
+        this.subSrams = compSrams;
         if (this.params.split_direction === 'depth') {
+            this.subSrams.forEach(sram => {
+                if (sram.type === 'SRAM' && (sram.en_ptn == null || sram.adr_mask == null)) {
+                    throw new Error(`SRAM submodule "${sram.instName}" is missing en_ptn or adr_mask`);
+                }
+            });
             this.splitDepth();
         }
         else if (this.params.split_direction === 'width') {
             this.splitWidth();
         }
     }
+    /*
+    setupIOs creates the input/output signals for the SRAM_WRAPPER module based on the specified parameters.
+    */
     setupIOs(depth, dataWidth, ports, writeEnableMask) {
         switch (ports) {
             case 'VROM_HD': {
@@ -101,6 +109,74 @@ export class SRAM_WRAPPER extends Module {
             }
         }
     }
+    /*  The setupIOs function is responsible for creating the input/output signals for the SRAM_WRAPPER module.
+  private setupIOs(depth: bigint, dataWidth: number, ports: PortsType, writeEnableMask: 'none' | 'bit' | undefined): IOSignals {
+    const commonSignals = (additionalSignals: Record<string, any> = {}): IOSignals => ({
+      ...additionalSignals,
+      DOUT: { direction: 'output', width: dataWidth },
+      ...(writeEnableMask === 'bit' ? { BWEN: { direction: 'input', width: dataWidth } } : {})
+    });
+  
+    switch (ports) {
+      case 'VROM_HD':
+        return commonSignals({
+          CK: { direction: 'input', isClock: 'posedge' },
+          CSN: { direction: 'input' },
+          A: { direction: 'input', width: this.bitWidth(depth - 1n) },
+          MCS: { direction: 'input', width: 1 },
+          KCS: { direction: 'input', width: 1 },
+          PDE: { direction: 'input', width: 1 },
+          PRN: { direction: 'output', width: 1 }
+        });
+  
+      case 'RF1_HD':
+      case 'RF1_HS':
+      case 'RA1_HD':
+      case 'RA1_HS':
+        return commonSignals({
+          CK: { direction: 'input', isClock: 'posedge' },
+          CSN: { direction: 'input' },
+          WEN: { direction: 'input' },
+          DI: { direction: 'input', width: dataWidth },
+          A: { direction: 'input', width: this.bitWidth(depth - 1n) },
+          MCS: { direction: 'input', width: 2 },
+          MCSW: { direction: 'input', width: 1 },
+          RET: { direction: 'input', width: 1 },
+          ADME: { direction: 'input', width: 3 }
+        });
+  
+      case 'RD2_HS':
+        return commonSignals({
+          CK: { direction: 'input', isClock: 'posedge' },
+          REN: { direction: 'input' },
+          WEN: { direction: 'input' },
+          DI: { direction: 'input', width: dataWidth },
+          RA: { direction: 'input', width: this.bitWidth(depth - 1n) },
+          WA: { direction: 'input', width: this.bitWidth(depth - 1n) },
+          MCSRD: { direction: 'input', width: 2 },
+          MCSWR: { direction: 'input', width: 2 },
+          RET: { direction: 'input', width: 1 },
+          ADME: { direction: 'input', width: 3 }
+        });
+  
+      case 'RF2_HS':
+        return commonSignals({
+          RCK: { direction: 'input', isClock: 'posedge' },
+          WCK: { direction: 'input', isClock: 'posedge' },
+          REN: { direction: 'input' },
+          WEN: { direction: 'input' },
+          DI: { direction: 'input', width: dataWidth },
+          RA: { direction: 'input', width: this.bitWidth(depth - 1n) },
+          WA: { direction: 'input', width: this.bitWidth(depth - 1n) },
+          MCSRD: { direction: 'input', width: 2 },
+          MCSWR: { direction: 'input', width: 2 },
+          RET: { direction: 'input', width: 1 },
+          ADME: { direction: 'input', width: 3 },
+          KCS: { direction: 'input', width: 1 }
+        });
+    }
+  }
+  */
     /*
     private splitDepth (): void {
       const DOut_Tmp_list: string[] = []
@@ -197,7 +273,10 @@ export class SRAM_WRAPPER extends Module {
                 if (REN_sub && REN_D0_sub && RA_sub != null) {
                     this.addAssign({ in: new Expr(`RA & ${sram.adr_mask}`), out: RA_sub });
                     this.addAssign({ in: new Expr(`${DOut_sub.toString()} & {${sram.width}{${REN_D0_sub.toString()}}}`), out: DOut_tmp });
-                    this.addRegister({ d: new Expr(`~${REN_sub.toString()}`), clk: 'CK', q: REN_D0_sub });
+                    this.addRegister({ d: new Expr(`~${REN_sub.toString()}`), clk: 'CK' in this.IOs ? 'CK' : 'RCK', q: REN_D0_sub });
+                    // if ('WCK' in this.IOs) {
+                    //   this.addRegister({ d: new Expr(`~${WEN_sub.toString()}`), clk: 'WCK', q: WEN_D0_sub })
+                    // }
                 }
                 else {
                     this.addAssign({ in: new Expr(DOut_sub.toString()), out: DOut_tmp });
@@ -213,7 +292,6 @@ export class SRAM_WRAPPER extends Module {
                         }
                         : {})
                 };
-                // 根据 `WA` 是否存在于 `this.IOs` 来设置 `WA` 或 `A`
                 if (WA_sub) {
                     submoduleInputs.WA = WA_sub;
                 }
@@ -233,6 +311,11 @@ export class SRAM_WRAPPER extends Module {
             if (sram.type === 'SRAM') {
                 const DOut_sub = this.addSignal(`DOUT_${sram.instName.toUpperCase()}`, { width: sram.width, type: 'wire' });
                 const DI_sub = this.addSignal(`DI_${sram.instName.toUpperCase()}`, { width: sram.width, type: 'wire' });
+                let Bwen_sub;
+                if (this.params.writeEnableMask === 'bit') {
+                    Bwen_sub = this.addSignal(`BWEN_${sram.instName.toUpperCase()}`, { width: sram.width, type: 'wire' });
+                    this.addAssign({ in: new Expr(`BWEN[${sram.bitBig}:${sram.bitBig - (sram.width - 1)}]`), out: Bwen_sub });
+                }
                 if (sram.bitBig >= (sram.width - 1)) {
                     this.addAssign({ in: new Expr(`DI[${sram.bitBig}:${sram.bitBig - (sram.width - 1)}]`), out: DI_sub });
                     DOut_list.push(DOut_sub.toString());
@@ -241,9 +324,16 @@ export class SRAM_WRAPPER extends Module {
                     this.addAssign({ in: new Expr(`{DI[${sram.bitBig}:0], ${sram.width - 1 - sram.bitBig}'d0}`), out: DI_sub });
                     DOut_list.push(`${DOut_sub.toString()}[${sram.width - 1}:${sram.width - 1 - sram.bitBig}]`);
                 }
-                this.addSubmodule(sram.instName, new Module({
-                    name: sram.module
-                }, this.setupIOs(sram.depth, sram.width, this.params.ports, this.params.writeEnableMask)), { DI: DI_sub, DOUT: DOut_sub }, true, true, true);
+                if (this.params.writeEnableMask === 'bit' && Bwen_sub) {
+                    this.addSubmodule(sram.instName, new Module({
+                        name: sram.module
+                    }, this.setupIOs(sram.depth, sram.width, this.params.ports, this.params.writeEnableMask)), { DI: DI_sub, DOUT: DOut_sub, BWEN: Bwen_sub }, true, true, true);
+                }
+                else {
+                    this.addSubmodule(sram.instName, new Module({
+                        name: sram.module
+                    }, this.setupIOs(sram.depth, sram.width, this.params.ports, this.params.writeEnableMask)), { DI: DI_sub, DOUT: DOut_sub }, true, true, true);
+                }
             }
             else if (sram.type === 'REG') {
                 this.genRegInWrapper('WA' in this.IOs ? 'WA' : 'A', 'RA' in this.IOs ? 'RA' : 'A', 'WCK' in this.IOs ? 'WCK' : 'CK', 'RCK' in this.IOs ? 'RCK' : 'CK', { width: sram.width, depth: sram.depth });
@@ -272,3 +362,10 @@ end
     }
 }
 export default SRAM_WRAPPER;
+// .A    (A   ),
+// .CEN  (CEN ),
+// .CLK  (CLK ),
+// .D    (D   ),
+// .GWEN (GWEN),
+// .Q    (Q   ),
+// .WEN  (WEN )

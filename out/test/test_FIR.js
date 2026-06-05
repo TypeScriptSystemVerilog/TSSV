@@ -7,14 +7,14 @@ try {
 catch (e) { }
 const myFir = new FIR({ name: 'myFIR', numTaps: 4, coefficients: [1n, 2n, 3n, 4n] });
 try {
-    writeFileSync('sv-examples/test_FIR_output/myFIR.sv', myFir.writeSystemVerilog());
+    writeFileSync('sv-examples/test_FIR_output/myFIR.sv', myFir.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);
 }
 const myFir2 = new FIR({ numTaps: 5, coefficients: [2n, -2n, 4n, -4n, 8n] });
 try {
-    writeFileSync(`sv-examples/test_FIR_output/${myFir2.name}.sv`, myFir2.writeSystemVerilog());
+    writeFileSync(`sv-examples/test_FIR_output/${myFir2.name}.sv`, myFir2.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);
@@ -28,7 +28,7 @@ const myFir3 = new FIR({
     rShift: 7
 });
 try {
-    writeFileSync('sv-examples/test_FIR_output/myFIR3.sv', myFir3.writeSystemVerilog());
+    writeFileSync('sv-examples/test_FIR_output/myFIR3.sv', myFir3.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);
@@ -68,7 +68,7 @@ try {
     const TB = `
 /* verilator lint_off DECLFILENAME */
 /* verilator lint_off UNUSED */
-${tb_lpFIR.writeSystemVerilog()}
+${tb_lpFIR.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_FIR_output/tb_lpFIR.sv', TB);
 }

@@ -41,7 +41,7 @@ const revived = deserialize(serialized);
 console.log(inspect(revived, { depth: null, colors: true }));
 const differences = diff.diff(myRegs, revived);
 if (!differences) {
-    console.log('There are no differences.');
+    // console.log('There are no differences.')
 }
 else {
     console.log(differences);
@@ -112,7 +112,7 @@ const tb_testRegBlock = new Module({ name: 'tb_testRegBlock' }, {
 }, {}, tbBody);
 tb_testRegBlock.addSubmodule('dut', testRegBlock, {}, true, true);
 try {
-    fs.writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog());
+    fs.writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog(true));
 }
 catch (err) {
     console.error(err);

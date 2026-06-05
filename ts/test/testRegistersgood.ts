@@ -273,7 +273,7 @@ tb_testRegBlock.addSubmodule(
 )
 
 try {
-  fs.writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog())
+  fs.writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }
@@ -375,7 +375,7 @@ tb_testRegBlock2.addSubmodule(
 )
 
 try {
-  fs.writeFileSync('sv-examples/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog())
+  fs.writeFileSync('sv-examples/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }
@@ -480,7 +480,7 @@ tb_testRegBlock3.addSubmodule(
 )
 
 try {
-  fs.writeFileSync('sv-examples/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog())
+  fs.writeFileSync('sv-examples/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }
@@ -579,7 +579,7 @@ tb_testRegBlock4.addSubmodule(
 )
 
 try {
-  fs.writeFileSync('sv-examples/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog())
+  fs.writeFileSync('sv-examples/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog(true))
 } catch (err) {
   console.error(err)
 }

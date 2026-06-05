@@ -55,7 +55,7 @@ try {
     const TB = `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${regMod.writeSystemVerilog()}
+  ${regMod.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod.sv', TB);
 }
@@ -113,7 +113,7 @@ try {
     const TB2 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod2.writeSystemVerilog()}
+    ${regMod2.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod2.sv', TB2);
 }
@@ -172,7 +172,7 @@ try {
     const TB3 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod3.writeSystemVerilog()}
+    ${regMod3.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod3.sv', TB3);
 }
@@ -244,7 +244,7 @@ try {
     const TB4 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod4.writeSystemVerilog()}
+    ${regMod4.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod4.sv', TB4);
 }
@@ -309,7 +309,7 @@ try {
     const TB5 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod5.writeSystemVerilog()}
+    ${regMod5.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod5.sv', TB5);
 }
@@ -372,7 +372,7 @@ try {
     const TB6 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod6.writeSystemVerilog()}
+    ${regMod6.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod6.sv', TB6);
 }
@@ -437,7 +437,7 @@ try {
     const TB7 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod7.writeSystemVerilog()}
+    ${regMod7.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod7.sv', TB7);
 }
@@ -499,7 +499,7 @@ try {
     const TB8 = `
     /* verilator lint_off DECLFILENAME */
     /* verilator lint_off UNUSED */
-    ${regMod8.writeSystemVerilog()}
+    ${regMod8.writeSystemVerilog(true)}
 `;
     writeFileSync('sv-examples/test_addRegister_output/regMod8.sv', TB8);
 }

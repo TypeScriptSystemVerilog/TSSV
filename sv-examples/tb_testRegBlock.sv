@@ -4,7 +4,10 @@
             
     
             
-    /* verilator lint_off WIDTH */        
+    /* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */        
     module ram_32x32 
        (
        input logic  clk,
@@ -43,12 +46,18 @@
     
     
     endmodule
-    /* verilator lint_on WIDTH */        
+    /* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
+/* verilator lint_on WIDTH */       
     
             
     
             
-    /* verilator lint_off WIDTH */        
+    /* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */        
     module rom_32x32 
        (
        input logic  clk,
@@ -91,7 +100,10 @@
     
     
     endmodule
-    /* verilator lint_on WIDTH */        
+    /* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
+/* verilator lint_on WIDTH */       
     
     
 interface memory_32_32;
@@ -131,7 +143,10 @@ endinterface
         
     
             
-    /* verilator lint_off WIDTH */        
+    /* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */        
     module testRegBlock 
        (
        input logic  clk,
@@ -152,69 +167,69 @@ endinterface
    memory_32_32.inward regs
        );
     
-       logic  REG0_matchSig;
+       logic  dec_REG0;
    logic [3:0] REG0_wstrb;
    logic  REG0_RE;
    logic  REG0_WE;
    logic [31:0] REG0_d;
-   logic  REG1_matchSig;
+   logic  dec_REG1;
    logic  REG1_RE;
-   logic  REG2_matchSig;
+   logic  dec_REG2;
    logic [3:0] REG2_wstrb;
    logic  REG2_RE;
    logic  REG2_WE;
-   logic  MEM0_matchSig;
+   logic  dec_MEM0;
    logic  MEM0_Nmatch;
    logic [31:0] MEM0_ADDR;
    logic  MEM0_RE;
    logic  MEM0_WE;
-   logic  MEM1_matchSig;
+   logic  dec_MEM1;
    logic  MEM1_RE;
    logic [31:0] MEM1_ADDR;
     
-    assign REG0_matchSig = regs.ADDR == 0;
-assign REG0_RE = REG0_matchSig && regs.RE;
-assign REG0_WE = REG0_matchSig && regs.WE;
+    assign dec_REG0 = regs.ADDR == 0;
+assign REG0_RE = dec_REG0 && regs.RE;
+assign REG0_WE = dec_REG0 && regs.WE;
 assign REG0_wstrb = regs.WSTRB;
 assign REG0_d = regs.DATA_WR & REG0_wstrb;
-assign REG1_matchSig = regs.ADDR == 4;
-assign REG1_RE = REG1_matchSig && regs.RE;
-assign REG2_matchSig = regs.ADDR == 8;
-assign REG2_RE = REG2_matchSig && regs.RE;
-assign REG2_WE = REG2_matchSig && regs.WE;
+assign dec_REG1 = regs.ADDR == 4;
+assign REG1_RE = dec_REG1 && regs.RE;
+assign dec_REG2 = regs.ADDR == 8;
+assign REG2_RE = dec_REG2 && regs.RE;
+assign REG2_WE = dec_REG2 && regs.WE;
 assign REG2_wstrb = regs.WSTRB;
-assign MEM0_matchSig = (regs.ADDR >= 32) && (regs.ADDR <= (63));
+assign dec_MEM0 = (regs.ADDR >= 32) && (regs.ADDR <= (63));
 assign MEM0_Nmatch = regs.ADDR & 4'b1100 == 32;
-assign MEM0_RE = MEM0_matchSig && regs.RE;
-assign MEM0_WE = MEM0_matchSig && regs.WE;
+assign MEM0_RE = dec_MEM0 && regs.RE;
+assign MEM0_WE = dec_MEM0 && regs.WE;
 assign MEM0_ADDR = regs.ADDR;
-assign MEM1_matchSig = (regs.ADDR >= 64) && (regs.ADDR <= (95));
-assign MEM1_RE = MEM1_matchSig && regs.RE;
+assign dec_MEM1 = (regs.ADDR >= 64) && (regs.ADDR <= (95));
+assign MEM1_RE = dec_MEM1 && regs.RE;
 assign MEM1_ADDR = regs.ADDR;
 
   always @(regs.ADDR or regs.RE)
     if(regs.RE == 1) begin
       /* verilator lint_off CASEX */
       casex (regs.ADDR)
-        8'b00000000: begin
+             8'b00000000: begin
             regs.DATA_RD <= REG0;
             regs.READY <= 1'b1;
         end
-     8'b00000100: begin
+          8'b00000100: begin
             regs.DATA_RD <= REG1;
             regs.READY <= 1'b1;
         end
-     8'b00001000: begin
+          8'b00001000: begin
             regs.DATA_RD <= {REG2_field1, REG2_field0};
             regs.READY <= 1'b1;
         end
-     8'b001XXXXX: begin
+          8'b001XXXXX: begin
             regs.DATA_RD <= MEM0_wdata;
-            regs.READY <= MEM0_ready;
+            regs.READY <= 1'b1;
         end
-     8'b01XXXXXX: begin
+          8'b01XXXXXX: begin
             regs.DATA_RD <= MEM1_rdata;
-            regs.READY <= MEM1_ready;
+            regs.READY <= 1'b1;
         end
       default: regs.DATA_RD <= 0;
     endcase
@@ -333,10 +348,16 @@ assign MEM1_ADDR = regs.ADDR;
   
     
     endmodule
-    /* verilator lint_on WIDTH */        
+    /* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
+/* verilator lint_on WIDTH */       
     
             
-    /* verilator lint_off WIDTH */        
+    /* verilator lint_off WIDTH */
+/* verilator lint_off MULTIDRIVEN */
+/* verilator lint_off WIDTHTRUNC */
+/* verilator lint_off WIDTHEXPAND */        
     module tb_testRegBlock 
        (
        input logic  clk,
@@ -468,5 +489,8 @@ assign MEM1_ADDR = regs.ADDR;
     
     
     endmodule
-    /* verilator lint_on WIDTH */        
+    /* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on WIDTHTRUNC */
+/* verilator lint_on MULTIDRIVEN */
+/* verilator lint_on WIDTH */       
     

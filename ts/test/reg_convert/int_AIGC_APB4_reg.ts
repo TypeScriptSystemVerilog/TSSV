@@ -177,11 +177,12 @@ try {
       .join('\n')
   }
 
-  const rawVerilog = tb_testRegBlock.writeSystemVerilog()
+  const rawVerilog = tb_testRegBlock.writeSystemVerilog(true)
 
   const adjustedVerilog = modifySignalTypes(rawVerilog)
 
   fs.writeFileSync('sv-examples/reg_convert/tb_intAIGCAPB4reg.sv', adjustedVerilog)
+  fs.writeFileSync('sv-examples/gold/APB_int_gold/tb_intAIGCAPB4reg.sv', adjustedVerilog)
 } catch (err) {
   console.error(err)
 }

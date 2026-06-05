@@ -32,8 +32,12 @@ module Specification_Architecture_Structure (
 ,   Targ1_P_WData
 ,   Targ1_P_Ready
 ,   Targ1_P_SlvErr
+,   noc_prstn
+,   node0_pclk
+,   node1_pclk
+,   tm
 );
-    input  [52:0]   Init0_Ar_Addr   ;
+    input  [52:0]   Init0_P_Addr    ;
     input           Init0_P_Selx    ;
     input           Init0_P_Enable  ;
     input           Init0_P_Write   ;
@@ -41,7 +45,7 @@ module Specification_Architecture_Structure (
     input  [1023:0] Init0_P_WData   ;
     output          Init0_P_Ready   ;
     output          Init0_P_SlvErr  ;
-    input  [52:0]   Init1_Ar_Addr   ;
+    input  [52:0]   Init1_P_Addr    ;
     input           Init1_P_Selx    ;
     input           Init1_P_Enable  ;
     input           Init1_P_Write   ;
@@ -49,7 +53,7 @@ module Specification_Architecture_Structure (
     input  [1023:0] Init1_P_WData   ;
     output          Init1_P_Ready   ;
     output          Init1_P_SlvErr  ;
-    output [52:0]   Targ0_Ar_Addr   ;
+    output [52:0]   Targ0_P_Addr    ;
     output          Targ0_P_Selx    ;
     output          Targ0_P_Enable  ;
     output          Targ0_P_Write   ;
@@ -57,7 +61,7 @@ module Specification_Architecture_Structure (
     output [1023:0] Targ0_P_WData   ;
     input           Targ0_P_Ready   ;
     input           Targ0_P_SlvErr  ;
-    output [52:0]   Targ1_Ar_Addr   ;
+    output [52:0]   Targ1_P_Addr    ;
     output          Targ1_P_Selx    ;
     output          Targ1_P_Enable  ;
     output          Targ1_P_Write   ;

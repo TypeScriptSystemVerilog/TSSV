@@ -80,7 +80,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${comb_tb.writeSystemVerilog()}
+  ${comb_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addCombAlways_output/comb_tb.sv', TB)
 } catch (err) {
@@ -118,7 +118,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${combN_tb.writeSystemVerilog()}
+  ${combN_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addCombAlways_output/combN_tb.sv', TB)
 } catch (err) {

@@ -76,7 +76,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${import_tb.writeSystemVerilog()}
+  ${import_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_import_output/import_tb.sv', TB)
 } catch (err) {

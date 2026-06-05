@@ -74,7 +74,7 @@ try {
 `
   /* verilator lint_off DECLFILENAME */
   /* verilator lint_off UNUSED */
-  ${seq_tb.writeSystemVerilog()}
+  ${seq_tb.writeSystemVerilog(true)}
 `
   writeFileSync('sv-examples/test_addSequentialAlways_output/seq_tb.sv', TB)
 } catch (err) {

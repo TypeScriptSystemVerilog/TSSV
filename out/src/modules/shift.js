@@ -7,14 +7,12 @@ import { Module, Expr } from 'tssv/lib/core/TSSV';
 export class shift extends Module {
     constructor(params) {
         super({
-            // define the default parameter values
             name: params.name,
             dataWidth: params.dataWidth,
             shift_direct: params.shift_direct || 'right',
             shift_val: params.shift_val,
             isSigned: params.isSigned || 'unsigned'
         });
-        // calculate output width
         let output_width = this.params.dataWidth;
         if (this.params.shift_direct === 'left') {
             output_width = this.params.dataWidth + this.params.shift_val;

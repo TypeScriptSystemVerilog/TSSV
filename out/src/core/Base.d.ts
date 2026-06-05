@@ -55,6 +55,7 @@ export type ExprParams = Record<string, string | number | bigint>;
 /**
  * container class of a TSSV expression, or a RHS assignment in the
  * generated output
+ * 构造时可以将string或者((p: ExprParams) => string)类型的function传入
  */
 export declare class Expr {
     constructor(def: string | ((p: ExprParams) => string), params?: ExprParams);
@@ -115,13 +116,17 @@ export declare class Module {
     }>;
     protected interfaces: Interfaces;
     /**
-       * base constructor
+       * base constructor: obtain name by connecting parameters by '_'
        * @param params parameter value bundle
        * @param IOs IO port bundle
        * @param signals signal bundle
        * @param body SystemVerilog body text
        */
     constructor(params?: TSSVParameters, IOs?: IOSignals, signals?: {}, body?: string);
+    /**
+       * setVerilogParameter: add a parameter to verilogParams which record whether a parameter should be included in the generated verilog
+       * @param param parameter name to add to verilogParams
+    */
     setVerilogParameter(param: string): void;
     protected bindingRules: {
         input: string[];
@@ -155,6 +160,14 @@ export declare class Module {
        * @returns signal that can be passed to other add* functions to make connections
        */
     addSignal(name: string, signal: Signal): Sig;
+    /**
+     * Retrieves an existing signal or adds a new one if it doesn't exist.
+     * @param signalName The name of the signal to retrieve or add.
+     * @param width The width of the signal.
+     * @param type The type of the signal, either 'wire' or 'reg'.
+     * @returns The signal object.
+     */
+    getOrAddSignal(signalName: string, width: number, type?: 'wire' | 'reg'): Sig;
     /**
        * add a DFF register(can be multi-bit) to the d input
        * @param io the input/output of the register
@@ -264,25 +277,73 @@ export declare class Module {
         out: string | Sig;
         default?: string | Sig | Expr;
     }): Sig;
+    /**
+     * Adds a range expression to the given IO object.
+     * If `io.b` is not a `Sig` object and is non-empty, it appends the range expression to `io.b`.
+     * If `io.b` is empty, it creates a new range expression and assigns it to `io.b`.
+     * @param io The operation IO object containing `a` (range) and `b` (the current expression or signal)
+     * @returns The updated string representing the modified `b` expression
+     * @throws Error If `io.b` is of unsupported type `Sig`
+     */
     addInRange(io: OperationIO): string;
-    addReadMux(io: OperationIO, outExpr: string, wordSize: number): string;
+    /**
+     * Adds a read multiplexer expression to the given output expression.
+     * The function constructs a read signal by performing a bitwise AND between the input signal `a` and `b`,
+     * scaled to the given `wordSize`, and appends it to the provided `outRhs`.
+     * If `outRhs` is non-empty, the new expression is concatenated with a bitwise OR operator.
+     * If `outRhs` is empty, the expression is simply added as the first part of `outRhs`.
+     * @param io The operation IO object containing input signal `a` and additional signal `b`
+     * @param outRhs The existing output expression to which the new read mux signal will be added
+     * @param wordSize The size of the word (in bits) used to scale the `a` signal
+     * @returns The updated output expression with the added read mux signal
+     */
+    addReadMux(io: OperationIO, outRhs: string, wordSize: number): string;
+    /**
+     * Generates SystemVerilog code for buffer instances using a generate block.
+     * If the size is 1, it generates a single instance without the generate block.
+     * @param bufferName The base name of the buffer.
+     * @param instanceName The name of the instance to be used in the generate block.
+     * @param size The number of instances to generate.
+     * @returns The generated SystemVerilog code as a string.
+     */
+    generateBufferInstances(bufferName: string, bufferOut: string, instanceName: string, size: number): string;
     /**
        * print some debug information to the console
        */
     debug(): void;
+    private assembleParameters;
+    private assembleIODefinition;
+    private assembleSignals;
+    private assembleRegisterBlocks;
+    private assembleRegBlksReorder;
+    private assembleRegisterBlock;
+    private assembleRegBlkReorder;
+    private assembleResetString;
+    private assembleReorderRstStr;
+    private assembleFunctionalAssignments;
+    private assembleReorderFunctAssignment;
+    private assembleSubmodules;
+    private assembleParamsBind;
+    private assembleBindings;
     /**
        * write the generated SystemVerilog code to a string
        * @returns string containing the generated SystemVerilog code for this module
        */
-    writeSystemVerilog(): string;
+    writeSystemVerilog(includeVerilatorDirectives?: boolean): string;
+    writeVerilog(includeVerilatorDirectives?: boolean): string;
     protected body: string;
     protected registerBlocks: Record<string, Record<string, Record<string, Record<string, {
+        d: string;
+        resetVal?: bigint;
+    }>>>>;
+    protected regBlksReorder: Record<string, Record<string, Record<string, Record<string, {
         d: string;
         resetVal?: bigint;
     }>>>>;
     protected static printedInterfaces: Record<string, boolean>;
     protected verilogParams: Record<string, boolean>;
 }
+export declare function extractNumberFromPattern(pattern: string): number | null;
 export declare function serialize(obj: any, indent?: number, bigIntSuffix?: string): string;
 export declare function deserialize(serialized: string): any;
 declare const _default: {
