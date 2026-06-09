@@ -273,12 +273,14 @@ export declare class Module {
        * @returns string containing the generated SystemVerilog code for this module
        */
     writeSystemVerilog(): string;
+    private _writeSystemVerilog;
     protected body: string;
     protected registerBlocks: Record<string, Record<string, Record<string, Record<string, {
         d: string;
         resetVal?: bigint;
     }>>>>;
     protected static printedInterfaces: Record<string, boolean>;
+    private static svGenDepth;
     protected verilogParams: Record<string, boolean>;
 }
 export declare function serialize(obj: any, indent?: number, bigIntSuffix?: string): string;

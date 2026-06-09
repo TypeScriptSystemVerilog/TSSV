@@ -1,4 +1,6 @@
 import TSSV from 'tssv/lib/core/TSSV'
+import { RegisterBlock, type RegisterBlockDef } from 'tssv/lib/core/Registers'
+import { Memory } from 'tssv/lib/interfaces/Memory'
 
 type inWidthType = TSSV.IntRange<1, 32>
 /**
@@ -70,17 +72,54 @@ export class FIR extends TSSV.Module {
     }
 
     // construct logic
+    const numTaps = this.params.coefficients.length
+
+    // pre-declare signals that will receive each coefficient from the register block
+    const coeffSigs: TSSV.Sig[] = []
+    for (let i = 0; i < numTaps; i++) {
+      coeffSigs.push(this.addSignal(`coeff_${i}`, { width: 32, isSigned: true }))
+    }
+
+    // build coefficient register block dynamically — one RW register per tap,
+    // reset values taken from the coefficients parameter
+    const coeffAddrMap: Record<string, bigint> = {}
+    const coeffRegisters: RegisterBlockDef<Record<string, bigint>>['registers'] = {}
+    for (let i = 0; i < numTaps; i++) {
+      coeffAddrMap[`COEFF_${i}`] = BigInt(i * 4)
+      coeffRegisters[`COEFF_${i}`] = {
+        type: 'RW',
+        reset: this.params.coefficients[i] ?? 0n,
+        isSigned: true,
+        width: 32,
+        description: `FIR tap ${i} coefficient`
+      }
+    }
+
+    const coeffRegBlock = new RegisterBlock<Record<string, bigint>>(
+      { name: `${this.params.name ?? 'fir'}_coeffRegs`, busAddressWidth: 32 },
+      { wordSize: 32, addrMap: coeffAddrMap, registers: coeffRegisters },
+      new Memory()
+    )
+
+    // bind clk/rst_b; wire COEFF_N outputs to coeff_N signals;
+    // Memory bus ports left unbound — they are promoted to FIR ports
+    const coeffBindings: Record<string, string | TSSV.Sig> = { clk: 'clk', rst_b: 'rst_b' }
+    for (let i = 0; i < numTaps; i++) {
+      coeffBindings[`COEFF_${i}`] = coeffSigs[i] ?? new TSSV.Sig('0')
+    }
+    this.addSubmodule('coeff_block', coeffRegBlock, coeffBindings, true, true)
+
     let nextTapIn: TSSV.Sig = new TSSV.Sig('data_in')
     const products: TSSV.Sig[] = []
     let coeffSum = 0
-    for (let i = 0; i < this.params.coefficients.length; i++) {
+    for (let i = 0; i < numTaps; i++) {
       // construct tap delay line
       const thisTap = this.addSignal(`tap_${i}`, { width: this.params.inWidth, isSigned: true })
       this.addRegister({ d: nextTapIn, clk: 'clk', reset: 'rst_b', en: 'en', q: thisTap })
 
-      // construct tap multipliers
-      products.push(this.addMultiplier({ a: thisTap, b: this.params.coefficients[i] }))
-      coeffSum += Math.abs(Number(this.params.coefficients[i]))
+      // multipliers now driven by runtime-configurable coefficient registers
+      products.push(this.addMultiplier({ a: thisTap, b: coeffSigs[i] ?? new TSSV.Sig('0') }))
+      coeffSum += Math.abs(Number(this.params.coefficients[i] ?? 0n))
 
       nextTapIn = thisTap
     }

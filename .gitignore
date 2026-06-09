@@ -19,11 +19,14 @@
 
 node_modules
 obj_dir
-out
+out/
+sv-examples/
 *.vcd
 .local-pack
 docs
 
 componentgen
+
+stub.*.ts
 
 
