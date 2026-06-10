@@ -25,21 +25,15 @@
     "url": "https://github.com/TypeScriptSystemVerilog/TSSV/issues"
   },
   "exports": {
-    "./lib/*": [
-      "./out/src/*.js",
-      "./out/src/*/index.js"
-    ],
+    "./lib/modules/*": ["./out/src/modules/*/index.js", "./out/src/modules/*.js"],
+    "./lib/*": "./out/src/*.js",
     "./test/*": "./out/test/*.js"
   },
   "typesVersions": {
     "*": {
-      "lib/*": [
-        "out/src/*",
-        "out/src/*/index"
-      ],
-      "test/*": [
-        "out/test/*"
-      ]
+      "lib/modules/*": ["out/src/modules/*/index", "out/src/modules/*"],
+      "lib/*": ["out/src/*"],
+      "test/*": ["out/test/*"]
     }
   },
   "homepage": "https://github.com/TypeScriptSystemVerilog/TSSV#readme",

@@ -1,6 +1,7 @@
 import TSSV from 'tssv/lib/core/TSSV'
 import { RegisterBlock, type RegisterBlockDef } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
+import { AXI4Stream } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4Stream/r0p0_1/AXI4Stream'
 
 type inWidthType = TSSV.IntRange<1, 32>
 /**
@@ -29,14 +30,25 @@ export interface FIR_Parameters extends TSSV.TSSVParameters {
 /**
  * FIR Interface
  *
+ * Input samples arrive on the `s_axis` AXI4-Stream slave interface (TDATA[inWidth-1:0], signed).
+ * Filtered output samples are produced on the `m_axis` AXI4-Stream master interface (TDATA sign-extended to 32 bits).
+ * Coefficient registers are accessible via the `regs` Memory bus (promoted from the `coeff_block` submodule).
+ *
+ * Backpressure is fully supported: `s_axis.TREADY` deasserts when `m_axis.TREADY` is low and
+ * the output stage holds valid data, stalling the entire pipeline.
+ *
+ * Latency: 2 clock cycles from `s_axis` transfer to `m_axis.TVALID`.
+ *
  * @wavedrom
  * ```json
  * {
  *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": "      en", "wave": "01.0.1.01."},
- *     {"name": " data_in", "wave": "x34..56.78", "data": ["i0", "i1", "i2", "i3", "i4", "i5"]},
- *     {"name": "data_out", "wave": "x.34..56.7", "data": ["o0", "o1", "o2", "o3", "o4", "o5"]}
+ *     {"name": "          clk", "wave": "p........."},
+ *     {"name": "s_axis.TVALID", "wave": "01.0.1.01."},
+ *     {"name": "s_axis.TREADY", "wave": "1........."},
+ *     {"name": " s_axis.TDATA", "wave": "x34..56.78", "data": ["i0","i1","i2","i3","i4","i5"]},
+ *     {"name": "m_axis.TVALID", "wave": "0..1..0.1."},
+ *     {"name": " m_axis.TDATA", "wave": "x...34..56", "data": ["o0","o1","o2","o3"]}
  *   ]
  * }
  * ```
@@ -44,9 +56,6 @@ export interface FIR_Parameters extends TSSV.TSSVParameters {
 export interface FIR_Ports extends TSSV.IOSignals {
   clk: { direction: 'input', isClock: 'posedge' }
   rst_b: { direction: 'input', isReset: 'lowasync' }
-  en: { direction: 'input' }
-  data_in: { direction: 'input', width: inWidthType, isSigned: true }
-  data_out: { direction: 'output', width: number, isSigned: true }
 }
 
 export class FIR extends TSSV.Module {
@@ -62,14 +71,38 @@ export class FIR extends TSSV.Module {
       rShift: params.rShift || 2
     })
 
-    // define IO signals
+    const inWidth = this.params.inWidth || 8
+    const outWidth = this.params.outWidth || 9
+
+    // flat clock/reset ports (used internally by addRegister)
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
-      rst_b: { direction: 'input', isReset: 'lowasync' },
-      en: { direction: 'input' },
-      data_in: { direction: 'input', width: this.params.inWidth || 8, isSigned: true },
-      data_out: { direction: 'output', width: this.params.outWidth || 9, isSigned: true }
+      rst_b: { direction: 'input', isReset: 'lowasync' }
     }
+
+    // AXI4-Stream interfaces: slave input, master output
+    this.addInterface('s_axis', new AXI4Stream({ DATA_WIDTH: 32 }, 'inward'))
+    this.addInterface('m_axis', new AXI4Stream({ DATA_WIDTH: 32 }, 'outward'))
+
+    // internal data path signals (bridge AXI stream ↔ FIR pipeline)
+    this.addSignal('data_in',     { width: inWidth,  isSigned: true })
+    this.addSignal('data_out',    { width: outWidth, isSigned: true })
+    this.addSignal('en',          {})
+    this.addSignal('valid_pipe_0', {})
+    this.addSignal('valid_pipe_1', {})
+
+    // AXI-to-FIR adapter assigns
+    // pipeline advances when output can drain or has no valid data yet
+    this.body += `   assign en = m_axis.TREADY || !valid_pipe_1;\n`
+    // must use this.body directly — addAssign validates out via findSignal, which only
+    // searches IOs and signals; interface sub-signals like s_axis.TREADY are not found there
+    this.body += `   assign s_axis.TREADY = en;\n`
+    // extract signed sample from LSBs of TDATA
+    this.body += `   assign data_in = $signed(s_axis.TDATA[${inWidth - 1}:0]);\n`
+
+    // 2-stage valid shift register — tracks which pipeline stages hold real data
+    this.addRegister({ d: new TSSV.Expr('s_axis.TVALID'), clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_0' })
+    this.addRegister({ d: 'valid_pipe_0',                  clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_1' })
 
     // construct logic
     const numTaps = this.params.coefficients.length
@@ -148,6 +181,19 @@ export class FIR extends TSSV.Module {
       en: 'en',
       q: 'data_out'
     })
+
+    // FIR-to-AXI adapter assigns — all outputs are m_axis interface sub-signals,
+    // so addAssign cannot be used (findSignal only resolves IOs and declared signals)
+    this.body += `   assign m_axis.TVALID = valid_pipe_1;\n`
+    // sign-extend data_out to fill the 32-bit TDATA field
+    this.body += `   assign m_axis.TDATA  = {{${32 - outWidth}{data_out[${outWidth - 1}]}}, data_out};\n`
+    // each sample is its own packet; all byte lanes carry valid data
+    this.body += `   assign m_axis.TLAST   = 1'b1;\n`
+    this.body += `   assign m_axis.TSTRB   = 4'hF;\n`
+    this.body += `   assign m_axis.TKEEP   = 4'hF;\n`
+    this.body += `   assign m_axis.TID     = '0;\n`
+    this.body += `   assign m_axis.TDEST   = '0;\n`
+    this.body += `   assign m_axis.TWAKEUP = 1'b0;\n`
   }
 }
 
