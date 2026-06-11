@@ -6,27 +6,11 @@ try {
   mkdirSync('sv-examples/test_FIR_output')
 } catch (e) {}
 
-const myFir = new FIR({ name: 'myFIR', numTaps: 4, coefficients: [1n, 2n, 3n, 4n] })
-try {
-  writeFileSync('sv-examples/test_FIR_output/myFIR.sv', myFir.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
-}
-
-const myFir2 = new FIR({ numTaps: 5, coefficients: [2n, -2n, 4n, -4n, 8n] })
-try {
-  writeFileSync(`sv-examples/test_FIR_output/${myFir2.name}.sv`, myFir2.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
-}
-
 const myFir3 = new FIR(
   {
     name: 'myFIR3',
-    numTaps: 13,
     inWidth: 8,
     outWidth: 8,
-    coefficients: [-1n, 0n, 5n, -6n, -10n, 38n, 77n, 38n, -10n, -6n, 5n, 0n, -1n],
     rShift: 7
   })
 try {

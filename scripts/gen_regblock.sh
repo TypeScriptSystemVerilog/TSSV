@@ -4,7 +4,7 @@
 # Usage:
 #   ./scripts/gen_regblock.sh <path-to-regblock.yaml>
 #
-# Writes stub.<name>.ts next to the input YAML file.
+# Writes regs-<name>.ts next to the input YAML file.
 #
 # Dependencies:
 #   node     — Node.js runtime (already required by this project)
@@ -35,7 +35,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 YAML_DIR="$(cd "$(dirname "$YAML_FILE")" && pwd)"
 YAML_BASE="$(basename "$YAML_FILE" .yaml)"
 ABS_YAML="$YAML_DIR/$(basename "$YAML_FILE")"
-OUT_FILE="$YAML_DIR/stub.${YAML_BASE}.ts"
+OUT_FILE="$YAML_DIR/regs-${YAML_BASE}.ts"
 
 node --input-type=commonjs << NODEEOF
 'use strict';
@@ -57,8 +57,18 @@ const hexDigits = wordSize === 64 ? 16 : 8;
 
 function normHex(s) {
   if (s == null) return null;
-  const n = BigInt(String(s));
+  let n = BigInt(String(s));
+  if (n < 0n) {
+    const bits = BigInt(hexDigits * 4);
+    n = ((n % (1n << bits)) + (1n << bits)) % (1n << bits);
+  }
   return '0x' + n.toString(16).toUpperCase().padStart(hexDigits, '0');
+}
+
+// Signed bigint literal: -1n for negatives, 0x...n for non-negatives
+function resetLit(s) {
+  const n = BigInt(String(s));
+  return n < 0n ? n.toString() + 'n' : (normHex(s) ?? n.toString()) + 'n';
 }
 
 function pad(s, w) { return String(s ?? '').padEnd(w); }
@@ -85,7 +95,7 @@ const regRows = regNames.map(rn => {
     normHex(r.address) ?? '-',
     typ,
     isMem ? '-' : String(r.width ?? wordSize),
-    isMem ? '-' : (r.reset != null ? normHex(r.reset) ?? '-' : '-'),
+    isMem ? '-' : (r.reset != null ? String(BigInt(String(r.reset))) : '-'),
     r.description ?? ''
   ];
 });
@@ -106,7 +116,7 @@ const fieldSections = regNames.flatMap(rn => {
     const parts = String(bitsStr).split(':');
     const msb = parts[0] ?? '-';
     const lsb = parts[1] ?? msb;
-    const resetStr = f.reset != null ? (normHex(f.reset) ?? String(f.reset)) : '-';
+    const resetStr = f.reset != null ? String(BigInt(String(f.reset))) : '-';
     return [fn, '[' + msb + ':' + lsb + ']', resetStr, f.description ?? ''];
   });
   return [
@@ -152,8 +162,7 @@ function buildRegEntry(rn) {
   const lines = ["      type: '" + typ + "',"];
 
   if (!isMem && r.reset != null) {
-    const rh = normHex(r.reset);
-    lines.push('      reset: ' + (rh ? rh + 'n' : BigInt(String(r.reset)).toString() + 'n') + ',');
+    lines.push('      reset: ' + resetLit(r.reset) + ',');
   }
   if (r.description)
     lines.push("      description: '" + r.description + "',");
@@ -174,8 +183,7 @@ function buildRegEntry(rn) {
       const lsb = parseInt(parts[1] ?? parts[0], 10);
       const fieldParts = ['bitRange: [' + msb + ', ' + lsb + ']'];
       if (f.reset != null) {
-        const rh = normHex(f.reset);
-        fieldParts.push('reset: ' + (rh ? rh + 'n' : BigInt(String(f.reset)).toString() + 'n'));
+        fieldParts.push('reset: ' + resetLit(f.reset));
       }
       if (f.description)
         fieldParts.push("description: '" + f.description + "'");
@@ -208,12 +216,12 @@ const instantiation =
 // ── assemble output ───────────────────────────────────────────────────────────
 
 const ifaceImport = busIface === 'TL_UL'
-  ? "// import { TL_UL } from 'tssv/lib/interfaces/AMBA/TL_UL.js'"
-  : "// import { Memory } from 'tssv/lib/interfaces/Memory.js'";
+  ? "import { TL_UL } from 'tssv/lib/interfaces/AMBA/TL_UL'"
+  : "import { Memory } from 'tssv/lib/interfaces/Memory'";
 
 const outFile = '$OUT_FILE';
 const content = [
-  "// import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers.js'",
+  "import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'",
   ifaceImport,
   '',
   jsdoc,

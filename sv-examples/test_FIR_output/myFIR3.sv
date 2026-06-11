@@ -1,5 +1,55 @@
 
 
+interface AXI4Stream_32_4_0_4;
+
+   logic  ACLK;
+   logic  ACLKEN;
+   logic  ARESETn;
+   logic  TVALID;
+   logic  TREADY;
+   logic [31:0] TDATA;
+   logic [3:0] TSTRB;
+   logic [3:0] TKEEP;
+   logic  TLAST;
+   logic [7:0] TID;
+   logic [3:0] TDEST;
+   logic  TWAKEUP;
+
+
+    modport outward (
+      input ACLK,
+      input ACLKEN,
+      input ARESETn,
+      output TVALID,
+      input TREADY,
+      output TDATA,
+      output TSTRB,
+      output TKEEP,
+      output TLAST,
+      output TID,
+      output TDEST,
+      output TWAKEUP
+    );           
+
+    modport inward (
+      input ACLK,
+      input ACLKEN,
+      input ARESETn,
+      input TVALID,
+      output TREADY,
+      input TDATA,
+      input TSTRB,
+      input TKEEP,
+      input TLAST,
+      input TID,
+      input TDEST,
+      input TWAKEUP
+    );           
+
+
+endinterface
+        
+
 
 
 interface memory_32_32;
@@ -391,12 +441,16 @@ module myFIR3
    (
    input logic  clk,
    input logic  rst_b,
-   input logic  en,
-   input logic signed [7:0] data_in,
-   output logic signed [7:0] data_out
+   AXI4Stream_32_4_0_4.inward s_axis,
+   AXI4Stream_32_4_0_4.outward m_axis
    );
 
    memory_32_32 regs();
+   logic signed [7:0] data_in;
+   logic signed [7:0] data_out;
+   logic  en;
+   logic  valid_pipe_0;
+   logic  valid_pipe_1;
    logic signed [31:0] coeff_0;
    logic signed [31:0] coeff_1;
    logic signed [31:0] coeff_2;
@@ -440,6 +494,9 @@ module myFIR3
    logic signed [9:0] rounded;
    logic signed [7:0] saturated;
 
+   assign en = m_axis.TREADY || !valid_pipe_1;
+   assign s_axis.TREADY = en;
+   assign data_in = $signed(s_axis.TDATA[7:0]);
    assign prod_tap_0xcoeff_0 = tap_0 * coeff_0;
    assign prod_tap_1xcoeff_1 = tap_1 * coeff_1;
    assign prod_tap_2xcoeff_2 = tap_2 * coeff_2;
@@ -456,11 +513,21 @@ module myFIR3
    assign rounded = (sum + (16'sd1<<<(7-1)))>>>7;
    assign saturated = (rounded > 10'sd127) ? 8'sd127 :
                        ((rounded < $signed(-10'd128)) ? -8'd128 : rounded);
+   assign m_axis.TVALID = valid_pipe_1;
+   assign m_axis.TDATA  = {{24{data_out[7]}}, data_out};
+   assign m_axis.TLAST   = 1'b1;
+   assign m_axis.TSTRB   = 4'hF;
+   assign m_axis.TKEEP   = 4'hF;
+   assign m_axis.TID     = '0;
+   assign m_axis.TDEST   = '0;
+   assign m_axis.TWAKEUP = 1'b0;
 
 
    always_ff @( posedge clk  or negedge rst_b )
      if(!rst_b)
         begin
+           valid_pipe_0 <= 'd0;
+           valid_pipe_1 <= 'd0;
            tap_0 <= 'd0;
            tap_1 <= 'd0;
            tap_2 <= 'd0;
@@ -479,6 +546,8 @@ module myFIR3
         end
       else if(en)
         begin
+           valid_pipe_0 <= s_axis.TVALID;
+           valid_pipe_1 <= valid_pipe_0;
            tap_0 <= data_in;
            tap_1 <= tap_0;
            tap_2 <= tap_1;

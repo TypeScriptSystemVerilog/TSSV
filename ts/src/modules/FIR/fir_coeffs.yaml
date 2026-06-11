@@ -1,25 +1,24 @@
-# fir_coeffs.yaml — Reference register map for a 13-tap FIR coefficient block
-# Reset values correspond to myFIR3: [-1, 0, 5, -6, -10, 38, 77, 38, -10, -6, 5, 0, -1]
-# (Negative values stored as signed 32-bit two's-complement at runtime via FIR.ts)
+# fir_coeffs.yaml — Register map for the 13-tap FIR coefficient block
+# Low-pass filter: [-1, 0, 5, -6, -10, 38, 77, 38, -10, -6, 5, 0, -1]
 #
-# Generate stub:
-#   ./scripts/gen_regblock.sh scripts/fir_coeffs.yaml
+# Generate:
+#   ./scripts/gen_regblock.sh ts/src/modules/FIR/fir_coeffs.yaml
 
 name: firCoeffs
 wordSize: 32
 busInterface: Memory
 busAddressWidth: 32
 registers:
-  COEFF_0:  { address: "0x000", type: RW, reset: "0x00000000", description: "FIR tap 0 coefficient" }
-  COEFF_1:  { address: "0x004", type: RW, reset: "0x00000000", description: "FIR tap 1 coefficient" }
-  COEFF_2:  { address: "0x008", type: RW, reset: "0x00000000", description: "FIR tap 2 coefficient" }
-  COEFF_3:  { address: "0x00C", type: RW, reset: "0x00000000", description: "FIR tap 3 coefficient" }
-  COEFF_4:  { address: "0x010", type: RW, reset: "0x00000000", description: "FIR tap 4 coefficient" }
-  COEFF_5:  { address: "0x014", type: RW, reset: "0x00000000", description: "FIR tap 5 coefficient" }
-  COEFF_6:  { address: "0x018", type: RW, reset: "0x00000000", description: "FIR tap 6 coefficient" }
-  COEFF_7:  { address: "0x01C", type: RW, reset: "0x00000000", description: "FIR tap 7 coefficient" }
-  COEFF_8:  { address: "0x020", type: RW, reset: "0x00000000", description: "FIR tap 8 coefficient" }
-  COEFF_9:  { address: "0x024", type: RW, reset: "0x00000000", description: "FIR tap 9 coefficient" }
-  COEFF_10: { address: "0x028", type: RW, reset: "0x00000000", description: "FIR tap 10 coefficient" }
-  COEFF_11: { address: "0x02C", type: RW, reset: "0x00000000", description: "FIR tap 11 coefficient" }
-  COEFF_12: { address: "0x030", type: RW, reset: "0x00000000", description: "FIR tap 12 coefficient" }
+  COEFF_0:  { address: "0x000", type: RW, isSigned: true, reset: -1,  description: "FIR tap 0 coefficient" }
+  COEFF_1:  { address: "0x004", type: RW, isSigned: true, reset: 0,   description: "FIR tap 1 coefficient" }
+  COEFF_2:  { address: "0x008", type: RW, isSigned: true, reset: 5,   description: "FIR tap 2 coefficient" }
+  COEFF_3:  { address: "0x00C", type: RW, isSigned: true, reset: -6,  description: "FIR tap 3 coefficient" }
+  COEFF_4:  { address: "0x010", type: RW, isSigned: true, reset: -10, description: "FIR tap 4 coefficient" }
+  COEFF_5:  { address: "0x014", type: RW, isSigned: true, reset: 38,  description: "FIR tap 5 coefficient" }
+  COEFF_6:  { address: "0x018", type: RW, isSigned: true, reset: 77,  description: "FIR tap 6 coefficient" }
+  COEFF_7:  { address: "0x01C", type: RW, isSigned: true, reset: 38,  description: "FIR tap 7 coefficient" }
+  COEFF_8:  { address: "0x020", type: RW, isSigned: true, reset: -10, description: "FIR tap 8 coefficient" }
+  COEFF_9:  { address: "0x024", type: RW, isSigned: true, reset: -6,  description: "FIR tap 9 coefficient" }
+  COEFF_10: { address: "0x028", type: RW, isSigned: true, reset: 5,   description: "FIR tap 10 coefficient" }
+  COEFF_11: { address: "0x02C", type: RW, isSigned: true, reset: 0,   description: "FIR tap 11 coefficient" }
+  COEFF_12: { address: "0x030", type: RW, isSigned: true, reset: -1,  description: "FIR tap 12 coefficient" }
