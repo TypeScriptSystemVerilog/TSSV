@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addSaturate_output');
+    mkdirSync('sv-examples/Core/addSaturate', { recursive: true });
 }
 catch (e) { }
 // test 1 unsigned
@@ -55,7 +55,7 @@ try {
     /* verilator lint_off UNUSED */
     ${saturate_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSaturate_output/saturate_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSaturate/saturate_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -110,7 +110,7 @@ try {
     /* verilator lint_off UNUSED */
     ${saturateS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSaturate_output/saturateS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSaturate/saturateS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -166,7 +166,7 @@ try {
     /* verilator lint_off UNUSED */
     ${saturateN_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSaturate_output/saturateN_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSaturate/saturateN_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -221,7 +221,7 @@ try {
     /* verilator lint_off UNUSED */
     ${saturateNS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSaturate_output/saturateNS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSaturate/saturateNS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -240,7 +240,7 @@ try {
     /* verilator lint_off UNUSED */
     ${saturateB_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSaturate_output/saturateB_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSaturate/saturateB_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -311,7 +311,7 @@ try {
     /* verilator lint_off UNUSED */
     ${saturateBS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSaturate_output/saturateBS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSaturate/saturateBS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

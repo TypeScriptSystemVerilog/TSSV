@@ -82,7 +82,88 @@ function mdTable(header, rows) {
   return [fmt(header), fmt(sep), ...rows.map(fmt)].join('\n * ');
 }
 
-// ── register summary table ────────────────────────────────────────────────────
+// ── repeatedRegister path (factory function) ─────────────────────────────────
+
+if (def.repeatedRegister) {
+  const rr         = def.repeatedRegister;
+  const prefix     = rr.namePrefix    ?? 'REG_';
+  const countParam = rr.countParam    ?? 'count';
+  const stride     = rr.addressStride ?? wordSize / 8;
+  const typ        = rr.type          ?? 'RW';
+  const isSigned   = rr.isSigned      ?? false;
+  const width      = rr.width         ?? wordSize;
+  const desc       = rr.description   ?? '';
+  const funcName   = 'create' + name.charAt(0).toUpperCase() + name.slice(1) + 'Def';
+
+  const templateRow = [
+    prefix + '{i}',
+    '0x' + '0'.repeat(hexDigits - 1) + ' + i*' + stride,
+    typ,
+    String(width),
+    desc.replace('{i}', '{i}')
+  ];
+  const templateTable = mdTable(
+    ['Register', 'Address', 'Type', 'Width', 'Description'],
+    [templateRow]
+  );
+
+  const ifaceImport = busIface === 'TL_UL'
+    ? "import { TL_UL } from 'tssv/lib/interfaces/AMBA/TL_UL'"
+    : "import { Memory } from 'tssv/lib/interfaces/Memory'";
+
+  const jsdocLines = [
+    '/**',
+    ' * Register Block Factory: ' + name,
+    ' *',
+    ' * Generates one register per ' + countParam + '. Template (repeated \`' + countParam + '\` times):',
+    ' *',
+    ' * ' + templateTable,
+    ' *',
+    ' * @param ' + countParam + '   Number of registers to generate',
+    ' * @param resetValues  Optional reset value per register (defaults to 0n)',
+    ' */'
+  ].join('\n');
+
+  const signedLine = isSigned ? '\n      isSigned: true,' : '';
+  const descTemplate = desc.replace('{i}', '\' + i + \'');
+
+  // Build the factory function using string concatenation throughout
+  // (avoids backtick template literals which would conflict with the bash heredoc)
+  const factoryFn =
+    'export function ' + funcName + '(' + countParam + ': number, resetValues?: bigint[]) {\n' +
+    '  const addrMap: Record<string, bigint> = {}\n' +
+    '  const registers: RegisterBlockDef<Record<string, bigint>>[\'registers\'] = {}\n' +
+    '  for (let i = 0; i < ' + countParam + '; i++) {\n' +
+    '    const regName = \'' + prefix + '\' + i\n' +
+    '    addrMap[regName] = BigInt(i * ' + stride + ')\n' +
+    '    registers[regName] = {\n' +
+    '      type: \'' + typ + '\',' + signedLine + '\n' +
+    '      width: ' + width + ',\n' +
+    '      reset: resetValues?.[i] ?? 0n,\n' +
+    '      description: \'' + descTemplate + '\'\n' +
+    '    }\n' +
+    '  }\n' +
+    '  return {\n' +
+    '    addrMap,\n' +
+    '    def: { wordSize: ' + wordSize + ' as const, addrMap, registers } as RegisterBlockDef<Record<string, bigint>>\n' +
+    '  }\n' +
+    '}';
+
+  const outFile = '$OUT_FILE';
+  const content = [
+    "import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'",
+    ifaceImport,
+    '',
+    jsdocLines,
+    factoryFn,
+  ].join('\n') + '\n';
+
+  fs.writeFileSync(outFile, content);
+  process.stderr.write('wrote ' + outFile + '\n');
+  process.exit(0);
+}
+
+// ── register summary table (static path) ─────────────────────────────────────
 
 const regNames = Object.keys(regs);
 

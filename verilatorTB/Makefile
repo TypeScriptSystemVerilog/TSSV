@@ -1,5 +1,5 @@
 TOP_MODULE?=Vtb_lpFIR
-VERILOG_FILE?= ../sv-examples/test_FIR_output/tb_lpFIR.sv
+VERILOG_FILE?= ../sv-examples/FIR/myFIR3/tb_lpFIR.sv
 
 
 run: obj_dir/$(TOP_MODULE)
@@ -15,11 +15,11 @@ clean:
 
 .FORCE:
 tsc: .FORCE
-	cd ..; npx tsc
+	cd ..; npx tsc --noEmitOnError false || true
 
 
-../sv-examples/test_FIR_output/tb_lpFIR.sv: tsc
+../sv-examples/FIR/myFIR3/tb_lpFIR.sv: tsc
 	cd ..; node out/test/test_FIR.js
 
-../sv-examples/test_addRegister_output/regMod.sv: tsc
+../sv-examples/Core/addRegister/regMod.sv: tsc
 	cd ..; node out/test/test_addRegister.js

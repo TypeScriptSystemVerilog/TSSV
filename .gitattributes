@@ -1,5 +1,13 @@
-*.sv linguist-detectable
-*.svh linguist-detectable
-*.v linguist-detectable
-*.vh linguist-detectable
-out/** linguist-generated
+*.sv linguist-detectable=true
+*.svh linguist-detectable=true
+*.v linguist-detectable=true
+*.vh linguist-detectable=true
+
+# Compiled TypeScript output
+out/** linguist-generated=true
+
+# Generated SystemVerilog examples
+sv-examples/**/*.sv linguist-generated=true
+
+# Generated register block TypeScript (produced by gen_regblock.sh from YAML)
+ts/**/regs-*.ts linguist-generated=true

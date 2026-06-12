@@ -2,7 +2,7 @@ import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 
 try {
-  mkdirSync('sv-examples/test_addMux_output')
+  mkdirSync('sv-examples/Core/addMux', { recursive: true })
 } catch (e) {}
 
 const tbBody =
@@ -72,7 +72,7 @@ try {
   /* verilator lint_off UNUSED */
   ${mux_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addMux_output/mux_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/mux_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }
@@ -167,7 +167,7 @@ try {
   /* verilator lint_off UNUSED */
   ${muxS_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addMux_output/muxS_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/muxS_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }
@@ -246,7 +246,7 @@ try {
   /* verilator lint_off UNUSED */
   ${muxE_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addMux_output/muxE_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/muxE_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }
@@ -328,7 +328,7 @@ try {
   /* verilator lint_off UNUSED */
   ${muxD_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addMux_output/muxD_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/muxD_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }

@@ -6,10 +6,8 @@ import { fileURLToPath } from 'url';
 // Convert import.meta.url to __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-try {
-    mkdirSync('sv-examples/IpxactComponent');
-}
-catch (e) { }
+mkdirSync('sv-examples/IpXactComponent/axiComponent', { recursive: true });
+mkdirSync('sv-examples/IpXactComponent/apbComponent', { recursive: true });
 const xml_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/AXI/axiSample.xml');
 const sv_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/AXI/architectureSample.sv');
 // AXI component
@@ -24,7 +22,7 @@ try {
     // verilator lint_off UNUSED
     ${component.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/IpxactComponent/componentExample.sv', TB);
+    writeFileSync('sv-examples/IpXactComponent/axiComponent/componentExample.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -43,7 +41,7 @@ try {
       // verilator lint_off UNUSED
       ${apbComponent.writeSystemVerilog()}
   `;
-    writeFileSync('sv-examples/IpxactComponent/apbComponentExample.sv', TB);
+    writeFileSync('sv-examples/IpXactComponent/apbComponent/apbComponentExample.sv', TB);
 }
 catch (err) {
     console.error(err);

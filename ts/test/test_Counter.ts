@@ -3,13 +3,13 @@ import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 
 try {
-  mkdirSync('sv-examples/test_Counter_output')
+  mkdirSync('sv-examples/Counter/counter4b', { recursive: true })
 } catch (e) {}
 
 // writeSystemVerilog() mutates this.body, so use a separate instance for the standalone file
 // to avoid duplicate always_ff blocks when the testbench calls writeSystemVerilog() again.
 const counterForSV = new Counter({ name: 'counter4b', width: 4 })
-writeFileSync('sv-examples/test_Counter_output/counter4b.sv', counterForSV.writeSystemVerilog())
+writeFileSync('sv-examples/Counter/counter4b/counter4b.sv', counterForSV.writeSystemVerilog())
 
 const myCounter = new Counter({ name: 'counter4b', width: 4 })
 
@@ -52,5 +52,5 @@ const TB =
 /* verilator lint_off UNUSED */
 ${tb.writeSystemVerilog()}
 `
-writeFileSync('sv-examples/test_Counter_output/tb_counter.sv', TB)
-console.log('Generated sv-examples/test_Counter_output/tb_counter.sv')
+writeFileSync('sv-examples/Counter/counter4b/tb_counter.sv', TB)
+console.log('Generated sv-examples/Counter/counter4b/tb_counter.sv')

@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addMultiplier_output');
+    mkdirSync('sv-examples/Core/addMultiplier', { recursive: true });
 }
 catch (e) { }
 // test 1
@@ -62,7 +62,7 @@ try {
     /* verilator lint_off UNUSED */
     ${mult_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/mult_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/mult_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -125,7 +125,7 @@ try {
       /* verilator lint_off UNUSED */
       ${multS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/multS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/multS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -193,7 +193,7 @@ try {
       /* verilator lint_off UNUSED */
       ${multUS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/multUS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/multUS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -261,7 +261,7 @@ try {
       /* verilator lint_off UNUSED */
       ${multSU_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/multSU_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/multSU_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -302,7 +302,7 @@ try {
     /* verilator lint_off UNUSED */
     ${multB_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/multB_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/multB_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -362,7 +362,7 @@ try {
       /* verilator lint_off UNUSED */
       ${multUB_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/multUB_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/multUB_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -422,7 +422,7 @@ try {
     /* verilator lint_off UNUSED */
     ${multSB_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addMultiplier_output/multSB_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addMultiplier/multSB_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

@@ -1,14 +1,23 @@
 import TSSV from 'tssv/lib/core/TSSV'
-import { RegisterBlock } from 'tssv/lib/core/Registers'
+import { RegisterBlock, type RegisterBlockDef } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { AXI4Stream } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4Stream/r0p0_1/AXI4Stream'
-import { firCoeffsAddrMap, firCoeffsDef } from './regs-fir_coeffs.js'
+import { createFirCoeffsDef } from './regs-fir_coeffs.js'
 
 type inWidthType = TSSV.IntRange<1, 32>
 /**
  * configuration parameters of the FIR module
  */
 export interface FIR_Parameters extends TSSV.TSSVParameters {
+  /**
+     * number of filter taps (= number of coefficient registers)
+     */
+  numTaps: number
+  /**
+     * optional reset values for each coefficient register (index 0 = tap 0)
+     * defaults to 0n for all taps if omitted; used to size the accumulator
+     */
+  coefficients?: bigint[]
   /**
      * bit width of the FIR input data
      */
@@ -62,6 +71,7 @@ export class FIR extends TSSV.Module {
     super({
       // define the default parameter values
       name: params.name,
+      numTaps: params.numTaps,
       coefficients: params.coefficients,
       inWidth: params.inWidth || 8,
       outWidth: params.outWidth || 9,
@@ -101,8 +111,9 @@ export class FIR extends TSSV.Module {
     this.addRegister({ d: new TSSV.Expr('s_axis.TVALID'), clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_0' })
     this.addRegister({ d: 'valid_pipe_0',                  clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_1' })
 
-    // fixed 13-tap structure from regs-fir_coeffs.ts (generated from fir_coeffs.yaml)
-    const numTaps = Object.keys(firCoeffsAddrMap).length
+    // build coefficient register block from factory (fir_coeffs.yaml → regs-fir_coeffs.ts)
+    const numTaps = this.params.numTaps as number
+    const { def: coeffDef } = createFirCoeffsDef(numTaps, this.params.coefficients)
 
     // pre-declare signals that will receive each coefficient from the register block
     const coeffSigs: TSSV.Sig[] = []
@@ -110,9 +121,9 @@ export class FIR extends TSSV.Module {
       coeffSigs.push(this.addSignal(`coeff_${i}`, { width: 32, isSigned: true }))
     }
 
-    const coeffRegBlock = new RegisterBlock<typeof firCoeffsAddrMap>(
+    const coeffRegBlock = new RegisterBlock<Record<string, bigint>>(
       { name: `${this.params.name ?? 'fir'}_coeffRegs`, busAddressWidth: 32 },
-      firCoeffsDef,
+      coeffDef,
       new Memory()
     )
 
@@ -120,7 +131,7 @@ export class FIR extends TSSV.Module {
     // Memory bus ports left unbound — they are promoted to FIR ports
     const coeffBindings: Record<string, string | TSSV.Sig> = { clk: 'clk', rst_b: 'rst_b' }
     for (let i = 0; i < numTaps; i++) {
-      coeffBindings[`COEFF_${i}`] = coeffSigs[i] ?? new TSSV.Sig('0')
+      coeffBindings['COEFF_' + i] = coeffSigs[i] ?? new TSSV.Sig('0')
     }
     this.addSubmodule('coeff_block', coeffRegBlock, coeffBindings, true, true)
 
@@ -134,8 +145,7 @@ export class FIR extends TSSV.Module {
 
       // multipliers now driven by runtime-configurable coefficient registers
       products.push(this.addMultiplier({ a: thisTap, b: coeffSigs[i] ?? new TSSV.Sig('0') }))
-      const regName = `COEFF_${i}` as keyof typeof firCoeffsAddrMap
-      coeffSum += Math.abs(Number(firCoeffsDef.registers[regName]?.reset ?? 0n))
+      coeffSum += Math.abs(Number(this.params.coefficients?.[i] ?? 0n))
 
       nextTapIn = thisTap
     }

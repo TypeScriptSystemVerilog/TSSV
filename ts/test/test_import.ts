@@ -2,7 +2,7 @@ import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 
 try {
-  mkdirSync('sv-examples/test_import_output')
+  mkdirSync('sv-examples/Core/import', { recursive: true })
 } catch (e) {}
 
 const tbBody =
@@ -78,7 +78,7 @@ try {
   /* verilator lint_off UNUSED */
   ${import_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_import_output/import_tb.sv', TB)
+  writeFileSync('sv-examples/Core/import/import_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }

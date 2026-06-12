@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addCombAlways_output');
+    mkdirSync('sv-examples/Core/addCombAlways', { recursive: true });
 }
 catch (e) { }
 // test 1
@@ -68,7 +68,7 @@ try {
   /* verilator lint_off UNUSED */
   ${comb_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addCombAlways_output/comb_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addCombAlways/comb_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -92,7 +92,7 @@ try {
   /* verilator lint_off UNUSED */
   ${combN_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addCombAlways_output/combN_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addCombAlways/combN_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

@@ -2,19 +2,19 @@ import { FIR } from 'tssv/lib/modules/FIR'
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 
-try {
-  mkdirSync('sv-examples/test_FIR_output')
-} catch (e) {}
+mkdirSync('sv-examples/FIR/myFIR3', { recursive: true })
 
 const myFir3 = new FIR(
   {
     name: 'myFIR3',
+    numTaps: 13,
+    coefficients: [-1n, 0n, 5n, -6n, -10n, 38n, 77n, 38n, -10n, -6n, 5n, 0n, -1n],
     inWidth: 8,
     outWidth: 8,
     rShift: 7
   })
 try {
-  writeFileSync('sv-examples/test_FIR_output/myFIR3.sv', myFir3.writeSystemVerilog())
+  writeFileSync('sv-examples/FIR/myFIR3/myFIR3.sv', myFir3.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -78,7 +78,7 @@ try {
 /* verilator lint_off UNUSED */
 ${tb_lpFIR.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_FIR_output/tb_lpFIR.sv', TB)
+  writeFileSync('sv-examples/FIR/myFIR3/tb_lpFIR.sv', TB)
 } catch (err) {
   console.error(err)
 }

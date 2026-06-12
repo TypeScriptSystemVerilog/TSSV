@@ -7,7 +7,7 @@
 
 ## Overview
 
-Implements a parameterized **Finite Impulse Response (FIR) digital filter**. Each input sample is delayed through a tap chain; each tap is multiplied by a corresponding coefficient, then all products are summed, rounded, and saturated to the output width. The number of taps equals `coefficients.length`. Coefficients are backed by a `RegisterBlock` so a host can update them at runtime over a Memory bus; the `coefficients` parameter provides the reset (power-on) values.
+Implements a parameterized **Finite Impulse Response (FIR) digital filter**. Input samples arrive on an AXI4-Stream slave interface; each is delayed through a tap chain, multiplied by a runtime-configurable coefficient from a `RegisterBlock`, and the products are summed, rounded, and saturated before being driven on an AXI4-Stream master interface. The number of taps is set by the `numTaps` parameter and can be any positive integer — the coefficient register block scales to match.
 
 ---
 
@@ -16,10 +16,11 @@ Implements a parameterized **Finite Impulse Response (FIR) digital filter**. Eac
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `string` | auto | Instance name |
-| `coefficients` | `bigint[]` | — | Tap coefficients. Length determines tap count. Values become register reset values. |
+| `numTaps` | `number` | — | Number of filter taps and coefficient registers (required) |
+| `coefficients` | `bigint[]` | `0n` per tap | Optional reset values per tap; also used for accumulator width sizing |
 | `inWidth` | `IntRange<1,32>` | `8` | Input sample bit width (signed) |
 | `outWidth` | `IntRange<1,32>` | `9` | Output sample bit width (signed) |
-| `rShift` | `IntRange<0,32>` | `2` | Right-shift applied after accumulation to scale the result |
+| `rShift` | `IntRange<0,32>` | `2` | Right-shift applied after accumulation |
 
 ---
 
@@ -29,42 +30,49 @@ Implements a parameterized **Finite Impulse Response (FIR) digital filter**. Eac
 |---|---|---|---|
 | `clk` | input | 1 | `posedge` clock |
 | `rst_b` | input | 1 | Active-low async reset |
-| `en` | input | 1 | Clock enable — all flip-flops hold when low |
-| `data_in` | input | `inWidth` | Signed input sample |
-| `data_out` | output | `outWidth` | Signed filtered output, 2 cycles after input |
 
-The `regs` Memory bus interface (promoted from the `coeff_block` submodule) also appears as a module-level interface for host register access.
+### Interfaces
+
+| Interface | Role | Description |
+|---|---|---|
+| `s_axis` | AXI4-Stream inward (slave) | Input samples — `TDATA[inWidth-1:0]`, signed |
+| `m_axis` | AXI4-Stream outward (master) | Filtered output — `TDATA` sign-extended to 32 bits |
+| `regs` | Memory bus (promoted from `coeff_block`) | Host register access for runtime coefficient updates |
+
+**Backpressure:** `s_axis.TREADY` deasserts when `m_axis.TREADY` is low and the output stage holds valid data, stalling the entire pipeline. Latency is 2 clock cycles.
 
 ---
 
 ## Register Map
 
 **YAML source:** `ts/src/modules/FIR/fir_coeffs.yaml`
-**Generate stub:** `./scripts/gen_regblock.sh ts/src/modules/FIR/fir_coeffs.yaml`
+**Regenerate:** `./scripts/gen_regblock.sh ts/src/modules/FIR/fir_coeffs.yaml`
 
-One `COEFF_N` register per tap, addresses `0x000`, `0x004`, `0x008`, …
+The YAML uses `repeatedRegister` to define a template; the generated factory function `createFirCoeffsDef(numTaps, resetValues?)` produces the actual `RegisterBlockDef` at construction time.
 
 | Register | Address | Type | Width | Reset | Description |
 |---|---|---|---|---|---|
-| `COEFF_0` | `0x000` | RW | 32 | From `coefficients[0]` | Tap 0 coefficient |
-| `COEFF_1` | `0x004` | RW | 32 | From `coefficients[1]` | Tap 1 coefficient |
-| `COEFF_N` | `0x000 + N*4` | RW | 32 | From `coefficients[N]` | Tap N coefficient |
+| `COEFF_0` | `0x000` | RW (signed) | 32 | `coefficients[0]` or `0n` | Tap 0 coefficient |
+| `COEFF_1` | `0x004` | RW (signed) | 32 | `coefficients[1]` or `0n` | Tap 1 coefficient |
+| `COEFF_N` | `0x000 + N×4` | RW (signed) | 32 | `coefficients[N]` or `0n` | Tap N coefficient |
+
+Total registers = `numTaps`.
 
 ---
 
 ## Functional Description
 
-1. `data_in` feeds into a shift-register delay chain of `N` flip-flops (`tap_0` … `tap_N-1`), all clocked on `posedge clk` with async reset and gated by `en`.
-2. Each `tap_i` is multiplied by `coeff_i` (from the register block output signal). Products are sign-extended to `sumWidth = inWidth + bitWidth(coeffSum)` bits.
-3. All products are summed and registered into `sum` on the same `en`-gated clock.
-4. `sum` is right-shifted by `rShift` with convergent rounding into `rounded`.
-5. `rounded` is clamped to `[-2^(outWidth-1), 2^(outWidth-1)-1]` into `saturated`, then registered to `data_out`.
-
-**Latency:** 2 clock cycles from `data_in` to `data_out` (tap-register + output-register).
+1. Input sample from `s_axis.TDATA[inWidth-1:0]` is written to the internal `data_in` signal.
+2. `data_in` feeds into a shift-register delay chain of `numTaps` flip-flops (`tap_0` … `tap_N-1`), all gated by the internal `en` signal (derived from the AXI handshake).
+3. Each `tap_i` is multiplied by `coeff_i` (output of the corresponding coefficient register). Products are sign-extended to `sumWidth = inWidth + bitWidth(coeffSum)` bits.
+4. All products are summed and registered into `sum`.
+5. `sum` is right-shifted by `rShift` with convergent rounding into `rounded`.
+6. `rounded` is clamped to `[-2^(outWidth-1), 2^(outWidth-1)-1]` into `saturated`, then registered to `data_out`.
+7. `data_out` is sign-extended and driven on `m_axis.TDATA`; `m_axis.TVALID` is driven by `valid_pipe_1`.
 
 ### Reset behavior
 
-All tap, sum, and output registers clear to 0 on `rst_b` assertion. Coefficient registers reset to the design-time `coefficients` parameter values.
+All tap, sum, and output registers clear to 0. Coefficient registers reset to the values in the `coefficients` parameter (or `0n` if not provided).
 
 ---
 
@@ -74,10 +82,12 @@ All tap, sum, and output registers clear to 0 on `rst_b` assertion. Coefficient 
 @wavedrom
 {
   "signal": [
-    {"name": "     clk", "wave": "p........."},
-    {"name": "      en", "wave": "01.0.1.01."},
-    {"name": " data_in", "wave": "x34..56.78", "data": ["i0","i1","i2","i3","i4","i5"]},
-    {"name": "data_out", "wave": "x.34..56.7", "data": ["o0","o1","o2","o3","o4","o5"]}
+    {"name": "          clk", "wave": "p........."},
+    {"name": "s_axis.TVALID", "wave": "01.0.1.01."},
+    {"name": "s_axis.TREADY", "wave": "1........."},
+    {"name": " s_axis.TDATA", "wave": "x34..56.78", "data": ["i0","i1","i2","i3","i4","i5"]},
+    {"name": "m_axis.TVALID", "wave": "0..1..0.1."},
+    {"name": " m_axis.TDATA", "wave": "x...34..56", "data": ["o0","o1","o2","o3"]}
   ]
 }
 ```
@@ -86,9 +96,10 @@ All tap, sum, and output registers clear to 0 on `rst_b` assertion. Coefficient 
 
 ## Internal Architecture
 
-- **`coeff_block` (`myFIR_coeffRegs`)** — `RegisterBlock` submodule; one RW register per tap. Memory bus promoted to FIR ports.
-- **Tap delay line** — N `addRegister` calls chaining `data_in → tap_0 → tap_1 → … → tap_N-1`.
-- **Multiplier array** — N combinational `addMultiplier` calls: `tap_i * coeff_i`.
+- **`coeff_block` (`*_coeffRegs`)** — `RegisterBlock` submodule; `numTaps` RW registers built from `createFirCoeffsDef()`. Memory bus promoted to FIR's `regs` interface.
+- **AXI adapter** — combinational assigns bridging `s_axis`/`m_axis` to the internal data path and `en` signal; `valid_pipe_0`/`valid_pipe_1` shift registers track pipeline validity.
+- **Tap delay line** — `numTaps` `addRegister` calls chaining `data_in → tap_0 → … → tap_N-1`, all gated by `en`.
+- **Multiplier array** — `numTaps` combinational `addMultiplier` calls: `tap_i * coeff_i`.
 - **Accumulator** — single `addRegister` summing all sign-extended products into `sum`.
 - **Round/saturate** — combinational `addRound` then `addSaturate`, final `addRegister` to `data_out`.
 
@@ -101,22 +112,24 @@ All tap, sum, and output registers clear to 0 on `rst_b` assertion. Coefficient 
 | `TSSV` (default) | `tssv/lib/core/TSSV` |
 | `RegisterBlock`, `RegisterBlockDef` | `tssv/lib/core/Registers` |
 | `Memory` | `tssv/lib/interfaces/Memory` |
+| `AXI4Stream` | `tssv/lib/interfaces/AMBA/AMBA4/AXI4Stream/r0p0_1/AXI4Stream` |
+| `createFirCoeffsDef` | `./regs-fir_coeffs.js` (generated from `fir_coeffs.yaml`) |
 
 ---
 
 ## Test Plan
 
 **Test script:** `ts/test/test_FIR.ts`
-**Output:** `sv-examples/test_FIR_output/`
+**Output:** `sv-examples/FIR/myFIR3/`
 
-| Test case | Instance | Coefficients | Notes |
+| Test case | `numTaps` | `coefficients` | Notes |
 |---|---|---|---|
-| Basic 4-tap | `myFIR` | `[1,2,3,4]` | Sanity check |
-| Signed coefficients | auto-named | `[2,-2,4,-4,8]` | Verifies negative reset literals |
-| 13-tap low-pass | `myFIR3` | `[-1,0,5,-6,-10,38,77,38,-10,-6,5,0,-1]` | Full simulation target |
+| 13-tap low-pass | 13 | `[-1,0,5,-6,-10,38,77,38,-10,-6,5,0,-1]` | Full simulation target |
+| Minimal (no coefficients) | 2 | omitted | Verifies default `0n` reset values |
 
 ```bash
 npx tsc && node out/test/test_FIR.js
 cd verilatorTB && make clean && make
 ./rungtkwave.sh Vtb_lpFIR.vcd
+# In GTKWave: look for s_axis.TDATA (chirp input) and m_axis.TDATA (filtered output)
 ```

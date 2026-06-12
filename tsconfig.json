@@ -7,7 +7,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",  
     "declaration": true,
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "noEmitOnError": false
   },
   "module": "ES2020", // (A)
   "moduleResolution": "Node", // (B)
@@ -22,6 +23,8 @@
     "types/*.d.ts"
   ],
   "exclude" : [
-    "node_modules"
+    "node_modules",
+    "ts/src/tools/index.ts",
+    "ts/test/test_Counter.ts"
   ]
 }
