@@ -15,7 +15,7 @@ clean:
 
 .FORCE:
 tsc: .FORCE
-	cd ..; npx tsc --noEmitOnError false || true
+	cd ..; npx tsc
 
 
 ../sv-examples/FIR/myFIR3/tb_lpFIR.sv: tsc
