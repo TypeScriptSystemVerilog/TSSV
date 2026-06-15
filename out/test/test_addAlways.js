@@ -1,4 +1,4 @@
-import { addAlways } from 'tssv/test/modules/addAlways';
+import { addAlways } from 'tssv/test/addAlwaysModule';
 import { writeFileSync, mkdirSync } from 'fs';
 const my_addAlways_test = new addAlways({ name: 'comb_seq_test', data_Width: 5 });
 mkdirSync('sv-examples/Core/addAlways', { recursive: true });

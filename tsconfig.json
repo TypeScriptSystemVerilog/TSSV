@@ -24,7 +24,6 @@
   ],
   "exclude" : [
     "node_modules",
-    "ts/src/tools/index.ts",
-    "ts/test/test_Counter.ts"
+    "ts/src/tools/index.ts"
   ]
 }

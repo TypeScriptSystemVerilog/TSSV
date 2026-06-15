@@ -996,9 +996,12 @@ ${caseAssignments}
             Module.printedInterfaces = {};
         }
         Module.svGenDepth++;
-        const verilogResult = this._writeSystemVerilog();
-        Module.svGenDepth--;
-        return verilogResult;
+        try {
+            return this._writeSystemVerilog();
+        }
+        finally {
+            Module.svGenDepth--;
+        }
     }
     _writeSystemVerilog() {
         // assemble TSSVParameters
