@@ -32,7 +32,7 @@ export class Memory extends Interface {
         }
     this.modports = {
       outward: {
-        ADDR: 'input',
+        ADDR: 'output',
         DATA_WR: 'output',
         DATA_RD: 'input',
         WE: 'output',
@@ -41,7 +41,7 @@ export class Memory extends Interface {
         WSTRB: 'output'
       },
       inward: {
-        ADDR: 'output',
+        ADDR: 'input',
         DATA_WR: 'input',
         DATA_RD: 'output',
         WE: 'input',

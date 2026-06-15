@@ -1,6 +1,8 @@
 import { Module, type TSSVParameters, type IntRange, Expr, type Interface } from 'tssv/lib/core/TSSV'
 
 import { Memory } from 'tssv/lib/interfaces/Memory'
+import { APB4 } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4'
+import { APB_to_Memory } from 'tssv/lib/modules/APB_to_Memory'
 
 type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | string
 interface Field {
@@ -41,7 +43,7 @@ export interface RegisterBlockDef<T extends Record<string, bigint>> {
 }
 
 export interface RegisterBlockParameters extends TSSVParameters {
-  busInterface?: 'Memory' | 'TL_UL'
+  busInterface?: 'Memory' | 'TL_UL' | 'APB'
   endianess?: 'little'
   busIDWidth?: 8
   busAddressWidth?: 32
@@ -102,14 +104,32 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       rst_b: { direction: 'input', isReset: 'lowasync' }
     }
 
-    if (!(busInterface instanceof Memory)) {
+    if (busInterface instanceof Memory) {
+      this.addInterface('regs', new Memory({
+        DATA_WIDTH: regDefs.wordSize || 32,
+        ADDR_WIDTH: params.busAddressWidth
+      }, 'inward'))
+    } else if (busInterface instanceof APB4) {
+      this.addInterface('apb', new APB4({
+        DATA_WIDTH: regDefs.wordSize || 32,
+        ADDR_WIDTH: params.busAddressWidth
+      }, 'inward'))
+      this.addInterface('regs', new Memory({
+        DATA_WIDTH: regDefs.wordSize || 32,
+        ADDR_WIDTH: params.busAddressWidth
+      }))
+      this.addSubmodule('apb_to_mem', new APB_to_Memory({
+        DATA_WIDTH: regDefs.wordSize || 32,
+        ADDR_WIDTH: params.busAddressWidth
+      }), {
+        clk: 'clk',
+        rst_b: 'rst_b',
+        apb: 'apb',
+        mem: 'regs'
+      }, false)
+    } else {
       throw Error('Unsupported interface')
     }
-
-    this.addInterface('regs', new Memory({
-      DATA_WIDTH: regDefs.wordSize || 32,
-      ADDR_WIDTH: params.busAddressWidth
-    }, 'inward'))
 
     // Create signals and logic for registers
     for (const reg in this.regDefs.addrMap) {
