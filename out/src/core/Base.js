@@ -992,6 +992,18 @@ ${caseAssignments}
        * @returns string containing the generated SystemVerilog code for this module
        */
     writeSystemVerilog() {
+        if (Module.svGenDepth === 0) {
+            Module.printedInterfaces = {};
+        }
+        Module.svGenDepth++;
+        try {
+            return this._writeSystemVerilog();
+        }
+        finally {
+            Module.svGenDepth--;
+        }
+    }
+    _writeSystemVerilog() {
         // assemble TSSVParameters
         const paramsArray = [];
         if (this.params) {
@@ -1081,6 +1093,7 @@ ${caseAssignments}
         let signalString = `   ${signalArray.join(';\n   ')}`;
         if (signalArray.length > 0)
             signalString += ';';
+        let generatedBody = '';
         for (const sensitivity in this.registerBlocks) {
             for (const resetCondition in this.registerBlocks[sensitivity]) {
                 for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
@@ -1091,7 +1104,9 @@ ${caseAssignments}
                         Object.keys(regs).forEach((key) => {
                             const reg = regs[key];
                             // console.log(reg)
-                            resetAssignments.push(`           ${key} <= 'd${reg.resetVal || 0};`);
+                            const resetVal = reg.resetVal ?? 0n;
+                            const resetLiteral = resetVal < 0n ? `-'d${-resetVal}` : `'d${resetVal}`;
+                            resetAssignments.push(`           ${key} <= ${resetLiteral};`);
                         });
                         resetString =
                             `     if(${resetCondition})
@@ -1107,7 +1122,7 @@ ${resetAssignments.join('\n')}
                         // console.log(reg)
                         functionalAssigments.push(`           ${key} <= ${reg.d};`);
                     });
-                    this.body +=
+                    generatedBody +=
                         `
    always_ff ${sensitivity}
 ${resetString}${enableString}
@@ -1148,19 +1163,19 @@ ${functionalAssigments.join('\n')}
             if (vParamsArray.length > 0) {
                 paramsBind = `#(${vParamsArray.join(',')}) `;
             }
-            this.body +=
+            generatedBody +=
                 `
     ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
       (
-${bindingsArray.join(',\n')}        
+${bindingsArray.join(',\n')}
       );
 `;
         }
         const verilog = `
-${interfacesString}        
+${interfacesString}
 ${subModulesString}
-        
-/* verilator lint_off WIDTH */        
+
+/* verilator lint_off WIDTH */
 module ${this.name} ${paramsString}
    (
 ${IOString}
@@ -1169,7 +1184,7 @@ ${IOString}
 ${signalString}
 
 ${this.body}
-
+${generatedBody}
 endmodule
 /* verilator lint_on WIDTH */        
 `;
@@ -1177,6 +1192,7 @@ endmodule
     }
 }
 Module.printedInterfaces = {};
+Module.svGenDepth = 0;
 export function serialize(obj, indent, bigIntSuffix = 'n') {
     const serialized = JSON.stringify(obj, function (key, value) {
         if (typeof value === 'bigint') {

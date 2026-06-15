@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addAdder_output');
+    mkdirSync('sv-examples/Core/addAdder', { recursive: true });
 }
 catch (e) { }
 // test 1
@@ -62,7 +62,7 @@ try {
     /* verilator lint_off UNUSED */
     ${add_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addAdder_output/add_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addAdder/add_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -125,7 +125,7 @@ try {
     /* verilator lint_off UNUSED */
     ${addS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addAdder_output/addS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addAdder/addS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -188,7 +188,7 @@ try {
     /* verilator lint_off UNUSED */
     ${addUS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addAdder_output/addUS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addAdder/addUS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -251,7 +251,7 @@ try {
     /* verilator lint_off UNUSED */
     ${addSU_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addAdder_output/addSU_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addAdder/addSU_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -315,7 +315,7 @@ try {
     /* verilator lint_off UNUSED */
     ${addB_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addAdder_output/addB_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addAdder/addB_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

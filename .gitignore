@@ -16,13 +16,17 @@
 *~
 \#*\#
 .\#*
-
+ß
 node_modules
 obj_dir
+out/
+sv-examples/
 *.vcd
 .local-pack
+.claude/
 docs
 
 componentgen
+
 
 

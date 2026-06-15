@@ -1,6 +1,6 @@
 import TSSV from 'tssv/lib/core/TSSV';
 import { AXI4XBar } from 'tssv/lib/modules/AXI4XBar';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 console.log('testAXI4XBar');
 const test_1 = new AXI4XBar({
     name: 'AXI4XBar2x4',
@@ -59,7 +59,8 @@ const test_1 = new AXI4XBar({
 const tb_testRegBlock = new TSSV.Module({ name: 'tb_AXI4XBar' });
 tb_testRegBlock.addSubmodule('dut', test_1, {}, true, true);
 try {
-    writeFileSync('sv-examples/tb_AXI4XBar.sv', tb_testRegBlock.writeSystemVerilog());
+    mkdirSync('sv-examples/AXI4XBar/tb_AXI4XBar', { recursive: true });
+    writeFileSync('sv-examples/AXI4XBar/tb_AXI4XBar/tb_AXI4XBar.sv', tb_testRegBlock.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);

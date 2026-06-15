@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addRound_output');
+    mkdirSync('sv-examples/Core/addRound', { recursive: true });
 }
 catch (e) { }
 // test 1 with static right shift
@@ -54,7 +54,7 @@ try {
   /* verilator lint_off UNUSED */
   ${round_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/round_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/round_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -109,7 +109,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -173,7 +173,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundRS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundRS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundRS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -237,7 +237,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundD_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundD_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundD_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -301,7 +301,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundZ_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundZ_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundZ_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -365,7 +365,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundU_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundU_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundU_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -439,7 +439,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundE_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundE_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundE_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -513,7 +513,7 @@ try {
 /* verilator lint_off UNUSED */
 ${roundA_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addRound_output/roundA_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addRound/roundA_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addSequentialAlways_output');
+    mkdirSync('sv-examples/Core/addSequentialAlways', { recursive: true });
 }
 catch (e) { }
 const tbBody = `
@@ -63,7 +63,7 @@ try {
   /* verilator lint_off UNUSED */
   ${seq_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSequentialAlways_output/seq_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSequentialAlways/seq_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

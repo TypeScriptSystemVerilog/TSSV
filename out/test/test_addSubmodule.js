@@ -3,7 +3,7 @@ import { writeFileSync, mkdirSync } from 'fs';
 // import * as fs from 'fs'
 import { FIR } from 'tssv/lib/modules/FIR';
 try {
-    mkdirSync('sv-examples/test_addSubmodule_output');
+    mkdirSync('sv-examples/Core/addSubmodule', { recursive: true });
 }
 catch (e) { }
 export class Adder extends Module {
@@ -80,7 +80,7 @@ try {
     /* verilator lint_off UNUSED */
     ${sub_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubmodule_output/sub_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubmodule/sub_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -159,7 +159,7 @@ try {
     /* verilator lint_off UNUSED */
     ${subA_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubmodule_output/subA_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubmodule/subA_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -223,7 +223,7 @@ try {
     /* verilator lint_off UNUSED */
     ${subU_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubmodule_output/subU_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubmodule/subU_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -235,14 +235,14 @@ const subC_tb = new Module({ name: 'subC_t' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
 }, {}, tbBodyC);
-subC_tb.addSubmodule('FIR', new FIR({ coefficients: [1n, 2n] }), {}, true, true, true);
+subC_tb.addSubmodule('FIR', new FIR({ numTaps: 2, coefficients: [1n, 2n] }), {}, true, true, true);
 try {
     const TB = `
     // verilator lint_off DECLFILENAME
     // verilator lint_off UNUSED
     ${subC_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubmodule_output/subI_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubmodule/subI_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

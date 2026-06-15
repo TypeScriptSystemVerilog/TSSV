@@ -1,0 +1,18 @@
+# fir_coeffs.yaml — Parameterized register map for FIR coefficient registers
+# Generates one signed RW register per tap (COEFF_0, COEFF_1, ..., COEFF_{numTaps-1})
+#
+# Generate:
+#   ./scripts/gen_regblock.sh ts/src/modules/FIR/fir_coeffs.yaml
+
+name: firCoeffs
+wordSize: 32
+busInterface: Memory
+busAddressWidth: 32
+repeatedRegister:
+  namePrefix: COEFF_
+  countParam: numTaps
+  addressStride: 4
+  type: RW
+  isSigned: true
+  width: 32
+  description: "FIR tap {i} coefficient"

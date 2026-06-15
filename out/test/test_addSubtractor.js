@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV';
 import { writeFileSync, mkdirSync } from 'fs';
 try {
-    mkdirSync('sv-examples/test_addSubtractor_output');
+    mkdirSync('sv-examples/Core/addSubtractor', { recursive: true });
 }
 catch (e) { }
 // test 1
@@ -62,7 +62,7 @@ try {
     /* verilator lint_off UNUSED */
     ${sub_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubtractor_output/sub_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubtractor/sub_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -125,7 +125,7 @@ try {
     /* verilator lint_off UNUSED */
     ${subS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubtractor_output/subS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubtractor/subS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -188,7 +188,7 @@ try {
     /* verilator lint_off UNUSED */
     ${subUS_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubtractor_output/subUS_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubtractor/subUS_tb.sv', TB);
 }
 catch (err) {
     console.error(err);
@@ -251,7 +251,7 @@ try {
     /* verilator lint_off UNUSED */
     ${subSU_tb.writeSystemVerilog()}
 `;
-    writeFileSync('sv-examples/test_addSubtractor_output/subSU_tb.sv', TB);
+    writeFileSync('sv-examples/Core/addSubtractor/subSU_tb.sv', TB);
 }
 catch (err) {
     console.error(err);

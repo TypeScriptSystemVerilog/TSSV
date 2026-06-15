@@ -1,7 +1,7 @@
 import { RegisterBlock } from 'tssv/lib/core/Registers';
 import { Module, serialize, deserialize } from 'tssv/lib/core/TSSV';
 import { Memory } from 'tssv/lib/interfaces/Memory';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 import { inspect } from 'util';
 import diff from 'deep-diff';
 const ramModule = new Module({ name: 'ram_32x32' }, {
@@ -190,8 +190,9 @@ tb_testRegBlock.addSubmodule('rom_inst', romModule, {}, true, true);
 tb_testRegBlock.addSubmodule('dut', testRegBlock, {}, true, true);
 // const temp = 'REG0'
 // console.log(myRegMap[temp])
+mkdirSync('sv-examples/Core/Registers', { recursive: true });
 try {
-    writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog());
+    writeFileSync('sv-examples/Core/Registers/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);
@@ -268,7 +269,7 @@ tb_testRegBlock2.addSubmodule('rom_inst', romModule, {}, true, true);
 // )
 tb_testRegBlock2.addSubmodule('dut', testRegBlock, {}, true, true);
 try {
-    writeFileSync('sv-examples/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog());
+    writeFileSync('sv-examples/Core/Registers/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);
@@ -348,7 +349,7 @@ tb_testRegBlock3.addSubmodule('ram_inst', ramModule, {}, true, true);
 tb_testRegBlock3.addSubmodule('rom_inst', romModule, {}, true, true);
 tb_testRegBlock3.addSubmodule('dut', testRegBlock, {}, true, true);
 try {
-    writeFileSync('sv-examples/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog());
+    writeFileSync('sv-examples/Core/Registers/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);
@@ -422,7 +423,7 @@ tb_testRegBlock4.addSubmodule('ram_inst', ramModule, {}, true, true);
 tb_testRegBlock4.addSubmodule('rom_inst', romModule, {}, true, true);
 tb_testRegBlock4.addSubmodule('dut', testRegBlock, {}, true, true);
 try {
-    writeFileSync('sv-examples/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog());
+    writeFileSync('sv-examples/Core/Registers/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog());
 }
 catch (err) {
     console.error(err);

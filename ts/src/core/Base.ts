@@ -1125,6 +1125,18 @@ ${caseAssignments}
      * @returns string containing the generated SystemVerilog code for this module
      */
   writeSystemVerilog (): string {
+    if (Module.svGenDepth === 0) {
+      Module.printedInterfaces = {}
+    }
+    Module.svGenDepth++
+    try {
+      return this._writeSystemVerilog()
+    } finally {
+      Module.svGenDepth--
+    }
+  }
+
+  private _writeSystemVerilog (): string {
     // assemble TSSVParameters
     const paramsArray: string[] = []
     if (this.params) {
@@ -1212,6 +1224,7 @@ ${caseAssignments}
     let signalString: string = `   ${signalArray.join(';\n   ')}`
     if (signalArray.length > 0) signalString += ';'
 
+    let generatedBody = ''
     for (const sensitivity in this.registerBlocks) {
       for (const resetCondition in this.registerBlocks[sensitivity]) {
         for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
@@ -1222,7 +1235,9 @@ ${caseAssignments}
             Object.keys(regs).forEach((key) => {
               const reg = regs[key]
               // console.log(reg)
-              resetAssignments.push(`           ${key} <= 'd${reg.resetVal || 0};`)
+              const resetVal = reg.resetVal ?? 0n
+              const resetLiteral = resetVal < 0n ? `-'d${-resetVal}` : `'d${resetVal}`
+              resetAssignments.push(`           ${key} <= ${resetLiteral};`)
             })
             resetString =
 `     if(${resetCondition})
@@ -1241,7 +1256,7 @@ ${resetAssignments.join('\n')}
             functionalAssigments.push(`           ${key} <= ${reg.d};`)
           })
 
-          this.body +=
+          generatedBody +=
 `
    always_ff ${sensitivity}
 ${resetString}${enableString}
@@ -1282,21 +1297,21 @@ ${functionalAssigments.join('\n')}
       if (vParamsArray.length > 0) {
         paramsBind = `#(${vParamsArray.join(',')}) `
       }
-      this.body +=
+      generatedBody +=
 `
     ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
       (
-${bindingsArray.join(',\n')}        
+${bindingsArray.join(',\n')}
       );
 `
     }
 
     const verilog: string =
 `
-${interfacesString}        
+${interfacesString}
 ${subModulesString}
-        
-/* verilator lint_off WIDTH */        
+
+/* verilator lint_off WIDTH */
 module ${this.name} ${paramsString}
    (
 ${IOString}
@@ -1305,7 +1320,7 @@ ${IOString}
 ${signalString}
 
 ${this.body}
-
+${generatedBody}
 endmodule
 /* verilator lint_on WIDTH */        
 `
@@ -1317,6 +1332,7 @@ endmodule
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
   protected static printedInterfaces: Record<string, boolean> = {}
+  private static svGenDepth = 0
 
   protected verilogParams: Record<string, boolean>
 }

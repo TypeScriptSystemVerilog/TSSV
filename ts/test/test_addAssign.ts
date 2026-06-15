@@ -2,7 +2,7 @@ import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 
 try {
-  mkdirSync('sv-examples/test_addAssign_output')
+  mkdirSync('sv-examples/Core/addAssign', { recursive: true })
 } catch (e) {}
 
 const tbBody =
@@ -65,7 +65,7 @@ try {
       /* verilator lint_off UNUSED */
       ${assign_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addAssign_output/assign_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addAssign/assign_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }
@@ -139,7 +139,7 @@ try {
       /* verilator lint_off UNUSED */
       ${assignAdd_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addAssign_output/assignAdd_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addAssign/assignAdd_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }
@@ -234,7 +234,7 @@ try {
       /* verilator lint_off UNUSED */
       ${assignM_tb.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addAssign_output/assignM_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addAssign/assignM_tb.sv', TB)
 } catch (err) {
   console.error(err)
 }

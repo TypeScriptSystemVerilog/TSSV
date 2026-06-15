@@ -1,0 +1,35 @@
+# example_regblock.yaml — Reference YAML for gen_regblock.sh
+#
+# Run:
+#   ./scripts/gen_regblock.sh scripts/example_regblock.yaml
+
+name: myRegs
+wordSize: 32
+busInterface: Memory      # Memory | TL_UL
+busAddressWidth: 32
+
+registers:
+  CTRL:
+    address: "0x000"
+    type: RW
+    reset: "0x00000000"
+    description: Control register
+    fields:
+      ENABLE:  { bits: "0:0",  reset: "0x0", description: Enable }
+      MODE:    { bits: "3:1",  reset: "0x0", description: Mode select }
+
+  STATUS:
+    address: "0x004"
+    type: RO
+    description: Status register
+
+  COUNT:
+    address: "0x010"
+    type: RW
+    description: Event counter
+
+  DATA_MEM:
+    address: "0x100"
+    type: RAM
+    size: 64
+    description: Data memory (64 words)

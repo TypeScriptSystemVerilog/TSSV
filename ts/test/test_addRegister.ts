@@ -3,7 +3,7 @@ import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 
 try {
-  mkdirSync('sv-examples/test_addRegister_output')
+  mkdirSync('sv-examples/Core/addRegister', { recursive: true })
 } catch (e) {}
 
 // test 1
@@ -70,7 +70,7 @@ try {
   /* verilator lint_off UNUSED */
   ${regMod.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod.sv', TB)
+  writeFileSync('sv-examples/Core/addRegister/regMod.sv', TB)
 } catch (err) {
   console.error(err)
 }
@@ -140,7 +140,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod2.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod2.sv', TB2)
+  writeFileSync('sv-examples/Core/addRegister/regMod2.sv', TB2)
 } catch (err) {
   console.error(err)
 }
@@ -211,7 +211,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod3.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod3.sv', TB3)
+  writeFileSync('sv-examples/Core/addRegister/regMod3.sv', TB3)
 } catch (err) {
   console.error(err)
 }
@@ -295,7 +295,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod4.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod4.sv', TB4)
+  writeFileSync('sv-examples/Core/addRegister/regMod4.sv', TB4)
 } catch (err) {
   console.error(err)
 }
@@ -372,7 +372,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod5.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod5.sv', TB5)
+  writeFileSync('sv-examples/Core/addRegister/regMod5.sv', TB5)
 } catch (err) {
   console.error(err)
 }
@@ -447,7 +447,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod6.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod6.sv', TB6)
+  writeFileSync('sv-examples/Core/addRegister/regMod6.sv', TB6)
 } catch (err) {
   console.error(err)
 }
@@ -524,7 +524,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod7.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod7.sv', TB7)
+  writeFileSync('sv-examples/Core/addRegister/regMod7.sv', TB7)
 } catch (err) {
   console.error(err)
 }
@@ -598,7 +598,7 @@ try {
     /* verilator lint_off UNUSED */
     ${regMod8.writeSystemVerilog()}
 `
-  writeFileSync('sv-examples/test_addRegister_output/regMod8.sv', TB8)
+  writeFileSync('sv-examples/Core/addRegister/regMod8.sv', TB8)
 } catch (err) {
   console.error(err)
 }

@@ -1,7 +1,7 @@
 import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'
 import { Module, serialize, deserialize } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
-import { writeFileSync } from 'fs'
+import { writeFileSync, mkdirSync } from 'fs'
 import { inspect } from 'util'
 import diff from 'deep-diff'
 
@@ -238,8 +238,9 @@ tb_testRegBlock.addSubmodule(
 
 // console.log(myRegMap[temp])
 
+mkdirSync('sv-examples/Core/Registers', { recursive: true })
 try {
-  writeFileSync('sv-examples/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog())
+  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -341,7 +342,7 @@ tb_testRegBlock2.addSubmodule(
 )
 
 try {
-  writeFileSync('sv-examples/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog())
+  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -446,7 +447,7 @@ tb_testRegBlock3.addSubmodule(
 )
 
 try {
-  writeFileSync('sv-examples/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog())
+  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -545,7 +546,7 @@ tb_testRegBlock4.addSubmodule(
 )
 
 try {
-  writeFileSync('sv-examples/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog())
+  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }

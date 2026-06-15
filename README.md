@@ -65,11 +65,11 @@ A example of a simple FIR Filter TSSV Module can be found [here](https://github.
 #### Generating
 ```bash
 cd ~/TSSV
-npm run doc
+npm run docs
 ```
 #### Deploy to GitHub Pages
 ```bash
-npm deploy-docs
+npm run deploy-docs
 ```
 #### Viewing the TypeDoc Documentation
 [The TSSV TypeDoc generated Github Page can be accessed here](https://TypeScriptSystemVerilog.github.io/TSSV/index.html)
