@@ -1,4 +1,4 @@
-import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'
+import { type RegisterBlockDef, RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Module } from 'tssv/lib/core/TSSV'
 import { APB4 } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4'
 import { writeFileSync, mkdirSync } from 'fs'
@@ -14,17 +14,17 @@ const apbRegs: RegisterBlockDef<typeof apbRegMap> = {
   addrMap: apbRegMap,
   registers: {
     CTRL: {
-      type: 'RW',
+      type: RegisterType.RW,
       reset: 0n,
       description: 'Control register'
     },
     STATUS: {
-      type: 'RO',
+      type: RegisterType.RO,
       reset: 0n,
       description: 'Status register (read-only)'
     },
     DATA: {
-      type: 'RW',
+      type: RegisterType.RW,
       reset: 0n,
       description: 'Data register'
     }
