@@ -1,5 +1,5 @@
 import TSSV from 'tssv/lib/core/TSSV'
-import { RegisterBlock, type RegisterBlockDef } from 'tssv/lib/core/Registers'
+import { RegisterBlock } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { AXI4Stream } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4Stream/r0p0_1/AXI4Stream'
 import { createFirCoeffsDef } from './regs-fir_coeffs.js'
@@ -106,27 +106,27 @@ export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
     this.addInterface('m_axis', new AXI4Stream({ DATA_WIDTH: 32 }, 'outward'))
 
     // internal data path signals (bridge AXI stream ↔ FIR pipeline)
-    this.addSignal('data_in',     { width: params.inWidth,  isSigned: true })
-    this.addSignal('data_out',    { width: params.outWidth, isSigned: true })
-    this.addSignal('en',          {})
+    this.addSignal('data_in', { width: params.inWidth, isSigned: true })
+    this.addSignal('data_out', { width: params.outWidth, isSigned: true })
+    this.addSignal('en', {})
     this.addSignal('valid_pipe_0', {})
     this.addSignal('valid_pipe_1', {})
 
     // AXI-to-FIR adapter assigns
     // pipeline advances when output can drain or has no valid data yet
-    this.body += `   assign en = m_axis.TREADY || !valid_pipe_1;\n`
+    this.body += '   assign en = m_axis.TREADY || !valid_pipe_1;\n'
     // must use this.body directly — addAssign validates out via findSignal, which only
     // searches IOs and signals; interface sub-signals like s_axis.TREADY are not found there
-    this.body += `   assign s_axis.TREADY = en;\n`
+    this.body += '   assign s_axis.TREADY = en;\n'
     // extract signed sample from LSBs of TDATA
     this.body += `   assign data_in = $signed(s_axis.TDATA[${params.inWidth - 1}:0]);\n`
 
     // 2-stage valid shift register — tracks which pipeline stages hold real data
     this.addRegister({ d: new TSSV.Expr('s_axis.TVALID'), clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_0' })
-    this.addRegister({ d: 'valid_pipe_0',                  clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_1' })
+    this.addRegister({ d: 'valid_pipe_0', clk: 'clk', reset: 'rst_b', en: 'en', q: 'valid_pipe_1' })
 
     // build coefficient register block from factory (fir_coeffs.yaml → regs-fir_coeffs.ts)
-    const numTaps = this.params.numTaps as number
+    const numTaps = this.params.numTaps
     const { def: coeffDef } = createFirCoeffsDef(numTaps, this.params.coefficients)
 
     // pre-declare signals that will receive each coefficient from the register block
@@ -191,16 +191,16 @@ export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
 
     // FIR-to-AXI adapter assigns — all outputs are m_axis interface sub-signals,
     // so addAssign cannot be used (findSignal only resolves IOs and declared signals)
-    this.body += `   assign m_axis.TVALID = valid_pipe_1;\n`
+    this.body += '   assign m_axis.TVALID = valid_pipe_1;\n'
     // sign-extend data_out to fill the 32-bit TDATA field
     this.body += `   assign m_axis.TDATA  = {{${32 - params.outWidth}{data_out[${params.outWidth - 1}]}}, data_out};\n`
     // each sample is its own packet; all byte lanes carry valid data
-    this.body += `   assign m_axis.TLAST   = 1'b1;\n`
-    this.body += `   assign m_axis.TSTRB   = 4'hF;\n`
-    this.body += `   assign m_axis.TKEEP   = 4'hF;\n`
-    this.body += `   assign m_axis.TID     = '0;\n`
-    this.body += `   assign m_axis.TDEST   = '0;\n`
-    this.body += `   assign m_axis.TWAKEUP = 1'b0;\n`
+    this.body += '   assign m_axis.TLAST   = 1\'b1;\n'
+    this.body += '   assign m_axis.TSTRB   = 4\'hF;\n'
+    this.body += '   assign m_axis.TKEEP   = 4\'hF;\n'
+    this.body += '   assign m_axis.TID     = \'0;\n'
+    this.body += '   assign m_axis.TDEST   = \'0;\n'
+    this.body += '   assign m_axis.TWAKEUP = 1\'b0;\n'
   }
 }
 
