@@ -10,21 +10,26 @@ hardware design engineer familiar with SystemVerilog.
 
 ### Run the demo  (FIR Module)
 
-Prerequite:  A modern version of NodeJS installed  (Recommend Node.js v20.12.0 LTS)
+Prerequite:  A modern version of NodeJS installed  (Recommend Node.js v24.17.0 LTS)
 
 #### Installation
-For MacBook M1/M2/M3 Node.js installation: 
-download and double click to install https://nodejs.org/dist/v20.12.0/node-v20.12.0.pkg
+For macOS and Linux: 
+
 ```bash
-node -v #v20.12.0
-npm -v  #10.5.0
-```
-For Ubuntu 22.04 Node.js installation:
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&\
-sudo apt-get install -y nodejs
-node -v #v20.12.0
-npm -v  #10.5.0
+# Download and install nvm:
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
+
+# in lieu of restarting the shell
+\. "$HOME/.nvm/nvm.sh"
+
+# Download and install Node.js:
+nvm install 24
+
+# Verify the Node.js version:
+node -v # Should print "v24.17.0".
+
+# Verify npm version:
+npm -v # Should print "11.13.0".
 ```
 
 #### Run Procedure
@@ -34,7 +39,7 @@ cd TSSV
 npm install
 npx tsc
 node out/test/test_FIR.js
-cat sv-examples/test_FIR_output/myFIR.sv
+cat sv-examples/FIR/myFIR3/myFIR3.sv
 ```
 ### Run ESLint
 Run ESlint to for additional code quality checks beyond the type checking specified by Typescript.
@@ -55,7 +60,7 @@ sudo apt install verilator
 #### Run Procedure
 ```bash
 cd ~/TSSV
-verilator --lint-only sv-examples/test_FIR_output/myFIR.sv
+verilator --lint-only sv-examples/FIR/myFIR3/myFIR3.sv
 ```
 
 ### Example TSSV Module
