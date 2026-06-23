@@ -6,7 +6,7 @@ import { createFirCoeffsDef } from './regs-fir_coeffs.js'
 
 type coeffType = bigint[]
 type inOutWidthType = TSSV.IntRange<1, 32>
-type rShiftType = TSSV.IntRange<0,32>
+type rShiftType = TSSV.IntRange<0, 32>
 /**
  * configuration parameters of the FIR module
  */
@@ -35,7 +35,7 @@ export interface FIR_Parameters extends TSSV.TSSVParameters {
   rShift?: rShiftType
 }
 
-type FIR_ParamsNorm = Omit<FIR_Parameters, 'coefficients'|'inWidth'|'outWidth'|'rShift'> & {
+type FIR_ParamsNorm = Omit<FIR_Parameters, 'coefficients' | 'inWidth' | 'outWidth' | 'rShift'> & {
   numTaps: number
   coefficients: coeffType
   inWidth: inOutWidthType
@@ -47,13 +47,13 @@ type FIR_ParamsNorm = Omit<FIR_Parameters, 'coefficients'|'inWidth'|'outWidth'|'
   This function allows parameters to take on default values
     if they are not specified.
 */
-function normalizeFIRParams(p: FIR_Parameters): FIR_ParamsNorm {
+function normalizeFIRParams (p: FIR_Parameters): FIR_ParamsNorm {
   return {
     ...p,
     coefficients: (p.coefficients ?? Array(p.numTaps).fill(0n)) as coeffType,
-    inWidth: (p.inWidth ?? 8) as inOutWidthType,
-    outWidth: (p.outWidth ?? 9) as inOutWidthType,
-    rShift: (p.rShift ?? 2) as rShiftType,
+    inWidth: (p.inWidth ?? 8),
+    outWidth: (p.outWidth ?? 9),
+    rShift: (p.rShift ?? 2)
   }
 }
 
@@ -136,7 +136,7 @@ export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
     }
 
     const coeffRegBlock = new RegisterBlock<Record<string, bigint>>(
-      { name: `${this.params.name ?? 'fir'}_coeffRegs`, busAddressWidth: 32 },
+      { name: `${String(params.name ?? 'fir')}_coeffRegs`, busAddressWidth: 32 },
       coeffDef,
       new Memory()
     )

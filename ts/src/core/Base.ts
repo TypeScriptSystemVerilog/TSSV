@@ -1120,12 +1120,11 @@ ${caseAssignments}
     console.log(this.registerBlocks)
   }
 
-
   /**
    * Convert a ParameterValue into a compact, readable string suitable for Verilog comments.
    * Deterministic ordering for objects/records.
    */
-  protected formatParameterValue(v: ParameterValue): string {
+  protected formatParameterValue (v: ParameterValue): string {
     if (typeof v === 'bigint') return v.toString() + 'n'
     if (typeof v === 'string' || typeof v === 'number') return String(v)
 
@@ -1136,7 +1135,7 @@ ${caseAssignments}
     if (typeof v === 'object' && v !== null) {
       const rec = v as Record<string, ParameterValue | undefined>
       const entries = Object.entries(rec)
-        .filter(([, val]) => val !== undefined)
+        .filter((entry): entry is [string, ParameterValue] => entry[1] !== undefined)
         .sort(([a], [b]) => a.localeCompare(b))
 
       // Nice-ish IntRange formatting if it looks like {min:number,max:number} or similar.
@@ -1147,7 +1146,7 @@ ${caseAssignments}
         return '{' + entries.map(([k, val]) => `${k}:${val as number}`).join(', ') + '}'
       }
 
-      return '{ ' + entries.map(([k, val]) => `${k}=${this.formatParameterValue(val!)}`).join(', ') + ' }'
+      return '{ ' + entries.map(([k, val]) => `${k}=${this.formatParameterValue(val)}`).join(', ') + ' }'
     }
 
     return String(v)
@@ -1157,7 +1156,7 @@ ${caseAssignments}
    * Flatten parameters into `// key.path = value` lines.
    * Good for embedding at the top of generated Verilog.
    */
-  protected formatParametersForComment(
+  protected formatParametersForComment (
     params: TSSVParameters = this.params,
     opts?: {
       prefix?: string
@@ -1168,7 +1167,7 @@ ${caseAssignments}
     const prefix = opts?.prefix ?? '// '
     const skipName = opts?.skipName ?? true
 
-    const walk = (obj: Record<string, ParameterValue | undefined>, path: string[]) => {
+    const walk = (obj: Record<string, ParameterValue | undefined>, path: string[]): void => {
       const keys = Object.keys(obj).sort()
       for (const key of keys) {
         if (skipName && key === 'name') continue
@@ -1196,7 +1195,7 @@ ${caseAssignments}
   /**
    * Convenience wrapper that emits a nice comment block.
    */
-  protected formatParametersAsVerilogComment(params: TSSVParameters = this.params): string {
+  protected formatParametersAsVerilogComment (params: TSSVParameters = this.params): string {
     const body = this.formatParametersForComment(params)
     if (!body.trim()) return ''
     return [
@@ -1204,10 +1203,9 @@ ${caseAssignments}
       '   // Parameters',
       '   // ------------------------------------------------------------------',
       body,
-      '   // ------------------------------------------------------------------\n',
+      '   // ------------------------------------------------------------------\n'
     ].join('\n')
   }
-
 
   /**
      * write the generated SystemVerilog code to a string
