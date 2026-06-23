@@ -1,5 +1,11 @@
 import { Module, type TSSVParameters, type IntRange, type Interface } from 'tssv/lib/core/TSSV';
-type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | string;
+export declare enum RegisterType {
+    RO = "RO",
+    RW = "RW",
+    WO = "WO",
+    RAM = "RAM",
+    ROM = "ROM"
+}
 interface Field {
     reset?: bigint;
     description?: string;

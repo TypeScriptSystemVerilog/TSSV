@@ -1,5 +1,14 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV';
 import { Memory } from 'tssv/lib/interfaces/Memory';
+// type RegisterType = 'RO' | 'RW' | 'WO' | 'RAM' | 'ROM' | string
+export var RegisterType;
+(function (RegisterType) {
+    RegisterType["RO"] = "RO";
+    RegisterType["RW"] = "RW";
+    RegisterType["WO"] = "WO";
+    RegisterType["RAM"] = "RAM";
+    RegisterType["ROM"] = "ROM";
+})(RegisterType || (RegisterType = {}));
 export class RegAddr {
     constructor(start, wordSize) {
         this.addr = start || 0n;
@@ -74,13 +83,13 @@ export class RegisterBlock extends Module {
             const baseAddr = this.regDefs.addrMap[regName];
             const matchExpr = this.addSignal(`${regName}_matchExpr`, { width: 1 });
             let thisReg = {
-                type: 'RW',
+                type: RegisterType.RW,
                 width: regDefs.wordSize
             };
             if (registers[regName] !== undefined) {
                 thisReg = registers[regName] || thisReg;
             }
-            if (thisReg.type === 'RW') {
+            if (thisReg.type === RegisterType.RW) {
                 const wstrbWidth = (params.busAddressWidth || 8) / 8;
                 const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
                 // Use original address for logic
@@ -130,7 +139,7 @@ export class RegisterBlock extends Module {
                     });
                 }
             }
-            else if (thisReg.type === 'RO') {
+            else if (thisReg.type === RegisterType.RO) {
                 // Use original address for logic
                 this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
                 const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 });
@@ -141,7 +150,7 @@ export class RegisterBlock extends Module {
                     isSigned: thisReg.isSigned
                 };
             }
-            else if (thisReg.type === 'WO') {
+            else if (thisReg.type === RegisterType.WO) {
                 const wstrbWidth = (params.busAddressWidth || 8) / 8;
                 const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth });
                 // Use original address for logic
@@ -156,7 +165,7 @@ export class RegisterBlock extends Module {
                 };
                 this.addAssign({ in: new Expr('regs.DATA_WR'), out: regName.toString() });
             }
-            else if (thisReg.type === 'ROM') {
+            else if (thisReg.type === RegisterType.ROM) {
                 // Use original address for logic
                 if (thisReg.size) {
                     this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchExpr });
@@ -189,7 +198,7 @@ export class RegisterBlock extends Module {
                     q: `${regName}_ready`
                 });
             }
-            else if (thisReg.type === 'RAM') {
+            else if (thisReg.type === RegisterType.RAM) {
                 // Use original address for logic
                 if (thisReg.size) {
                     this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchExpr });
@@ -284,7 +293,7 @@ always @(regs.ADDR or regs.RE)
             const baseAddr = this.regDefs.addrMap[regName];
             let readSignal = '';
             const register = this.regDefs.registers?.[regName];
-            if (register?.type === 'ROM') { //  || register?.type === 'RAM'
+            if (register?.type === RegisterType.ROM) { //  || register?.type === 'RAM'
                 readSignal = `${regName}_rdata`;
                 inputs.push(`${regName}_rdata`);
                 readyStr = `${regName}_ready`;
@@ -294,7 +303,7 @@ always @(regs.ADDR or regs.RE)
           regs.READY <= ${readyStr};
       end\n`;
             }
-            else if (register?.type === 'RAM') {
+            else if (register?.type === RegisterType.RAM) {
                 readSignal = `${regName}_wdata`;
                 inputs.push(`${regName}_rdata`);
                 readyStr = `${regName}_ready`;
@@ -304,7 +313,7 @@ always @(regs.ADDR or regs.RE)
           regs.READY <= ${readyStr};
       end\n`;
             }
-            else if (register?.type === 'RO') {
+            else if (register?.type === RegisterType.RO) {
                 readSignal = regName;
                 inputs.push(`${regName}`);
                 readyStr = '1\'b1';
@@ -314,7 +323,7 @@ always @(regs.ADDR or regs.RE)
           regs.READY <= ${readyStr};
       end\n`;
             }
-            else if (register?.type === 'RW') {
+            else if (register?.type === RegisterType.RW) {
                 if (register.fields && Object.keys(register.fields).length > 0) {
                     readSignal = Object.keys(register.fields).map((fieldName, index) => `${regName}_field${index}`).reverse().join(', ');
                     readSignal = `{${readSignal}}`;

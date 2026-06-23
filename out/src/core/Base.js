@@ -988,6 +988,77 @@ ${caseAssignments}
         console.log(this.registerBlocks);
     }
     /**
+     * Convert a ParameterValue into a compact, readable string suitable for Verilog comments.
+     * Deterministic ordering for objects/records.
+     */
+    formatParameterValue(v) {
+        if (typeof v === 'bigint')
+            return v.toString() + 'n';
+        if (typeof v === 'string' || typeof v === 'number')
+            return String(v);
+        if (Array.isArray(v)) {
+            return '[' + v.map((x) => this.formatParameterValue(x)).join(', ') + ']';
+        }
+        if (typeof v === 'object' && v !== null) {
+            const rec = v;
+            const entries = Object.entries(rec)
+                .filter(([, val]) => val !== undefined)
+                .sort(([a], [b]) => a.localeCompare(b));
+            // Nice-ish IntRange formatting if it looks like {min:number,max:number} or similar.
+            const looksNumeric = entries.length > 0 && entries.every(([, val]) => typeof val === 'number');
+            if (looksNumeric) {
+                return '{' + entries.map(([k, val]) => `${k}:${val}`).join(', ') + '}';
+            }
+            return '{ ' + entries.map(([k, val]) => `${k}=${this.formatParameterValue(val)}`).join(', ') + ' }';
+        }
+        return String(v);
+    }
+    /**
+     * Flatten parameters into `// key.path = value` lines.
+     * Good for embedding at the top of generated Verilog.
+     */
+    formatParametersForComment(params = this.params, opts) {
+        const lines = [];
+        const prefix = opts?.prefix ?? '// ';
+        const skipName = opts?.skipName ?? true;
+        const walk = (obj, path) => {
+            const keys = Object.keys(obj).sort();
+            for (const key of keys) {
+                if (skipName && key === 'name')
+                    continue;
+                const val = obj[key];
+                if (val === undefined)
+                    continue;
+                // Avoid recursing into arrays; those format inline.
+                const isPlainObject = typeof val === 'object' && val !== null && !Array.isArray(val);
+                if (isPlainObject) {
+                    walk(val, [...path, key]);
+                }
+                else {
+                    const fullPath = [...path, key].join('.');
+                    lines.push(`   ${prefix}${fullPath} = ${this.formatParameterValue(val)}`);
+                }
+            }
+        };
+        walk(params, []);
+        return lines.join('\n');
+    }
+    /**
+     * Convenience wrapper that emits a nice comment block.
+     */
+    formatParametersAsVerilogComment(params = this.params) {
+        const body = this.formatParametersForComment(params);
+        if (!body.trim())
+            return '';
+        return [
+            '\n   // ------------------------------------------------------------------',
+            '   // Parameters',
+            '   // ------------------------------------------------------------------',
+            body,
+            '   // ------------------------------------------------------------------\n',
+        ].join('\n');
+    }
+    /**
        * write the generated SystemVerilog code to a string
        * @returns string containing the generated SystemVerilog code for this module
        */
@@ -1180,7 +1251,7 @@ module ${this.name} ${paramsString}
    (
 ${IOString}
    );
-
+${this.formatParametersAsVerilogComment(this.params)}
 ${signalString}
 
 ${this.body}
