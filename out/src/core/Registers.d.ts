@@ -36,7 +36,7 @@ export interface RegisterBlockDef<T extends Record<string, bigint>> {
     };
 }
 export interface RegisterBlockParameters extends TSSVParameters {
-    busInterface?: 'Memory' | 'TL_UL';
+    busInterface?: 'Memory' | 'TL_UL' | 'APB';
     endianess?: 'little';
     busIDWidth?: 8;
     busAddressWidth?: 32;

@@ -1002,7 +1002,7 @@ ${caseAssignments}
         if (typeof v === 'object' && v !== null) {
             const rec = v;
             const entries = Object.entries(rec)
-                .filter(([, val]) => val !== undefined)
+                .filter((entry) => entry[1] !== undefined)
                 .sort(([a], [b]) => a.localeCompare(b));
             // Nice-ish IntRange formatting if it looks like {min:number,max:number} or similar.
             const looksNumeric = entries.length > 0 && entries.every(([, val]) => typeof val === 'number');
@@ -1055,7 +1055,7 @@ ${caseAssignments}
             '   // Parameters',
             '   // ------------------------------------------------------------------',
             body,
-            '   // ------------------------------------------------------------------\n',
+            '   // ------------------------------------------------------------------\n'
         ].join('\n');
     }
     /**

@@ -129,8 +129,9 @@ if (def.repeatedRegister) {
 
   // Build the factory function using string concatenation throughout
   // (avoids backtick template literals which would conflict with the bash heredoc)
+  const retType = 'RegisterBlockDef<Record<string, bigint>>';
   const factoryFn =
-    'export function ' + funcName + '(' + countParam + ': number, resetValues?: bigint[]) {\n' +
+    'export function ' + funcName + ' (' + countParam + ': number, resetValues?: bigint[]): { addrMap: Record<string, bigint>, def: ' + retType + ' } {\n' +
     '  const addrMap: Record<string, bigint> = {}\n' +
     '  const registers: RegisterBlockDef<Record<string, bigint>>[\'registers\'] = {}\n' +
     '  for (let i = 0; i < ' + countParam + '; i++) {\n' +
@@ -143,10 +144,8 @@ if (def.repeatedRegister) {
     '      description: \'' + descTemplate + '\'\n' +
     '    }\n' +
     '  }\n' +
-    '  return {\n' +
-    '    addrMap,\n' +
-    '    def: { wordSize: ' + wordSize + ' as const, addrMap, registers } as RegisterBlockDef<Record<string, bigint>>\n' +
-    '  }\n' +
+    '  const def: ' + retType + ' = { wordSize: ' + wordSize + ', addrMap, registers }\n' +
+    '  return { addrMap, def }\n' +
     '}';
 
   const outFile = '$OUT_FILE';
@@ -154,7 +153,7 @@ if (def.repeatedRegister) {
   const content = [
     banner,
     '',
-    "import { type RegisterBlockDef, RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'",
+    "import { type RegisterBlockDef, RegisterType } from 'tssv/lib/core/Registers'",
     ifaceImport,
     '',
     jsdocLines,

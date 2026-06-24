@@ -8,7 +8,9 @@
 		"@typescript-eslint/prefer-nullish-coalescing" : "off",
 		"new-cap" : "off",
 		"@typescript-eslint/naming-convention" : "off",
-		"@typescript-eslint/unbound-method": "off"
+		"@typescript-eslint/unbound-method": "off",
+		"@typescript-eslint/quotes": ["error", "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
+		"@typescript-eslint/consistent-type-assertions": ["error", { "assertionStyle": "as", "objectLiteralTypeAssertions": "allow-as-parameter" }]
 	    }
 	}
     ],
