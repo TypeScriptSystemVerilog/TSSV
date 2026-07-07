@@ -15,8 +15,7 @@ ACC extends number = never> = ARR['length'] extends END
 type ParameterValue =
   string | boolean | bigint | IntRange<number, number> | bigint[] | string[] |
   Array<IntRange<number, number>> |
-  { [name: string]: ParameterValue | undefined } |
-  Array<{ [name: string]: ParameterValue | undefined }>
+  object
 
 export interface TSSVParameters {
   name?: string | undefined

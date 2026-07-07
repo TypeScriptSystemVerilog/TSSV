@@ -3,11 +3,7 @@
  * Used in Parameter types on TSSV modules where the parameters have range restrictions
  */
 export type IntRange<START extends number, END extends number, ARR extends unknown[] = [], ACC extends number = never> = ARR['length'] extends END ? ACC | START | END : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>;
-type ParameterValue = string | boolean | bigint | IntRange<number, number> | bigint[] | string[] | Array<IntRange<number, number>> | {
-    [name: string]: ParameterValue | undefined;
-} | Array<{
-    [name: string]: ParameterValue | undefined;
-}>;
+type ParameterValue = string | boolean | bigint | IntRange<number, number> | bigint[] | string[] | Array<IntRange<number, number>> | object;
 export interface TSSVParameters {
     name?: string | undefined;
     [name: string]: ParameterValue | undefined;
