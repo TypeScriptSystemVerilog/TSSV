@@ -13,7 +13,7 @@ ACC extends number = never> = ARR['length'] extends END
   : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
 type ParameterValue =
-  string | bigint | IntRange<number, number> | bigint[] |
+  string | boolean | bigint | IntRange<number, number> | bigint[] | string[] |
   Array<IntRange<number, number>> |
   { [name: string]: ParameterValue | undefined } |
   Array<{ [name: string]: ParameterValue | undefined }>
