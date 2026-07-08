@@ -1213,6 +1213,7 @@ ${caseAssignments}
   writeSystemVerilog (): string {
     if (Module.svGenDepth === 0) {
       Module.printedInterfaces = {}
+      Module.printedModules = {}
     }
     Module.svGenDepth++
     try {
@@ -1355,12 +1356,11 @@ ${functionalAssigments.join('\n')}
     }
 
     let subModulesString = ''
-    const printed: Record<string, boolean> = {}
     for (const moduleInstance in this.submodules) {
       const thisSubmodule = this.submodules[moduleInstance]
       let paramsBind = ''
-      if (!printed[thisSubmodule.module.name]) {
-        printed[thisSubmodule.module.name] = true
+      if (!Module.printedModules[thisSubmodule.module.name]) {
+        Module.printedModules[thisSubmodule.module.name] = true
         subModulesString += thisSubmodule.module.writeSystemVerilog()
       }
       const bindingsArray: string[] = []
@@ -1418,6 +1418,7 @@ endmodule
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
   protected static printedInterfaces: Record<string, boolean> = {}
+  private static printedModules: Record<string, boolean> = {}
   private static svGenDepth = 0
 
   protected verilogParams: Record<string, boolean>

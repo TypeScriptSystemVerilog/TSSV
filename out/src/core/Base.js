@@ -1065,6 +1065,7 @@ ${caseAssignments}
     writeSystemVerilog() {
         if (Module.svGenDepth === 0) {
             Module.printedInterfaces = {};
+            Module.printedModules = {};
         }
         Module.svGenDepth++;
         try {
@@ -1205,12 +1206,11 @@ ${functionalAssigments.join('\n')}
             }
         }
         let subModulesString = '';
-        const printed = {};
         for (const moduleInstance in this.submodules) {
             const thisSubmodule = this.submodules[moduleInstance];
             let paramsBind = '';
-            if (!printed[thisSubmodule.module.name]) {
-                printed[thisSubmodule.module.name] = true;
+            if (!Module.printedModules[thisSubmodule.module.name]) {
+                Module.printedModules[thisSubmodule.module.name] = true;
                 subModulesString += thisSubmodule.module.writeSystemVerilog();
             }
             const bindingsArray = [];
@@ -1263,6 +1263,7 @@ endmodule
     }
 }
 Module.printedInterfaces = {};
+Module.printedModules = {};
 Module.svGenDepth = 0;
 export function serialize(obj, indent, bigIntSuffix = 'n') {
     const serialized = JSON.stringify(obj, function (key, value) {

@@ -293,6 +293,7 @@ export declare class Module<P extends TSSVParameters = TSSVParameters, IO extend
         resetVal?: bigint;
     }>>>>;
     protected static printedInterfaces: Record<string, boolean>;
+    private static printedModules;
     private static svGenDepth;
     protected verilogParams: Record<string, boolean>;
 }
