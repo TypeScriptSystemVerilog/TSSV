@@ -2,6 +2,7 @@ import { Module, type TSSVParameters, type IntRange, type Interface } from 'tssv
 export declare enum RegisterType {
     RO = "RO",
     RW = "RW",
+    RWU = "RWU",
     WO = "WO",
     RAM = "RAM",
     ROM = "ROM"
