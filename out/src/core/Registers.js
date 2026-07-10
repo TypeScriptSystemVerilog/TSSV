@@ -57,6 +57,16 @@ export class RegAddr {
  * }
  * ```
  */
+function ralfAccessType(type) {
+    switch (type) {
+        case RegisterType.RO:
+        case RegisterType.ROM: return 'ro';
+        case RegisterType.WO: return 'wo';
+        case RegisterType.RW:
+        case RegisterType.RAM:
+        default: return 'rw';
+    }
+}
 export class RegisterBlock extends Module {
     constructor(params, regDefs, busInterface) {
         super({
@@ -417,5 +427,42 @@ always @(regs.ADDR or regs.RE)
             return '0';
         const sizeBits = size.toString(2).length;
         return `${sizeBits}'b${'0'.repeat(sizeBits / 2).padEnd(sizeBits, '1')}`;
+    }
+    writeRALF() {
+        const blockName = this.params.name ?? 'unnamed';
+        const wordBytes = (this.regDefs.wordSize ?? 32) / 8;
+        const lines = [`block ${blockName} {`, `    bytes ${wordBytes};`];
+        for (const [regName, addr] of Object.entries(this.regDefs.addrMap)) {
+            const reg = this.regDefs.registers[regName];
+            if (!reg)
+                continue;
+            const access = ralfAccessType(reg.type);
+            lines.push(`    register ${regName} @0x${addr.toString(16)} {`);
+            if (reg.fields !== undefined && Object.keys(reg.fields).length > 0) {
+                for (const [fieldName, field] of Object.entries(reg.fields)) {
+                    const hi = field.bitRange[0];
+                    const lo = field.bitRange[1];
+                    const width = hi - lo + 1;
+                    const reset = `0x${(field.reset ?? 0n).toString(16)}`;
+                    lines.push(`        field ${fieldName}${lo !== 0 ? ` @ ${lo}` : ''} {`);
+                    lines.push(`            bits ${width};`);
+                    lines.push(`            reset ${reset};`);
+                    lines.push(`            access ${access};`);
+                    lines.push(`        }`);
+                }
+            }
+            else {
+                const width = reg.width ?? this.regDefs.wordSize ?? 32;
+                const reset = `0x${(reg.reset ?? 0n).toString(16)}`;
+                lines.push(`        field ${regName.toLowerCase()} {`);
+                lines.push(`            bits ${width};`);
+                lines.push(`            reset ${reset};`);
+                lines.push(`            access ${access};`);
+                lines.push(`        }`);
+            }
+            lines.push(`    }`);
+        }
+        lines.push(`}`);
+        return lines.join('\n') + '\n';
     }
 }
