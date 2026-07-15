@@ -171,15 +171,19 @@ export class RegisterBlock extends Module {
                 this.IOs[regName] = { direction: 'output', width, isSigned: thisReg.isSigned, type: 'reg' };
                 this.IOs[`${regName}_hw_update`] = { direction: 'input', width: 1 };
                 this.IOs[`${regName}_hw_update_val`] = { direction: 'input', width, isSigned: thisReg.isSigned };
-                // Single priority always_ff: SW write beats HW update in the same cycle.
+                const hwFirst = (thisReg.updatePriority ?? 'hw') === 'hw';
+                const firstCond = hwFirst ? `${regName}_hw_update` : `${regName}_WE`;
+                const firstVal = hwFirst ? `${regName}_hw_update_val` : `regs.DATA_WR[${width - 1}:0]`;
+                const secondCond = hwFirst ? `${regName}_WE` : `${regName}_hw_update`;
+                const secondVal = hwFirst ? `regs.DATA_WR[${width - 1}:0]` : `${regName}_hw_update_val`;
                 this.body += `
 always_ff @( posedge clk or negedge rst_b )
   if (!rst_b)
     ${regName} <= ${width}'h${resetHex};
-  else if (${regName}_WE)
-    ${regName} <= regs.DATA_WR[${width - 1}:0];
-  else if (${regName}_hw_update)
-    ${regName} <= ${regName}_hw_update_val;
+  else if (${firstCond})
+    ${regName} <= ${firstVal};
+  else if (${secondCond})
+    ${regName} <= ${secondVal};
 `;
             }
             else if (thisReg.type === RegisterType.RO) {
