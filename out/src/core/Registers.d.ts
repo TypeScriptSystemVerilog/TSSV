@@ -2,6 +2,7 @@ import { Module, type TSSVParameters, type IntRange, type Interface } from 'tssv
 export declare enum RegisterType {
     RO = "RO",
     RW = "RW",
+    RWU = "RWU",
     WO = "WO",
     RAM = "RAM",
     ROM = "ROM"
@@ -20,6 +21,8 @@ interface Register {
     width?: IntRange<1, 64>;
     isSigned?: boolean;
     fields?: Record<string, Field>;
+    /** RWU only: which update source wins when both assert in the same cycle. Default 'hw'. */
+    updatePriority?: 'hw' | 'sw';
 }
 export declare class RegAddr {
     private addr;

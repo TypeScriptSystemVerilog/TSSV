@@ -6,6 +6,7 @@ export var RegisterType;
 (function (RegisterType) {
     RegisterType["RO"] = "RO";
     RegisterType["RW"] = "RW";
+    RegisterType["RWU"] = "RWU";
     RegisterType["WO"] = "WO";
     RegisterType["RAM"] = "RAM";
     RegisterType["ROM"] = "ROM";
@@ -170,6 +171,30 @@ export class RegisterBlock extends Module {
                         resetVal: thisReg.reset || 0n
                     });
                 }
+            }
+            else if (thisReg.type === RegisterType.RWU) {
+                const width = thisReg.width || regDefs.wordSize;
+                const resetHex = (thisReg.reset ?? 0n).toString(16);
+                this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr });
+                const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 });
+                this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig });
+                this.IOs[regName] = { direction: 'output', width, isSigned: thisReg.isSigned, type: 'reg' };
+                this.IOs[`${regName}_hw_update`] = { direction: 'input', width: 1 };
+                this.IOs[`${regName}_hw_update_val`] = { direction: 'input', width, isSigned: thisReg.isSigned };
+                const hwFirst = (thisReg.updatePriority ?? 'hw') === 'hw';
+                const firstCond = hwFirst ? `${regName}_hw_update` : `${regName}_WE`;
+                const firstVal = hwFirst ? `${regName}_hw_update_val` : `regs.DATA_WR[${width - 1}:0]`;
+                const secondCond = hwFirst ? `${regName}_WE` : `${regName}_hw_update`;
+                const secondVal = hwFirst ? `regs.DATA_WR[${width - 1}:0]` : `${regName}_hw_update_val`;
+                this.body += `
+always_ff @( posedge clk or negedge rst_b )
+  if (!rst_b)
+    ${regName} <= ${width}'h${resetHex};
+  else if (${firstCond})
+    ${regName} <= ${firstVal};
+  else if (${secondCond})
+    ${regName} <= ${secondVal};
+`;
             }
             else if (thisReg.type === RegisterType.RO) {
                 // Use original address for logic
@@ -346,6 +371,16 @@ always @(regs.ADDR or regs.RE)
       end\n`;
             }
             else if (register?.type === RegisterType.RO) {
+                readSignal = regName;
+                inputs.push(`${regName}`);
+                readyStr = '1\'b1';
+                casexString +=
+                    `     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
+          regs.DATA_RD <= ${readSignal};
+          regs.READY <= ${readyStr};
+      end\n`;
+            }
+            else if (register?.type === RegisterType.RWU) {
                 readSignal = regName;
                 inputs.push(`${regName}`);
                 readyStr = '1\'b1';
