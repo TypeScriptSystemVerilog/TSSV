@@ -41,42 +41,6 @@ export interface RegisterBlockParameters extends TSSVParameters {
     busIDWidth?: 8;
     busAddressWidth?: 32;
 }
-/**
- * WRITE
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "01.0......"},
- *     {"name": "      re", "wave": "0........."},
- *     {"name": " data_rd", "wave": "0........."},
- *     {"name": "   ready", "wave": "10.1......"}
- *   ]
- * }
- * ```
- */
-/**
- * READ
- *
- * @wavedrom
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "0........."},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "0........."},
- *     {"name": "      re", "wave": "01.0......"},
- *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
- *     {"name": "   ready", "wave": "10......1."}
- *   ]
- * }
- * ```
- */
 export declare class RegisterBlock<T extends Record<string, bigint>> extends Module {
     params: RegisterBlockParameters;
     regDefs: RegisterBlockDef<T>;
@@ -86,5 +50,6 @@ export declare class RegisterBlock<T extends Record<string, bigint>> extends Mod
     private padZeroesRight;
     private calculateDecMask;
     private calculatePassMask;
+    writeRALF(): string;
 }
 export {};
