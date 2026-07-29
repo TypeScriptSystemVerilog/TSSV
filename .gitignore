@@ -16,12 +16,12 @@
 *~
 \#*\#
 .\#*
-ß
 node_modules
-obj_dir
+obj_dir*
 out/
 sv-examples/
 *.vcd
+*.fst
 .local-pack
 .claude/
 docs
