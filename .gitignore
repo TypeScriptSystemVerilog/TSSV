@@ -16,13 +16,13 @@
 *~
 \#*\#
 .\#*
-ß
 node_modules
-obj_dir
+obj_dir*
 out/
 *.tsbuildinfo
 sv-examples/
 *.vcd
+*.fst
 .local-pack
 .claude/
 
