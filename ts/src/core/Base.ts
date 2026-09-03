@@ -318,7 +318,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     autoBind: boolean = true,
     createMissing: boolean = false,
     autoWidthExtension: boolean = false): Module {
-    if (this.submodules.instanceName !== undefined) throw Error(`submodule with instance name ${instanceName} already exists`)
+    if (this.submodules[instanceName]) throw Error(`submodule with instance name ${instanceName} already exists`)
     const thisModule = {
       module: submodule,
       bindings
