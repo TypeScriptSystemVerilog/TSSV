@@ -69,6 +69,41 @@ interface OperationIO {
     b: string | Sig | bigint;
     result?: string | Sig;
 }
+/**
+ * Options for a top-level `Module.writeSystemVerilog()` call, which is how a design is emitted
+ * across more than one file.
+ *
+ * An emission defines every module and interface it reaches, and by default each top-level call
+ * starts from nothing — so emitting a DUT and then a testbench that instantiates it produces the
+ * DUT twice, once per file. `exclude` carries the first emission's definitions into the second,
+ * which then instantiates and references them instead of defining them again.
+ *
+ * ```typescript
+ * const defined = new Set<string>()
+ * const dutSV = dut.writeSystemVerilog({ defined })            // defines the DUT hierarchy
+ * const tbSV = tb.writeSystemVerilog({ exclude: defined })     // references it
+ * ```
+ *
+ * Whichever call runs first defines anything the two share, so emission order decides where a
+ * shared interface lands. This is the rule that already governs a single emission — the first
+ * module to need a definition emits it — extended across calls rather than reset between them.
+ *
+ * Both files must be given to the simulator or synthesis tool together: the second no longer
+ * defines what it references.
+ */
+export interface SVEmitOptions {
+    /**
+     * Module and interface names that a previous emission already defined. They are instantiated
+     * and referenced as usual, but not defined again.
+     */
+    exclude?: ReadonlySet<string>;
+    /**
+     * If provided, receives the name of every module and interface this call defined. Names from
+     * `exclude` are not added, so passing one set as `defined` and then as `exclude` accumulates
+     * across an arbitrary number of files.
+     */
+    defined?: Set<string>;
+}
 export interface FormatterConfig {
     engine: 'verible' | 'internal' | 'off';
     veriblePath?: string;
@@ -340,9 +375,11 @@ export declare class Module<P extends TSSVParameters = TSSVParameters, IO extend
     protected formatParametersAsVerilogComment(params?: TSSVParameters): string;
     /**
        * write the generated SystemVerilog code to a string
+       * @param options controls emission across several files - see {@link SVEmitOptions}. Applies
+       *   to a top-level call only; the recursion into submodules passes nothing.
        * @returns string containing the generated SystemVerilog code for this module
        */
-    writeSystemVerilog(): string;
+    writeSystemVerilog(options?: SVEmitOptions): string;
     private applyFormatter;
     private _writeSystemVerilog;
     protected body: string;
