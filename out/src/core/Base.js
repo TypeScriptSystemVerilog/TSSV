@@ -1139,18 +1139,44 @@ ${caseAssignments}
     }
     /**
        * write the generated SystemVerilog code to a string
+       * @param options controls emission across several files - see {@link SVEmitOptions}. Applies
+       *   to a top-level call only; the recursion into submodules passes nothing.
        * @returns string containing the generated SystemVerilog code for this module
        */
-    writeSystemVerilog() {
+    writeSystemVerilog(options) {
         if (Module.svGenDepth === 0) {
             Module.printedInterfaces = {};
             Module.printedModules = {};
+            if (options?.exclude !== undefined) {
+                if (options.exclude.has(this.name)) {
+                    throw Error(`${this.name} is excluded from its own writeSystemVerilog() call, so this emission ` +
+                        'would define a module a previous one already defined');
+                }
+                // A name is either a module or an interface, never both, so seeding both sets keeps
+                // the caller from having to tell them apart.
+                for (const name of options.exclude) {
+                    Module.printedInterfaces[name] = true;
+                    Module.printedModules[name] = true;
+                }
+            }
+            // Only submodules were ever recorded, never the module being emitted - so without this a
+            // later emission excluding this one's output would still define this module a second time.
+            Module.printedModules[this.name] = true;
         }
         Module.svGenDepth++;
         try {
             const sv = this._writeSystemVerilog();
-            if (Module.svGenDepth === 1 && Module.formatterConfig.engine !== 'off') {
-                return this.applyFormatter(sv);
+            if (Module.svGenDepth === 1) {
+                if (options?.defined !== undefined) {
+                    const excluded = options.exclude;
+                    for (const name of Object.keys(Module.printedModules).concat(Object.keys(Module.printedInterfaces))) {
+                        if (excluded?.has(name) !== true)
+                            options.defined.add(name);
+                    }
+                }
+                if (Module.formatterConfig.engine !== 'off') {
+                    return this.applyFormatter(sv);
+                }
             }
             return sv;
         }

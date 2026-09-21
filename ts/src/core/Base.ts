@@ -126,6 +126,42 @@ interface OperationIO {
   result?: string | Sig
 }
 
+/**
+ * Options for a top-level `Module.writeSystemVerilog()` call, which is how a design is emitted
+ * across more than one file.
+ *
+ * An emission defines every module and interface it reaches, and by default each top-level call
+ * starts from nothing — so emitting a DUT and then a testbench that instantiates it produces the
+ * DUT twice, once per file. `exclude` carries the first emission's definitions into the second,
+ * which then instantiates and references them instead of defining them again.
+ *
+ * ```typescript
+ * const defined = new Set<string>()
+ * const dutSV = dut.writeSystemVerilog({ defined })            // defines the DUT hierarchy
+ * const tbSV = tb.writeSystemVerilog({ exclude: defined })     // references it
+ * ```
+ *
+ * Whichever call runs first defines anything the two share, so emission order decides where a
+ * shared interface lands. This is the rule that already governs a single emission — the first
+ * module to need a definition emits it — extended across calls rather than reset between them.
+ *
+ * Both files must be given to the simulator or synthesis tool together: the second no longer
+ * defines what it references.
+ */
+export interface SVEmitOptions {
+  /**
+   * Module and interface names that a previous emission already defined. They are instantiated
+   * and referenced as usual, but not defined again.
+   */
+  exclude?: ReadonlySet<string>
+  /**
+   * If provided, receives the name of every module and interface this call defined. Names from
+   * `exclude` are not added, so passing one set as `defined` and then as `exclude` accumulates
+   * across an arbitrary number of files.
+   */
+  defined?: Set<string>
+}
+
 export interface FormatterConfig {
   engine: 'verible' | 'internal' | 'off'
   veriblePath?: string
@@ -1306,18 +1342,44 @@ ${caseAssignments}
 
   /**
      * write the generated SystemVerilog code to a string
+     * @param options controls emission across several files - see {@link SVEmitOptions}. Applies
+     *   to a top-level call only; the recursion into submodules passes nothing.
      * @returns string containing the generated SystemVerilog code for this module
      */
-  writeSystemVerilog (): string {
+  writeSystemVerilog (options?: SVEmitOptions): string {
     if (Module.svGenDepth === 0) {
       Module.printedInterfaces = {}
       Module.printedModules = {}
+      if (options?.exclude !== undefined) {
+        if (options.exclude.has(this.name)) {
+          throw Error(
+            `${this.name} is excluded from its own writeSystemVerilog() call, so this emission ` +
+            'would define a module a previous one already defined')
+        }
+        // A name is either a module or an interface, never both, so seeding both sets keeps
+        // the caller from having to tell them apart.
+        for (const name of options.exclude) {
+          Module.printedInterfaces[name] = true
+          Module.printedModules[name] = true
+        }
+      }
+      // Only submodules were ever recorded, never the module being emitted - so without this a
+      // later emission excluding this one's output would still define this module a second time.
+      Module.printedModules[this.name] = true
     }
     Module.svGenDepth++
     try {
       const sv = this._writeSystemVerilog()
-      if (Module.svGenDepth === 1 && Module.formatterConfig.engine !== 'off') {
-        return this.applyFormatter(sv)
+      if (Module.svGenDepth === 1) {
+        if (options?.defined !== undefined) {
+          const excluded = options.exclude
+          for (const name of Object.keys(Module.printedModules).concat(Object.keys(Module.printedInterfaces))) {
+            if (excluded?.has(name) !== true) options.defined.add(name)
+          }
+        }
+        if (Module.formatterConfig.engine !== 'off') {
+          return this.applyFormatter(sv)
+        }
       }
       return sv
     } finally {
