@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Process question
+    url: https://github.com/TypeScriptSystemVerilog/TSSV/blob/main/doc/process/issue-workflow.md
+    about: Read the issue-driven workflow spec before filing something that doesn't fit a template.

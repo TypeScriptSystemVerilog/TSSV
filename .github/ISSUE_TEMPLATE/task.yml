@@ -1,0 +1,51 @@
+name: Task
+description: A scoped, independently-mergeable unit of implementation work
+title: "[Task]: "
+type: Task
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be built or changed? Be specific about the module(s)/file(s) involved.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Related docs / issues
+      description: Link any spec/standard this implements (e.g. an AMBA spec section), and any parent epic or related issue.
+    validations:
+      required: false
+  - type: textarea
+    id: implementation-notes
+    attributes:
+      label: Implementation notes
+      description: Known approach, gotchas, or constraints. Optional.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Concrete, checkable conditions — a passing test, a clean lint run, a doc that exists. Not "works correctly."
+      placeholder: |
+        - [ ] `npx tsc` builds clean
+        - [ ] New/updated test in `ts/test/` added and passing
+        - [ ] `npx eslint .` clean
+        - [ ] `verilator --lint-only` passes on the generated .sv
+        - [ ] AGENTS.md "Current Implementation State" updated if applicable
+    validations:
+      required: true

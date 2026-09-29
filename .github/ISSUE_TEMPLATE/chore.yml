@@ -1,0 +1,34 @@
+name: Chore
+description: Infra/tooling/process maintenance with no change to generated SystemVerilog
+title: "[Chore]: "
+type: Chore
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs maintaining — build tooling, repo process, scripts, dependency bumps, etc.?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] Change made and verified locally
+        - [ ] `npx tsc` builds clean and `bash runAllTests.sh` still passes
+        - [ ] No change to generated SystemVerilog (or, if there is one, it's called out explicitly)
+    validations:
+      required: true

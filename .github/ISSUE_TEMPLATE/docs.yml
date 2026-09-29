@@ -1,0 +1,41 @@
+name: Documentation
+description: A documentation-only change
+title: "[Docs]: "
+type: Docs
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: textarea
+    id: what
+    attributes:
+      label: What needs documenting
+      description: What's missing, wrong, or out of date? Name the file(s) if known.
+    validations:
+      required: true
+  - type: input
+    id: audience
+    attributes:
+      label: Audience
+      description: Who reads this — new contributors, an agent following AGENTS.md, a TSSV user reading the TypeDoc output?
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] Named doc file(s) updated
+        - [ ] Cross-references (AGENTS.md / CLAUDE.md / README.md) updated to match
+        - [ ] No now-stale statement left elsewhere in the repo about the thing being documented
+    validations:
+      required: true

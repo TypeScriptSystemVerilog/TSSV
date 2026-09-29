@@ -1,0 +1,52 @@
+name: Idea
+description: An unrefined proposal or design question, not yet scoped enough to implement
+title: "[Idea]: "
+type: Idea
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What is the idea? What problem does it address, or what opportunity does it open up?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context / motivation
+      description: Why now? Link relevant source files, prior discussion, or issues.
+    validations:
+      required: false
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open questions
+      description: What needs to be resolved before this can become a scoped task?
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: >
+        An idea isn't code yet, but it still needs criteria for closing this issue: what
+        would make the idea worth accepting (and converting to one or more `Task` issues)
+        versus rejecting? Write as a checklist.
+      placeholder: |
+        - [ ] Trade-offs vs. the current approach are documented
+        - [ ] A go/no-go recommendation is written
+        - [ ] If accepted: follow-up Task issue(s) are filed and linked here
+    validations:
+      required: true

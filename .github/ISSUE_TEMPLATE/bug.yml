@@ -1,0 +1,56 @@
+name: Bug
+description: Existing framework code, a module, an interface, or tooling behaves incorrectly
+title: "[Bug]: "
+type: Bug
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: What actually happens?
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should happen instead? Cite the spec section if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands, e.g. `npx tsc && node out/test/test_FIR.js`, plus any relevant config/params.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit/branch, Node version, verilator version, etc.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: How will the fix be verified?
+      placeholder: |
+        - [ ] Regression test added that fails before the fix and passes after
+        - [ ] All existing tests in the affected area still pass
+        - [ ] Root cause noted in the PR description, not just the symptom patched
+    validations:
+      required: true

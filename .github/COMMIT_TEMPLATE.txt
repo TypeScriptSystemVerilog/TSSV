@@ -1,0 +1,10 @@
+# <type>(#<issue>): <imperative summary, ≤50 chars>
+#
+# <body: what changed and why, wrapped at ~72 cols. Explain the "why"
+# if it's not obvious from the diff. Note any deviation from the
+# issue's stated scope.>
+#
+# Refs #<issue>
+#
+# <type> is one of: feat, fix, refactor, docs, test, chore, perf, build
+# See doc/process/issue-workflow.md §6 for the full convention.

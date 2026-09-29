@@ -17,6 +17,8 @@ sv-examples/          Generated SystemVerilog committed as reference output — 
 docs/                 Auto-generated TypeDoc HTML — never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
 claude-info/          Setup notes and worked examples for AI-assisted development
+doc/process/          Repo process specs (issue-workflow.md)
+.github/              Issue forms, PR template, commit template
 ```
 
 ## Key Documents
@@ -26,6 +28,57 @@ claude-info/          Setup notes and worked examples for AI-assisted developmen
 | `ts/src/core/Base.ts` | All builder APIs: `addSignal`, `addRegister`, `addSubmodule`, `addCombAlways`, etc. |
 | `CLAUDE.md` | Commands, source layout, core architecture summary, simulation flow |
 | `README.md` | Installation, quick-start, roadmap |
+| `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating |
+
+## GitHub Issue-Driven Workflow
+
+All work — human- or agent-initiated — is tracked through a GitHub issue with explicit
+Acceptance Criteria (AC), implemented on a branch named after that issue, and merged via a
+PR that closes it only once every AC item is verified true. `doc/process/issue-workflow.md`
+is the authoritative spec; this section is the operating procedure an agent follows.
+
+**Tooling**: `gh` CLI, authenticated as the human operator's own account with `repo` scope
+(`gh auth status` to check). No separate bot credentials.
+
+**Classification**:
+- **Type** — native Issue Type, exactly one, org-level: `Idea`, `Epic`, `Task`, `Subtask`,
+  `Bug`, `Docs`, `Spike`, `Chore`. Set with `gh issue create --type <Type>` or
+  `gh issue edit <n> --type <Type>`. `--template` only seeds the body text — it does *not*
+  apply the template's `type:` key, so always pass `--type` explicitly from the CLI.
+- **Labels** — none required; Type carries the classification. Stock labels (`duplicate`,
+  `wontfix`, `question`, `good first issue`, `help wanted`) are still fine as attribute tags.
+- **Relationships** — native sub-issues for hierarchy (`gh issue edit <child> --parent <n>`)
+  and native dependencies for real blockers (`gh issue edit <n> --add-blocked-by <m>`).
+  Don't record either as prose in the body.
+
+**Lifecycle an agent runs, end to end:**
+
+1. **Create the issue.** When a human prompts new work in chat, turn it into an issue
+   before writing any code: `gh issue create --type <Type> --template <type>.yml` (or fill
+   the same fields via `--body`). Every issue must have an Acceptance Criteria checklist of
+   concrete, checkable items — not "works correctly." If it's a child of an epic or a
+   larger task, link it with `gh issue edit <n> --parent <parent>`.
+2. **Branch.** `git checkout -b <type>/<issue-number>-<kebab-slug> --no-track origin/main`
+   (never work on `main` directly). The `--no-track` matters: without it the branch's
+   upstream is `origin/main`, and a push that targets the upstream lands on `main`. Assign
+   the issue (`gh issue edit <n> --add-assignee @me`) and backfill the branch into the
+   issue body's `Links` field (`doc/process/issue-workflow.md` §5).
+3. **Implement**, committing with the template in `.github/COMMIT_TEMPLATE.txt`:
+   `<type>(#<issue>): <summary>` where `<type>` is a Conventional-Commits tag (`feat`,
+   `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `build`) describing the diff,
+   independent of the issue's Issue Type.
+4. **Narrate progress as issue comments**, not by rewriting the issue body: what was tried,
+   decisions/deviations from the original scope.
+5. **Open the PR** with `gh pr create`, following `.github/PULL_REQUEST_TEMPLATE.md`: body
+   has `Closes #<issue-number>`, reproduces the Acceptance Criteria checklist from the
+   issue, and states the test plan (commands actually run). Backfill the PR into the
+   issue's `Links` field.
+6. **Verify AC before checking any box.** Run the build/tests/lint the checklist calls for
+   (`npx tsc`, `node out/test/test_<Name>.js`, `bash runAllTests.sh`, `npx eslint .`,
+   `verilator --lint-only ...`), confirm the actual output, then check boxes in the PR
+   description accordingly.
+7. **Hand off for merge — do not merge unilaterally.** Merging is the human's call. Report
+   the PR as ready and wait. Once merged, confirm the issue auto-closed via `Closes #`.
 
 ## Conventions
 

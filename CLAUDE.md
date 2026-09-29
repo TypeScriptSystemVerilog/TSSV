@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Work here follows the GitHub issue-driven workflow in `AGENTS.md` ("GitHub Issue-Driven
+Workflow") and `doc/process/issue-workflow.md`: issue with Acceptance Criteria → branch →
+PR that closes it.
+
 ## What This Project Is
 
 TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesizable SystemVerilog from TypeScript. Designers write TypeScript classes that extend `Module`, then call `writeSystemVerilog()` to emit `.sv` files. Think Chisel for Scala, but targeting SV designers.
