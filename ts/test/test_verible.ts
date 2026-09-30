@@ -70,8 +70,11 @@ try {
 check('missing binary with failOnFormatError=true throws', threw)
 
 // --- Test 4: timeout, failOnFormatError=false → returns original ---
+// a stand-in formatter that sleeps, so the timeout fires however fast Verible is
 const result4 = runVerible(SAMPLE_SV, {
-  formatTimeoutMs: 1,
+  veriblePath: process.execPath,
+  veribleFlags: ['-e', 'setTimeout(() => {}, 5000)'],
+  formatTimeoutMs: 100,
   failOnFormatError: false
 })
 writeFileSync('sv-examples/Core/verible/timeout_fallback.sv', result4)

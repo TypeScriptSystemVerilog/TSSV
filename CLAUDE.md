@@ -31,6 +31,8 @@ npm run docs
 
 There is no test runner (Jest/Mocha/etc.) — each file in `ts/test/` is a runnable script that exercises the framework and writes `.sv` output to `sv-examples/`.
 
+**Verible is required** ([install steps in README.md](README.md)). `writeSystemVerilog()` formats its output with `verible-verilog-format` by default and throws if the binary is missing (opt out with `Module.setFormatterConfig({ engine: 'off' })`). `addSystemVerilogSubmodule()` parses the imported file's module header with `verible-verilog-syntax` (`ts/src/core/SVModuleHeader.ts`) to get the module name and port directions.
+
 ## Source Layout
 
 ```

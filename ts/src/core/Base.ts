@@ -271,7 +271,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   protected params: P
   protected IOs: IO
-  protected static formatterConfig: FormatterConfig = { engine: 'off' }
+  protected static formatterConfig: FormatterConfig = { engine: 'verible', failOnFormatError: true }
   protected signals: Signals
   protected submodules: Record<string, {
     module: Module
