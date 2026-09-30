@@ -20,6 +20,7 @@
 node_modules
 obj_dir
 out/
+*.tsbuildinfo
 sv-examples/
 *.vcd
 .local-pack
