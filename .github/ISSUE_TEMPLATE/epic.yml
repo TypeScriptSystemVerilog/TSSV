@@ -1,0 +1,37 @@
+name: Epic
+description: A large multi-issue initiative tracked via its sub-issues
+title: "[Epic]: "
+type: Epic
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What does "done" mean for this initiative at a high level?
+    validations:
+      required: true
+  - type: textarea
+    id: children
+    attributes:
+      label: Planned breakdown
+      description: >
+        Sketch of the Task/Subtask issues this epic breaks down into. Once they're filed,
+        link them as native **sub-issues** of this epic rather than maintaining a checklist
+        here — GitHub rolls up sub-issue progress from the real relationship.
+      placeholder: |
+        - Core: add a new builder method to `Module`
+        - Modules: new parameterized module using it
+        - Tests: `ts/test/` demo + verilator lint of the output
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Definition of done for the epic as a whole, as a checklist.
+      placeholder: |
+        - [ ] All sub-issues closed
+        - [ ] End-to-end behavior described in "Goal" is demonstrated (name the TB/test)
+        - [ ] AGENTS.md / README.md updated to reflect the new capability
+    validations:
+      required: true

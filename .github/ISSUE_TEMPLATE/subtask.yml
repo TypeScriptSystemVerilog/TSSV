@@ -1,0 +1,46 @@
+name: Subtask
+description: A child of an epic or a task too large for one PR
+title: "[Subtask]: "
+type: Subtask
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: input
+    id: parent
+    attributes:
+      label: Parent issue
+      description: >
+        Issue number of the epic or task this is a child of. After filing, also link this
+        issue as a native **sub-issue** under that parent — that relationship, not this
+        field, is what GitHub rolls up as sub-issue progress.
+      placeholder: "#12"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is this slice of the parent's work? Why is it split out?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Concrete, checkable conditions for this slice specifically.
+      placeholder: |
+        - [ ] `npx tsc` builds clean
+        - [ ] New/updated test in `ts/test/` added and passing
+        - [ ] Parent issue's relevant checklist item can be checked off
+    validations:
+      required: true

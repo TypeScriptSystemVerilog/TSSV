@@ -1,0 +1,43 @@
+name: Spike
+description: A time-boxed investigation whose output is a decision or a doc, not necessarily code
+title: "[Spike]: "
+type: Spike
+body:
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: >
+        Leave as-is at creation — backfilled once each artifact exists (see
+        doc/process/issue-workflow.md).
+      value: |
+        - Branch: _(none yet)_
+        - PR: _(none yet)_
+    validations:
+      required: false
+  - type: textarea
+    id: question
+    attributes:
+      label: Question to answer
+      description: What decision does this investigation need to inform?
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Timebox
+      description: How much effort is this worth before reporting back regardless of outcome?
+      placeholder: e.g. 1 day
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What deliverable closes this spike? A spike's AC is a decision artifact, not a passing test.
+      placeholder: |
+        - [ ] Findings written up (in this issue or a doc page)
+        - [ ] Explicit go/no-go (or "adopt"/"reject"/"defer") recommendation given
+        - [ ] Follow-up issue(s) filed if the recommendation is to proceed
+    validations:
+      required: true
