@@ -42,6 +42,14 @@ if (veribleAvailable) {
     result.length > 0 && result.includes('module'),
     `got: ${JSON.stringify(result.slice(0, 80))}`
   )
+  // output larger than spawnSync's default 1 MiB maxBuffer
+  const bigSV = `module big(input logic clk, output logic [7:0] out);\n${Array.from({ length: 80000 }, (_, i) => `  logic [7:0] sig_${i};\n`).join('')}endmodule\n`
+  const bigResult = runVerible(bigSV, { failOnFormatError: true, formatTimeoutMs: 60000 })
+  check(
+    'runVerible formats output larger than 1 MiB',
+    bigResult.length > (1 << 20) && bigResult.includes('sig_79999'),
+    `got length ${bigResult.length}`
+  )
 } else {
   skip('runVerible successful format (verible-verilog-format not found on PATH)')
 }
