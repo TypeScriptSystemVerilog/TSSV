@@ -67,25 +67,41 @@ Prerequisite:  [Verible](https://github.com/chipsalliance/verible) installed on 
 emitted `.sv` file with `verible-verilog-format` and parses imported SystemVerilog
 (`addSystemVerilogSubmodule()`) with `verible-verilog-syntax`; generation fails with an error if they are missing.
 
-For Linux (x86_64; for ARM use the `linux-static-arm64` archive):
+For Linux (x86_64/amd64 or aarch64/arm64 — the architecture is detected automatically):
 
 ```bash
-VERIBLE=v0.0-4296-g0f262651
-curl -LO https://github.com/chipsalliance/verible/releases/download/$VERIBLE/verible-$VERIBLE-linux-static-x86_64.tar.gz
-tar xzf verible-$VERIBLE-linux-static-x86_64.tar.gz
-sudo install -m 755 verible-$VERIBLE/bin/* /usr/local/bin/
+(
+  set -euo pipefail
+  VERIBLE=v0.0-4296-g0f262651
+  case "$(uname -m)" in
+    x86_64|amd64)  ARCH=x86_64 ;;
+    aarch64|arm64) ARCH=arm64 ;;
+    *) echo "No Verible Linux release for architecture $(uname -m)" >&2; exit 1 ;;
+  esac
+  TMP=$(mktemp -d)
+  trap 'rm -rf "$TMP"' EXIT
+  curl -fsSL "https://github.com/chipsalliance/verible/releases/download/$VERIBLE/verible-$VERIBLE-linux-static-$ARCH.tar.gz" \
+    | tar xz -C "$TMP"
+  sudo install -m 755 "$TMP/verible-$VERIBLE/bin/"* /usr/local/bin/
+)
 
 # Verify the Verible version:
 verible-verilog-format --version # Should print "Version v0.0-4296-g0f262651".
 ```
 
-For macOS:
+For macOS (the release archive is an Apple silicon/arm64 build; there is no prebuilt Intel binary):
 
 ```bash
-VERIBLE=v0.0-4296-g0f262651
-curl -LO https://github.com/chipsalliance/verible/releases/download/$VERIBLE/verible-$VERIBLE-macOS.tar.gz
-tar xzf verible-$VERIBLE-macOS.tar.gz
-sudo install -m 755 verible-$VERIBLE-macOS/bin/* /usr/local/bin/
+(
+  set -euo pipefail
+  VERIBLE=v0.0-4296-g0f262651
+  [ "$(uname -m)" = arm64 ] || { echo "Verible's macOS release is arm64-only" >&2; exit 1; }
+  TMP=$(mktemp -d)
+  trap 'rm -rf "$TMP"' EXIT
+  curl -fsSL "https://github.com/chipsalliance/verible/releases/download/$VERIBLE/verible-$VERIBLE-macOS.tar.gz" \
+    | tar xz -C "$TMP"
+  sudo install -m 755 "$TMP/verible-$VERIBLE-macOS/bin/"* /usr/local/bin/
+)
 ```
 
 To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilog()`;
