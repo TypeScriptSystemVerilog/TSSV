@@ -15,7 +15,9 @@ export function runVerible (sv: string, opts: VeribleOpts): string {
   const result = spawnSync(binary, args, {
     input: sv,
     timeout,
-    encoding: 'utf8'
+    encoding: 'utf8',
+    // formatted output is about the size of the input; the 1 MiB default is too small for large designs
+    maxBuffer: 1 << 30
   })
 
   if (result.status === 0 && result.stdout) {

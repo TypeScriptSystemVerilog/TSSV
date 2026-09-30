@@ -98,6 +98,7 @@ is the authoritative spec; this section is the operating procedure an agent foll
 | Built-in modules | Complete | FIR, SRAM, SFIFO, ROM, LZC, AXI4XBar, shift, IpXactComponent |
 | CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
+| Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`) |
 | TypeDoc documentation | Complete | Auto-generated; rebuild with `npm run docs` |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js` |
 
@@ -108,6 +109,7 @@ is the authoritative spec; this section is the operating procedure an agent foll
 - **Using the register helpers**: read `ts/src/core/Registers.ts`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`
 - **Running all tests**: `bash runAllTests.sh`
+- **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv`
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`
 

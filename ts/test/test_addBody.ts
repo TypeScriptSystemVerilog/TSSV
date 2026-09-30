@@ -116,25 +116,26 @@ check(
 )
 writeFileSync('sv-examples/Core/addBody/test_empty.sv', m5.writeSystemVerilog())
 
-// --- Test 6: default engine is off (formatterConfig does not alter output) ---
-const m6 = new TestModule({ name: 'test_engine_off' }, {
+// --- Test 6: default engine is verible (output is verible-verilog-format formatted) ---
+const m6 = new TestModule({ name: 'test_engine_default' }, {
   clk: { direction: 'input', isClock: 'posedge' },
   out: { direction: 'output', width: 4 },
   in: { direction: 'input', width: 4 }
 })
-m6.addBody('always_ff @(posedge clk) begin\n  out <= in;\nend\n', { indentMode: 'verbatim' })
+m6.addBody('always_ff @(posedge clk) begin\n      out <=    in;\nend\n', { indentMode: 'verbatim' })
 const sv = m6.writeSystemVerilog()
-const hasModule = sv.includes('module test_engine_off')
+const hasModule = sv.includes('module test_engine_default')
 const hasEndmodule = sv.includes('endmodule')
-if (hasModule && hasEndmodule) {
-  console.log('PASS: writeSystemVerilog produces valid SV with default engine=off')
+const isFormatted = sv.includes('    out <= in;')
+if (hasModule && hasEndmodule && isFormatted) {
+  console.log('PASS: writeSystemVerilog formats output with default engine=verible')
   passed++
 } else {
-  console.error('FAIL: writeSystemVerilog output malformed with default engine=off')
+  console.error('FAIL: writeSystemVerilog output not formatted with default engine=verible')
   console.error(sv)
   failed++
 }
-writeFileSync('sv-examples/Core/addBody/test_engine_off.sv', sv)
+writeFileSync('sv-examples/Core/addBody/test_engine_default.sv', sv)
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

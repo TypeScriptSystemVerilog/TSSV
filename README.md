@@ -63,6 +63,34 @@ node -v # Should print "v24.17.0".
 npm -v # Should print "11.13.0".
 ```
 
+Prerequisite:  [Verible](https://github.com/chipsalliance/verible) installed on your `PATH`.  TSSV formats every
+emitted `.sv` file with `verible-verilog-format` and parses imported SystemVerilog
+(`addSystemVerilogSubmodule()`) with `verible-verilog-syntax`; generation fails with an error if they are missing.
+
+For Linux (x86_64; for ARM use the `linux-static-arm64` archive):
+
+```bash
+VERIBLE=v0.0-4296-g0f262651
+curl -LO https://github.com/chipsalliance/verible/releases/download/$VERIBLE/verible-$VERIBLE-linux-static-x86_64.tar.gz
+tar xzf verible-$VERIBLE-linux-static-x86_64.tar.gz
+sudo install -m 755 verible-$VERIBLE/bin/* /usr/local/bin/
+
+# Verify the Verible version:
+verible-verilog-format --version # Should print "Version v0.0-4296-g0f262651".
+```
+
+For macOS:
+
+```bash
+VERIBLE=v0.0-4296-g0f262651
+curl -LO https://github.com/chipsalliance/verible/releases/download/$VERIBLE/verible-$VERIBLE-macOS.tar.gz
+tar xzf verible-$VERIBLE-macOS.tar.gz
+sudo install -m 755 verible-$VERIBLE-macOS/bin/* /usr/local/bin/
+```
+
+To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilog()`;
+importing SystemVerilog still requires `verible-verilog-syntax`.
+
 #### Run Procedure
 ```bash
 git clone https://github.com/TypeScriptSystemVerilog/TSSV.git

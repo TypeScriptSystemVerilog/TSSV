@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs'
+import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
 import { runVerible } from '../tools/formatters/verible.js'
 
 /**
@@ -56,6 +57,16 @@ interface IOSignal extends baseSignal {
  * The IO interface bundle of a TSSV Module
  */
 export type IOSignals = Record<string, IOSignal>
+
+/**
+ * options for `Module.addSystemVerilogSubmodule()`
+ */
+export interface SVImportOptions {
+  /** module to instantiate when the file declares more than one */
+  moduleName?: string
+  /** path to verible-verilog-syntax, used to parse the module header (default: found on PATH) */
+  veribleSyntaxPath?: string
+}
 
 /**
  * container class of a TSSV signal used to pass signals
@@ -259,7 +270,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   protected params: P
   protected IOs: IO
-  protected static formatterConfig: FormatterConfig = { engine: 'off' }
+  protected static formatterConfig: FormatterConfig = { engine: 'verible', failOnFormatError: true }
   protected signals: Signals
   protected submodules: Record<string, {
     module: Module
@@ -474,25 +485,38 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return thisModule.module
   }
 
+  /**
+   * instantiate a module from an existing SystemVerilog file.  The module name and the
+   * direction of each bound port are taken from the file's module header.
+   * @param instanceName the name of the instance
+   * @param SVFilePath path to the SystemVerilog source file
+   * @param params SV parameter overrides for the instance
+   * @param bindings map of submodule port name to parent signal
+   * @param autoBind automatically bind unbound ports to same-named parent signals
+   * @param options `moduleName` selects the module to instantiate when the file declares
+   * more than one (default: the only module in the file, or the one named after the file);
+   * `veribleSyntaxPath` locates verible-verilog-syntax, which parses the module header
+   * @returns the imported submodule
+   */
   addSystemVerilogSubmodule (
     instanceName: string,
     SVFilePath: string,
     params: TSSVParameters,
     bindings: Record<string, string | Sig>,
-    autoBind: boolean = true): Module {
+    autoBind: boolean = true,
+    options: SVImportOptions = {}): Module {
+    const { moduleName, veribleSyntaxPath } = options
     const SVString = readFileSync(SVFilePath, { encoding: 'utf8', flag: 'r' }).toString()
+    const header = selectSVModule(parseSVModules(SVString, { veribleSyntaxPath }), SVFilePath, moduleName)
     const vIOs: IOSignals = {}
     for (const port in bindings) {
+      const kind = header.ports[port]
+      if (kind === undefined) throw Error(`${port} is not a port of module ${header.name} in ${SVFilePath}`)
+      if (kind === 'interface' || kind === 'ref') throw Error(`${kind} port ${port} of module ${header.name} is not supported by addSystemVerilogSubmodule`)
       const thisSignal = this.findSignal(bindings[port])
-      const re = new RegExp(`input\\s*${port}[;\\s,]`)
-      if (re.test(SVString)) { vIOs[port] = { direction: 'input', ...thisSignal } } else { vIOs[port] = { direction: 'output', ...thisSignal } }
+      vIOs[port] = { ...thisSignal, direction: kind }
     }
-    let vModuleName = 'IMPORT'
-    const re2 = /module\s([a-zA-Z0-9_]*)[;\w\s()]/
-    const match = SVString.match(re2)
-    if (match && match.length >= 2) {
-      vModuleName = match[1]
-    }
+    const vModuleName = header.name
     const vModule = new Module(
       { name: vModuleName, ...params },
       vIOs,
