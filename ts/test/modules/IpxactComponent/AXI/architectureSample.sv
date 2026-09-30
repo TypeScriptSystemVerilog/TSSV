@@ -168,6 +168,10 @@ module Specification_Architecture_Structure (
 ,	Targ1_W_Ready
 ,	Targ1_W_Strb
 ,	Targ1_W_Valid
+,	noc_arstn
+,	node0_aclk
+,	node1_aclk
+,	tm
 );
 	input  [52:0]   Init0_Ar_Addr   ;
 	input  [1:0]    Init0_Ar_Burst  ;

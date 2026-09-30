@@ -2,6 +2,7 @@ import { Module, type TSSVParameters } from 'tssv/lib/core/TSSV'
 import { XMLParser } from 'fast-xml-parser'
 import * as amba from 'tssv/lib/tools/index'
 import * as fs from 'fs'
+import { parseSVModules, selectSVModule } from 'tssv/lib/core/SVModuleHeader'
 
 export interface ComponentData {
   version: string
@@ -155,22 +156,10 @@ export class IpXactComponent extends Module {
     return this.addSystemVerilogSubmodule(vModuleName, SVFilePath, {}, bindings, true)
   }
 
-  // Helper method to extract input signals from a Verilog file
+  // Input ports of the SystemVerilog module, from its module header
   private extractInputSignalsFromVerilog (filePath: string): string[] {
-    const fileContent = fs.readFileSync(filePath, 'utf-8')
-    const inputSignals: string[] = []
-
-    // Regex to match input signals and their names, handling sizes correctly
-    const inputSignalRegex = /input\s+(?:\[\d+:\d+\]\s+)?([^\s,;]+)/g
-    let match
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    while ((match = inputSignalRegex.exec(fileContent)) !== null) {
-      // Extract the signal name from the regex match
-      const signalName = match[1].trim()
-      inputSignals.push(signalName)
-    }
-
-    return inputSignals
+    const header = selectSVModule(parseSVModules(fs.readFileSync(filePath, 'utf-8')), filePath)
+    return Object.keys(header.ports).filter(port => header.ports[port] === 'input')
   }
 
   // protected createDictionary (xmlData: string): Record<string, ComponentData> {

@@ -5,6 +5,7 @@
  * from the concrete syntax tree.  Verible (https://github.com/chipsalliance/verible) must be installed.
  */
 import { spawnSync } from 'node:child_process'
+import { basename } from 'node:path'
 
 /** declared kind of a port on an imported SystemVerilog module */
 export type SVPortKind = 'input' | 'output' | 'inout' | 'ref' | 'interface'
@@ -157,4 +158,28 @@ export function parseSVModules (src: string, opts: VeribleSyntaxOpts = {}): SVMo
     modules.push({ name, ports })
   }
   return modules
+}
+
+/**
+ * pick the module to use from the headers parsed out of an SV file
+ * @param headers result of `parseSVModules()` for the file
+ * @param filePath path of the file, used for the default choice and in error messages
+ * @param moduleName module to select; by default the file's only module, or the one named after the file
+ * @returns the selected module header
+ */
+export function selectSVModule (headers: SVModuleHeader[], filePath: string, moduleName?: string): SVModuleHeader {
+  if (moduleName !== undefined) {
+    const header = headers.find(h => h.name === moduleName)
+    if (header === undefined) throw Error(`module ${moduleName} not found in ${filePath}`)
+    return header
+  }
+  if (headers.length === 1 && headers[0] !== undefined) return headers[0]
+  const fileModule = basename(filePath).replace(/\.s?v$/, '')
+  const header = headers.find(h => h.name === fileModule)
+  if (header === undefined) {
+    throw Error(headers.length === 0
+      ? `no module declaration found in ${filePath}`
+      : `${filePath} declares several modules (${headers.map(h => h.name).join(', ')}), pass moduleName to select one`)
+  }
+  return header
 }

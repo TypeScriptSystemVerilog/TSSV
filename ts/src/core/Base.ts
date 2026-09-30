@@ -1,6 +1,5 @@
 import { readFileSync } from 'fs'
-import { basename } from 'path'
-import { parseSVModules, type SVModuleHeader } from './SVModuleHeader.js'
+import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
 import { runVerible } from '../tools/formatters/verible.js'
 
 /**
@@ -508,22 +507,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     options: SVImportOptions = {}): Module {
     const { moduleName, veribleSyntaxPath } = options
     const SVString = readFileSync(SVFilePath, { encoding: 'utf8', flag: 'r' }).toString()
-    const headers = parseSVModules(SVString, { veribleSyntaxPath })
-    let header: SVModuleHeader | undefined
-    if (moduleName !== undefined) {
-      header = headers.find(h => h.name === moduleName)
-      if (!header) throw Error(`module ${moduleName} not found in ${SVFilePath}`)
-    } else if (headers.length === 1) {
-      header = headers[0]
-    } else {
-      const fileModule = basename(SVFilePath).replace(/\.s?v$/, '')
-      header = headers.find(h => h.name === fileModule)
-      if (!header) {
-        throw Error(headers.length === 0
-          ? `no module declaration found in ${SVFilePath}`
-          : `${SVFilePath} declares several modules (${headers.map(h => h.name).join(', ')}), pass moduleName to select one`)
-      }
-    }
+    const header = selectSVModule(parseSVModules(SVString, { veribleSyntaxPath }), SVFilePath, moduleName)
     const vIOs: IOSignals = {}
     for (const port in bindings) {
       const kind = header.ports[port]
