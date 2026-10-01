@@ -18,7 +18,7 @@ Before you open a PR that touches generated RTL:
 
 - [ ] Every `always_comb` assigns a default to every output before any `if`/`case` (COMB-1)
 - [ ] Every local variable in an always block is `automatic` or uninitialized (COMB-2)
-- [ ] `=` only in comb blocks, `<=` only in sequential blocks (COMB-3, SEQ-1)
+- [ ] `=` only in comb blocks; in sequential blocks, `<=` for registers and `=` only for block-local `automatic` temporaries (COMB-3, SEQ-1)
 - [ ] Each signal is driven from exactly one place (COMB-5)
 - [ ] Widths are explicit; nothing is truncated silently (WIDTH-1, WIDTH-2)
 - [ ] `verilator --lint-only -Wall` on the pinned Verilator (5.052) is clean for the generated `.sv` (LINT-1)
@@ -29,15 +29,25 @@ Before you open a PR that touches generated RTL:
 Put the defaults before any `if`, `case` or loop. Then any path that doesn't assign an
 output keeps the default, and no latch is inferred.
 
+<!-- lint: dont LATCH
+input  logic [1:0] req
+output logic [1:0] grant
+-->
 ```systemverilog
 // Don't: when neither branch is taken, grant holds its old value, so a latch is inferred
-always_comb begin
+always_comb begin : arb
   if (req[0]) grant = 2'b01;
   else if (req[1]) grant = 2'b10;
 end
+```
 
+<!-- lint: do
+input  logic [1:0] req
+output logic [1:0] grant
+-->
+```systemverilog
 // Do
-always_comb begin
+always_comb begin : arb
   grant = '0;
   if (req[0]) grant = 2'b01;
   else if (req[1]) grant = 2'b10;
@@ -53,28 +63,68 @@ it silently.
 
 This is the tssv-noc#129 bug. The `flit_commit` block in tssv-noc's `ControlUnit.ts` was:
 
+<!-- lint: dont IMPLICITSTATIC LATCH
+input  logic [3:0] layer_rdy
+output logic [1:0] sel
+output logic       valid
+-->
 ```systemverilog
 // Don't: static locals, initialized once at time zero
 always_comb begin : flit_commit
-  int   layer_idx   = 0;
-  logic layer_found = '0;
-  ...
+  logic [1:0] layer_idx   = 2'd0;
+  logic       layer_found = 1'b0;
+  for (int i = 0; i < 4; i++) begin
+    if (!layer_found && layer_rdy[i]) begin
+      layer_idx   = 2'(i);
+      layer_found = 1'b1;
+    end
+  end
+  sel   = layer_idx;
+  valid = layer_found;
 end
+```
 
+<!-- lint: do
+input  logic [3:0] layer_rdy
+output logic [1:0] sel
+output logic       valid
+-->
+```systemverilog
 // Do: automatic locals are re-created, and re-initialized, on every evaluation
 always_comb begin : flit_commit
-  automatic int   layer_idx   = 0;
-  automatic logic layer_found = 1'b0;
-  ...
+  automatic logic [1:0] layer_idx   = 2'd0;
+  automatic logic       layer_found = 1'b0;
+  for (int i = 0; i < 4; i++) begin
+    if (!layer_found && layer_rdy[i]) begin
+      layer_idx   = 2'(i);
+      layer_found = 1'b1;
+    end
+  end
+  sel   = layer_idx;
+  valid = layer_found;
 end
+```
 
+<!-- lint: do
+input  logic [3:0] layer_rdy
+output logic [1:0] sel
+output logic       valid
+-->
+```systemverilog
 // Also fine: declare without an initializer, assign first thing in the body
 always_comb begin : flit_commit
-  int   layer_idx;
-  logic layer_found;
-  layer_idx   = 0;
+  logic [1:0] layer_idx;
+  logic       layer_found;
+  layer_idx   = 2'd0;
   layer_found = 1'b0;
-  ...
+  for (int i = 0; i < 4; i++) begin
+    if (!layer_found && layer_rdy[i]) begin
+      layer_idx   = 2'(i);
+      layer_found = 1'b1;
+    end
+  end
+  sel   = layer_idx;
+  valid = layer_found;
 end
 ```
 
@@ -84,12 +134,24 @@ already and need no keyword.
 **COMB-3 (MUST): Use blocking assignments (`=`) only.** No `<=` in combinational logic.
 Verilator reports this as `COMBDLY`.
 
+<!-- lint: dont COMBDLY
+input  logic [3:0] a
+input  logic [3:0] b
+output logic [3:0] total
+-->
 ```systemverilog
 // Don't
 always_comb begin : sum
   total <= a + b;
 end
+```
 
+<!-- lint: do
+input  logic [3:0] a
+input  logic [3:0] b
+output logic [3:0] total
+-->
+```systemverilog
 // Do
 always_comb begin : sum
   total = a + b;
@@ -101,6 +163,13 @@ Use `unique case` or `priority case` only when the designer means the stated
 property. Both change what synthesis may assume, and violating it is a
 simulation/synthesis mismatch. Verilator reports a missing default as `CASEINCOMPLETE`.
 
+<!-- lint: dont CASEINCOMPLETE LATCH
+input  logic [1:0] sel
+input  logic a
+input  logic b
+input  logic c
+output logic y
+-->
 ```systemverilog
 // Don't: sel == 2'b11 assigns nothing, so a latch is inferred unless a default precedes it
 always_comb begin : dec
@@ -110,7 +179,16 @@ always_comb begin : dec
     2'b10: y = c;
   endcase
 end
+```
 
+<!-- lint: do
+input  logic [1:0] sel
+input  logic a
+input  logic b
+input  logic c
+output logic y
+-->
+```systemverilog
 // Do
 always_comb begin : dec
   case (sel)
@@ -127,13 +205,25 @@ one `assign`, or one submodule output. Never split a signal's assignments across
 always blocks, or across an always block and an `assign`. Verilator reports this as
 `MULTIDRIVEN`.
 
+<!-- lint: dont MULTIDRIVEN
+input  logic busy
+input  logic flush
+output logic ready
+-->
 ```systemverilog
 // Don't: ready is driven from two places
 assign ready = ~busy;
 always_comb begin : flush_ctl
   if (flush) ready = 1'b0;
 end
+```
 
+<!-- lint: do
+input  logic busy
+input  logic flush
+output logic ready
+-->
+```systemverilog
 // Do: one block owns ready
 always_comb begin : ready_ctl
   ready = ~busy;
@@ -146,13 +236,27 @@ Within a block, don't read a signal before the block assigns it in the same eval
 unless it's a true input. Across blocks, no signal may depend combinationally on itself.
 Verilator reports these as `UNOPTFLAT`/`ALWCOMBORDER`.
 
+<!-- lint: dont ALWCOMBORDER
+input  logic a
+input  logic b
+output logic y
+logic tmp;
+-->
 ```systemverilog
 // Don't: tmp is read before this evaluation assigns it, so it uses the previous value
 always_comb begin : calc
   y   = tmp + 1'b1;
   tmp = a & b;
 end
+```
 
+<!-- lint: do
+input  logic a
+input  logic b
+output logic y
+logic tmp;
+-->
+```systemverilog
 // Do: assign before reading
 always_comb begin : calc
   tmp = a & b;
@@ -173,7 +277,8 @@ this.addCombAlways({ inputs: ['req'], outputs: ['grant'] }, body)
 this.addCombAlways({ outputs: ['grant'] }, `
   begin : arb
     grant = '0;
-    ...
+    if (req[0]) grant = 2'b01;
+    else if (req[1]) grant = 2'b10;
   end
 `)
 ```
@@ -198,30 +303,58 @@ this.addAssign({ in: new TSSV.Expr('valid_in & ~stall'), out: 'valid_out' })
 **COMB-9 (SHOULD): Name every always block** (`begin : flit_commit`). Lint messages,
 waveforms and coverage reports then point at a meaningful scope.
 
+<!-- lint: dont
+input  logic a
+input  logic b
+output logic y
+-->
 ```systemverilog
 // Don't
 always_comb begin
-  ...
+  y = a & b;
 end
+```
 
+<!-- lint: do
+input  logic a
+input  logic b
+output logic y
+-->
+```systemverilog
 // Do
-always_comb begin : flit_commit
-  ...
+always_comb begin : both_set
+  y = a & b;
 end
 ```
 
 ## 2. Sequential logic (`addSequentialAlways`, `addRegister`)
 
-**SEQ-1 (MUST): Use nonblocking assignments (`<=`) only.** No `=` to a signal in an
-`always_ff`. Verilator reports this as `BLKSEQ`.
+**SEQ-1 (MUST): Use nonblocking assignments (`<=`) for every variable visible outside the block.**
+Use `=` only for `automatic` variables declared inside the `always_ff`. Give each one a value
+before reading it (COMB-2), so it carries no state between clock edges. Never assign the same
+variable with both `=` and `<=`. Verilator reports `=` to a non-local variable as `BLKSEQ`.
 
+<!-- lint: dont BLKSEQ
+input  logic clk
+input  logic rst_n
+input  logic vld_nxt
+output logic vld_q
+-->
 ```systemverilog
 // Don't
 always_ff @(posedge clk or negedge rst_n) begin : vld_reg
   if (!rst_n) vld_q = 1'b0;
   else        vld_q = vld_nxt;
 end
+```
 
+<!-- lint: do
+input  logic clk
+input  logic rst_n
+input  logic vld_nxt
+output logic vld_q
+-->
+```systemverilog
 // Do
 always_ff @(posedge clk or negedge rst_n) begin : vld_reg
   if (!rst_n) vld_q <= 1'b0;
@@ -229,10 +362,17 @@ always_ff @(posedge clk or negedge rst_n) begin : vld_reg
 end
 ```
 
-**SEQ-2 (SHOULD): Keep sequential blocks register-only.**
-Compute next state in a combinational block (`foo_nxt`), then register it. Keep
+**SEQ-2 (SHOULD): Compute next state in a separate combinational block.**
+By default, compute next state in an `always_comb` (`foo_nxt`), then register it. Keep
 arithmetic, muxing and decode out of `always_ff`, apart from reset and enable.
 
+<!-- lint: do
+input  logic       clk
+input  logic       rst_n
+input  logic       inc
+output logic [7:0] cnt_q
+logic [7:0] cnt_nxt;
+-->
 ```systemverilog
 always_comb begin : cnt_next
   cnt_nxt = cnt_q;
@@ -244,6 +384,57 @@ always_ff @(posedge clk or negedge rst_n) begin : cnt_reg
   else        cnt_q <= cnt_nxt;
 end
 ```
+
+**Exception: next-state logic used only by this block's registers can be written inside the
+`always_ff`** with block-local `automatic` temporaries (SEQ-1). This keeps the logic next to
+the registers it feeds, and event-driven simulators evaluate it once per clock edge rather
+than on every input change. Declare the temporaries, with defaults, in a **named**
+`begin`/`end` inside the `else` branch:
+- The name gives the temporaries a scope (`cnt_reg.cnt_next`) for debuggers and simulators
+  that can probe automatic variables. Verilator's waveform tracing (FST or VCD) does not
+  dump them.
+- Keeping them inside the `else` leaves the async-reset `if`/`else` as the entire body,
+  which synthesis tools recognize as the async-reset template.
+
+<!-- lint: do
+input  logic       clk
+input  logic       rst_n
+input  logic       clr
+input  logic       inc
+input  logic       dec
+output logic [7:0] cnt_q
+output logic       wrap_q
+-->
+```systemverilog
+// Also fine: next-state logic private to this register group
+always_ff @(posedge clk or negedge rst_n) begin : cnt_reg
+  if (!rst_n) begin
+    cnt_q  <= '0;
+    wrap_q <= 1'b0;
+  end else begin : cnt_next
+    automatic logic [7:0] cnt_nxt  = cnt_q;
+    automatic logic       wrap_nxt = 1'b0;
+    if (clr) begin
+      cnt_nxt = '0;
+    end else if (inc && !dec) begin
+      cnt_nxt  = cnt_q + 8'd1;
+      wrap_nxt = (cnt_q == 8'hFF);
+    end else if (dec && !inc) begin
+      cnt_nxt = cnt_q - 8'd1;
+    end
+    cnt_q  <= cnt_nxt;
+    wrap_q <= wrap_nxt;
+  end
+end
+```
+
+Move the logic out to a separate `always_comb` with `foo_nxt` signals when:
+- **Assertions, coverage or formal** need the next-state value. Automatic variables can't be
+  referenced hierarchically (IEEE 1800-2023 §6.21), so concurrent SVA, bind files,
+  covergroups and formal tools can't reach them.
+- **Other logic** uses the value, such as a lookahead flag, a bypass or a forward. Don't
+  duplicate the logic.
+- **You need the value in a Verilator waveform** (`--trace-fst`) while debugging.
 
 **SEQ-3 (SHOULD): Use `addRegister` for plain flip-flops.**
 It checks that `clk` is marked `isClock` and `reset` is marked `isReset`. It emits the
@@ -267,12 +458,26 @@ this.addRegister({ d: 'cnt_nxt', clk: 'clk', reset: 'rst_n', en: 'en', q: 'cnt_q
 
 **SEQ-4 (MUST): Use one clock per sequential block, and one edge.**
 
+<!-- lint: dont
+input  logic clk_a
+input  logic clk_b
+input  logic d
+output logic q
+-->
 ```systemverilog
 // Don't
 always_ff @(posedge clk_a or posedge clk_b) begin : sync
   q <= d;
 end
+```
 
+<!-- lint: do
+input  logic clk_a
+input  logic rst_n
+input  logic da
+output logic qa
+-->
+```systemverilog
 // Do: one block per clock; the crossing goes through a synchronizer (SYN-3)
 always_ff @(posedge clk_a or negedge rst_n) begin : a_reg
   if (!rst_n) qa <= '0;
@@ -286,6 +491,13 @@ reset doesn't. If the body includes its own `always_ff` header, `addSequentialAl
 checks it against the declared `clk`/`reset`. Leave the header out and let the builder
 emit it.
 
+<!-- lint: dont
+input  logic       clk
+input  logic       rst_n
+input  logic [1:0] st_nxt
+output logic [1:0] st_q
+localparam logic [1:0] IDLE = 2'd0;
+-->
 ```systemverilog
 // Don't: rst_n is lowasync, but it's missing from the sensitivity list,
 // so the reset only takes effect on a clock edge
@@ -293,7 +505,16 @@ always_ff @(posedge clk) begin : st_reg
   if (!rst_n) st_q <= IDLE;
   else        st_q <= st_nxt;
 end
+```
 
+<!-- lint: do
+input  logic       clk
+input  logic       rst_n
+input  logic [1:0] st_nxt
+output logic [1:0] st_q
+localparam logic [1:0] IDLE = 2'd0;
+-->
+```systemverilog
 // Do
 always_ff @(posedge clk or negedge rst_n) begin : st_reg
   if (!rst_n) st_q <= IDLE;
@@ -304,12 +525,33 @@ end
 **SEQ-6 (MUST): Reset values must be constants.** Don't reset a register to another
 signal's value.
 
+<!-- lint: dont
+input  logic        clk
+input  logic        rst_n
+input  logic [31:0] cfg_base
+input  logic [31:0] base_nxt
+output logic [31:0] base_q
+-->
 ```systemverilog
 // Don't
-if (!rst_n) base_q <= cfg_base;
+always_ff @(posedge clk or negedge rst_n) begin : base_reg
+  if (!rst_n) base_q <= cfg_base;
+  else        base_q <= base_nxt;
+end
+```
 
+<!-- lint: do
+input  logic        clk
+input  logic        rst_n
+input  logic [31:0] base_nxt
+output logic [31:0] base_q
+-->
+```systemverilog
 // Do
-if (!rst_n) base_q <= 32'h0000_1000;
+always_ff @(posedge clk or negedge rst_n) begin : base_reg
+  if (!rst_n) base_q <= 32'h0000_1000;
+  else        base_q <= base_nxt;
+end
 ```
 
 ## 3. Reset policy
@@ -410,8 +652,32 @@ older ones accept (COMB-2 is one), so lint on the pin, not on a distro package.
 A waiver wraps only the offending line or block, cites the rule or explains why the
 warning is a false positive, and is emitted from TypeScript next to the code it covers.
 
+<!-- lint: do
+input  logic [31:0] cfg_in
+output logic [3:0]  mode
+-->
 ```systemverilog
 /* verilator lint_off UNUSEDSIGNAL */  // only the low bits are used; upper bits reserved by spec
 logic [31:0] cfg_word;
 /* verilator lint_on UNUSEDSIGNAL */
+assign cfg_word = cfg_in;
+assign mode     = cfg_word[3:0];
 ```
+
+## Maintaining this document
+
+`npm run lint:style-examples` (`scripts/lint-style-examples.mjs`) extracts every
+`systemverilog` example above and lints it with the Verilator version pinned in `README.md`.
+Run it after any edit to an example. Every SV example needs an HTML comment immediately before
+its code fence. The comment doesn't show when the doc is rendered:
+
+- `<!-- lint: do` marks an example that must pass `verilator --lint-only -Wall` with no
+  warnings. Use it for every Do, "Also fine" and unlabeled example.
+- `<!-- lint: dont CODE ...` marks an example that must trigger each listed warning. List the
+  warnings the rule's text cites. Leave the list empty for a mistake Verilator doesn't flag,
+  as in COMB-9, SEQ-4, SEQ-5 and SEQ-6, which review has to catch instead.
+- Each line after the first declares one port (`input logic [1:0] req`) or one module-scope
+  declaration (`logic tmp;`). The script wraps the example in a module with those
+  declarations, so every signal the example uses must be declared there.
+- Write each example as complete code, with no `...`, one example per code fence.
+
