@@ -14,7 +14,7 @@ import { lint, requirePinnedVerilator } from './verilator.mjs'
 
 const TEST = 'out/test/rtl_style/test_rtl_style_builders.js'
 const OUT = 'sv-examples/rtl_style'
-const RULES = JSON.parse(readFileSync('doc/rtl-style/rules.json', 'utf8'))
+const RULES = JSON.parse(readFileSync('doc/rtl-style/sv-style/rules.json', 'utf8'))
 
 function isKnown (rule, finding) {
   return (RULES[rule]?.known ?? []).some((k) => finding.includes(k.match))

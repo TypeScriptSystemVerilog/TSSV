@@ -10,7 +10,7 @@
   "COMB-9": {
     "checks": ["lint", "generated"],
     "known": [
-      { "match": "unnamed always block: \"always_ff", "why": "addRegister emits its always_ff without a begin : name label" }
+      { "match": "unnamed always block: \"always_ff", "why": "addRegister emits its always_ff without a begin : name label", "issue": "#59" }
     ]
   },
   "SEQ-1": { "checks": ["lint"] },
@@ -87,8 +87,8 @@
   "LINT-3": {
     "checks": ["lint", "generated"],
     "known": [
-      { "match": "waiver \"lint_off WIDTH\" covers the whole module", "why": "Module.writeSystemVerilog wraps every module in lint_off WIDTH (ts/src/core/Base.ts)" },
-      { "match": "waiver \"lint_off WIDTH\" has no justification comment", "why": "same module-wide WIDTH waiver" }
+      { "match": "waiver \"lint_off WIDTH\" covers the whole module", "why": "Module.writeSystemVerilog wraps every module in lint_off WIDTH (ts/src/core/Base.ts)", "issue": "#59" },
+      { "match": "waiver \"lint_off WIDTH\" has no justification comment", "why": "same module-wide WIDTH waiver", "issue": "#59" }
     ]
   }
 }

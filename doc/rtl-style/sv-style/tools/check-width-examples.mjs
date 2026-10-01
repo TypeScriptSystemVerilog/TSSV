@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { lint, requirePinnedVerilator, simulate } from './verilator.mjs'
 
-const DIR = 'doc/rtl-style/sv/width'
+const DIR = 'doc/rtl-style/sv-style/sv/width'
 const DUT = `${DIR}/width_examples.sv`
 const TB = `${DIR}/width_examples_tb.sv`
 

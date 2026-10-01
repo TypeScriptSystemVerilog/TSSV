@@ -1,7 +1,7 @@
 // Width-parameterized datapath examples.
 // Every assignment below is lint-clean under `verilator --lint-only -Wall`, for W <= 32 and for W > 32,
 // and simulation checks every output against exact integer arithmetic:
-// doc/rtl-style/tools/check-width-examples.mjs (run by `npm run check:rtl-style`).
+// doc/rtl-style/sv-style/tools/check-width-examples.mjs (run by `npm run check:rtl-style`).
 //
 // a, b : unsigned W-bit     c  : unsigned N-bit (narrower)
 // sa,sb: signed   W-bit     sc : signed   N-bit (narrower)

@@ -1,7 +1,7 @@
-// Builder examples for doc/rtl-style/rtl-coding-style.md: the rules whose examples are
+// Builder examples for doc/rtl-style/sv-style/sv-coding-style.md: the rules whose examples are
 // TypeScript rather than SystemVerilog. Each check() builds small modules with the TSSV
 // builders and confirms what the doc claims they emit. Every module that should be clean is
-// written to sv-examples/rtl_style/ for doc/rtl-style/tools/check-builder-examples.mjs to lint.
+// written to sv-examples/rtl_style/ for doc/rtl-style/sv-style/tools/check-builder-examples.mjs to lint.
 //
 // Prints one `RESULT {json}` line per check; check-builder-examples.mjs reads them.
 

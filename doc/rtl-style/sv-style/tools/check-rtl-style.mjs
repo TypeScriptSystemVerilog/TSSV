@@ -4,7 +4,7 @@
 
 import { spawnSync } from 'node:child_process'
 
-const TOOLS = 'doc/rtl-style/tools'
+const TOOLS = 'doc/rtl-style/sv-style/tools'
 const CHECKS = [
   ['Doc examples lint as annotated', 'lint-style-examples.mjs'],
   ['Every rule covered; sim examples pass', 'check-rules.mjs'],

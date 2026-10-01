@@ -1,5 +1,5 @@
 // Random testbench for width_examples.sv. Drives zeros, all-ones, top-bit-only and random
-// values and prints every port in hex; doc/rtl-style/tools/check-width-examples.mjs checks them.
+// values and prints every port in hex; doc/rtl-style/sv-style/tools/check-width-examples.mjs checks them.
 module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter int S = 3, parameter int F = 4, parameter int LIM = 100, parameter int NV = 3000);
   localparam int SW = $clog2(W);
   logic [W-1:0] a;

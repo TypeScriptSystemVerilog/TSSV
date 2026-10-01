@@ -1,9 +1,14 @@
-# RTL Coding Style
+# SystemVerilog Coding Style
 
 Rules for the SystemVerilog that TSSV modules emit. They apply to everything a module
 generates, and most of all to the raw SV strings passed to `addCombAlways()`,
 `addSequentialAlways()`, `addLatchAlways()` and the constructor `body`. The builders
 type-check signal names, but not those strings.
+
+Rules for the TypeScript that generates the SV will live in the TSSV coding guide,
+[`../tssv-style/`](../tssv-style/) ([#58](https://github.com/TypeScriptSystemVerilog/TSSV/issues/58)).
+Until it exists, the builder rules here (COMB-7, COMB-8, SEQ-3, LATCH-1, RST-1, NAME-1 to
+NAME-3, WIDTH-8) stand in for it.
 
 Every rule has a stable ID (`COMB-1`, `SEQ-3`, …). Cite the ID in reviews, commit messages
 and lint waivers. Never renumber a rule: if one is retired, mark it *retired* and leave
@@ -582,9 +587,11 @@ reason it's needed.
 [`sv/width/width_examples.sv`](sv/width/width_examples.sv) shows every rule in this section
 applied to width-parameterized code. The names in brackets below are outputs in that file.
 `npm run check:rtl-style` lints it and checks every output against exact integer arithmetic
-at widths from 8 to 64 bits, including non-powers of two. In a TSSV template, interpolate the
-computed width (`${W + 1}'(c)`). The rules are the same whether a width ends up as a number
-or as an SV parameter.
+at widths from 8 to 64 bits, including non-powers of two. The examples use an SV parameter
+`W` so that one file can be checked at many widths. In TSSV code the preferred style is
+different (WIDTH-8): compute widths in TypeScript and emit them as numbers, so `(W+1)'(c)`
+becomes `${w + 1}'(c)` in the template and `17'(c)` in the SV. The rules are the same either
+way.
 
 Lint misses the most common width bugs, so WIDTH-4, WIDTH-5 and WIDTH-6 apply even when lint
 is clean. TSSV currently wraps every generated module in `/* verilator lint_off WIDTH */`,
@@ -635,10 +642,17 @@ In a comparison, widening one operand widens the whole compare [`u_sum_gt`].
 which can't be sliced [`u_trunc_sum`]. A slice is always unsigned; cast a signed value to
 keep it signed [`s_trunc`].
 
-**WIDTH-8 (SHOULD): Derive widths from parameters in TypeScript.** For example, use
-`this.bitWidth()` or `Math.ceil(Math.log2(depth))` in the module class and interpolate the
-result. Don't hand-compute widths in SV strings. When a width is exposed as an SV parameter,
-write width expressions in terms of it (`[W:0]`, `(W+S)'(a)`), not as literal numbers.
+**WIDTH-8 (SHOULD): Make widths TSSV parameters, computed in TypeScript and emitted as
+numbers.** Do every width calculation in the module class, for example with
+`this.bitWidth()` or `Math.ceil(Math.log2(depth))`, and interpolate the result. Don't
+hand-compute widths in SV strings. Each set of parameter values then gets its own module,
+named after those values (`<Class>_<values>`), and the generated RTL shows every signal's
+width directly, so it can be read and reviewed without working out parameter expressions.
+
+Expose a width as an SV parameter only when the SV itself needs one, and then write width
+expressions in terms of it (`[W:0]`, `(W+S)'(a)`), never as numbers that silently assume one
+value. Whether TSSV should have a formal mechanism for exposing SV parameters is tracked in
+[#58](https://github.com/TypeScriptSystemVerilog/TSSV/issues/58).
 
 ## 6. Naming and structure
 
@@ -710,11 +724,11 @@ assign mode     = cfg_word[3:0];
 
 ## Maintaining this document
 
-This guide lives in `doc/rtl-style/` with the examples and checks that verify it; see
+This guide lives in `doc/rtl-style/sv-style/` with the examples and checks that verify it; see
 [README.md](README.md) there. Every rule needs an entry in `rules.json` saying how it's
 verified. Run `npm run check:rtl-style` after any change to a rule or an example.
 
-`npm run lint:style-examples` (`doc/rtl-style/tools/lint-style-examples.mjs`), one of those
+`npm run lint:style-examples` (`doc/rtl-style/sv-style/tools/lint-style-examples.mjs`), one of those
 checks, extracts every `systemverilog` example above and lints it with the Verilator version
 pinned in the top-level `README.md`. Every SV example needs an HTML comment immediately before
 its code fence. The comment doesn't show when the doc is rendered:

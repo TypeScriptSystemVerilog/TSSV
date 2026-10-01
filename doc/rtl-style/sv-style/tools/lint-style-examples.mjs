@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Lint every SystemVerilog example in doc/rtl-style/rtl-coding-style.md with the pinned Verilator.
+// Lint every SystemVerilog example in doc/rtl-style/sv-style/sv-coding-style.md with the pinned Verilator.
 //
 // Each ```systemverilog block must be preceded by an annotation comment:
 //
@@ -19,7 +19,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const DOC = 'doc/rtl-style/rtl-coding-style.md'
+const DOC = 'doc/rtl-style/sv-style/sv-coding-style.md'
 
 // The pin lives in README.md's Verilator install block; don't duplicate it here.
 const pinMatch = readFileSync('README.md', 'utf8').match(/^VERILATOR_VERSION=v(\S+)$/m)

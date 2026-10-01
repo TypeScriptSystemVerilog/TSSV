@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Check that rules.json covers every rule in rtl-coding-style.md, and run the per-rule
+// Check that rules.json covers every rule in sv-coding-style.md, and run the per-rule
 // checks that live in this script:
 //   - every rule ID in the doc has a rules.json entry, and every entry is a rule in the doc
 //   - "lint":   the rule has at least one annotated systemverilog example (lint-style-examples.mjs lints them)
@@ -14,8 +14,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { lint, requirePinnedVerilator, simulate } from './verilator.mjs'
 
-const ROOT = 'doc/rtl-style'
-const DOC = `${ROOT}/rtl-coding-style.md`
+const ROOT = 'doc/rtl-style/sv-style'
+const DOC = `${ROOT}/sv-coding-style.md`
 const WIDTH_EXAMPLES = `${ROOT}/sv/width/width_examples.sv`
 const KINDS = ['lint', 'width', 'sim', 'builder', 'generated', 'review']
 
