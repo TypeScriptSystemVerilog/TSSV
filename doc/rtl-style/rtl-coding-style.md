@@ -20,7 +20,7 @@ Before you open a PR that touches generated RTL:
 - [ ] Every local variable in an always block is `automatic` or uninitialized (COMB-2)
 - [ ] `=` only in comb blocks; in sequential blocks, `<=` for registers and `=` only for block-local `automatic` temporaries (COMB-3, SEQ-1)
 - [ ] Each signal is driven from exactly one place (COMB-5)
-- [ ] Widths are explicit; nothing is truncated silently (WIDTH-1, WIDTH-2)
+- [ ] Carries and signs survive: full-width intermediates, mixed signedness converted, `>>>` only on signed values (WIDTH-2 to WIDTH-6)
 - [ ] `verilator --lint-only -Wall` on the pinned Verilator (5.052) is clean for the generated `.sv` (LINT-1)
 
 ## 1. Combinational logic (`addCombAlways`)
@@ -579,22 +579,66 @@ reason it's needed.
 
 ## 5. Widths and arithmetic
 
-**WIDTH-1 (MUST): Size literals.** Write `8'd1`, `1'b0`, `{W{1'b0}}`. Use `'0`/`'1` only
-where the context sets the width (assigning to a declared signal). Don't use bare `0`/`1`
-where width matters, such as in concatenations or arithmetic.
+[`sv/width/width_examples.sv`](sv/width/width_examples.sv) shows every rule in this section
+applied to width-parameterized code. The names in brackets below are outputs in that file.
+`npm run check:rtl-style` lints it and checks every output against exact integer arithmetic
+at widths from 8 to 64 bits, including non-powers of two. In a TSSV template, interpolate the
+computed width (`${W + 1}'(c)`). The rules are the same whether a width ends up as a number
+or as an SV parameter.
 
-**WIDTH-2 (MUST): Never truncate or extend implicitly.**
-Size every arithmetic result on purpose. Take an add's carry bit explicitly or drop it
-with a slice, and make sign- or zero-extension explicit. Verilator's `WIDTH*` warnings
-must not be waived to hide this.
+Lint misses the most common width bugs, so WIDTH-4, WIDTH-5 and WIDTH-6 apply even when lint
+is clean. TSSV currently wraps every generated module in `/* verilator lint_off WIDTH */`,
+which hides Verilator's `WIDTH*` warnings in generated output.
 
-**WIDTH-3 (MUST): Don't mix signed and unsigned operands** in one expression without an
-explicit `$signed()`/`$unsigned()`. Under the SV rules, one unsigned operand makes the
-whole expression unsigned.
+**WIDTH-1: Literals.**
+- (MUST) Use `'0` / `'1` for all-zeros / all-ones at any width [`u_ones`, `u_is_max`].
+  `'hFFFF_FFFF` is wrong above 32 bits.
+- (MUST) Use only sized literals in concatenations and replications: `{a[W-2:0], 1'b0}`.
+- (MUST) Cast integer parameters, and any constant wider than 32 bits, to the width they're
+  used at [`u_lim`, `u_at_lim`].
+- (MUST) In signed expressions, use signed literals (`'sd3`), never `'d3` [`s_sub_lit`,
+  `s_is_neg`]. An unsigned literal makes the whole expression unsigned, so `sa < 'd0` is
+  always false.
+- (SHOULD) Prefer based literals (`'d1`, `'sd3`) to bare decimals [`u_inc`, `u_mul_lit`,
+  `u_onehot`]. They state intent and signedness. An unsized one needs no size when its value
+  fits in 32 bits: the expression's context extends it.
 
-**WIDTH-4 (SHOULD): Derive widths from parameters in TypeScript.**
-For example, use `this.bitWidth()` or `Math.ceil(Math.log2(depth))` in the module class
-and interpolate the result. Don't hand-compute widths in SV strings.
+**WIDTH-2 (MUST): Let the target hold the result's natural growth.** An add grows by one bit
+and a multiply by the sum of its operand widths. A target that wide keeps every bit, with no
+casts [`u_add_full`, `s_add_full`, `u_mul_full`, `s_mul_full`, `u_mul_narrow`]. A target of
+the operand width wraps, which is fine when you want wrap-around [`u_add_wrap`, `u_mul_lo`,
+`s_add_wrap`]. A left shift has no natural growth. For a lossless shift, cast the operand to
+the target width first [`u_shl_full`, `s_sla_full`].
+
+**WIDTH-3 (MUST): Cast a narrower operand to the common width.** `W'(x)` extends with `x`'s
+own signedness: zero for unsigned, sign for signed [`u_add_narrow`, `s_add_narrow`, `u_zext`,
+`s_sext`]. Never add or remove signedness around an extension. `W'($unsigned(sc))`
+zero-extends a negative value, and lint is clean.
+
+**WIDTH-4 (MUST): Convert unsigned to signed with `$signed({1'b0, x})`.** Never use
+`$signed(x)`: it turns a large unsigned value negative. Never mix the two signednesses without
+converting first: `sa * b` is computed unsigned, and lint is clean [`s_add_mixed`,
+`s_mul_mixed`, `s_from_u`].
+
+**WIDTH-5 (MUST): Use `>>` for unsigned values and `>>>` for signed.** `>>>` is an arithmetic
+shift only when its operand is signed. `sa >> S` and `$unsigned(sa) >>> sh` both lint clean
+and drop the sign [`s_sra_fix`, `s_sra_var`, `u_shr_fix`, `u_shr_var`].
+
+**WIDTH-6 (MUST): Name an intermediate that needs more bits than the result.** An operation is
+only as wide as its context: the target, or its widest operand. In `(a + b) >> 1`, the sum is
+W bits and the carry is lost. A cast to the result width can't recover it:
+`W'((sa * sb) >>> F)` still loses the product's high bits. Compute the full-width value in a
+named signal, then shift or slice it [`u_avg` uses `u_add_full`; `s_mul_q` uses `s_prod`].
+In a comparison, widening one operand widens the whole compare [`u_sum_gt`].
+
+**WIDTH-7 (MUST): Truncate explicitly.** Slice a signal [`u_trunc`]. Cast an expression,
+which can't be sliced [`u_trunc_sum`]. A slice is always unsigned; cast a signed value to
+keep it signed [`s_trunc`].
+
+**WIDTH-8 (SHOULD): Derive widths from parameters in TypeScript.** For example, use
+`this.bitWidth()` or `Math.ceil(Math.log2(depth))` in the module class and interpolate the
+result. Don't hand-compute widths in SV strings. When a width is exposed as an SV parameter,
+write width expressions in terms of it (`[W:0]`, `(W+S)'(a)`), not as literal numbers.
 
 ## 6. Naming and structure
 
@@ -666,9 +710,13 @@ assign mode     = cfg_word[3:0];
 
 ## Maintaining this document
 
-`npm run lint:style-examples` (`doc/rtl-style/tools/lint-style-examples.mjs`) extracts every
-`systemverilog` example above and lints it with the Verilator version pinned in `README.md`.
-Run it after any edit to an example. Every SV example needs an HTML comment immediately before
+This guide lives in `doc/rtl-style/` with the examples and checks that verify it; see
+[README.md](README.md) there. Every rule needs an entry in `rules.json` saying how it's
+verified. Run `npm run check:rtl-style` after any change to a rule or an example.
+
+`npm run lint:style-examples` (`doc/rtl-style/tools/lint-style-examples.mjs`), one of those
+checks, extracts every `systemverilog` example above and lints it with the Verilator version
+pinned in the top-level `README.md`. Every SV example needs an HTML comment immediately before
 its code fence. The comment doesn't show when the doc is rendered:
 
 - `<!-- lint: do` marks an example that must pass `verilator --lint-only -Wall` with no
