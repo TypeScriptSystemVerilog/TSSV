@@ -67,7 +67,9 @@ Prerequisite:  [Verible](https://github.com/chipsalliance/verible) installed on 
 emitted `.sv` file with `verible-verilog-format` and parses imported SystemVerilog
 (`addSystemVerilogSubmodule()`) with `verible-verilog-syntax`; generation fails with an error if they are missing.
 
-For Linux (x86_64/amd64 or aarch64/arm64 — the architecture is detected automatically):
+Neither Ubuntu nor Homebrew packages the pinned release, so install the prebuilt static binaries.
+
+For Linux (detects x86_64 or arm64, leaves no files behind):
 
 ```bash
 (
@@ -84,12 +86,11 @@ For Linux (x86_64/amd64 or aarch64/arm64 — the architecture is detected automa
     | tar xz -C "$TMP"
   sudo install -m 755 "$TMP/verible-$VERIBLE/bin/"* /usr/local/bin/
 )
-
-# Verify the Verible version:
-verible-verilog-format --version # Should print "Version v0.0-4296-g0f262651".
+verible-verilog-format --version   # expect: Version v0.0-4296-g0f262651
+verible-verilog-syntax --version   # expect: Version v0.0-4296-g0f262651
 ```
 
-For macOS (the release archive is an Apple silicon/arm64 build; there is no prebuilt Intel binary):
+For macOS (Verible's macOS release is an Apple silicon (arm64) build only; there is no prebuilt Intel binary):
 
 ```bash
 (
@@ -102,6 +103,7 @@ For macOS (the release archive is an Apple silicon/arm64 build; there is no preb
     | tar xz -C "$TMP"
   sudo install -m 755 "$TMP/verible-$VERIBLE-macOS/bin/"* /usr/local/bin/
 )
+verible-verilog-format --version   # expect: Version v0.0-4296-g0f262651
 ```
 
 To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilog()`;
@@ -128,9 +130,32 @@ For Visual Studio Code GUI based linting, make sure install extensioin ESLint fr
 Verilator is an open source Verilog/SystemVerilog simulator.   It can also be used as a lint check of Verilog/SystemVerilog code.   
 
 #### Installation
-For Ubuntu 22.04 NodeJS installation:
+Use the pinned Verilator version below. Older releases miss real RTL bugs (e.g. latches that
+Verilator 5.048+ flags), and every Ubuntu `verilator` package is behind it, so build from source.
+
+For Linux (Ubuntu/Debian), remove the distro package, then build the pin:
 ```bash
-sudo apt install verilator
+sudo apt-get remove -y verilator
+sudo apt-get install -y build-essential autoconf flex bison help2man perl python3 \
+    libfl2 libfl-dev zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl
+VERILATOR_VERSION=v5.052
+curl -fsSL -o /tmp/verilator.tar.gz \
+    "https://github.com/verilator/verilator/archive/refs/tags/${VERILATOR_VERSION}.tar.gz"
+rm -rf /tmp/verilator-src && mkdir /tmp/verilator-src
+tar xf /tmp/verilator.tar.gz -C /tmp/verilator-src --strip-components=1
+cd /tmp/verilator-src
+unset VERILATOR_ROOT
+autoconf && ./configure --prefix=/usr/local
+make -j4                    # keep -j modest on a low-RAM host
+sudo make install
+hash -r && verilator --version   # expect: Verilator 5.052 2026-09-05
+```
+The build takes about 10 minutes. To move the pin, change `VERILATOR_VERSION` and rerun the block.
+
+For macOS:
+```bash
+brew install verilator
+verilator --version   # expect 5.052; if Homebrew's version differs, build the pin from source as above
 ```
 #### Run Procedure
 ```bash
