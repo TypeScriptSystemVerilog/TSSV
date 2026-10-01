@@ -82,21 +82,83 @@ Loop variables declared in the `for` header (`for (int i = 0; ...)`) are automat
 already and need no keyword.
 
 **COMB-3 (MUST): Use blocking assignments (`=`) only.** No `<=` in combinational logic.
+Verilator reports this as `COMBDLY`.
+
+```systemverilog
+// Don't
+always_comb begin : sum
+  total <= a + b;
+end
+
+// Do
+always_comb begin : sum
+  total = a + b;
+end
+```
 
 **COMB-4 (MUST): Give every `case` a `default`, even when the listed items look exhaustive.**
 Use `unique case` or `priority case` only when the designer means the stated
 property. Both change what synthesis may assume, and violating it is a
-simulation/synthesis mismatch.
+simulation/synthesis mismatch. Verilator reports a missing default as `CASEINCOMPLETE`.
+
+```systemverilog
+// Don't: sel == 2'b11 assigns nothing, so a latch is inferred unless a default precedes it
+always_comb begin : dec
+  case (sel)
+    2'b00: y = a;
+    2'b01: y = b;
+    2'b10: y = c;
+  endcase
+end
+
+// Do
+always_comb begin : dec
+  case (sel)
+    2'b00:   y = a;
+    2'b01:   y = b;
+    2'b10:   y = c;
+    default: y = '0;
+  endcase
+end
+```
 
 **COMB-5 (MUST): Drive each signal from exactly one place.** That place is one `always_comb`,
 one `assign`, or one submodule output. Never split a signal's assignments across two
 always blocks, or across an always block and an `assign`. Verilator reports this as
 `MULTIDRIVEN`.
 
+```systemverilog
+// Don't: ready is driven from two places
+assign ready = ~busy;
+always_comb begin : flush_ctl
+  if (flush) ready = 1'b0;
+end
+
+// Do: one block owns ready
+always_comb begin : ready_ctl
+  ready = ~busy;
+  if (flush) ready = 1'b0;
+end
+```
+
 **COMB-6 (MUST): Avoid combinational loops and reads before writes.**
 Within a block, don't read a signal before the block assigns it in the same evaluation,
 unless it's a true input. Across blocks, no signal may depend combinationally on itself.
 Verilator reports these as `UNOPTFLAT`/`ALWCOMBORDER`.
+
+```systemverilog
+// Don't: tmp is read before this evaluation assigns it, so it uses the previous value
+always_comb begin : calc
+  y   = tmp + 1'b1;
+  tmp = a & b;
+end
+
+// Do: assign before reading
+always_comb begin : calc
+  tmp = a & b;
+  y   = tmp + 1'b1;
+end
+```
 
 **COMB-7 (MUST): Omit `inputs` when calling `addCombAlways`.**
 Without `inputs`, the builder emits `always_comb`. With `inputs`, it emits a legacy
@@ -104,7 +166,10 @@ Without `inputs`, the builder emits `always_comb`. With `inputs`, it emits a leg
 Don't write the `always` keyword in the body yourself either.
 
 ```ts
-// Do
+// Don't: emits `always @( req )`; any signal read but not listed is missed in simulation
+this.addCombAlways({ inputs: ['req'], outputs: ['grant'] }, body)
+
+// Do: emits `always_comb`
 this.addCombAlways({ outputs: ['grant'] }, `
   begin : arb
     grant = '0;
@@ -118,13 +183,51 @@ A one-line expression belongs in `addAssign`. A selector belongs in `addMux`, ar
 in `addAdder`/`addMultiplier`. Reserve `addCombAlways` for logic that needs procedural
 code.
 
+```ts
+// Don't
+this.addCombAlways({ outputs: ['valid_out'] }, `
+  begin : vld
+    valid_out = valid_in & ~stall;
+  end
+`)
+
+// Do
+this.addAssign({ in: new TSSV.Expr('valid_in & ~stall'), out: 'valid_out' })
+```
+
 **COMB-9 (SHOULD): Name every always block** (`begin : flit_commit`). Lint messages,
 waveforms and coverage reports then point at a meaningful scope.
+
+```systemverilog
+// Don't
+always_comb begin
+  ...
+end
+
+// Do
+always_comb begin : flit_commit
+  ...
+end
+```
 
 ## 2. Sequential logic (`addSequentialAlways`, `addRegister`)
 
 **SEQ-1 (MUST): Use nonblocking assignments (`<=`) only.** No `=` to a signal in an
 `always_ff`. Verilator reports this as `BLKSEQ`.
+
+```systemverilog
+// Don't
+always_ff @(posedge clk or negedge rst_n) begin : vld_reg
+  if (!rst_n) vld_q = 1'b0;
+  else        vld_q = vld_nxt;
+end
+
+// Do
+always_ff @(posedge clk or negedge rst_n) begin : vld_reg
+  if (!rst_n) vld_q <= 1'b0;
+  else        vld_q <= vld_nxt;
+end
+```
 
 **SEQ-2 (SHOULD): Keep sequential blocks register-only.**
 Compute next state in a combinational block (`foo_nxt`), then register it. Keep
@@ -149,7 +252,33 @@ that share clock, reset and enable into one block. It names `q` as `<d>_q` when 
 simple signal. Use `addSequentialAlways` only when the register needs logic that
 `addRegister` can't express.
 
+```ts
+// Don't: hand-written flop the builder already covers
+this.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['cnt_q'] }, `
+  begin
+    if (!rst_n) cnt_q <= '0;
+    else if (en) cnt_q <= cnt_nxt;
+  end
+`)
+
+// Do
+this.addRegister({ d: 'cnt_nxt', clk: 'clk', reset: 'rst_n', en: 'en', q: 'cnt_q' })
+```
+
 **SEQ-4 (MUST): Use one clock per sequential block, and one edge.**
+
+```systemverilog
+// Don't
+always_ff @(posedge clk_a or posedge clk_b) begin : sync
+  q <= d;
+end
+
+// Do: one block per clock; the crossing goes through a synchronizer (SYN-3)
+always_ff @(posedge clk_a or negedge rst_n) begin : a_reg
+  if (!rst_n) qa <= '0;
+  else        qa <= da;
+end
+```
 
 **SEQ-5 (MUST): Make the sensitivity list match the reset kind.**
 An async reset appears in the sensitivity list (`or negedge rst_n` for `lowasync`). A sync
@@ -157,8 +286,31 @@ reset doesn't. If the body includes its own `always_ff` header, `addSequentialAl
 checks it against the declared `clk`/`reset`. Leave the header out and let the builder
 emit it.
 
+```systemverilog
+// Don't: rst_n is lowasync, but it's missing from the sensitivity list,
+// so the reset only takes effect on a clock edge
+always_ff @(posedge clk) begin : st_reg
+  if (!rst_n) st_q <= IDLE;
+  else        st_q <= st_nxt;
+end
+
+// Do
+always_ff @(posedge clk or negedge rst_n) begin : st_reg
+  if (!rst_n) st_q <= IDLE;
+  else        st_q <= st_nxt;
+end
+```
+
 **SEQ-6 (MUST): Reset values must be constants.** Don't reset a register to another
 signal's value.
+
+```systemverilog
+// Don't
+if (!rst_n) base_q <= cfg_base;
+
+// Do
+if (!rst_n) base_q <= 32'h0000_1000;
+```
 
 ## 3. Reset policy
 
