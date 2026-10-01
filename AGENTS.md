@@ -85,6 +85,7 @@ is the authoritative spec; this section is the operating procedure an agent foll
 - **Naming**: module classes PascalCase; signals and parameters camelCase; interface files follow exact AMBA spec naming (e.g. `AXI4-Lite.ts`)
 - **Generated files**: `sv-examples/`, `docs/`, and `out/` must never be manually edited
 - **New module pattern**: extend `Module`, define a typed `Parameters` interface, declare IOs, build logic with `add*()` calls, add a test in `ts/test/` that calls `writeSystemVerilog()`
+- **RTL coding style**: the SV a module emits — especially `addCombAlways()`/`addSequentialAlways()`/`addLatchAlways()` bodies — follows `doc/rtl-coding-style.md`; cite rule IDs (e.g. `COMB-2`) in reviews and lint waivers
 - **Code style**: `eslint-config-love` (strict TS); run `npx eslint .` before committing
 - **Strict mode**: `noUncheckedIndexedAccess` is on — array accesses return `T | undefined`; handle accordingly
 
@@ -104,7 +105,7 @@ is the authoritative spec; this section is the operating procedure an agent foll
 
 ## Common Tasks — Where to Start
 
-- **Adding a new module**: read `ts/src/core/Base.ts` (builder API), then `ts/src/modules/FIR.ts` as a reference implementation; add a test in `ts/test/`
+- **Adding a new module**: read `ts/src/core/Base.ts` (builder API), `doc/rtl-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR.ts` as a reference implementation; add a test in `ts/test/`
 - **Adding a new interface**: read `ts/src/interfaces/AMBA/AXI4/r0p0_0/AXI4.ts` for the signal-bundle and modport pattern
 - **Using the register helpers**: read `ts/src/core/Registers.ts`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`
