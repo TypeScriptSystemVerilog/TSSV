@@ -16,7 +16,7 @@ out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog committed as reference output — never hand-edit
 docs/                 Auto-generated TypeDoc HTML — never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
-claude-info/          Setup notes and worked examples for AI-assisted development
+claude-info/          Worked examples and specs for AI-assisted development
 doc/process/          Repo process specs (issue-workflow.md)
 .github/              Issue forms, PR template, commit template
 ```
@@ -27,7 +27,7 @@ doc/process/          Repo process specs (issue-workflow.md)
 |---|---|
 | `ts/src/core/Base.ts` | All builder APIs: `addSignal`, `addRegister`, `addSubmodule`, `addCombAlways`, etc. |
 | `CLAUDE.md` | Commands, source layout, core architecture summary, simulation flow |
-| `README.md` | Installation, quick-start, roadmap |
+| `README.md` | Machine setup (agent-first; pinned Node/Verible/Verilator), quick-start demo, roadmap |
 | `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating |
 
 ## GitHub Issue-Driven Workflow
