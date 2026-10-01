@@ -10,7 +10,7 @@
     "deploy-docs": "gh-pages -d docs",
     "check:body": "bash scripts/check-body-appends.sh",
     "lint:sv": "bash scripts/lint-sv.sh",
-    "lint:style-examples": "node scripts/lint-style-examples.mjs"
+    "lint:style-examples": "node doc/rtl-style/tools/lint-style-examples.mjs"
   },
   "repository": {
     "type": "git",

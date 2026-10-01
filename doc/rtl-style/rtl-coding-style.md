@@ -666,7 +666,7 @@ assign mode     = cfg_word[3:0];
 
 ## Maintaining this document
 
-`npm run lint:style-examples` (`scripts/lint-style-examples.mjs`) extracts every
+`npm run lint:style-examples` (`doc/rtl-style/tools/lint-style-examples.mjs`) extracts every
 `systemverilog` example above and lints it with the Verilator version pinned in `README.md`.
 Run it after any edit to an example. Every SV example needs an HTML comment immediately before
 its code fence. The comment doesn't show when the doc is rendered:
