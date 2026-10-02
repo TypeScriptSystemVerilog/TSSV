@@ -193,7 +193,7 @@ For Linux (Ubuntu/Debian), remove the distro package, then build the pin:
 ```bash
 sudo apt-get remove -y verilator
 sudo apt-get install -y build-essential autoconf flex bison help2man perl python3 \
-    libfl2 libfl-dev zlib1g zlib1g-dev ccache libgoogle-perftools-dev numactl
+    libfl2 libfl-dev zlib1g zlib1g-dev liblz4-dev ccache libgoogle-perftools-dev numactl
 VERILATOR_VERSION=v5.052
 curl -fsSL -o /tmp/verilator.tar.gz \
     "https://github.com/verilator/verilator/archive/refs/tags/${VERILATOR_VERSION}.tar.gz"
