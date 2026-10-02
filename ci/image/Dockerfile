@@ -27,7 +27,7 @@ RUN mkdir /tmp/verilator-src \
 
 # --- Stage 2: runtime image ---------------------------------------------------
 FROM ubuntu:24.04
-ARG VERIBLE_VERSION=v0.0-0000-gdeadbee
+ARG VERIBLE_VERSION=v0.0-4296-g0f262651
 ARG NODE_VERSION=v24.21.0
 LABEL org.opencontainers.image.source=https://github.com/TypeScriptSystemVerilog/TSSV
 LABEL org.opencontainers.image.description="TSSV CI toolchain: Verilator, Verible, Node"
