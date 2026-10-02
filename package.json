@@ -9,7 +9,9 @@
     "docs": "typedoc --out docs",
     "deploy-docs": "gh-pages -d docs",
     "check:body": "bash scripts/check-body-appends.sh",
-    "lint:sv": "bash scripts/lint-sv.sh"
+    "lint:sv": "bash scripts/lint-sv.sh",
+    "lint:style-examples": "node doc/rtl-style/sv-style/tools/lint-style-examples.mjs",
+    "check:rtl-style": "node doc/rtl-style/sv-style/tools/check-rtl-style.mjs"
   },
   "repository": {
     "type": "git",

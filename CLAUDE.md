@@ -86,6 +86,7 @@ Builder methods add logic inside the constructor:
 4. In the constructor, build logic with `add*()` methods
 5. Add a test in `ts/test/test_MyModule.ts` that instantiates the class and calls `writeSystemVerilog()`
 6. `npx tsc && node out/test/test_MyModule.js` to generate and inspect the SV output
+7. Follow `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall`
 
 ### TypeScript Configuration
 - **Strict mode** enabled; `noUncheckedIndexedAccess` is on — array accesses return `T | undefined`

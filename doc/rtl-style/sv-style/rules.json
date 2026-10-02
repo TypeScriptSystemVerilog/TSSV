@@ -1,0 +1,94 @@
+{
+  "COMB-1": { "checks": ["lint"] },
+  "COMB-2": { "checks": ["lint"] },
+  "COMB-3": { "checks": ["lint"] },
+  "COMB-4": { "checks": ["lint"] },
+  "COMB-5": { "checks": ["lint"] },
+  "COMB-6": { "checks": ["lint"] },
+  "COMB-7": { "checks": ["builder"] },
+  "COMB-8": { "checks": ["builder"] },
+  "COMB-9": {
+    "checks": ["lint", "generated"],
+    "known": [
+      { "match": "unnamed always block: \"always_ff", "why": "addRegister emits its always_ff without a begin : name label", "issue": "#59" }
+    ]
+  },
+  "SEQ-1": { "checks": ["lint"] },
+  "SEQ-2": {
+    "checks": ["lint", "sim"],
+    "sim": [{ "top": "seq2_styles_tb", "files": ["sv/seq/seq2_styles_tb.sv", "sv/seq/seq2_inblock.sv", "sv/seq/seq2_split.sv"] }],
+    "lintClean": ["sv/seq/seq2_inblock.sv", "sv/seq/seq2_split.sv"],
+    "docVerbatim": { "Also fine": "sv/seq/seq2_inblock.sv" }
+  },
+  "SEQ-3": { "checks": ["builder"] },
+  "SEQ-4": {
+    "checks": ["lint", "review"],
+    "reason": "Verilator doesn't flag a block sensitive to two clocks, so review has to catch the Don't."
+  },
+  "SEQ-5": {
+    "checks": ["lint", "sim", "builder"],
+    "sim": [{ "top": "seq5_reset_tb", "files": ["sv/seq/seq5_reset_tb.sv", "sv/seq/seq5_dont.sv", "sv/seq/seq5_do.sv"] }],
+    "lintClean": ["sv/seq/seq5_dont.sv", "sv/seq/seq5_do.sv"],
+    "docVerbatim": { "Don't": "sv/seq/seq5_dont.sv", "Do": "sv/seq/seq5_do.sv" }
+  },
+  "SEQ-6": {
+    "checks": ["lint", "review"],
+    "reason": "Verilator doesn't flag a reset to a non-constant value, so review has to catch the Don't."
+  },
+  "RST-1": { "checks": ["builder"] },
+  "RST-2": {
+    "checks": ["review"],
+    "reason": "The builders don't stop a module from mixing reset kinds; no automated check yet."
+  },
+  "RST-3": {
+    "checks": ["review"],
+    "reason": "Whether a register needs a reset is a design judgment."
+  },
+  "RST-4": {
+    "checks": ["review"],
+    "reason": "No automated check yet for a reset driven by logic."
+  },
+  "LATCH-1": { "checks": ["builder"] },
+  "WIDTH-1": { "checks": ["width"] },
+  "WIDTH-2": { "checks": ["width"] },
+  "WIDTH-3": { "checks": ["width"] },
+  "WIDTH-4": { "checks": ["width"] },
+  "WIDTH-5": { "checks": ["width"] },
+  "WIDTH-6": { "checks": ["width"] },
+  "WIDTH-7": { "checks": ["width"] },
+  "WIDTH-8": { "checks": ["builder"] },
+  "NAME-1": { "checks": ["builder"] },
+  "NAME-2": {
+    "checks": ["review"],
+    "reason": "How a module's TypeScript is structured is a design judgment."
+  },
+  "NAME-3": {
+    "checks": ["review"],
+    "reason": "Whether a builder fits is a design judgment."
+  },
+  "SYN-1": { "checks": ["generated"] },
+  "SYN-2": {
+    "checks": ["review"],
+    "reason": "No automated check yet for gated or generated clocks."
+  },
+  "SYN-3": {
+    "checks": ["review"],
+    "reason": "Clock-domain crossings need CDC analysis, which this harness doesn't do."
+  },
+  "SYN-4": {
+    "checks": ["review"],
+    "reason": "Whether an array should be a memory module is a design judgment."
+  },
+  "LINT-1": { "checks": ["generated"] },
+  "LINT-2": {
+    "checks": ["review"],
+    "reason": "No automated check yet that every module has a ts/test script."
+  },
+  "LINT-3": {
+    "checks": ["lint", "generated"],
+    "known": [
+      { "match": "waiver \"lint_off WIDTH\" covers the whole module", "why": "Module.writeSystemVerilog wraps every module in lint_off WIDTH (ts/src/core/Base.ts)", "issue": "#59" },
+      { "match": "waiver \"lint_off WIDTH\" has no justification comment", "why": "same module-wide WIDTH waiver", "issue": "#59" }
+    ]
+  }
+}
