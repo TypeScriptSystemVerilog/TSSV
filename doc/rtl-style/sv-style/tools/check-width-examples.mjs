@@ -60,7 +60,7 @@ const REF = {
   u_trunc: (v) => v.a,
   u_trunc_sum: (v) => v.a + v.b,
   s_trunc: (v) => v.sa,
-  u_is_max: (v, p) => BigInt(v.a === (1n << BigInt(p.W)) - 1n),
+  u_is_zero: (v, p) => BigInt(v.a === 0n),
   u_at_lim: (v, p) => BigInt(v.a === BigInt(p.LIM) % (1n << BigInt(p.W))),
   u_sum_gt: (v) => BigInt(v.a + v.b > v.c),
   s_is_neg: (v) => BigInt(v.sa < 0n)

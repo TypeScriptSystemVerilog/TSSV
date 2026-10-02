@@ -68,7 +68,7 @@ module width_examples #(
   output logic signed [N-1:0]   s_trunc,      // low N bits of sa, kept signed
 
   // Comparisons
-  output logic                  u_is_max,     // a == all ones
+  output logic                  u_is_zero,    // a == all zeros
   output logic                  u_at_lim,     // a == LIM
   output logic                  u_sum_gt,     // a + b > c, carry counted
   output logic                  s_is_neg      // sa < 0
@@ -77,27 +77,26 @@ module width_examples #(
   // ---- Addition ---------------------------------------------------------------------
   // A target one bit wider keeps the carry. Operands of different widths are cast to a
   // common width first; the cast extends with the operand's own signedness.
-  assign u_add_wrap   = a + b;
+  assign u_add_wrap   = W'(a + b);
   assign u_add_full   = a + b;
   assign u_inc        = a + 'd1;
   assign u_add_narrow = a + W'(c);
   assign u_avg        = u_add_full[W:1];  // reuse the full-width sum; never (a + b) >> 1
-  assign s_add_wrap   = sa + sb;
+  assign s_add_wrap   = W'(sa + sb);
   assign s_add_full   = sa + sb;
   assign s_sub_lit    = sa - 'sd3;
   assign s_add_narrow = sa + W'(sc);
   assign s_add_mixed  = (W+1)'(sa) + $signed({1'b0, a});  // make the unsigned operand signed first
 
   // ---- Multiplication ---------------------------------------------------------------
-  logic signed [2*W-1:0] s_prod;  // full product, named so the shift sees all 2*W bits
-
   assign u_mul_full   = a * b;
-  assign u_mul_lo     = a * b;
+  assign u_mul_lo     = W'(a * b);
   assign u_mul_narrow = a * c;
   assign u_mul_lit    = a * 'd3;
   assign s_mul_full   = sa * sb;
   assign s_mul_lit    = sa * -'sd5;
   assign s_mul_mixed  = sa * $signed({1'b0, b});
+  logic signed [2*W-1:0] s_prod;  // full product, named so the shift sees all 2*W bits
   assign s_prod       = sa * sb;
   assign s_mul_q      = W'(s_prod >>> F);
 
@@ -121,7 +120,7 @@ module width_examples #(
   assign s_sext       = W'(sc);
   assign s_from_u     = $signed({1'b0, a});
   assign u_lim        = W'(LIM);
-  assign u_ones       = '1;
+  assign u_ones       = {W{1'b1}};
 
   // ---- Truncation -------------------------------------------------------------------
   // Slice a signal; cast an expression (an expression can't be sliced).
@@ -133,9 +132,9 @@ module width_examples #(
 
   // ---- Comparisons ------------------------------------------------------------------
   // A compare has no left-hand side to widen it: size the operands (u_add_full, not a + b).
-  assign u_is_max     = (a == '1);
+  assign u_is_zero    = (a == '0);
   assign u_at_lim     = (a == W'(LIM));
-  assign u_sum_gt     = (u_add_full > (W+1)'(c));
+  assign u_sum_gt     = (u_add_full > (W+1)'(c)); // or ((W+1)'(a + b) > (W+1)'(c))
   assign s_is_neg     = (sa < 'sd0);
 
 endmodule

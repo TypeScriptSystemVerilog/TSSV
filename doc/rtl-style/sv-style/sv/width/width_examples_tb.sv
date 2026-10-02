@@ -46,7 +46,7 @@ module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter 
   logic [N-1:0] u_trunc;
   logic [N-1:0] u_trunc_sum;
   logic signed [N-1:0] s_trunc;
-  logic [0:0] u_is_max;
+  logic [0:0] u_is_zero;
   logic [0:0] u_at_lim;
   logic [0:0] u_sum_gt;
   logic [0:0] s_is_neg;
@@ -118,7 +118,7 @@ module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter 
       $write(" u_trunc=%h", u_trunc);
       $write(" u_trunc_sum=%h", u_trunc_sum);
       $write(" s_trunc=%h", s_trunc);
-      $write(" u_is_max=%h", u_is_max);
+      $write(" u_is_zero=%h", u_is_zero);
       $write(" u_at_lim=%h", u_at_lim);
       $write(" u_sum_gt=%h", u_sum_gt);
       $write(" s_is_neg=%h", s_is_neg);

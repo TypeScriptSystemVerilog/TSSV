@@ -492,9 +492,7 @@ end
 
 **SEQ-5 (MUST): Make the sensitivity list match the reset kind.**
 An async reset appears in the sensitivity list (`or negedge rst_n` for `lowasync`). A sync
-reset doesn't. If the body includes its own `always_ff` header, `addSequentialAlways`
-checks it against the declared `clk`/`reset`. Leave the header out and let the builder
-emit it.
+reset doesn't.
 
 <!-- lint: dont
 input  logic       clk
@@ -526,6 +524,15 @@ always_ff @(posedge clk or negedge rst_n) begin : st_reg
   else        st_q <= st_nxt;
 end
 ```
+
+In TSSV, leave the `always_ff` header out of the body passed to `addSequentialAlways`. The builder
+then writes the header itself, building the sensitivity list from the clock edge and reset
+kind of the declared `clk` and `reset` signals, so the list is always correct. If the body
+does contain `always_ff`, the builder uses the body as written and only checks that it
+mentions the clock edge (`posedge clk`) and, for an async reset, the reset edge
+(`or negedge rst_n`), throwing a "Sensitivity mismatch" error if either is missing. That
+check is loose: it doesn't catch an extra async-reset term on a block whose reset is
+synchronous.
 
 **SEQ-6 (MUST): Reset values must be constants.** Don't reset a register to another
 signal's value.
@@ -598,52 +605,53 @@ is clean. TSSV currently wraps every generated module in `/* verilator lint_off 
 which hides Verilator's `WIDTH*` warnings in generated output.
 
 **WIDTH-1: Literals.**
-- (MUST) Use `'0` / `'1` for all-zeros / all-ones at any width [`u_ones`, `u_is_max`].
-  `'hFFFF_FFFF` is wrong above 32 bits.
+- (MUST) Use `'0` for all-zeros at any width [`u_is_zero`].
+- (MUST) Use concatenation and replication to represent all ones of a given width [`u_ones`]
 - (MUST) Use only sized literals in concatenations and replications: `{a[W-2:0], 1'b0}`.
-- (MUST) Cast integer parameters, and any constant wider than 32 bits, to the width they're
-  used at [`u_lim`, `u_at_lim`].
+- (MUST) Cast integer parameters to the width they're used at [`u_lim`, `u_at_lim`].
 - (MUST) In signed expressions, use signed literals (`'sd3`), never `'d3` [`s_sub_lit`,
   `s_is_neg`]. An unsigned literal makes the whole expression unsigned, so `sa < 'd0` is
   always false.
-- (SHOULD) Prefer based literals (`'d1`, `'sd3`) to bare decimals [`u_inc`, `u_mul_lit`,
-  `u_onehot`]. They state intent and signedness. An unsized one needs no size when its value
-  fits in 32 bits: the expression's context extends it.
+- (MUST) Use based literals (`'d1`, `'sd3`) instead of bare decimals [`u_inc`, `u_mul_lit`,
+  `u_onehot`]. They state intent and signedness.
+- (MUST) Never use `'1` which represents 'all ones' even though it appears to be the bare
+  decimal equivalent to `'d1`.
+- (SHOULD) Specify the width of literals/constants even if they are less than 32 bits.
 
-**WIDTH-2 (MUST): Let the target hold the result's natural growth.** An add grows by one bit
-and a multiply by the sum of its operand widths. A target that wide keeps every bit, with no
-casts [`u_add_full`, `s_add_full`, `u_mul_full`, `s_mul_full`, `u_mul_narrow`]. A target of
-the operand width wraps, which is fine when you want wrap-around [`u_add_wrap`, `u_mul_lo`,
-`s_add_wrap`]. A left shift has no natural growth. For a lossless shift, cast the operand to
-the target width first [`u_shl_full`, `s_sla_full`].
+**WIDTH-2 (MUST): Let the target hold the result's natural growth; make exceptions obvious.**
+Addition grows by one bit and multiply by the sum of its operand widths. Ensure that the target
+is wide enough to hold that result [`u_add_full`, `s_add_full`, `u_mul_full`, `s_mul_full`, `u_mul_narrow`].
+If/when the intent is for the target to be wider or narrower than the result, make it obvious
+via a width cast [`u_add_wrap`, `u_mul_lo`, `s_add_wrap`]. A left shift has no natural growth.
+For a lossless shift, cast the operand to the target width first [`u_shl_full`, `s_sla_full`].
 
 **WIDTH-3 (MUST): Cast a narrower operand to the common width.** `W'(x)` extends with `x`'s
 own signedness: zero for unsigned, sign for signed [`u_add_narrow`, `s_add_narrow`, `u_zext`,
-`s_sext`]. Never add or remove signedness around an extension. `W'($unsigned(sc))`
-zero-extends a negative value, and lint is clean.
+`s_sext`]. Never add or remove signedness around an extension: `W'($unsigned(sc))`
+zero-extends a negative value (wrong), and lint is clean.
 
-**WIDTH-4 (MUST): Convert unsigned to signed with `$signed({1'b0, x})`.** Never use
-`$signed(x)`: it turns a large unsigned value negative. Never mix the two signednesses without
-converting first: `sa * b` is computed unsigned, and lint is clean [`s_add_mixed`,
-`s_mul_mixed`, `s_from_u`].
+**WIDTH-4 (MUST): Convert unsigned to signed with `$signed({1'b0, x})`.** Note the width growth
+by one bit [`s_add_mixed`, `s_mul_mixed`, `s_from_u`]. Never use `$signed(x)`: it turns a large
+unsigned value negative. Never mix the two signednesses without converting first: `sa * b` is
+computed unsigned, and lint is clean.
 
 **WIDTH-5 (MUST): Use `>>` for unsigned values and `>>>` for signed.** `>>>` is an arithmetic
-shift only when its operand is signed. `sa >> S` and `$unsigned(sa) >>> sh` both lint clean
-and drop the sign [`s_sra_fix`, `s_sra_var`, `u_shr_fix`, `u_shr_var`].
+shift only when its operand is signed [`s_sra_fix`, `s_sra_var`, `u_shr_fix`, `u_shr_var`].
+Bad: `sa >> S` and `$unsigned(sa) >>> sh` both lint clean and drop the sign.
 
 **WIDTH-6 (MUST): Name an intermediate that needs more bits than the result.** An operation is
 only as wide as its context: the target, or its widest operand. In `(a + b) >> 1`, the sum is
 W bits and the carry is lost. A cast to the result width can't recover it:
-`W'((sa * sb) >>> F)` still loses the product's high bits. Compute the full-width value in a
+`W'((a + b) >> 1)` still drops the carry. Compute the full-width value in a
 named signal, then shift or slice it [`u_avg` uses `u_add_full`; `s_mul_q` uses `s_prod`].
 In a comparison, widening one operand widens the whole compare [`u_sum_gt`].
 
-**WIDTH-7 (MUST): Truncate explicitly.** Slice a signal [`u_trunc`]. Cast an expression,
-which can't be sliced [`u_trunc_sum`]. A slice is always unsigned; cast a signed value to
-keep it signed [`s_trunc`].
+**WIDTH-7 (MUST): Truncate with a slice, or with a cast for an expression or a signed result.**
+Slice a signal [`u_trunc`]. Cast an expression, which can't be sliced [`u_trunc_sum`]. A
+slice is always unsigned; cast a signed value to keep it signed [`s_trunc`].
 
-**WIDTH-8 (SHOULD): Make widths TSSV parameters, computed in TypeScript and emitted as
-numbers.** Do every width calculation in the module class, for example with
+**WIDTH-8 (SHOULD): Make widths TSSV parameters, computed in TypeScript and emitted as literals.**
+Do every width calculation in the module class, for example with
 `this.bitWidth()` or `Math.ceil(Math.log2(depth))`, and interpolate the result. Don't
 hand-compute widths in SV strings. Each set of parameter values then gets its own module,
 named after those values (`<Class>_<values>`), and the generated RTL shows every signal's
@@ -661,10 +669,9 @@ These add to the naming conventions in `AGENTS.md`.
 **NAME-1 (SHOULD): Use the standard suffixes:**
 - `_q` is a register's output; `addRegister` already uses it.
 - `_nxt` is a register's next-state value.
-- `_n` marks an active-low signal.
-
-Prefer `rst_n` for new code. Some existing modules use `rst_b`. Don't rename existing
-ports just to follow this rule.
+- `_n` or `_b` mark an active-low signal.
+  - Prefer `_n` for new code. Some existing modules use `_b` (e.g. `rst_b`).
+  Don't rename existing ports just to follow this rule.
 
 **NAME-2 (SHOULD): Do structural generation in TypeScript.**
 Write loops over ports, lanes and layers as TS loops that emit clean SV. Don't build SV
