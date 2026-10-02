@@ -1,0 +1,127 @@
+name: ci-image
+
+# Builds the CI toolchain image (ci/image/) and publishes it to GHCR as
+# ghcr.io/typescriptsystemverilog/tssv-ci:<ci/image/VERSION>.
+#
+# Every run checks the Dockerfile's Verilator/Verible pins against README.md.
+# What happens next depends on whether ci/image/VERSION is already published
+# and whether the change touched the image's inputs (Dockerfile or VERSION):
+#
+#   VERSION unpublished            -> build, smoke test, and (push to main
+#                                     only) publish. PRs never push.
+#   published, inputs unchanged    -> no build; smoke test the published tag
+#                                     (README, smoke test or workflow edits).
+#   published, inputs changed      -> fail: bump VERSION.
+#
+# So tags are immutable by policy: changing the image means bumping VERSION,
+# and a Dockerfile edit without a bump fails on its PR rather than silently
+# changing what an existing tag contains. There is no scheduled rebuild.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ci/image/**'
+      - 'README.md'
+      - '.github/workflows/ci-image.yml'
+  pull_request:
+    paths:
+      - 'ci/image/**'
+      - 'README.md'
+      - '.github/workflows/ci-image.yml'
+
+concurrency:
+  group: ci-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/typescriptsystemverilog/tssv-ci
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # for the changed-inputs diff below
+
+      # README.md is in the path filters for this: a README pin bump without a
+      # matching Dockerfile change (or vice versa) fails here.
+      - name: Check pins match README
+        run: ci/image/check-pins.sh
+
+      - name: Read version and pins
+        id: meta
+        run: |
+          version=$(tr -d '[:space:]' < ci/image/VERSION)
+          [[ "$version" =~ ^v[0-9]+$ ]] || { echo "::error::ci/image/VERSION must be vN, got '$version'"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "verilator=$(sed -n -E 's/^ARG VERILATOR_VERSION=(.+)$/\1/p' ci/image/Dockerfile)" >> "$GITHUB_OUTPUT"
+          echo "verible=$(sed -n -E 's/^ARG VERIBLE_VERSION=(.+)$/\1/p' ci/image/Dockerfile)" >> "$GITHUB_OUTPUT"
+
+      # GHCR accepts the base64 GITHUB_TOKEN as a registry bearer token. 404
+      # means the tag (or the whole package, before the first publish) doesn't
+      # exist yet; anything other than 200/404 is an error, not "free".
+      - name: Decide build or reuse
+        id: plan
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          repo=${IMAGE#ghcr.io/}
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $(printf %s "$TOKEN" | base64 -w0)" \
+            -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json' \
+            "https://ghcr.io/v2/${repo}/manifests/${VERSION}")
+          case "$code" in
+            404) echo "$IMAGE:$VERSION is not published yet: building"
+                 echo "build=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+            200) ;;
+            *)   echo "::error::unexpected HTTP $code checking $IMAGE:$VERSION"; exit 1 ;;
+          esac
+          changed=$(git diff --name-only "$BASE" HEAD -- ci/image/Dockerfile ci/image/VERSION)
+          if [ -n "$changed" ]; then
+            echo "::error::$IMAGE:$VERSION is already published, but this change touches: $changed. Bump ci/image/VERSION to change the image."
+            exit 1
+          fi
+          echo "$IMAGE:$VERSION is published and its inputs are unchanged: smoke testing the published image"
+          echo "build=false" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.plan.outputs.build == 'true'
+
+      # load: true puts the image in the local daemon so the smoke test runs
+      # against exactly what gets pushed below.
+      - name: Build
+        if: steps.plan.outputs.build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ci/image
+          load: true
+          tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Without a local build, docker run pulls the published tag.
+      - name: Smoke test
+        run: |
+          docker run --rm \
+            -e VERILATOR_VERSION='${{ steps.meta.outputs.verilator }}' \
+            -e VERIBLE_VERSION='${{ steps.meta.outputs.verible }}' \
+            -v "$PWD/ci/image/smoke:/smoke:ro" \
+            "$IMAGE:${{ steps.meta.outputs.version }}" /smoke/run.sh
+          docker image ls "$IMAGE"
+
+      - name: Publish
+        if: steps.plan.outputs.build == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker push "$IMAGE:${{ steps.meta.outputs.version }}"
