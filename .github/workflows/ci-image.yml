@@ -84,7 +84,7 @@ jobs:
             200) ;;
             *)   echo "::error::unexpected HTTP $code checking $IMAGE:$VERSION"; exit 1 ;;
           esac
-          changed=$(git diff --name-only "$BASE" HEAD -- ci/image/Dockerfile ci/image/VERSION)
+          changed=$(git diff --name-only "$BASE" HEAD -- ci/image/Dockerfile ci/image/VERSION | paste -sd " ")
           if [ -n "$changed" ]; then
             echo "::error::$IMAGE:$VERSION is already published, but this change touches: $changed. Bump ci/image/VERSION to change the image."
             exit 1
