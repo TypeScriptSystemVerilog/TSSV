@@ -45,6 +45,11 @@ This section is the source of truth for setting up a machine to use or develop T
 the pinned Verible and Verilator versions. Projects built on TSSV (for example `tssv-noc`) point
 here for these steps and document only what they add.
 
+The CI toolchain image in `ci/image/` (`ghcr.io/typescriptsystemverilog/tssv-ci`, used by
+`tssv-noc`'s CI) pins the same Verilator and Verible versions. When you move either pin here,
+change `ci/image/Dockerfile` to match and bump `ci/image/VERSION` in the same PR. The
+`ci-image` workflow fails if the pins differ, and publishes the new tag on merge.
+
 #### 1. Get an AI coding agent working first (by hand)
 
 The fastest way to set up is to install an AI coding agent first, then have it do the rest. It

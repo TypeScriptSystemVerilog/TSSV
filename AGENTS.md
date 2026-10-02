@@ -18,7 +18,8 @@ docs/                 Auto-generated TypeDoc HTML — never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
 claude-info/          Worked examples and specs for AI-assisted development
 doc/process/          Repo process specs (issue-workflow.md)
-.github/              Issue forms, PR template, commit template
+ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
+.github/              Issue forms, PR template, commit template, workflows (ci-image.yml)
 ```
 
 ## Key Documents
