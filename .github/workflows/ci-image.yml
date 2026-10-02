@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/typescriptsystemverilog/tssv-ci
+  IMAGE: ghcr.io/super-linter/super-linter
 
 jobs:
   image:
