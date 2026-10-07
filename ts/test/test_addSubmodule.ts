@@ -2,6 +2,7 @@ import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 // import * as fs from 'fs'
 import { FIR } from 'tssv/lib/modules/FIR'
+import { Memory } from 'tssv/lib/interfaces/Memory'
 
 try {
   mkdirSync('sv-examples/Core/addSubmodule', { recursive: true })
@@ -300,4 +301,47 @@ try {
   writeFileSync('sv-examples/Core/addSubmodule/subI_tb.sv', TB)
 } catch (err) {
   console.error(err)
+}
+
+// interface port binding: the parent instance must be the same SV interface type
+// (class name plus parameter values) as the child's port, and must exist
+{
+  const memChild = (dataWidth: 32 | 64): Module => {
+    const m = new Module({ name: `memChild_${dataWidth}` }, {}, {}, '')
+    m.addInterface('mem', new Memory({ DATA_WIDTH: dataWidth }, 'inward'))
+    return m
+  }
+  const expectThrow = (what: string, fn: () => void, match: string): void => {
+    try {
+      fn()
+    } catch (e) {
+      const msg = (e as Error).message
+      if (!msg.includes(match)) throw Error(`${what}: threw "${msg}", expected it to mention "${match}"`)
+      console.log(`PASS: ${what}`)
+      return
+    }
+    throw Error(`${what}: did not throw`)
+  }
+
+  const okParent = new Module({ name: 'ifBindOk' }, {}, {}, '')
+  okParent.addInterface('bus', new Memory({ DATA_WIDTH: 32 }))
+  okParent.addSubmodule('u', memChild(32), { mem: 'bus' }, false)
+  console.log('PASS: matching interface type binds')
+
+  const badParent = new Module({ name: 'ifBindWidth' }, {}, {}, '')
+  badParent.addInterface('bus', new Memory({ DATA_WIDTH: 64 }))
+  expectThrow('mismatched interface parameters', () => {
+    badParent.addSubmodule('u', memChild(32), { mem: 'bus' }, false)
+  }, 'interface type mismatch on memChild_32: memory_64_32 vs memory_32_32')
+
+  const missingParent = new Module({ name: 'ifBindMissing' }, {}, {}, '')
+  expectThrow('binding to an interface that does not exist', () => {
+    missingParent.addSubmodule('u', memChild(32), { mem: 'nope' }, false)
+  }, "mem: interface 'nope' not found in ifBindMissing")
+
+  const roleParent = new Module({ name: 'ifBindRole' }, {}, {}, '')
+  roleParent.addInterface('bus', new Memory({ DATA_WIDTH: 32 }, 'outward'))
+  expectThrow('role mismatch is still checked', () => {
+    roleParent.addSubmodule('u', memChild(32), { mem: 'bus' }, false)
+  }, 'interface role mismatch')
 }
