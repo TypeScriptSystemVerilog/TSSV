@@ -473,7 +473,15 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
         }
         if (!(this.bindingRules[thisPort.direction].includes(thisSig.type || 'logic'))) throw Error(`illegal binding ${port}(${bindings[port].toString()})`)
       } else if (thisInterface && (typeof port === 'string')) {
-        const thisInt = this.interfaces[bindings[port].toString()]
+        const boundName = bindings[port].toString()
+        const thisInt = this.interfaces[boundName]
+        if (thisInt === undefined) throw Error(`${port}: interface '${boundName}' not found in ${this.name}`)
+        // An interface's SV type is its name plus its parameter values, so two instances of the
+        // same class with different parameters (widths, or a parameter that selects the signal
+        // set) are different SV types and cannot be connected.
+        if (thisInt.interfaceName() !== thisInterface.interfaceName()) {
+          throw Error(`${port} interface type mismatch on ${submodule.name}: ${thisInt.interfaceName()} vs ${thisInterface.interfaceName()}`)
+        }
         if (thisInt.role) {
           if (thisInt.role !== thisInterface.role) throw Error(`${port} interface role mismatch on ${submodule.name}`)
         }

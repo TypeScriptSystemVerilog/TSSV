@@ -91,5 +91,23 @@ check(
   result4 === SAMPLE_SV
 )
 
+// --- Test 5: timeout, failOnFormatError=true → the error names the timeout ---
+let timeoutMsg = ''
+try {
+  runVerible(SAMPLE_SV, {
+    veriblePath: process.execPath,
+    veribleFlags: ['-e', 'setTimeout(() => {}, 5000)'],
+    formatTimeoutMs: 100,
+    failOnFormatError: true
+  })
+} catch (e) {
+  timeoutMsg = (e as Error).message
+}
+check(
+  'timeout with failOnFormatError=true reports the timeout',
+  timeoutMsg.includes('timeout:   100 ms (exceeded'),
+  `got: ${JSON.stringify(timeoutMsg)}`
+)
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

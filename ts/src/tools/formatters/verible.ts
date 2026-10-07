@@ -10,7 +10,8 @@ export interface VeribleOpts {
 export function runVerible (sv: string, opts: VeribleOpts): string {
   const binary = opts.veriblePath ?? 'verible-verilog-format'
   const args = [...(opts.veribleFlags ?? []), '-']
-  const timeout = opts.formatTimeoutMs ?? 5000
+  // Large generated designs (tens of thousands of lines) take several seconds to format.
+  const timeout = opts.formatTimeoutMs ?? 60000
 
   const result = spawnSync(binary, args, {
     input: sv,
@@ -28,6 +29,7 @@ export function runVerible (sv: string, opts: VeribleOpts): string {
     `verible-verilog-format failed`,
     `  binary:    ${binary}`,
     `  exit code: ${result.status ?? '(none)'}`,
+    `  timeout:   ${timeout} ms${(result.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT' ? ' (exceeded; raise formatTimeoutMs via Module.setFormatterConfig)' : ''}`,
     result.error ? `  error:     ${result.error.message}` : null,
     result.stderr ? `  stderr:    ${result.stderr.trim()}` : null
   ].filter(Boolean).join('\n')

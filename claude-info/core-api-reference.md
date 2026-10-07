@@ -310,6 +310,12 @@ this.addSubmodule(
 
 **`createMissing=true`**: for any unbound port not found in parent, creates a new signal or interface — effectively promoting the submodule's bus interface to the parent's ports. Required when a submodule has an unbound `Interface` (e.g. Memory bus).
 
+**Interface bindings** are checked at elaboration:
+
+- The bound name must be an interface of the parent (`addInterface`), or `addSubmodule` throws `<port>: interface '<name>' not found in <parent>`.
+- Parent instance and child port must be the same SV interface type: `interfaceName()`, the class name plus its parameter values, must match. Two `Memory` instances with different `DATA_WIDTH` are different types and throw `<port> interface type mismatch on <submodule>: <parent type> vs <child type>`.
+- If the parent's interface has a role (it is itself a port), the child's role must be the same. A role-less parent instance (a local bundle) binds to any role.
+
 ### `addSystemVerilogSubmodule(instanceName, svFilePath, params, bindings, autoBind?): void`
 
 Includes a pre-existing `.sv` file as a black-box submodule. `svFilePath` is included verbatim; `params` sets Verilog `#(...)` parameter overrides; `bindings` maps ports to parent signals.
