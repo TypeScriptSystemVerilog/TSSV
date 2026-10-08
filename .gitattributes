@@ -11,3 +11,6 @@ sv-examples/**/*.sv linguist-generated=true
 
 # Generated register block TypeScript (produced by gen_regblock.sh from YAML)
 ts/**/regs-*.ts linguist-generated=true
+
+# Generated API reference (npm run docs from the core's JSDoc)
+doc/reference/** linguist-generated=true
