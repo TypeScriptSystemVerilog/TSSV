@@ -1,7 +1,7 @@
 # Module Specification: `SFIFO`
 
 > **Source:** `ts/src/modules/SFIFO/`
-> **Status:** Draft
+> **Status:** Approved
 
 ---
 
@@ -88,7 +88,7 @@ Push and pop requests come from different ports depending on `simultPushPop`:
 7. With `simultPushPop = false`, at most one operation occurs per cycle, so push and pop can never collide. Each SRAM access (a push write or a pop prefetch read) uses the single port.
 8. `pop_data` is undefined while `empty` is asserted. Consumers must qualify `pop_data` with `!empty`.
 
-> **Implementation note:** `SRAM` has a registered (1-cycle) read, so show-ahead requires a prefetch. On a pop, the SRAM must be read at the *next* head address so the new head is ready in the following cycle; a push into an empty FIFO, or into a FIFO whose only entry is being popped, must bypass the SRAM directly to `pop_data`. `pop_data` must hold its value across cycles with no pop — including single-port push cycles, where the SRAM port is busy writing.
+See [Internal Architecture](#internal-architecture) for how show-ahead is built on an SRAM with a registered read.
 
 ### Almost-full / almost-empty
 
@@ -204,6 +204,32 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 ---
 
+## Internal Architecture
+
+`SRAM` has a registered (1-cycle) read, so the head can't be read on demand. Instead, the entry behind the head is read on the pop that exposes it, and a push that becomes the head at once skips the SRAM.
+
+- **Pointers and count:** `wr_addr_q` (next write), `rd_addr_q` (the head) and `fifo_cnt_q`, each computed in an `always_comb` and registered. Every push writes the SRAM, including a push that also goes to `bypass_q`, so the pointers never depend on where the head is shown from.
+- **Prefetch:** on a pop with more than one entry, `sram_re` reads `rd_addr_inc`, the entry behind the head. Those entries were written on earlier edges, so the read never hits the address being written. While `sram_re` is low, the SRAM holds its read data, which keeps the head steady across idle and push-only cycles.
+- **Bypass:** `bypass_q` captures `push_data` when the push becomes the head at once: a push into an empty FIFO, or (`simultPushPop = true`) a push alongside the pop of the only entry.
+- **Head select:** `head_from_bypass_q` records which source holds the head. `pop_data = head_from_bypass_q ? bypass_q : sram_rdata`.
+- **SRAM:** `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop.
+- **`depth = 1`:** the only entry is always the head, so there is no SRAM and no pointers; `pop_data` is `bypass_q`.
+
+### Key signals
+
+| Signal | Width | Description |
+|---|---|---|
+| `push_fire` / `pop_fire` | 1 | Push / pop request accepted this cycle (`!full` / `!empty`) |
+| `fifo_cnt_q` | `ceil(log2(depth+1))` | Entries held; drives `curr_depth`, `empty`, `full` and the almost flags |
+| `wr_addr_q`, `rd_addr_q` | `ceil(log2(depth))` | SRAM address of the next write and of the head |
+| `rd_addr_inc` | `ceil(log2(depth))` | `rd_addr_q + 1`, wrapping at `depth`: the prefetch address |
+| `sram_re` | 1 | `pop_fire && fifo_cnt_q > 1`: prefetch the next head |
+| `load_bypass` | 1 | The pushed word becomes the head on this edge |
+| `bypass_q` | `dataWidth` | Last pushed word that became the head directly; not reset |
+| `head_from_bypass_q` | 1 | The head is in `bypass_q` (1) or on the SRAM read data (0) |
+
+---
+
 ## Dependencies
 
 | Import | Source |
@@ -215,13 +241,34 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 ## Test Plan
 
-| Test case | Config | Notes |
+**Test script:** `ts/test/modules/test_SFIFO.ts` generates every combination of `simultPushPop`, `inclAlmostFull` and `inclAlmostEmpty` (at `depth = 5`), checks each one's ports against the IO tables above, and generates the testbench configurations below.
+**Testbench:** `verilatorTB/tb_SFIFO.sv`, built once per configuration. Every cycle, a queue reference model checks `empty`, `full`, `curr_depth`, the almost flags and, while not empty, `pop_data`.
+**Output:** `sv-examples/SFIFO/<module>/` and `sv-examples/SFIFO/tb/`
+
+| Configuration | `depth` | `simultPushPop` | Almost flags |
+|---|---|---|---|
+| `d8_dual_flags` | 8 | `true` | both |
+| `d4_dual_flags` | 4 | `true` | both |
+| `d4_single` | 4 | `false` | none |
+| `d5_single_flags` | 5 | `false` | both |
+| `d1_dual` | 1 | `true` | none |
+
+| Test case | Configurations | Notes |
 |---|---|---|
-| Show-ahead | `depth=8, simultPushPop=true` | Push 1 word, verify it is on `pop_data` the cycle `empty` deasserts, with no `pop_en` |
-| Fill to full | `depth=8, simultPushPop=true` | Push 8 words, verify `full` |
-| Drain to empty | `depth=8, simultPushPop=true` | Pop 8 words, verify `empty` |
-| Simultaneous push/pop | `depth=4, simultPushPop=true` | Net depth unchanged |
-| Single-port interleave | `depth=4, simultPushPop=false` | Push/pop via `en`/`push1_pop0`; verify `pop_data` holds across push cycles and advances after each pop |
-| Almost-full threshold | `depth=8, inclAlmostFull=true, almost_full_depth=6` | `almost_full` asserts on the edge the count reaches 6 and deasserts when it drops to 5 |
-| Almost-empty threshold | `depth=8, inclAlmostEmpty=true, almost_empty_depth=2` | `almost_empty` asserted at reset, deasserts when the count reaches 3, reasserts when it drops to 2 |
-| Threshold boundaries | `depth=4`, both flags enabled | `almost_full_depth=depth` tracks `full`; `almost_empty_depth=0` tracks `empty` |
+| Show-ahead | all | Push 1 word; it is on `pop_data` the cycle `empty` deasserts, with no pop |
+| Fill to full | all | Push `depth` words, verify `full`; one more push is dropped |
+| Drain to empty | all | Pop `depth` words in order, verify `empty`; one more pop is ignored |
+| Simultaneous push/pop | `simultPushPop = true` | At count 0 (pop ignored), 1 (pushed word becomes the head), `depth/2` (count unchanged) and `depth` (push ignored); then `4 × depth` back-to-back cycles of both |
+| Single-port interleave | `d4_single` | The single-port timing diagram |
+| Almost-full / almost-empty thresholds | with almost flags | `almost_full_depth = depth - 2`, `almost_empty_depth = 2`, fill then drain |
+| Threshold boundaries | with almost flags | `almost_full_depth = depth` tracks `full`; `almost_empty_depth = 0` tracks `empty` |
+| Threshold sweep | with almost flags | Every representable threshold, including values above `depth`, fill then drain |
+| Timing diagrams | `d4_dual_flags`, `d4_single` | Each diagram in [Timing](#timing) replays cycle for cycle. `test_SFIFO.ts` builds the vectors from the diagrams' WaveDrom JSON, so a diagram change is tested without editing the testbench |
+| Random | all | 3000 cycles of random pushes and pops in fill-biased, drain-biased and balanced phases, with thresholds changed every 50 cycles |
+
+### Simulation
+
+```bash
+make -C verilatorTB sfifo_sim    # generates the SV, then builds and runs each configuration
+# waveform per configuration: verilatorTB/obj_dir/sfifo_<config>/tb_SFIFO_<config>.fst
+```
