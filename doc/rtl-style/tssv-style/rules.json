@@ -1,0 +1,47 @@
+{
+  "PARAM-1": { "checks": ["example"] },
+  "PARAM-2": { "checks": ["example"] },
+  "PARAM-3": { "checks": ["example", "builder"] },
+  "PARAM-4": { "checks": ["example", "repo"] },
+  "PARAM-5": { "checks": ["example"] },
+  "MOD-1": { "checks": ["repo"] },
+  "MOD-2": {
+    "checks": ["example", "review"],
+    "reason": "The example shows the order; whether a constructor follows it is for review."
+  },
+  "MOD-3": { "checks": ["example", "builder"] },
+  "MOD-4": { "checks": ["example", "builder"] },
+  "MOD-5": {
+    "checks": ["example", "review"],
+    "reason": "Whether a group of signals is a bus is a design judgment."
+  },
+  "MOD-6": { "checks": ["example"] },
+  "BUILD-1": {
+    "checks": ["review"],
+    "reason": "Whether a builder fits the logic is a design judgment."
+  },
+  "BUILD-2": { "checks": ["example", "builder"] },
+  "BUILD-3": { "checks": ["example", "builder"] },
+  "BUILD-4": { "checks": ["example", "builder"] },
+  "BUILD-5": { "checks": ["example", "builder"] },
+  "BUILD-6": {
+    "checks": ["example", "review"],
+    "reason": "Nothing yet flags a generate loop inside a body string."
+  },
+  "BUILD-7": { "checks": ["example", "repo"] },
+  "IDENT-1": { "checks": ["example", "builder"] },
+  "IDENT-2": {
+    "checks": ["review"],
+    "reason": "No automated check yet for identifier case."
+  },
+  "TEST-1": {
+    "checks": ["example", "repo"],
+    "known": [
+      { "match": "APB_to_Memory", "why": "exercised only through RegisterBlock (ts/test/test_APB_Registers.ts); it has no script of its own", "issue": "#59" }
+    ]
+  },
+  "TEST-2": {
+    "checks": ["review"],
+    "reason": "Which configurations a module's test needs is a design judgment."
+  }
+}

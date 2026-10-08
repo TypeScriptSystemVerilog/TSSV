@@ -44,7 +44,9 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `doc/templates/module-spec-template.md` | The template for a new module's spec |
 | `doc/tutorials/fir.md` | FIR walkthrough: every construct in the module and its testbench, then compile, generate and simulate |
 | `doc/tools/cpu_convert.md` | `cpu_convert`: extracting SRAMs from third-party RTL into TSSV SRAM libraries |
-| `doc/rtl-style/README.md` | Index of the two style guides (emitted SV; TypeScript) and their checks; the SV rules are in `doc/rtl-style/sv-style/sv-coding-style.md` |
+| `doc/rtl-style/README.md` | Index of the two style guides and their checks (`npm run check:rtl-style`) |
+| `doc/rtl-style/sv-style/sv-coding-style.md` | SV guide: rules for the SystemVerilog a module emits (`COMB`, `SEQ`, `RST`, `LATCH`, `WIDTH`, `SYN`, `LINT` rule IDs) |
+| `doc/rtl-style/tssv-style/tssv-coding-style.md` | TSSV guide: rules for the TypeScript that generates it: parameters and widths, module structure, builder choice, naming, tests (`PARAM`, `MOD`, `BUILD`, `IDENT`, `TEST` rule IDs) |
 | `doc/ideas/body-formatting-spike-spec.md`, `doc/ideas/body-formatting-spike-implementation-plan.md` | Why and how `addBody()` and the Verible formatter were added (implemented) |
 | `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating |
 | `README.md` | Machine setup (agent-first; pinned Node/Verible/Verilator), quick-start demo, roadmap |
@@ -102,11 +104,11 @@ is the authoritative spec; this section is the operating procedure an agent foll
 
 ## Conventions
 
-- **Naming**: module classes PascalCase; signals and parameters camelCase; interface files follow exact AMBA spec naming (e.g. `AXI4-Lite.ts`)
+- **Naming**: module classes PascalCase; TypeScript variables and parameters camelCase; SV ports and signals lower snake_case (TSSV guide IDENT-1, IDENT-2); interface files follow exact AMBA spec naming (e.g. `AXI4-Lite.ts`)
 - **Generated files**: `sv-examples/`, `docs/`, and `out/` must never be manually edited
 - **New module pattern**: see "Adding a New Module" under Core Architecture below
 - **Docs**: every doc lives under `doc/` and is listed in Key Documents above; no `.md` files under `ts/`. A module's spec is `doc/modules/<Module>/<Module>-spec.md`
-- **RTL coding style**: the SV a module emits — especially `addCombAlways()`/`addSequentialAlways()`/`addLatchAlways()` bodies — follows `doc/rtl-style/sv-style/sv-coding-style.md`; cite rule IDs (e.g. `COMB-2`) in reviews and lint waivers
+- **RTL coding style**: a module follows both style guides. Its TypeScript follows the TSSV guide, `doc/rtl-style/tssv-style/tssv-coding-style.md`. The SV it emits, especially `addCombAlways()`/`addSequentialAlways()`/`addLatchAlways()` bodies, follows the SV guide, `doc/rtl-style/sv-style/sv-coding-style.md`. Cite rule IDs (e.g. `BUILD-4`, `COMB-2`) in reviews and lint waivers
 - **Code style**: `eslint-config-love` (strict TS). Notable disabled rules: `strict-boolean-expressions`, `prefer-nullish-coalescing`, `naming-convention`. Run `npx eslint .` before committing
 - **TypeScript**: strict mode, and `noUncheckedIndexedAccess` is on, so array accesses return `T | undefined`; handle accordingly. Module system `NodeNext` (ESM), target ES2020
 
@@ -147,7 +149,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 4. In the constructor, build logic with `add*()` methods
 5. Add a test in `ts/test/test_<Module>.ts` that instantiates the class and writes its SV under `sv-examples/<Module>/<instance>/`
 6. `npx tsc && node out/test/test_<Module>.js` to generate and inspect the SV output
-7. Follow `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall`
+7. Follow `doc/rtl-style/tssv-style/tssv-coding-style.md` for the TypeScript and `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall`
 8. Write its spec from `doc/templates/module-spec-template.md` at `doc/modules/<Module>/<Module>-spec.md`, and add `@see doc/modules/<Module>/<Module>-spec.md` to the class's JSDoc
 
 ## Current Implementation State
@@ -166,7 +168,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 
 ## Common Tasks — Where to Start
 
-- **Adding a new module**: read `ts/src/core/Base.ts` (builder API), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
+- **Adding a new module**: read `ts/src/core/Base.ts` (builder API), `doc/rtl-style/tssv-style/tssv-coding-style.md` (rules for the TypeScript), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
 - **Adding a new interface**: read `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` for the signal-bundle and modport pattern
 - **Using the register helpers**: read `ts/src/core/Registers.ts` and the `RegisterBlock` section of `doc/framework/core-api-reference.md`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`

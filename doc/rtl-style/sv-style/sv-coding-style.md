@@ -5,12 +5,12 @@ generates, and most of all to the raw SV strings passed to `addCombAlways()`,
 `addSequentialAlways()`, `addLatchAlways()` and the constructor `body`. The builders
 type-check signal names, but not those strings.
 
-Rules for the TypeScript that generates the SV will live in the TSSV coding guide,
-[`../tssv-style/`](../tssv-style/) ([#58](https://github.com/TypeScriptSystemVerilog/TSSV/issues/58)).
-Until it exists, the builder rules here (COMB-7, COMB-8, SEQ-3, LATCH-1, RST-1, NAME-1 to
-NAME-3, WIDTH-8) stand in for it.
+Rules for the TypeScript that generates the SV, such as which builder to use and how to
+compute widths, are in the TSSV coding guide,
+[`../tssv-style/tssv-coding-style.md`](../tssv-style/tssv-coding-style.md). A module follows
+both guides. Rules that moved there keep a *moved* note here, so their old IDs still resolve.
 
-Every rule has a stable ID (`COMB-1`, `SEQ-3`, …). Cite the ID in reviews, commit messages
+Every rule has a stable ID (`COMB-1`, `SEQ-5`, …). Cite the ID in reviews, commit messages
 and lint waivers. Never renumber a rule: if one is retired, mark it *retired* and leave
 its number in place.
 
@@ -269,41 +269,9 @@ always_comb begin : calc
 end
 ```
 
-**COMB-7 (MUST): Omit `inputs` when calling `addCombAlways`.**
-Without `inputs`, the builder emits `always_comb`. With `inputs`, it emits a legacy
-`always @( a or b )`, and every missing input becomes a simulation/synthesis mismatch.
-Don't write the `always` keyword in the body yourself either.
+**COMB-7** *(moved)*: now BUILD-4 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
-```ts
-// Don't: emits `always @( req )`; any signal read but not listed is missed in simulation
-this.addCombAlways({ inputs: ['req'], outputs: ['grant'] }, body)
-
-// Do: emits `always_comb`
-this.addCombAlways({ outputs: ['grant'] }, `
-  begin : arb
-    grant = '0;
-    if (req[0]) grant = 2'b01;
-    else if (req[1]) grant = 2'b10;
-  end
-`)
-```
-
-**COMB-8 (SHOULD): Prefer a builder or `assign` over an always block for simple logic.**
-A one-line expression belongs in `addAssign`. A selector belongs in `addMux`, arithmetic
-in `addAdder`/`addMultiplier`. Reserve `addCombAlways` for logic that needs procedural
-code.
-
-```ts
-// Don't
-this.addCombAlways({ outputs: ['valid_out'] }, `
-  begin : vld
-    valid_out = valid_in & ~stall;
-  end
-`)
-
-// Do
-this.addAssign({ in: new TSSV.Expr('valid_in & ~stall'), out: 'valid_out' })
-```
+**COMB-8** *(moved)*: now BUILD-2 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 **COMB-9 (SHOULD): Name every always block** (`begin : flit_commit`). Lint messages,
 waveforms and coverage reports then point at a meaningful scope.
@@ -441,25 +409,7 @@ Move the logic out to a separate `always_comb` with `foo_nxt` signals when:
   duplicate the logic.
 - **You need the value in a Verilator waveform** (`--trace-fst`) while debugging.
 
-**SEQ-3 (SHOULD): Use `addRegister` for plain flip-flops.**
-It checks that `clk` is marked `isClock` and `reset` is marked `isReset`. It emits the
-correct sensitivity list and reset condition for the reset kind, and groups registers
-that share clock, reset and enable into one block. It names `q` as `<d>_q` when `d` is a
-simple signal. Use `addSequentialAlways` only when the register needs logic that
-`addRegister` can't express.
-
-```ts
-// Don't: hand-written flop the builder already covers
-this.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['cnt_q'] }, `
-  begin
-    if (!rst_n) cnt_q <= '0;
-    else if (en) cnt_q <= cnt_nxt;
-  end
-`)
-
-// Do
-this.addRegister({ d: 'cnt_nxt', clk: 'clk', reset: 'rst_n', en: 'en', q: 'cnt_q' })
-```
+**SEQ-3** *(moved)*: now BUILD-3 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 **SEQ-4 (MUST): Use one clock per sequential block, and one edge.**
 
@@ -525,14 +475,8 @@ always_ff @(posedge clk or negedge rst_n) begin : st_reg
 end
 ```
 
-In TSSV, leave the `always_ff` header out of the body passed to `addSequentialAlways`. The builder
-then writes the header itself, building the sensitivity list from the clock edge and reset
-kind of the declared `clk` and `reset` signals, so the list is always correct. If the body
-does contain `always_ff`, the builder uses the body as written and only checks that it
-mentions the clock edge (`posedge clk`) and, for an async reset, the reset edge
-(`or negedge rst_n`), throwing a "Sensitivity mismatch" error if either is missing. That
-check is loose: it doesn't catch an extra async-reset term on a block whose reset is
-synchronous.
+In TSSV, `addRegister` and `addSequentialAlways` build this list from the declared clock and
+reset, as long as the body leaves the header out (TSSV guide BUILD-4).
 
 **SEQ-6 (MUST): Reset values must be constants.** Don't reset a register to another
 signal's value.
@@ -568,9 +512,7 @@ end
 
 ## 3. Reset policy
 
-**RST-1 (SHOULD): Default to an active-low asynchronous reset** (`isReset: 'lowasync'`),
-named `rst_n`. This matches the existing modules. Use a different kind only when the
-target library or the surrounding design requires it.
+**RST-1** *(moved)*: now MOD-4 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 **RST-2 (MUST): Use one reset kind per module.** Don't mix sync and async resets, or
 active-high and active-low, inside a module.
@@ -582,12 +524,12 @@ written before it's read doesn't need a reset. Omitting it saves area and reset 
 **RST-4 (MUST): Never generate a reset in logic.** Don't use a combinational expression
 as a reset. Reset synchronizers live in a dedicated, reviewed module.
 
-## 4. Latches (`addLatchAlways`)
+## 4. Latches
 
-**LATCH-1 (MUST): Use a latch only by intent, and only through `addLatchAlways`.**
-It emits `always_latch`, so the intent is visible to tools and reviewers. An inferred
-latch anywhere else is a bug (COMB-1, COMB-2). Comment every intentional latch with the
-reason it's needed.
+This section's only rule moved to the TSSV guide. A latch inferred by accident is a bug (COMB-1,
+COMB-2).
+
+**LATCH-1** *(moved)*: now BUILD-5 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 ## 5. Widths and arithmetic
 
@@ -596,7 +538,7 @@ applied to width-parameterized code. The names in brackets below are outputs in 
 `npm run check:rtl-style` lints it and checks every output against exact integer arithmetic
 at widths from 8 to 64 bits, including non-powers of two. The examples use an SV parameter
 `W` so that one file can be checked at many widths. In TSSV code the preferred style is
-different (WIDTH-8): compute widths in TypeScript and emit them as numbers, so `(W+1)'(c)`
+different (TSSV guide PARAM-3): compute widths in TypeScript and emit them as numbers, so `(W+1)'(c)`
 becomes `${w + 1}'(c)` in the template and `17'(c)` in the SV. The rules are the same either
 way.
 
@@ -650,36 +592,17 @@ In a comparison, widening one operand widens the whole compare [`u_sum_gt`].
 Slice a signal [`u_trunc`]. Cast an expression, which can't be sliced [`u_trunc_sum`]. A
 slice is always unsigned; cast a signed value to keep it signed [`s_trunc`].
 
-**WIDTH-8 (SHOULD): Make widths TSSV parameters, computed in TypeScript and emitted as literals.**
-Do every width calculation in the module class, for example with
-`this.bitWidth()` or `Math.ceil(Math.log2(depth))`, and interpolate the result. Don't
-hand-compute widths in SV strings. Each set of parameter values then gets its own module,
-named after those values (`<Class>_<values>`), and the generated RTL shows every signal's
-width directly, so it can be read and reviewed without working out parameter expressions.
-
-Expose a width as an SV parameter only when the SV itself needs one, and then write width
-expressions in terms of it (`[W:0]`, `(W+S)'(a)`), never as numbers that silently assume one
-value. Whether TSSV should have a formal mechanism for exposing SV parameters is tracked in
-[#58](https://github.com/TypeScriptSystemVerilog/TSSV/issues/58).
+**WIDTH-8** *(moved)*: now PARAM-3 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 ## 6. Naming and structure
 
-These add to the naming conventions in `AGENTS.md`.
+This section's rules moved to the TSSV guide.
 
-**NAME-1 (SHOULD): Use the standard suffixes:**
-- `_q` is a register's output; `addRegister` already uses it.
-- `_nxt` is a register's next-state value.
-- `_n` or `_b` mark an active-low signal.
-  - Prefer `_n` for new code. Some existing modules use `_b` (e.g. `rst_b`).
-  Don't rename existing ports just to follow this rule.
+**NAME-1** *(moved)*: now IDENT-1 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
-**NAME-2 (SHOULD): Do structural generation in TypeScript.**
-Write loops over ports, lanes and layers as TS loops that emit clean SV. Don't build SV
-`generate` blocks inside template strings. TS loops type-check, and their output is
-easier to read and lint.
+**NAME-2** *(moved)*: now BUILD-6 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
-**NAME-3 (SHOULD): Use builder methods instead of raw `body` strings** wherever a builder
-exists. Raw SV strings are where these rules get broken.
+**NAME-3** *(moved)*: now BUILD-1 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 ## 7. Synthesizability
 
@@ -710,8 +633,7 @@ Every module's generated `.sv` must pass `verilator --lint-only -Wall` with zero
 on the pinned Verilator version, currently 5.052, built from source per `README.md`. Newer Verilator releases catch bugs that
 older ones accept (COMB-2 is one), so lint on the pin, not on a distro package.
 
-**LINT-2 (MUST): Every new module needs a `ts/test/` script** that generates its SV into
-`sv-examples/`. The generated output is the evidence for LINT-1.
+**LINT-2** *(moved)*: now TEST-1 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
 **LINT-3 (MUST): Scope every waiver as narrowly as possible, and justify it.**
 A waiver wraps only the offending line or block, cites the rule or explains why the
