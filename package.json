@@ -11,7 +11,7 @@
     "check:body": "bash scripts/check-body-appends.sh",
     "lint:sv": "bash scripts/lint-sv.sh",
     "lint:style-examples": "node doc/rtl-style/sv-style/tools/lint-style-examples.mjs",
-    "check:rtl-style": "node doc/rtl-style/sv-style/tools/check-rtl-style.mjs",
+    "check:rtl-style": "node doc/rtl-style/tools/check-rtl-style.mjs",
     "render:wavedrom": "node scripts/render-wavedrom.mjs",
     "check:wavedrom": "node scripts/render-wavedrom.mjs --check"
   },
