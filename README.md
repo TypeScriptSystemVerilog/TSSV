@@ -244,7 +244,7 @@ npx eslint .
 For linting in the VSCode GUI, install Microsoft's ESLint extension, v2.4.4 or later.
 
 ### Example TSSV Module
-A example of a simple FIR Filter TSSV Module can be found [here](https://github.com/TypeScriptSystemVerilog/TSSV/wiki/Simple-FIR-Filter-Example)
+A walkthrough of a simple FIR filter module, from the TypeScript through generated SystemVerilog to simulation, is in [`doc/tutorials/fir.md`](doc/tutorials/fir.md). [`AGENTS.md`](AGENTS.md) indexes the rest of the documentation.
 
 ### How to generate the TypeDoc documentation
 #### Generating
