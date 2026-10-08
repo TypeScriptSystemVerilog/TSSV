@@ -21,7 +21,8 @@ export default {
   plugin: [
     'typedoc-plugin-markdown',
     'typedoc-plugin-missing-exports',
-    'typedoc-plugin-no-inherit'
+    'typedoc-plugin-no-inherit',
+    './scripts/typedoc-wavedrom.mjs'
   ],
   readme: 'none',
   sort: ['source-order'],
@@ -44,8 +45,12 @@ export default {
   propertiesFormat: 'table',
   typeDeclarationFormat: 'table',
 
-  // @wavedrom holds a fenced json block; emit it as its own section.
-  blockTags: [...OptionDefaults.blockTags, '@wavedrom'],
+  // @wavedrom holds a label and a fenced json block. scripts/typedoc-wavedrom.mjs
+  // turns it into the form scripts/render-wavedrom.mjs renders to SVG, which
+  // `npm run docs` runs after TypeDoc.
+  // @noInheritDoc is typedoc-plugin-no-inherit's; registered so TypeDoc
+  // doesn't warn that it's unknown.
+  blockTags: [...OptionDefaults.blockTags, '@wavedrom', '@noInheritDoc'],
 
   // Warnings for now; #71 backfills the JSDoc and makes these errors.
   validation: { notDocumented: true }

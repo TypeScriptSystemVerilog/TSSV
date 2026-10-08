@@ -95,7 +95,7 @@ submodule bridges onto `regs`.
 
 Write on `regs`
 
-```json
+<!-- wavedrom RegisterBlock-write-on-regs.svg
 {
   "signal": [
     {"name": "     clk", "wave": "p........."},
@@ -107,13 +107,15 @@ Write on `regs`
     {"name": "   ready", "wave": "10.1......"}
   ]
 }
-```
+-->
+
+![Write on `regs`](RegisterBlock-write-on-regs.svg)
 
 #### Wavedrom
 
 Read on `regs`
 
-```json
+<!-- wavedrom RegisterBlock-read-on-regs.svg
 {
   "signal": [
     {"name": "     clk", "wave": "p........."},
@@ -125,7 +127,9 @@ Read on `regs`
     {"name": "   ready", "wave": "10......1."}
   ]
 }
-```
+-->
+
+![Read on `regs`](RegisterBlock-read-on-regs.svg)
 
 #### Extends
 
