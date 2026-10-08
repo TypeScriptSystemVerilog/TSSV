@@ -119,9 +119,13 @@ Inside, the block has three parts:
 
 The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, `DATA_WR`,
 `DATA_RD`, `WE`, `RE`, `READY`, `WSTRB`. The JSDoc above `RegisterBlock` holds two WaveDrom
-diagrams, WRITE and READ, rendered as JSON in
-[`doc/reference/Registers.md`](../reference/Registers.md#registerblock). They show the intended
-handshake:
+diagrams, which [`doc/reference/Registers.md`](../reference/Registers.md#registerblock) renders:
+
+![Write on `regs`](../reference/RegisterBlock-write-on-regs.svg)
+
+![Read on `regs`](../reference/RegisterBlock-read-on-regs.svg)
+
+They show the intended handshake:
 
 - **Write**: `ADDR`, `DATA_WR` and `WE` go out together. `READY` drops while the write is taken
   and rises again when it is done.
