@@ -1,6 +1,6 @@
 # Module Specification: `ROM`
 
-> **File:** `ts/src/modules/ROM/ROM.ts`
+> **Source:** `ts/src/modules/ROM/`
 > **Status:** Approved
 
 ---

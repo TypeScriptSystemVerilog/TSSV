@@ -42,6 +42,9 @@ export interface AXI4XBarPorts extends TSSV.IOSignals {
 
 export type AXI4XBarInterfaces = Record<string, AXI4_inward | AXI4_outward>
 
+/**
+ * @see doc/modules/AXI4XBar/AXI4XBar-spec.md
+ */
 export class AXI4XBar extends TSSV.Module {
   declare params: AXI4XBarParams
   declare IOs: AXI4XBarPorts

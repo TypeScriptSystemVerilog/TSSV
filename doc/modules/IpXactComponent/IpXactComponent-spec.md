@@ -1,6 +1,6 @@
 # Module Specification: `IpXactComponent`
 
-> **File:** `ts/src/modules/IpXactComponent/IpXactComponent.ts`
+> **Source:** `ts/src/modules/IpXactComponent/`
 > **Status:** Draft
 
 ---
@@ -60,3 +60,34 @@ AHB, AHBLite, AHBLiteInitiator, AHBLiteTarget, APB, ATB, AXI (AMBA3), AXI_RO, AX
 | AXI4 manager wrap | Verify AXI4 inward interface and signal bindings |
 | Unknown bus type | Verify graceful skip with warning, no crash |
 | Round-trip SV include | Verify `svFilePath` appears in `writeSystemVerilog()` output |
+
+### Example
+
+**Test script:** `ts/test/modules/IpxactComponent/componentExample.ts`
+
+The script wraps two sample components. Each pairs an IP-XACT XML file, which defines the bus interfaces and the parameters that decide which ports each interface has, with a SystemVerilog file that lists the physical ports to bind to them:
+
+| Component | XML | SystemVerilog | Output |
+|---|---|---|---|
+| `axiComponent` | `ts/test/modules/IpxactComponent/AXI/axiSample.xml` | `ts/test/modules/IpxactComponent/AXI/architectureSample.sv` | `sv-examples/IpXactComponent/axiComponent/componentExample.sv` |
+| `apbComponent` | `ts/test/modules/IpxactComponent/APB/apbSample.xml` | `ts/test/modules/IpxactComponent/APB/apbArchitecture.sv` | `sv-examples/IpXactComponent/apbComponent/apbComponentExample.sv` |
+
+Each is instantiated the same way:
+
+```typescript
+const component = new IpXactComponent({
+  name: 'axiComponent',
+  xmlDataPath: xml_path,
+  svFilePath: sv_path
+})
+```
+
+Run it from the repo root:
+
+```bash
+npx tsc
+node out/test/modules/IpxactComponent/componentExample.js
+cat sv-examples/IpXactComponent/axiComponent/componentExample.sv
+```
+
+The output is a complete component: every interface the XML declares, with each physical port bound to its interface's corresponding signal.

@@ -1,6 +1,6 @@
 # Module Specification: `APB_to_Memory`
 
-> **File:** `ts/src/modules/APB_to_Memory/APB_to_Memory.ts`
+> **Source:** `ts/src/modules/APB_to_Memory/`
 > **Status:** Approved
 
 ---
@@ -83,8 +83,7 @@ No state to reset. All outputs are combinational functions of the current APB in
 
 All paths are combinational with zero cycles of latency.
 
-```
-@wavedrom
+```wavedrom
 {
   "signal": [
     {"name": "clk",         "wave": "p......."},

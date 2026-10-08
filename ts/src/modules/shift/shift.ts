@@ -27,6 +27,9 @@ export interface shift_Parameters extends TSSVParameters {
   isSigned?: 'signed' | 'unsigned'
 }
 
+/**
+ * @see doc/modules/shift/shift-spec.md
+ */
 export class shift extends Module {
   declare params: shift_Parameters
   constructor (params: shift_Parameters) {

@@ -1,6 +1,6 @@
 # Module Specification: `AXI4XBar`
 
-> **File:** `ts/src/modules/AXI4XBar/AXI4XBar.ts`
+> **Source:** `ts/src/modules/AXI4XBar/`
 > **Status:** Draft
 
 ---

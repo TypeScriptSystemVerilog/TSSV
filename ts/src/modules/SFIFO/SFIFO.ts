@@ -38,6 +38,9 @@ export interface SFIFO_Parameters extends TSSVParameters {
   rw_mode?: '1rw' | '1r_1w'
 }
 
+/**
+ * @see doc/modules/SFIFO/SFIFO-spec.md
+ */
 export class SFIFO extends Module {
   declare params: SFIFO_Parameters
   constructor (params: SFIFO_Parameters) {

@@ -1,7 +1,8 @@
 # TSSV Body Formatting Spike Implementation Plan
 
-> Status: Draft
-> Depends on: `claude-info/body-formatting-spike-spec.md`
+> Status: Implemented in 7c04e02 (2026-06-29), except the Verible install script (Phase 3 of
+> the implementation plan). README's Setup section installs Verible by hand instead.
+> Depends on: `body-formatting-spike-spec.md`
 
 ## Objective
 
@@ -93,7 +94,7 @@ Implement the spike in a low-risk sequence:
 
 - new script: `scripts/install-verible.sh`
 - optional TS wrapper: `ts/src/tools/verible_install.ts`
-- docs update location: `README.md` or `claude-info/setup.md`
+- docs update location: `README.md` (it landed in the Setup section)
 
 ### Tasks
 

@@ -1,6 +1,7 @@
 # TSSV Body Construction and Formatting Spike Spec
 
-> Status: Draft
+> Status: Implemented in 7c04e02 (2026-06-29), except the Verible install script (Phase 3 of
+> the implementation plan). README's Setup section installs Verible by hand instead.
 > Scope: exploratory API and implementation spike only
 
 ## Purpose

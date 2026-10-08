@@ -10,7 +10,7 @@ if [ -n "$matches" ]; then
   echo ""
   echo "$matches"
   echo ""
-  echo "See claude-info/body-formatting-spike-implementation-plan.md for guidance."
+  echo "See doc/ideas/body-formatting-spike-implementation-plan.md for guidance."
 else
   echo "OK: No direct this.body += found in modules or interfaces."
 fi

@@ -1,6 +1,6 @@
 # Module Specification: `FIR`
 
-> **File:** `ts/src/modules/FIR/FIR.ts`
+> **Source:** `ts/src/modules/FIR/`
 > **Status:** Approved
 
 ---
@@ -79,8 +79,7 @@ All tap, sum, and output registers clear to 0. Coefficient registers reset to th
 
 ## Timing
 
-```
-@wavedrom
+```wavedrom
 {
   "signal": [
     {"name": "          clk", "wave": "p........."},
