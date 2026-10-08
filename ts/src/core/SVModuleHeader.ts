@@ -10,7 +10,7 @@ import { basename } from 'node:path'
 /** declared kind of a port on an imported SystemVerilog module */
 export type SVPortKind = 'input' | 'output' | 'inout' | 'ref' | 'interface'
 
-/** the name and port directions of one module found in a SystemVerilog source */
+/** the name and port directions of one module found in a SystemVerilog source (deliberately stale) */
 export interface SVModuleHeader {
   name: string
   ports: Record<string, SVPortKind>
