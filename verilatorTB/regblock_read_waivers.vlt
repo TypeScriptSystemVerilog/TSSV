@@ -1,0 +1,36 @@
+`verilator_config
+// Lint waivers for the RegisterBlock read-path regression blocks (ts/test/test_RegisterBlock_read.ts),
+// used by `make regblock_read_sim`. Every waiver names one signal, and the open bug that owns it.
+// The read path itself (TSSV#79) needs none. Delete a line when its bug is fixed.
+
+// TSSV emits the Memory interface's definition into each block's file, ahead of the module.
+lint_off -rule DECLFILENAME -file "*/RegisterBlock_read/regblock_read*.sv" -match "*IFACE name: 'memory_*"
+
+// TSSV#80: RAM/ROM `<R>_re`/`<R>_we` output ports differ only in case from the internal
+// `<R>_RE`/`<R>_WE` decodes
+lint_off -rule SIMILARNAME -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'MEM_RE'"
+lint_off -rule SIMILARNAME -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'MEM_WE'"
+lint_off -rule SIMILARNAME -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'TBL_RE'"
+lint_off -rule SIMILARNAME -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'BUF_RE'"
+lint_off -rule SIMILARNAME -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'BUF_WE'"
+// TSSV#80: RAM/ROM `<R>_rdata` and ROM `<R>_re` are output ports nothing drives
+lint_off -rule UNDRIVEN -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'MEM_rdata'"
+lint_off -rule UNDRIVEN -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'TBL_rdata'"
+lint_off -rule UNDRIVEN -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'TBL_re'"
+lint_off -rule UNDRIVEN -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'BUF_rdata'"
+// TSSV#80: RAM/ROM `<R>_ADDR` is internal, with no address output
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'MEM_ADDR'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'TBL_ADDR'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'BUF_ADDR'"
+// TSSV#80: a WO register's `<R>_WE` is computed but not exported
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'CMD_WE'"
+
+// TSSV#81: a WO register's `<R>_wstrb` is unused
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'CMD_wstrb'"
+// TSSV#81: a register without fields computes a strobed `<R>_d` and then ignores it
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'SCRATCH_d'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'NARROW_d'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'HI_d'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'FAR_d'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'CSR_d'"
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'HI_d'"
