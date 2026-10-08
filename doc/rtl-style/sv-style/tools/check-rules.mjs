@@ -7,12 +7,14 @@
 //   - "sim":    the rule's RTL files lint clean, and each testbench builds, runs and prints PASS
 //   - "review": the entry gives a reason
 //   - docVerbatim: each named doc example appears verbatim in its example file
+//   - "movedTo": a rule that moved to the TSSV guide is only a *moved* note here, naming its new
+//     ID, with no examples (doc/rtl-style/tssv-style/tools/check-rules.mjs checks the new ID exists)
 // "builder" and "generated" are run by check-builder-examples.mjs.
 // Exits 0 if everything passes, 1 otherwise.
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { lint, requirePinnedVerilator, simulate } from './verilator.mjs'
+import { lint, requirePinnedVerilator, simulate } from '../../tools/verilator.mjs'
 
 const ROOT = 'doc/rtl-style/sv-style'
 const DOC = `${ROOT}/sv-coding-style.md`
@@ -55,6 +57,12 @@ const widthSrc = readFileSync(WIDTH_EXAMPLES, 'utf8')
 for (const [id, rule] of Object.entries(rules)) {
   const text = sections[id]
   if (!text) continue
+  if (rule.movedTo !== undefined) {
+    const stub = /^\*\*[A-Z]+-\d+\*\* \*\(moved\)\*: now ([A-Z]+-\d+) in the \[TSSV guide\]/.exec(text)
+    report(stub?.[1] === rule.movedTo && !text.includes('```') && rule.checks === undefined,
+      `${id} moved: the doc has only a *moved* note naming ${rule.movedTo}`)
+    continue
+  }
   const bad = (rule.checks ?? []).filter((k) => !KINDS.includes(k))
   if (!rule.checks?.length || bad.length > 0) {
     report(false, `${id}: checks must be a non-empty list of ${KINDS.join(', ')}`)
@@ -110,6 +118,7 @@ for (const [id, rule] of Object.entries(rules)) {
   }
 }
 
-const covered = Object.keys(sections).filter((id) => rules[id])
-console.log(`\n${passed} passed, ${failed} failed; ${covered.length}/${Object.keys(sections).length} rules covered (Verilator ${pin})`)
+const live = Object.keys(sections).filter((id) => rules[id]?.movedTo === undefined)
+const covered = live.filter((id) => rules[id])
+console.log(`\n${passed} passed, ${failed} failed; ${covered.length}/${live.length} rules covered, ${Object.keys(sections).length - live.length} moved (Verilator ${pin})`)
 process.exit(failed > 0 ? 1 : 0)

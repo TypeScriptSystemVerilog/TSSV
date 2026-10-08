@@ -1,6 +1,6 @@
-// Builder examples for doc/rtl-style/sv-style/sv-coding-style.md: the rules whose examples are
-// TypeScript rather than SystemVerilog. Each check() builds small modules with the TSSV
-// builders and confirms what the doc claims they emit. Every module that should be clean is
+// Builder checks for the style guides in doc/rtl-style/: SEQ-5 in the SV guide, and the TSSV
+// guide's rules about what a builder emits or rejects. Each check() builds small modules with
+// the TSSV builders and confirms what the guide claims. Every module that should be clean is
 // written to sv-examples/rtl_style/ for doc/rtl-style/sv-style/tools/check-builder-examples.mjs to lint.
 //
 // Prints one `RESULT {json}` line per check; check-builder-examples.mjs reads them.
@@ -62,22 +62,22 @@ const arbBody = `
   end
 `
 
-check('COMB-7', 'addCombAlways without inputs emits always_comb', () => {
-  const m = arbiter('comb7_do')
+check('BUILD-4', 'addCombAlways without inputs emits always_comb', () => {
+  const m = arbiter('build4_do')
   m.addCombAlways({ outputs: ['grant'] }, arbBody)
   expect(emit(m).includes('always_comb'), 'no always_comb in the output')
 })
 
-check('COMB-7', 'addCombAlways with inputs emits a legacy always @( ... ) list', () => {
-  const m = arbiter('comb7_dont')
+check('BUILD-4', 'addCombAlways with inputs emits a legacy always @( ... ) list', () => {
+  const m = arbiter('build4_dont')
   m.addCombAlways({ inputs: ['req'], outputs: ['grant'] }, arbBody)
   const sv = m.writeSystemVerilog()
   expect(/always\s*@\(\s*req\s*\)/.test(sv), 'expected always @( req )')
   expect(!sv.includes('always_comb'), 'unexpected always_comb')
 })
 
-check('COMB-8', 'addAssign emits a continuous assignment', () => {
-  const m = new Module({ name: 'comb8_do' }, {
+check('BUILD-2', 'addAssign emits a continuous assignment', () => {
+  const m = new Module({ name: 'build2_do' }, {
     valid_in: { direction: 'input' },
     stall: { direction: 'input' },
     valid_out: { direction: 'output' }
@@ -99,14 +99,14 @@ function counter (name: string, reset: 'lowasync' | 'highasync' | 'lowsync' | 'h
   return m
 }
 
-check('SEQ-3', 'addRegister emits a flop with enable', () => {
-  const sv = flat(emit(counter('seq3_do', 'lowasync', 'rst_n')))
+check('BUILD-3', 'addRegister emits a flop with enable', () => {
+  const sv = flat(emit(counter('build3_do', 'lowasync', 'rst_n')))
   expect(sv.includes('always_ff @(posedge clk or negedge rst_n)'), 'wrong sensitivity list')
   expect(sv.includes('else if (en) begin cnt_q <= cnt_nxt;'), 'enable not applied')
 })
 
-check('SEQ-3', 'addRegister rejects a clock not marked isClock', () => {
-  const m = new Module({ name: 'seq3_noclk' }, {
+check('MOD-3', 'addRegister rejects a clock not marked isClock', () => {
+  const m = new Module({ name: 'mod3_noclk' }, {
     clk: { direction: 'input' },
     d: { direction: 'input' },
     q: { direction: 'output' }
@@ -114,8 +114,8 @@ check('SEQ-3', 'addRegister rejects a clock not marked isClock', () => {
   expectThrows(() => m.addRegister({ d: 'd', clk: 'clk', q: 'q' }), /not a clock signal/)
 })
 
-check('SEQ-3', 'addRegister rejects a reset not marked isReset', () => {
-  const m = new Module({ name: 'seq3_norst' }, {
+check('MOD-3', 'addRegister rejects a reset not marked isReset', () => {
+  const m = new Module({ name: 'mod3_norst' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_n: { direction: 'input' },
     d: { direction: 'input' },
@@ -124,8 +124,8 @@ check('SEQ-3', 'addRegister rejects a reset not marked isReset', () => {
   expectThrows(() => m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_n', q: 'q' }), /not a reset signal/)
 })
 
-check('SEQ-3', 'addRegister groups registers sharing clock, reset and enable into one block', () => {
-  const m = new Module({ name: 'seq3_group' }, {
+check('BUILD-3', 'addRegister groups registers sharing clock, reset and enable into one block', () => {
+  const m = new Module({ name: 'build3_group' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_n: { direction: 'input', isReset: 'lowasync' },
     en: { direction: 'input' },
@@ -140,8 +140,8 @@ check('SEQ-3', 'addRegister groups registers sharing clock, reset and enable int
   expect(blocks.length === 1, `expected 1 always_ff block, found ${blocks.length}`)
 })
 
-check('NAME-1', 'addRegister names q <d>_q when d is a simple signal', () => {
-  const m = new Module({ name: 'name1_do' }, {
+check('IDENT-1', 'addRegister names q <d>_q when d is a simple signal', () => {
+  const m = new Module({ name: 'ident1_do' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_n: { direction: 'input', isReset: 'lowasync' },
     vld: { direction: 'input' },
@@ -168,8 +168,8 @@ for (const r of RESET_KINDS) {
   })
 }
 
-check('SEQ-5', 'addSequentialAlways rejects a header missing the async reset', () => {
-  const m = new Module({ name: 'seq5_mismatch' }, {
+check('BUILD-4', 'addSequentialAlways rejects a header missing the async reset', () => {
+  const m = new Module({ name: 'build4_mismatch' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_n: { direction: 'input', isReset: 'lowasync' },
     d: { direction: 'input' },
@@ -185,13 +185,13 @@ check('SEQ-5', 'addSequentialAlways rejects a header missing the async reset', (
   }, /Sensitivity mismatch/)
 })
 
-check('RST-1', 'the default reset (lowasync rst_n) resets asynchronously, active low', () => {
-  const sv = flat(emit(counter('rst1_do', 'lowasync', 'rst_n')))
+check('MOD-4', 'the default reset (lowasync rst_n) resets asynchronously, active low', () => {
+  const sv = flat(emit(counter('mod4_do', 'lowasync', 'rst_n')))
   expect(sv.includes('negedge rst_n') && sv.includes('if (!rst_n)'), 'not an active-low async reset')
 })
 
-check('LATCH-1', 'addLatchAlways emits always_latch', () => {
-  const m = new Module({ name: 'latch1_do' }, {
+check('BUILD-5', 'addLatchAlways emits always_latch', () => {
+  const m = new Module({ name: 'build5_do' }, {
     en: { direction: 'input' },
     d: { direction: 'input', width: 4 },
     q: { direction: 'output', width: 4 }
@@ -205,9 +205,9 @@ check('LATCH-1', 'addLatchAlways emits always_latch', () => {
   expect(emit(m).includes('always_latch'), 'no always_latch in the output')
 })
 
-check('WIDTH-8', 'widths computed in TypeScript appear as numbers in the SV', () => {
+check('PARAM-3', 'widths computed in TypeScript appear as numbers in the SV', () => {
   const depth = 10
-  const m = new Module({ name: 'width8_do' }, {
+  const m = new Module({ name: 'param3_do' }, {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_n: { direction: 'input', isReset: 'lowasync' },
     ptr_q: { direction: 'output', width: Math.ceil(Math.log2(depth)) }
