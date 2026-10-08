@@ -15,7 +15,9 @@ ts/test/              Runnable demo scripts; each writes its output under sv-exa
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
-doc/framework/        How to use the framework: core API reference, simulation
+doc/framework/        How the framework works and how to use it: concepts, register blocks,
+                      core API reference, simulation
+doc/interfaces/       Writing interface classes (signal bundles)
 doc/reference/        Generated API reference for the core (npm run docs) — never hand-edit
 doc/modules/          One folder per module: doc/modules/<Module>/<Module>-spec.md
 doc/templates/        Templates for new docs (module spec)
@@ -40,6 +42,9 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `ts/src/core/Base.ts` | All builder APIs: `addSignal`, `addRegister`, `addSubmodule`, `addCombAlways`, etc. |
 | `doc/reference/README.md` | The core's API reference (`Base.ts`, `Registers.ts`, `SVModuleHeader.ts`): one markdown page per file, generated from the JSDoc by `npm run docs`. Never hand-edit |
 | `doc/framework/core-api-reference.md` | Quick reference for the builders, with examples. A stopgap: #71 moves it into the core's JSDoc and deletes it |
+| `doc/framework/concepts.md` | How a module is elaborated and emitted: parameters and module naming, `Sig`/`Expr` and signal metadata, interfaces and binding checks, submodule binding (`autoBind`, `createMissing`, `autoWidthExtension`), `addRegister` grouping, single- and multi-file emission, the Verible formatter, importing SV. Read before changing `ts/src/core/` |
+| `doc/framework/registers.md` | `RegisterBlock`: register types and the logic they generate, the YAML → `scripts/gen_regblock.sh` flow, RALF output (`writeRALF`), current limitations |
+| `doc/interfaces/adding-an-interface.md` | Writing an interface class: the signal/modport pattern (`AXI4.ts`), AMBA file naming, generating a draft from IP-XACT XML with `xml_interface_build` |
 | `doc/framework/simulation.md` | The `verilatorTB/` flow: TS → SV → Verilator → VCD → GTKWave, Makefile variables, driver macros |
 | `doc/modules/<Module>/<Module>-spec.md` | One per module in `ts/src/modules/`: parameters, IOs, behavior, timing, test plan |
 | `doc/templates/module-spec-template.md` | The template for a new module's spec |
@@ -135,7 +140,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | `writeSystemVerilog()` | Render the module and its submodules to SV |
 
 ### Interface (`ts/src/core/Base.ts`)
-`Interface` wraps a group of signals with modports. An instance's role picks one of its modports (`inward`, `outward`, `monitor` in the bundled interfaces). Interfaces in `ts/src/interfaces/` follow this pattern: each file defines a class with `signals` and `modports`.
+`Interface` wraps a group of signals with modports. An instance's role picks one of its modports (`inward` or `outward`; the generated AMBA5 `*_rtl.ts` classes use `master`/`slave`). An instance without a role is a local bundle, not a port. Interfaces in `ts/src/interfaces/` follow this pattern: each file defines a class with `signals` and `modports`. How roles, SV type names and binding checks work is in `doc/framework/concepts.md` §4; how to write a new one is in `doc/interfaces/adding-an-interface.md`.
 
 ### Signals and Expressions
 - `Sig` — a named signal reference
@@ -167,16 +172,17 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 
 ## Common Tasks — Where to Start
 
-- **Adding a new module**: read `ts/src/core/Base.ts` (builder API), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
-- **Adding a new interface**: read `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` for the signal-bundle and modport pattern
-- **Using the register helpers**: read `ts/src/core/Registers.ts` and the `RegisterBlock` section of `doc/framework/core-api-reference.md`
+- **Adding a new module**: read `doc/framework/concepts.md` (how elaboration, binding and emission fit together), `ts/src/core/Base.ts` (builder API), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
+- **Adding a new interface**: read `doc/interfaces/adding-an-interface.md`, which walks through `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` as the pattern and covers file naming and `xml_interface_build`
+- **Using the register helpers**: read `doc/framework/registers.md` (including its "Current limitations"), then `ts/src/core/Registers.ts`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`
 - **Running all tests**: `bash runAllTests.sh`
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv`
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`; details in `doc/framework/simulation.md`
 - **Timing diagrams in markdown docs**: GitHub doesn't render WaveDrom, so put the JSON in a `<!-- wavedrom <file>.svg ... -->` comment followed by `![...](<file>.svg)`, then run `npm run render:wavedrom` to write the SVG next to the doc. Never hand-edit the SVG. `npm run check:wavedrom` fails if any SVG is missing, stale or unlinked, and the `docs-reference` workflow runs it on every PR. Example: `doc/modules/SFIFO/SFIFO-spec.md`
-- **Learning the framework end to end**: `doc/tutorials/fir.md`
+- **Learning the framework end to end**: `doc/framework/concepts.md`, then `doc/tutorials/fir.md`
+- **Reviewing a change to the core** (`ts/src/core/`): `doc/framework/concepts.md` states the behavior the change must keep or deliberately alter
 
 ---
 
