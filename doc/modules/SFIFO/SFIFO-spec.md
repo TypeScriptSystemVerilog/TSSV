@@ -18,7 +18,7 @@ Synchronous **First-In First-Out** queue backed by an `SRAM` submodule. Supports
 | `name` | `string` | auto | Instance name |
 | `dataWidth` | `IntRange<1,256>` | — | Data word width |
 | `depth` | `bigint` | — | Maximum number of entries |
-| `simultPushPop` | `boolean` | `true` | `true`: push and pop may occur in the same cycle; storage is a dual-port (`1r_1w`) `SRAM` and the enables are `wr_en`/`rd_en`. `false`: push and pop are mutually exclusive; storage is a single-port (`1rw`) `SRAM` and the enables are `rw_en`/`rw` |
+| `simultPushPop` | `boolean` | `true` | `true`: push and pop may occur in the same cycle; storage is a dual-port (`1r_1w`) `SRAM` and the enables are `push_en`/`pop_en`. `false`: push and pop are mutually exclusive; storage is a single-port (`1rw`) `SRAM` and the enables are `en`/`push1_pop0` |
 | `inclAlmostFull` | `boolean` | `false` | Enables `almost_full_depth` input and `almost_full` output |
 | `inclAlmostEmpty` | `boolean` | `false` | Enables `almost_empty_depth` input and `almost_empty` output |
 
@@ -33,8 +33,8 @@ Synchronous **First-In First-Out** queue backed by an `SRAM` submodule. Supports
 |---|---|---|---|
 | `clk` | input | 1 | `posedge` clock |
 | `rst_n` | input | 1 | Active-low async reset |
-| `data_in` | input | `dataWidth` | Push data |
-| `data_out` | output | `dataWidth` | Head of the queue (valid whenever `empty` is deasserted) |
+| `push_data` | input | `dataWidth` | Push data |
+| `pop_data` | output | `dataWidth` | Head of the queue (valid whenever `empty` is deasserted) |
 | `empty` | output | 1 | Asserted when FIFO contains 0 entries |
 | `full` | output | 1 | Asserted when FIFO contains `depth` entries |
 | `curr_depth` | output | `ceil(log2(depth+1))` | Current fill count (0 to `depth`) |
@@ -42,14 +42,14 @@ Synchronous **First-In First-Out** queue backed by an `SRAM` submodule. Supports
 ### `simultPushPop = true`
 | Port | Direction | Width | Description |
 |---|---|---|----|
-| `wr_en` | input | 1 | Push enable — writes `data_in` on the next `clk` edge |
-| `rd_en` | input | 1 | Pop enable — discards the head entry on the next `clk` edge |
+| `push_en` | input | 1 | Push enable — writes `push_data` on the next `clk` edge |
+| `pop_en` | input | 1 | Pop enable — discards the head entry on the next `clk` edge |
 
 ### `simultPushPop = false`
 | Port | Direction | Width | Description |
 |---|---|---|----|
-| `rw_en` | input | 1 | Operation enable — a push or pop occurs on the next `clk` edge, selected by `rw` |
-| `rw` | input | 1 | Operation select, qualified by `rw_en`: `1` = push, `0` = pop |
+| `en` | input | 1 | Operation enable — a push or pop occurs on the next `clk` edge, selected by `push1_pop0` |
+| `push1_pop0` | input | 1 | Operation select, qualified by `en`: `1` = push, `0` = pop |
 
 
 ### `inclAlmostFull = true`
@@ -68,27 +68,27 @@ Synchronous **First-In First-Out** queue backed by an `SRAM` submodule. Supports
 
 ## Functional Description
 
-The FIFO is **show-ahead** (first-word fall-through): `data_out` always presents the entry at the head of the queue whenever `empty` is deasserted. No read is needed to observe the head — a *pop* discards the current head and advances to the next entry.
+The FIFO is **show-ahead** (first-word fall-through): `pop_data` always presents the entry at the head of the queue whenever `empty` is deasserted. No read is needed to observe the head — a *pop* discards the current head and advances to the next entry.
 
 Push and pop requests come from different ports depending on `simultPushPop`:
 
 | `simultPushPop` | Push request | Pop request | SRAM |
 |---|---|---|---|
-| `true` | `wr_en` | `rd_en` | `1r_1w` (dual-port) |
-| `false` | `rw_en && rw` | `rw_en && !rw` | `1rw` (single-port) |
+| `true` | `push_en` | `pop_en` | `1r_1w` (dual-port) |
+| `false` | `en && push1_pop0` | `en && !push1_pop0` | `1rw` (single-port) |
 
 1. `wr_addr` and `rd_addr` are free-running pointers that wrap at `depth`. `rd_addr` always points at the head entry.
 2. `fifo_cnt` tracks the number of valid entries; `full` asserts at `depth`, `empty` at 0; `curr_depth` reflects `fifo_cnt`. All status outputs change only on the rising edge of `clk`.
-3. **Push:** on a rising edge with a push request and `!full`, `data_in` is written to `SRAM[wr_addr]`; `wr_addr` increments; `fifo_cnt` increments.
-4. **Pop:** on a rising edge with a pop request and `!empty`, the head entry is discarded; `rd_addr` increments; `fifo_cnt` decrements. In the following cycle `data_out` presents the next entry, or becomes undefined if the FIFO is now empty.
-5. **Write-to-head latency:** a word pushed into an empty FIFO appears on `data_out` in the cycle immediately after the push edge — the same cycle that `empty` deasserts. `data_out` and `empty` always update together, so `!empty` is a sufficient qualifier for `data_out`.
+3. **Push:** on a rising edge with a push request and `!full`, `push_data` is written to `SRAM[wr_addr]`; `wr_addr` increments; `fifo_cnt` increments.
+4. **Pop:** on a rising edge with a pop request and `!empty`, the head entry is discarded; `rd_addr` increments; `fifo_cnt` decrements. In the following cycle `pop_data` presents the next entry, or becomes undefined if the FIFO is now empty.
+5. **Write-to-head latency:** a word pushed into an empty FIFO appears on `pop_data` in the cycle immediately after the push edge — the same cycle that `empty` deasserts. `pop_data` and `empty` always update together, so `!empty` is a sufficient qualifier for `pop_data`.
 6. **Simultaneous push and pop** (`simultPushPop = true` only): the net count is unchanged. If the popped entry was the only entry, the pushed word becomes the new head in the following cycle.
-   - When `empty`: the pop is ignored and the push proceeds (`data_in` becomes the head).
+   - When `empty`: the pop is ignored and the push proceeds (`push_data` becomes the head).
    - When `full`: the push is ignored and the pop proceeds.
 7. With `simultPushPop = false`, at most one operation occurs per cycle, so push and pop can never collide. Each SRAM access (a push write or a pop prefetch read) uses the single port.
-8. `data_out` is undefined while `empty` is asserted. Consumers must qualify `data_out` with `!empty`.
+8. `pop_data` is undefined while `empty` is asserted. Consumers must qualify `pop_data` with `!empty`.
 
-> **Implementation note:** `SRAM` has a registered (1-cycle) read, so show-ahead requires a prefetch. On a pop, the SRAM must be read at the *next* head address so the new head is ready in the following cycle; a push into an empty FIFO, or into a FIFO whose only entry is being popped, must bypass the SRAM directly to `data_out`. `data_out` must hold its value across cycles with no pop — including single-port push cycles, where the SRAM port is busy writing.
+> **Implementation note:** `SRAM` has a registered (1-cycle) read, so show-ahead requires a prefetch. On a pop, the SRAM must be read at the *next* head address so the new head is ready in the following cycle; a push into an empty FIFO, or into a FIFO whose only entry is being popped, must bypass the SRAM directly to `pop_data`. `pop_data` must hold its value across cycles with no pop — including single-port push cycles, where the SRAM port is busy writing.
 
 ### Almost-full / almost-empty
 
@@ -115,12 +115,12 @@ Push and pop requests come from different ports depending on `simultPushPop`:
 
 ### Reset behavior
 
-`wr_addr`, `rd_addr`, and `fifo_cnt` all reset to 0. `empty` asserts, `full` deasserts. `data_out` is undefined until the first push. With a count of 0, `almost_empty` asserts and `almost_full` deasserts, unless `almost_full_depth = 0`.
+`wr_addr`, `rd_addr`, and `fifo_cnt` all reset to 0. `empty` asserts, `full` deasserts. `pop_data` is undefined until the first push. With a count of 0, `almost_empty` asserts and `almost_full` deasserts, unless `almost_full_depth = 0`.
 
 ### Edge cases
 
 - Pushing when `full`: the push is silently ignored (no overflow protection — caller must check `full`).
-- Popping when `empty`: the pop is ignored (no pointer or count change). `data_out` remains undefined.
+- Popping when `empty`: the pop is ignored (no pointer or count change). `pop_data` remains undefined.
 
 ---
 
@@ -128,19 +128,19 @@ Push and pop requests come from different ports depending on `simultPushPop`:
 
 ### Dual-port: empty → full → empty
 
-`depth = 4`, `simultPushPop = true`. Four pushes fill the FIFO, a fifth push (`E`) is dropped because `full` is asserted, then four pops drain it. Note that `A` is visible on `data_out` as soon as `empty` deasserts, without any `rd_en`, and each pop advances `data_out` to the next entry on the following cycle.
+`depth = 4`, `simultPushPop = true`. Four pushes fill the FIFO, a fifth push (`E`) is dropped because `full` is asserted, then four pops drain it. Note that `A` is visible on `pop_data` as soon as `empty` deasserts, without any `pop_en`, and each pop advances `pop_data` to the next entry on the following cycle.
 
-```wavedrom
+<!-- wavedrom SFIFO-timing-dual-port.svg
 {
   "signal": [
     {"name": "clk",        "wave": "p............"},
     {"name": "rst_n",      "wave": "01..........."},
     {},
-    {"name": "wr_en",      "wave": "0.1....0....."},
-    {"name": "data_in",    "wave": "x.34567x.....", "data": ["A", "B", "C", "D", "E"], "node": "..a.........."},
-    {"name": "rd_en",      "wave": "0......1...0.", "node": ".......c....."},
+    {"name": "push_en",    "wave": "0.1....0....."},
+    {"name": "push_data",  "wave": "x.34567x.....", "data": ["A", "B", "C", "D", "E"], "node": "..a.........."},
+    {"name": "pop_en",     "wave": "0......1...0.", "node": ".......c....."},
     {},
-    {"name": "data_out",   "wave": "x..3....456x.", "data": ["A", "B", "C", "D"], "node": "...b....d...."},
+    {"name": "pop_data",   "wave": "x..3....456x.", "data": ["A", "B", "C", "D"], "node": "...b....d...."},
     {"name": "empty",      "wave": "1..0.......1."},
     {"name": "full",       "wave": "0.....1.0...."},
     {"name": "curr_depth", "wave": "=..====.====.", "data": ["0", "1", "2", "3", "4", "3", "2", "1", "0"]}
@@ -148,42 +148,44 @@ Push and pop requests come from different ports depending on `simultPushPop`:
   "edge": ["a~>b fall-through", "c~>d pop"],
   "head": {"text": "SFIFO show-ahead: empty → full → empty"}
 }
-```
+-->
+![SFIFO timing: Dual-port: empty → full → empty](SFIFO-timing-dual-port.svg)
 
 ### Single-port: interleaved push and pop
 
-`depth = 4`, `simultPushPop = false`. `rw_en` qualifies every operation and `rw` selects push (`1`) or pop (`0`). `data_out` holds the head across push cycles and advances on the cycle after each pop.
+`depth = 4`, `simultPushPop = false`. `en` qualifies every operation and `push1_pop0` selects push (`1`) or pop (`0`). `pop_data` holds the head across push cycles and advances on the cycle after each pop.
 
-```wavedrom
+<!-- wavedrom SFIFO-timing-single-port.svg
 {
   "signal": [
     {"name": "clk",        "wave": "p........."},
     {"name": "rst_n",      "wave": "01........"},
     {},
-    {"name": "rw_en",      "wave": "0.1.....0."},
-    {"name": "rw",         "wave": "x.1.010.x."},
-    {"name": "data_in",    "wave": "x.34x5x...", "data": ["A", "B", "C"]},
+    {"name": "en",         "wave": "0.1.....0."},
+    {"name": "push1_pop0", "wave": "x.1.010.x."},
+    {"name": "push_data",  "wave": "x.34x5x...", "data": ["A", "B", "C"]},
     {},
-    {"name": "data_out",   "wave": "x..3.4.5x.", "data": ["A", "B", "C"]},
+    {"name": "pop_data",   "wave": "x..3.4.5x.", "data": ["A", "B", "C"]},
     {"name": "empty",      "wave": "1..0....1."},
     {"name": "curr_depth", "wave": "=..======.", "data": ["0", "1", "2", "1", "2", "1", "0"]}
   ],
   "head": {"text": "SFIFO single-port: push A, push B, pop, push C, pop, pop"}
 }
-```
+-->
+![SFIFO timing: Single-port: interleaved push and pop](SFIFO-timing-single-port.svg)
 
 ### Almost-full / almost-empty thresholds
 
 `depth = 4`, `inclAlmostFull = true`, `inclAlmostEmpty = true`, `almost_full_depth = 3`, `almost_empty_depth = 1`. Four pushes then four pops. `almost_empty` is asserted while the count is ≤ 1 and `almost_full` while it is ≥ 3. Both flags change on the same edge as `curr_depth`. `almost_full` asserts one entry before `full`, and `almost_empty` stays asserted one entry past `empty`.
 
-```wavedrom
+<!-- wavedrom SFIFO-timing-almost-flags.svg
 {
   "signal": [
     {"name": "clk",                "wave": "p..........."},
     {"name": "rst_n",              "wave": "01.........."},
     {},
-    {"name": "wr_en",              "wave": "0.1...0....."},
-    {"name": "rd_en",              "wave": "0.....1...0."},
+    {"name": "push_en",            "wave": "0.1...0....."},
+    {"name": "pop_en",             "wave": "0.....1...0."},
     {"name": "almost_full_depth",  "wave": "=...........", "data": ["3"]},
     {"name": "almost_empty_depth", "wave": "=...........", "data": ["1"]},
     {},
@@ -195,7 +197,8 @@ Push and pop requests come from different ports depending on `simultPushPop`:
   ],
   "head": {"text": "SFIFO thresholds: almost_full_depth = 3, almost_empty_depth = 1"}
 }
-```
+-->
+![SFIFO timing: Almost-full / almost-empty thresholds](SFIFO-timing-almost-flags.svg)
 
 _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-next-head latency: **1 clock cycle**._
 
@@ -214,11 +217,11 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 | Test case | Config | Notes |
 |---|---|---|
-| Show-ahead | `depth=8, simultPushPop=true` | Write 1 word, verify it is on `data_out` the cycle `empty` deasserts, with no `rd_en` |
-| Fill to full | `depth=8, simultPushPop=true` | Write 8 words, verify `full` |
-| Drain to empty | `depth=8, simultPushPop=true` | Read 8 words, verify `empty` |
-| Simultaneous R/W | `depth=4, simultPushPop=true` | Net depth unchanged |
-| Single-port interleave | `depth=4, simultPushPop=false` | Push/pop via `rw_en`/`rw`; verify `data_out` holds across push cycles and advances after each pop |
+| Show-ahead | `depth=8, simultPushPop=true` | Push 1 word, verify it is on `pop_data` the cycle `empty` deasserts, with no `pop_en` |
+| Fill to full | `depth=8, simultPushPop=true` | Push 8 words, verify `full` |
+| Drain to empty | `depth=8, simultPushPop=true` | Pop 8 words, verify `empty` |
+| Simultaneous push/pop | `depth=4, simultPushPop=true` | Net depth unchanged |
+| Single-port interleave | `depth=4, simultPushPop=false` | Push/pop via `en`/`push1_pop0`; verify `pop_data` holds across push cycles and advances after each pop |
 | Almost-full threshold | `depth=8, inclAlmostFull=true, almost_full_depth=6` | `almost_full` asserts on the edge the count reaches 6 and deasserts when it drops to 5 |
 | Almost-empty threshold | `depth=8, inclAlmostEmpty=true, almost_empty_depth=2` | `almost_empty` asserted at reset, deasserts when the count reaches 3, reasserts when it drops to 2 |
 | Threshold boundaries | `depth=4`, both flags enabled | `almost_full_depth=depth` tracks `full`; `almost_empty_depth=0` tracks `empty` |
