@@ -234,10 +234,10 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         this.IOs[`${regName}_hw_update_val`] = { direction: 'input', width, isSigned: thisReg.isSigned }
 
         const hwFirst = (thisReg.updatePriority ?? 'hw') === 'hw'
-        const firstCond  = hwFirst ? `${regName}_hw_update` : `${regName}_WE`
-        const firstVal   = hwFirst ? `${regName}_hw_update_val` : `regs.DATA_WR[${width - 1}:0]`
+        const firstCond = hwFirst ? `${regName}_hw_update` : `${regName}_WE`
+        const firstVal = hwFirst ? `${regName}_hw_update_val` : `regs.DATA_WR[${width - 1}:0]`
         const secondCond = hwFirst ? `${regName}_WE` : `${regName}_hw_update`
-        const secondVal  = hwFirst ? `regs.DATA_WR[${width - 1}:0]` : `${regName}_hw_update_val`
+        const secondVal = hwFirst ? `regs.DATA_WR[${width - 1}:0]` : `${regName}_hw_update_val`
         this.body += `
 always_ff @( posedge clk or negedge rst_b )
   if (!rst_b)

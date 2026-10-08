@@ -1,6 +1,6 @@
 # Module Specification: `shift`
 
-> **File:** `ts/src/modules/shift/shift.ts`
+> **Source:** `ts/src/modules/shift/`
 > **Status:** Approved
 
 ---

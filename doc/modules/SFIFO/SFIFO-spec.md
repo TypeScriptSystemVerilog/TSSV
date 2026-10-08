@@ -1,6 +1,6 @@
 # Module Specification: `SFIFO`
 
-> **File:** `ts/src/modules/SFIFO/SFIFO.ts`
+> **Source:** `ts/src/modules/SFIFO/`
 > **Status:** Approved
 
 ---

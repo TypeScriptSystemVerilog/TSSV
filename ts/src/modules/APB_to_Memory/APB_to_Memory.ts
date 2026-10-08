@@ -10,6 +10,8 @@ export interface APB_to_Memory_Parameters extends TSSVParameters {
 /**
  * Converts an APB4 slave port into a Memory master port.
  * Instantiate this as a submodule inside a RegisterBlock when busInterface is 'APB'.
+ *
+ * @see doc/modules/APB_to_Memory/APB_to_Memory-spec.md
  */
 export class APB_to_Memory extends Module {
   declare params: APB_to_Memory_Parameters

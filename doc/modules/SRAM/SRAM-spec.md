@@ -1,6 +1,6 @@
 # Module Specification: `SRAM`
 
-> **File:** `ts/src/modules/SRAM/SRAM.ts`
+> **Source:** `ts/src/modules/SRAM/`
 > **Status:** Approved
 
 ---

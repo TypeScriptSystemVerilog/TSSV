@@ -25,6 +25,9 @@ export interface ROM_Parameters extends TSSVParameters {
 
   split_setting?: 'interal' | 'split2two'
 }
+/**
+ * @see doc/modules/ROM/ROM-spec.md
+ */
 export class ROM extends Module {
   declare params: ROM_Parameters
   declare MemInitFile // initial data file path or array

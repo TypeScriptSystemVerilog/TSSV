@@ -12,6 +12,11 @@ node out/src/tools/convert/cpu_convert.js <path-to-verilog-file> <output-path/pr
 
 This produces various files depending on what it is. The prefix is the beginning of the variosu file names that you would like.
 
+> **Example inputs are missing.** The three examples below read their input from
+> `sv-examples/cpu_convert/`, which was removed from the repo in a44e841 (2026-06-12) when
+> `sv-examples/` stopped being tracked. To run one, restore its input from history first, for
+> example `mkdir -p sv-examples/cpu_convert && git show a44e841^:sv-examples/cpu_convert/pc_top.v > sv-examples/cpu_convert/pc_top.v`.
+
 ## PC SPSRAM
 
 If the RTL follows the PC SPSRAM format then the following four files will be produced.
@@ -38,7 +43,7 @@ npx tsc
 node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/pc_top.v ts/src/tools/example1
 ```
 
-This will take this example [file](../../../../sv-examples/cpu_convert/pc_top.v) and produce four files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example file (`sv-examples/cpu_convert/pc_top.v`) and produce four files in this same tools directory, although it would make more sense to save it in an external directory.
 
 ## RHC SPRAM
 
@@ -62,7 +67,7 @@ npx tsc
 node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/rhcexample.sv ts/src/tools/example3
 ```
 
-This will take this example [file](../../../../sv-examples/cpu_convert/rhcexample.sv) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example file (`sv-examples/cpu_convert/rhcexample.sv`) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
 
 ## UX900 GNRL RAM
 
@@ -86,4 +91,4 @@ npx tsc
 node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/ux900_rams_wrapper.v ts/src/tools/example2
 ```
 
-This will take this example [file](../../../../sv-examples/cpu_convert/ux900_rams_wrapper.v) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example file (`sv-examples/cpu_convert/ux900_rams_wrapper.v`) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.

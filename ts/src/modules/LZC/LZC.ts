@@ -14,6 +14,9 @@ export interface LZC_Parameters extends TSSVParameters {
   dataWidth: IntRange<1, 256>
 }
 
+/**
+ * @see doc/modules/LZC/LZC-spec.md
+ */
 export class LZC extends Module {
   declare params: LZC_Parameters
   constructor (params: LZC_Parameters) {

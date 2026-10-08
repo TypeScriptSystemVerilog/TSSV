@@ -21,7 +21,6 @@ try {
   console.error(err)
 }
 
-
 const tbBody =
 `
     // always accept output

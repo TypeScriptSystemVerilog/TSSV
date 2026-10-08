@@ -1,5 +1,8 @@
 # TSSV Core API Reference
 
+> **Stopgap.** #71 moves this content into the core's JSDoc, which generates
+> `doc/reference/` (#70), and then deletes this file.
+
 > **Sources:** `ts/src/core/Base.ts`, `ts/src/core/Registers.ts`
 > **Public re-export:** `tssv/lib/core/TSSVLib` (re-exports everything from Base and Registers)
 

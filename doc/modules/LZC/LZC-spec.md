@@ -1,6 +1,6 @@
 # Module Specification: `LZC`
 
-> **File:** `ts/src/modules/LZC/LZC.ts`
+> **Source:** `ts/src/modules/LZC/`
 > **Status:** Approved
 
 ---

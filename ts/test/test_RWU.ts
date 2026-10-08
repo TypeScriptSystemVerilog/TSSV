@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from 'fs'
 const regsHwPriority = {
   wordSize: 32 as const,
   addrMap: {
-    ctrl:   0x0n,
+    ctrl: 0x0n,
     status: 0x4n
   },
   registers: {
@@ -29,7 +29,7 @@ const regsHwPriority = {
 const regsSwPriority = {
   wordSize: 32 as const,
   addrMap: {
-    ctrl:   0x0n,
+    ctrl: 0x0n,
     status: 0x4n
   },
   registers: {

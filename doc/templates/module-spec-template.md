@@ -1,6 +1,8 @@
 # Module Specification: `<ModuleName>`
 
-> **File:** `ts/src/modules/<ModuleName>/<ModuleName>.ts`
+_Save this as `doc/modules/<ModuleName>/<ModuleName>-spec.md`, and add `@see doc/modules/<ModuleName>/<ModuleName>-spec.md` to the module class's JSDoc. Delete this line._
+
+> **Source:** `ts/src/modules/<ModuleName>/`
 > **Status:** Draft / Review / Approved
 
 ---
@@ -83,10 +85,9 @@ _What state is the module in immediately after reset is deasserted?_
 
 ## Timing
 
-_Add a `@wavedrom` block here (it will render in TypeDoc). Copy the template below and fill in the signal names and wave patterns. Delete this section if no timing diagram is needed._
+_Add a timing diagram as a `wavedrom` code block. The JSON reads as-is, and a WaveDrom previewer renders it. Copy the template below and fill in the signal names and wave patterns. Delete this section if no timing diagram is needed._
 
-```
-@wavedrom
+```wavedrom
 {
   "signal": [
     {"name": "clk",      "wave": "p........."},
@@ -104,7 +105,7 @@ _Latency from `data_in` to `data_out`: **N clock cycles**._
 
 ## Internal Architecture
 
-_Describe the sub-blocks and how data flows between them. A simple list is fine for small modules; use a diagram description for complex ones._
+_Describe the sub-blocks and how data flows between them. A simple list is fine for small modules; use a diagram description for complex ones. If the module's source spans more than one file (submodules, helpers, factories), say which file holds each part._
 
 - **Tap delay line** — _description_
 - **Multiplier array** — _description_
@@ -134,7 +135,7 @@ _Describe the sub-blocks and how data flows between them. A simple list is fine 
 ## Test Plan
 
 **Test script:** `ts/test/test_<ModuleName>.ts`
-**Output:** `sv-examples/test_<ModuleName>_output/`
+**Output:** `sv-examples/<ModuleName>/<instanceName>/`
 
 | Test case | Inputs | Expected output | Notes |
 |---|---|---|---|
@@ -148,7 +149,7 @@ _Describe the sub-blocks and how data flows between them. A simple list is fine 
 ```bash
 npx tsc && node out/test/test_<ModuleName>.js
 cd verilatorTB
-make VERILOG_FILE=../sv-examples/test_<ModuleName>_output/tb_<ModuleName>.sv \
+make VERILOG_FILE=../sv-examples/<ModuleName>/<instanceName>/tb_<ModuleName>.sv \
      TOP_MODULE=Vtb_<ModuleName>
 ./rungtkwave.sh Vtb_<ModuleName>.vcd
 ```

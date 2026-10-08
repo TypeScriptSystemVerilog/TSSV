@@ -22,6 +22,9 @@ export interface IpXactComponent_Parameters extends TSSVParameters {
   xmlDataPath: string
 }
 
+/**
+ * @see doc/modules/IpXactComponent/IpXactComponent-spec.md
+ */
 export class IpXactComponent extends Module {
   declare params: IpXactComponent_Parameters
 

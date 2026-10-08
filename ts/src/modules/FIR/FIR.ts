@@ -95,6 +95,9 @@ export interface FIR_Ports extends TSSV.IOSignals {
   rst_b: { direction: 'input', isReset: 'lowasync' }
 }
 
+/**
+ * @see doc/modules/FIR/FIR-spec.md
+ */
 export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
   declare params: FIR_ParamsNorm
   declare IOs: FIR_Ports
