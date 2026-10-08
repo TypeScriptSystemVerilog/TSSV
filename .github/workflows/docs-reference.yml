@@ -1,0 +1,59 @@
+name: docs-reference
+
+# Regenerates the core's API reference (doc/reference/) with `npm run docs`
+# and fails if the result differs from what is committed. The reference is
+# generated from the JSDoc in ts/src/core/, so a change to the core's API or
+# its comments must come with the regenerated reference in the same PR.
+#
+# Runs on every PR, not behind a path filter: the core imports types from
+# outside ts/src/core/, and the output also depends on the TypeDoc packages
+# and config. It needs only Node, so it is quick.
+#
+# `npm run docs` also renders the reference's WaveDrom diagrams to SVG, so a
+# stale diagram fails the same check. A second check runs `npm run
+# check:wavedrom` for the diagrams in hand-written docs (module specs), whose
+# SVGs are committed beside them.
+#
+# Also runs on pushes to main, which catches two PRs that are each fresh on
+# their own but stale once both are merged.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: docs-reference-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run docs
+
+      # `git add -N` makes new files (a new core source file gives a new
+      # page) show up in `git diff`; it stages no content.
+      - name: Check doc/reference/ is up to date
+        run: |
+          git add -N doc/reference
+          if ! git diff --exit-code --stat -- doc/reference; then
+            git diff -- doc/reference
+            echo "::error::doc/reference/ is stale. Run 'npm run docs' and commit the result; never hand-edit it."
+            exit 1
+          fi
+
+      - name: Check the WaveDrom SVGs in doc/ are up to date
+        run: npm run check:wavedrom
