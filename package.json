@@ -7,7 +7,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "docs": "typedoc --out docs",
-    "deploy-docs": "gh-pages -d docs",
     "check:body": "bash scripts/check-body-appends.sh",
     "lint:sv": "bash scripts/lint-sv.sh",
     "lint:style-examples": "node doc/rtl-style/sv-style/tools/lint-style-examples.mjs",
@@ -47,7 +46,10 @@
     "@types/deep-diff": "^1.0.5",
     "@types/node": "^20.11.22",
     "eslint": "^8.57.0",
-    "gh-pages": "^6.1.1",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.1",
+    "typedoc-plugin-missing-exports": "^4.1.4",
+    "typedoc-plugin-no-inherit": "^1.6.1",
     "typescript": "^5.4.2",
     "wavedrom": "^3.7.0"
   },
@@ -55,8 +57,6 @@
     "deep-diff": "^1.0.2",
     "eslint-config-love": "^43.1.0",
     "fast-xml-parser": "^4.4.0",
-    "typedoc": "^0.25.12",
-    "typedoc-plugin-missing-exports": "^2.2.0",
     "typescript-eslint": "^7.4.0"
   }
 }
