@@ -252,12 +252,6 @@ A walkthrough of a simple FIR filter module, from the TypeScript through generat
 cd ~/TSSV
 npm run docs
 ```
-#### Deploy to GitHub Pages
-```bash
-npm run deploy-docs
-```
-#### Viewing the TypeDoc Documentation
-[The TSSV TypeDoc generated Github Page can be accessed here](https://TypeScriptSystemVerilog.github.io/TSSV/index.html)
 ### Next Steps
 - [ ] implement Control Register generator
 - [ ] Decide approach to Bus fabrics and standardized interconnect

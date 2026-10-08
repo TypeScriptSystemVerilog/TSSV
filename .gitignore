@@ -25,7 +25,6 @@ sv-examples/
 *.vcd
 .local-pack
 .claude/
-docs
 
 componentgen
 
