@@ -6,7 +6,7 @@
   "main": "./out/src/TSSV.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "docs": "typedoc --out docs",
+    "docs": "typedoc",
     "check:body": "bash scripts/check-body-appends.sh",
     "lint:sv": "bash scripts/lint-sv.sh",
     "lint:style-examples": "node doc/rtl-style/sv-style/tools/lint-style-examples.mjs",
