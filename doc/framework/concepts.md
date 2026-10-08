@@ -120,7 +120,7 @@ elaboration, so the emitted module has none.
 passed as an override (`#(.P(value))`) wherever the module is *instantiated*. That only makes
 sense for an imported SV module, which does declare it (§8). Two limits apply. The value must be
 a string, number or bigint. It must also be truthy: `0`, `''` and `false` are rejected with
-`<P> does not exist!`.
+`<P> does not exist!` ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
 
 ## 3. Signals: `Sig`, `Expr` and signal metadata
 
@@ -233,7 +233,7 @@ inputs.
 anything the child exposes through them is reachable only from inside the parent. To expose a
 child's port or bus, declare the parent's own port (in `IOs`, or `addInterface` with a role)
 and bind to it. `RegisterBlock` inside FIR is bound this way: its `regs` bus becomes an internal
-`memory_32_32 regs ();` in FIR.
+`memory_32_32 regs ();` in FIR, although FIR's spec describes a `regs` port ([#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83)).
 
 ### Checks on every binding
 
@@ -255,7 +255,7 @@ Each binding, explicit or automatic, is checked:
 ### Things `addSubmodule` doesn't check
 
 - **Repeated instance names.** Adding a second child with an existing instance name replaces
-  the first one silently.
+  the first one silently. ([#84](https://github.com/TypeScriptSystemVerilog/TSSV/issues/84))
 - **Shared bindings objects.** The `bindings` object is stored and then mutated, as autoBind
   and constant/extension handling add or rewrite entries. Pass a fresh object to each call.
 
@@ -393,8 +393,10 @@ Module.setFormatterConfig({
 ```
 
 - The default is `{ engine: 'verible', failOnFormatError: true }`, so generation fails if
-  Verible isn't installed or rejects the text. A Verible failure usually means the emitted SV
-  has a syntax error. Its diagnostic is in the thrown message.
+  Verible isn't installed, times out or crashes. The thrown message carries its diagnostic.
+- **A syntax error doesn't fail generation.** On a syntax error `verible-verilog-format` exits
+  with status 0 and returns its input unformatted, and the core discards its error output.
+  Unformatted output is the only sign. Lint generated SV with Verilator to catch these. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
 - `setFormatterConfig` **replaces** the whole configuration. Fields you leave out are unset,
   not kept from the default. Leave out `failOnFormatError` and failures become warnings.
 - `'internal'` is accepted, but today it does nothing: it skips formatting, as `'off'` does.
@@ -428,7 +430,7 @@ What this means in practice:
   nothing to bind. List every port you need.
 - **Interface and `ref` ports can't be bound.** Binding one throws. A name that isn't a port of
   the module throws too.
-- **Parameter values must be truthy** (§2): `0`, `''` and `false` throw.
+- **Parameter values must be truthy** (§2): `0`, `''` and `false` throw ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
 
 `IpXactComponent` (`doc/modules/IpXactComponent/IpXactComponent-spec.md`) builds on the same
 header parser to wrap an SV module described by an IP-XACT component file.

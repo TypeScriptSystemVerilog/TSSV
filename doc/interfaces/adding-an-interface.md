@@ -134,7 +134,8 @@ simulator rejects.
    same signals. `Memory` reads `this.params` after `super()`, which guarantees this. `AXI4`
    doesn't: it tests the raw `params.QOS`, so with the default (`withQOS`) the signals have no
    `AWQOS`/`ARQOS`, but the modports list them unconditionally. `new AXI4({}, 'outward')`
-   therefore emits a modport that Verilator rejects (`Modport item not found: 'AWQOS'`).
+   therefore emits a modport that Verilator rejects (`Modport item not found: 'AWQOS'`). Eight
+   other hand-written AMBA classes are broken with default parameters too ([#82](https://github.com/TypeScriptSystemVerilog/TSSV/issues/82)).
 3. **Modports and signals must agree.** Every modport entry must name a signal in `signals`,
    and a signal missing from a modport isn't reachable through a port of that role. When a
    parameter adds a signal, add it to the modport in the same condition.
@@ -171,7 +172,7 @@ verilator --lint-only sv-examples/AXI4/check_AXI4_outward.sv
 ```
 
 On `main` this check reports the `AWQOS`/`ARQOS` errors from rule 2 for `AXI4`, and nothing for
-`Memory`.
+`Memory`. [#82](https://github.com/TypeScriptSystemVerilog/TSSV/issues/82) adds this check for every interface class.
 
 ## 2. Where the file goes
 
