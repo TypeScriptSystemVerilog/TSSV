@@ -11,7 +11,9 @@
     "check:body": "bash scripts/check-body-appends.sh",
     "lint:sv": "bash scripts/lint-sv.sh",
     "lint:style-examples": "node doc/rtl-style/sv-style/tools/lint-style-examples.mjs",
-    "check:rtl-style": "node doc/rtl-style/sv-style/tools/check-rtl-style.mjs"
+    "check:rtl-style": "node doc/rtl-style/sv-style/tools/check-rtl-style.mjs",
+    "render:wavedrom": "node scripts/render-wavedrom.mjs",
+    "check:wavedrom": "node scripts/render-wavedrom.mjs --check"
   },
   "repository": {
     "type": "git",
@@ -46,7 +48,8 @@
     "@types/node": "^20.11.22",
     "eslint": "^8.57.0",
     "gh-pages": "^6.1.1",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "wavedrom": "^3.7.0"
   },
   "dependencies": {
     "deep-diff": "^1.0.2",
