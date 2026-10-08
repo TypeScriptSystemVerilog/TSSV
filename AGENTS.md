@@ -174,6 +174,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv`
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`; details in `doc/framework/simulation.md`
+- **Timing diagrams in markdown docs**: GitHub doesn't render WaveDrom, so put the JSON in a `<!-- wavedrom <file>.svg ... -->` comment followed by `![...](<file>.svg)`, then run `npm run render:wavedrom` to write the SVG next to the doc. Never hand-edit the SVG. `npm run check:wavedrom` fails if any SVG is missing, stale or unlinked. Example: `doc/modules/SFIFO/SFIFO-spec.md`
 - **Learning the framework end to end**: `doc/tutorials/fir.md`
 
 ---

@@ -1,52 +1,173 @@
+// Generate the SFIFO variants and the inputs for verilatorTB/tb_SFIFO.sv:
+//
+// 1. Every combination of simultPushPop, inclAlmostFull and inclAlmostEmpty, checking each
+//    one's ports against the spec's IO tables.
+// 2. The testbench configurations (TB_CONFIGS), plus sv-examples/SFIFO/tb/:
+//    - SFIFO_tb_configs.svh: per-configuration DUT name, depth and port options
+//    - SFIFO_tb_vectors.svh: one task per timing diagram in the spec, built from the
+//      diagram's WaveDrom JSON so the testbench checks exactly what the spec shows
+//    - configs.txt: "<config> <DUT .sv path>" per line, read by `make sfifo_sim`
+//
+// Run `make -C verilatorTB sfifo_sim` to generate everything and simulate each configuration.
+
 import { SFIFO } from 'tssv/lib/modules/SFIFO'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 
-// ============================================test1=======================================================
-console.log('test1')
-const test_FIFO_1 = new SFIFO({ dataWidth: 8, depth: 1n })
-try {
-  mkdirSync(`sv-examples/SFIFO/${test_FIFO_1.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SFIFO/${test_FIFO_1.name}/${test_FIFO_1.name}.sv`, test_FIFO_1.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+const SPEC = 'doc/modules/SFIFO/SFIFO-spec.md'
+const TB_DIR = 'sv-examples/SFIFO/tb'
+const DATA_WIDTH = 8
+
+/** write a FIFO's SV to sv-examples/SFIFO/<name>/<name>.sv and return that path */
+function emit (fifo: SFIFO): string {
+  const dir = `sv-examples/SFIFO/${fifo.name}`
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(`${dir}/${fifo.name}.sv`, fifo.writeSystemVerilog())
+  return `${dir}/${fifo.name}.sv`
 }
 
-// ============================================test2=======================================================
-console.log('test2')
-const test_FIFO_2 = new SFIFO({ dataWidth: 8, depth: 16n })
-try {
-  mkdirSync(`sv-examples/SFIFO/${test_FIFO_2.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SFIFO/${test_FIFO_2.name}/${test_FIFO_2.name}.sv`, test_FIFO_2.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+/** the port list the spec's IO tables give for a configuration */
+function specPorts (simult: boolean, almostFull: boolean, almostEmpty: boolean): string[] {
+  const ports = ['clk', 'rst_n', 'push_data', 'pop_data', 'empty', 'full', 'curr_depth']
+  ports.push(...(simult ? ['push_en', 'pop_en'] : ['en', 'push1_pop0']))
+  if (almostFull) ports.push('almost_full_depth', 'almost_full')
+  if (almostEmpty) ports.push('almost_empty_depth', 'almost_empty')
+  return ports.sort()
 }
 
-// ============================================test3=======================================================
-console.log('test3')
-const test_FIFO_3 = new SFIFO({ dataWidth: 9, depth: 25n, InclAlmostDepth: 'InclAlmostDepth' })
-try {
-  mkdirSync(`sv-examples/SFIFO/${test_FIFO_3.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SFIFO/${test_FIFO_3.name}/${test_FIFO_3.name}.sv`, test_FIFO_3.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+// ============================================ 1. every port combination
+for (const simult of [true, false]) {
+  for (const almostFull of [false, true]) {
+    for (const almostEmpty of [false, true]) {
+      const fifo = new SFIFO({ dataWidth: DATA_WIDTH, depth: 5n, simultPushPop: simult, inclAlmostFull: almostFull, inclAlmostEmpty: almostEmpty })
+      const got = Object.keys((fifo as unknown as { IOs: Record<string, unknown> }).IOs).sort().join(' ')
+      const want = specPorts(simult, almostFull, almostEmpty).join(' ')
+      if (got !== want) throw Error(`${fifo.name} ports\n  got:  ${got}\n  spec: ${want}`)
+      emit(fifo)
+      console.log(`${fifo.name}: ports match the spec`)
+    }
+  }
 }
 
-// ============================================test4=======================================================
-console.log('test4')
-const test_FIFO_4 = new SFIFO({ dataWidth: 9, depth: 25n, InclAlmostDepth: 'InclAlmostDepth', almost_empty_depth: 5n, almost_full_depth: 20n, rw_mode: '1rw' })
-try {
-  mkdirSync(`sv-examples/SFIFO/${test_FIFO_4.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SFIFO/${test_FIFO_4.name}/${test_FIFO_4.name}.sv`, test_FIFO_4.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+// ============================================ 2. testbench configurations
+interface TbConfig {
+  cfg: string
+  depth: bigint
+  simultPushPop: boolean
+  inclAlmostFull: boolean
+  inclAlmostEmpty: boolean
+  /** timing diagrams (SVG names in the spec, without the SFIFO-timing- prefix) to replay */
+  diagrams: string[]
 }
 
-// ============================================test5=======================================================
-console.log('test5')
-const test_FIFO_5 = new SFIFO({ dataWidth: 9, depth: 25n, rw_mode: '1r_1w' })
-try {
-  mkdirSync(`sv-examples/SFIFO/${test_FIFO_5.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SFIFO/${test_FIFO_5.name}/${test_FIFO_5.name}.sv`, test_FIFO_5.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+const TB_CONFIGS: TbConfig[] = [
+  { cfg: 'd8_dual_flags', depth: 8n, simultPushPop: true, inclAlmostFull: true, inclAlmostEmpty: true, diagrams: [] },
+  { cfg: 'd4_dual_flags', depth: 4n, simultPushPop: true, inclAlmostFull: true, inclAlmostEmpty: true, diagrams: ['dual-port', 'almost-flags'] },
+  { cfg: 'd4_single', depth: 4n, simultPushPop: false, inclAlmostFull: false, inclAlmostEmpty: false, diagrams: ['single-port'] },
+  { cfg: 'd5_single_flags', depth: 5n, simultPushPop: false, inclAlmostFull: true, inclAlmostEmpty: true, diagrams: [] },
+  { cfg: 'd1_dual', depth: 1n, simultPushPop: true, inclAlmostFull: false, inclAlmostEmpty: false, diagrams: [] }
+]
+
+mkdirSync(TB_DIR, { recursive: true })
+const header = `// Generated by ts/test/modules/test_SFIFO.ts. Do not edit.\n`
+let configs = header
+const configList: string[] = []
+TB_CONFIGS.forEach((c, i) => {
+  const fifo = new SFIFO({ dataWidth: DATA_WIDTH, depth: c.depth, simultPushPop: c.simultPushPop, inclAlmostFull: c.inclAlmostFull, inclAlmostEmpty: c.inclAlmostEmpty })
+  const sv = emit(fifo)
+  configList.push(`${c.cfg} ${sv}`)
+  configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${c.cfg}\n`
+  configs += `  \`define CFG_NAME "${c.cfg}"\n`
+  configs += `  \`define SFIFO_DUT ${fifo.name}\n`
+  configs += `  \`define DEPTH ${c.depth}\n`
+  if (c.simultPushPop) configs += '  `define SIMULT\n'
+  if (c.inclAlmostFull) configs += '  `define ALMOST_FULL\n'
+  if (c.inclAlmostEmpty) configs += '  `define ALMOST_EMPTY\n'
+  configs += `  \`define RUN_DIAGRAMS ${c.diagrams.map(d => `diagram_${d.replace(/-/g, '_')}();`).join(' ')}\n`
+  console.log(`${fifo.name}: testbench config ${c.cfg}`)
+})
+configs += '`else\n  `error "define one of the CFG_<config> macros"\n`endif\n'
+writeFileSync(`${TB_DIR}/SFIFO_tb_configs.svh`, configs)
+writeFileSync(`${TB_DIR}/configs.txt`, configList.join('\n') + '\n')
+
+// ============================================ 3. timing-diagram vectors
+// vec_t field order in tb_SFIFO.sv. ABSENT: the signal isn't in the diagram (input left at
+// its default, output not checked). DONT_CARE: 'x' in the diagram (input randomized,
+// output not checked).
+const FIELDS = ['rst_n', 'push_en', 'pop_en', 'en', 'push1_pop0', 'push_data', 'almost_full_depth', 'almost_empty_depth',
+  'pop_data', 'empty', 'full', 'curr_depth', 'almost_full', 'almost_empty']
+const ABSENT = -2
+const DONT_CARE = -1
+
+interface Lane { name?: string, wave?: string, data?: string[] | string }
+
+/** a data label as a number: decimal digits as-is, a single letter as its character code */
+function labelValue (label: string, where: string): number {
+  if (/^\d+$/.test(label)) return Number(label)
+  if (/^[A-Za-z]$/.test(label)) return label.charCodeAt(0)
+  throw Error(`${where}: data label "${label}" is neither a number nor a single letter`)
 }
+
+/** expand a lane's wave into one value per cycle */
+function expandLane (lane: Lane, where: string): number[] {
+  const data = typeof lane.data === 'string' ? lane.data.split(/\s+/) : (lane.data ?? [])
+  let next = 0
+  let prev: number | undefined
+  const values: number[] = []
+  for (const ch of lane.wave ?? '') {
+    if (ch === '.') {
+      if (prev === undefined) throw Error(`${where}: wave starts with '.'`)
+    } else if (ch === '0' || ch === '1') {
+      prev = Number(ch)
+    } else if (ch === 'x') {
+      prev = DONT_CARE
+    } else if (ch === '=' || /[2-9]/.test(ch)) {
+      const label = data[next++]
+      if (label === undefined) throw Error(`${where}: more data bricks than data labels`)
+      prev = labelValue(label, where)
+    } else {
+      throw Error(`${where}: unsupported wave character '${ch}'`)
+    }
+    values.push(prev)
+  }
+  return values
+}
+
+const spec = readFileSync(SPEC, 'utf8')
+let vectors = header
+let diagrams = 0
+for (const m of spec.matchAll(/<!-- wavedrom SFIFO-timing-(\S+)\.svg\n([\s\S]*?)\n-->/g)) {
+  const [, name, json] = m
+  if (name === undefined || json === undefined) continue
+  const lanes = (JSON.parse(json) as { signal: Lane[] }).signal
+  const perField = new Map<string, number[]>()
+  let cycles = 0
+  for (const lane of lanes) {
+    if (lane.name === undefined || lane.name === 'clk') continue
+    if (!FIELDS.includes(lane.name)) throw Error(`${SPEC} ${name}: signal ${lane.name} is not an SFIFO port`)
+    const values = expandLane(lane, `${SPEC} ${name} ${lane.name}`)
+    if (cycles !== 0 && values.length !== cycles) throw Error(`${SPEC} ${name}: ${lane.name} has ${values.length} cycles, expected ${cycles}`)
+    cycles = values.length
+    perField.set(lane.name, values)
+  }
+  const rows: string[] = []
+  for (let k = 0; k < cycles; k++) {
+    rows.push(`    '{${FIELDS.map(f => perField.get(f)?.[k] ?? ABSENT).join(', ')}}`)
+  }
+  vectors += `
+// ${name}: ${cycles} cycles. Fields: ${FIELDS.join(', ')}
+task automatic diagram_${name.replace(/-/g, '_')}();
+  vec_t v[${cycles}] = '{
+${rows.join(',\n')}
+  };
+  run_vectors("${name}", v);
+endtask
+`
+  diagrams++
+}
+for (const c of TB_CONFIGS) {
+  for (const d of c.diagrams) {
+    if (!vectors.includes(`task automatic diagram_${d.replace(/-/g, '_')}()`)) throw Error(`${c.cfg}: no diagram SFIFO-timing-${d}.svg in ${SPEC}`)
+  }
+}
+writeFileSync(`${TB_DIR}/SFIFO_tb_vectors.svh`, vectors)
+console.log(`${diagrams} timing diagrams from ${SPEC} written to ${TB_DIR}/SFIFO_tb_vectors.svh`)
