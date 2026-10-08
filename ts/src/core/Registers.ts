@@ -157,24 +157,15 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
     // Create signals and logic for registers
     for (const reg in this.regDefs.addrMap) {
       const regName = reg
-      const registers = this.regDefs.registers
       const baseAddr = this.regDefs.addrMap[regName]
       const matchExpr = this.addSignal(`${regName}_matchExpr`, { width: 1 })
-
-      let thisReg: Register = {
-        type: RegisterType.RW,
-        width: regDefs.wordSize
-      }
-      if (registers[regName] !== undefined) {
-        thisReg = registers[regName] || thisReg
-      }
+      const thisReg = this.resolveRegister(regName)
 
       if (thisReg.type === RegisterType.RW) {
         const wstrbWidth = (params.busAddressWidth || 8) / 8
         const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
 
-        // Use original address for logic
-        this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr })
+        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
 
         const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
         const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
@@ -227,8 +218,10 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         const width = thisReg.width || regDefs.wordSize
         const resetHex = (thisReg.reset ?? 0n).toString(16)
 
-        this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr })
+        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
+        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
         const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
+        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
         this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig })
 
         this.IOs[regName] = { direction: 'output', width, isSigned: thisReg.isSigned, type: 'reg' }
@@ -250,8 +243,7 @@ always_ff @( posedge clk or negedge rst_b )
     ${regName} <= ${secondVal};
 `
       } else if (thisReg.type === RegisterType.RO) {
-        // Use original address for logic
-        this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr })
+        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
 
         const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
         this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
@@ -264,8 +256,7 @@ always_ff @( posedge clk or negedge rst_b )
         const wstrbWidth = (params.busAddressWidth || 8) / 8
         const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
 
-        // Use original address for logic
-        this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr })
+        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
         this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
 
         const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
@@ -277,12 +268,7 @@ always_ff @( posedge clk or negedge rst_b )
         }
         this.addAssign({ in: new Expr('regs.DATA_WR'), out: regName.toString() })
       } else if (thisReg.type === RegisterType.ROM) {
-        // Use original address for logic
-        if (thisReg.size) {
-          this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchExpr })
-        } else {
-          this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr })
-        }
+        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr, thisReg.size)), out: matchExpr })
         const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
         const ROM_ADDR = this.addSignal(`${regName}_ADDR`, { width: params.busAddressWidth })
         this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
@@ -308,22 +294,12 @@ always_ff @( posedge clk or negedge rst_b )
           q: `${regName}_ready`
         })
       } else if (thisReg.type === RegisterType.RAM) {
-        // Use original address for logic
-        if (thisReg.size) {
-          this.addAssign({ in: new Expr(`(regs.ADDR >= ${baseAddr}) && (regs.ADDR <= (${Number(baseAddr.valueOf()) + ((Number(thisReg.size) * 4) - 1)}))`), out: matchExpr })
-        } else {
-          this.addAssign({ in: new Expr(`regs.ADDR == ${baseAddr}`), out: matchExpr })
-        }
-        const DEC_MASK = this.calculateDecMask(thisReg.size)
-        // const PASS_MASK = this.calculatePassMask(thisReg.size)
-        const Nmatch = this.addSignal(`${regName}_Nmatch`, { width: 1 })
+        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr, thisReg.size)), out: matchExpr })
         const RAM_ADDR = this.addSignal(`${regName}_ADDR`, { width: params.busAddressWidth })
         const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
         const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        this.addAssign({ in: new Expr(`regs.ADDR & ${DEC_MASK} == ${baseAddr}`), out: Nmatch })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig }) // changed from Nmatch
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig }) // changed from Nmatch
+        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
+        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig })
         this.addAssign({ in: new Expr('regs.ADDR'), out: RAM_ADDR }) // remove  & ${PASS_MASK}
         this.IOs[`${regName}_rdata`] = { // changed input to output
           direction: 'output',
@@ -388,129 +364,134 @@ always_ff @( posedge clk or negedge rst_b )
         })
       }
     }
-    let readyStr = ''
-    const inputs: string[] = []
-    let casexString = `
-always @(regs.ADDR or regs.RE)
-  if(regs.RE == 1) begin
-    /* verilator lint_off CASEX */
-    casex (regs.ADDR)
- `
-    for (const reg in this.regDefs.addrMap) {
-      const regName = reg
-      const baseAddr = this.regDefs.addrMap[regName]
+    this.addReadMux()
+  }
 
-      let readSignal = ''
-      const register = this.regDefs.registers?.[regName]
-      if (register?.type === RegisterType.ROM) { //  || register?.type === 'RAM'
-        readSignal = `${regName}_rdata`
-        inputs.push(`${regName}_rdata`)
-        readyStr = `${regName}_ready`
-        casexString +=
-`     8'b${this.padZeroes(this.replaceZerosWithX(baseAddr.toString(2)), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
-      } else if (register?.type === RegisterType.RAM) {
-        readSignal = `${regName}_wdata`
-        inputs.push(`${regName}_rdata`)
-        readyStr = `${regName}_ready`
-        casexString +=
-`     8'b${this.padZeroes(this.replaceZerosWithX(baseAddr.toString(2)), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
-      } else if (register?.type === RegisterType.RO) {
-        readSignal = regName
-        inputs.push(`${regName}`)
-        readyStr = '1\'b1'
-        casexString +=
-`     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
-      } else if (register?.type === RegisterType.RWU) {
-        readSignal = regName
-        inputs.push(`${regName}`)
-        readyStr = '1\'b1'
-        casexString +=
-`     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
-      } else if (register?.type === RegisterType.RW) {
-        if (register.fields && Object.keys(register.fields).length > 0) {
-          readSignal = Object.keys(register.fields).map((fieldName, index) => `${regName}_field${index}`).reverse().join(', ')
-          readSignal = `{${readSignal}}`
-          inputs.push(`${regName}_field0`)
-          inputs.push(`${regName}_field1`)
-          readyStr = '1\'b1'
-          casexString +=
-`     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
-        } else {
-          readSignal = regName
-          inputs.push(`${regName}`)
-          readyStr = '1\'b1'
-          casexString +=
-`     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
-        }
-      } else {
-        readSignal = regName
-        inputs.push(`${regName}`)
-        casexString +=
-`     8'b${this.padZeroes(baseAddr.toString(2), 8)}: begin
-          regs.DATA_RD <= ${readSignal};
-          regs.READY <= ${readyStr};
-      end\n`
+  /** The register's definition, or the default for an `addrMap` entry with none: a full-word RW. */
+  private resolveRegister (regName: keyof T): Register {
+    return this.regDefs.registers[regName] ?? { type: RegisterType.RW, width: this.regDefs.wordSize }
+  }
+
+  /** `addr` as a sized hex literal at the bus address width */
+  private addrLiteral (addr: bigint): string {
+    return `${this.addrWidth()}'h${addr.toString(16)}`
+  }
+
+  private addrWidth (): number {
+    return this.params.busAddressWidth ?? 32
+  }
+
+  /**
+   * The full-width address decode for one register: `regs.ADDR` equal to `base`, or, with `size`
+   * (`RAM`/`ROM`), inside the window `[base, base + size * wordSize/8)`. The write strobes and the
+   * read multiplexer both use it, so the two decode the same addresses.
+   */
+  private decodeExpr (regName: keyof T, base: bigint, size?: bigint): string {
+    const name = String(regName)
+    const limit = 1n << BigInt(this.addrWidth())
+    if (size === undefined) {
+      if (base < 0n || base >= limit) {
+        throw Error(`${name}: address 0x${base.toString(16)} doesn't fit in the ${this.addrWidth()}-bit bus address`)
       }
+      return `regs.ADDR == ${this.addrLiteral(base)}`
     }
-    casexString += '      default: regs.DATA_RD <= 0;\n'
-    casexString += '    endcase\n'
-    casexString += '  end'
-    // Add the casex string to the body
-    this.body += casexString
-  }
-
-  private replaceZerosWithX (binaryStr: string): string {
-    // Replace all '0's with 'X's
-    let modifiedStr = binaryStr.replace(/0/g, 'X')
-
-    // Check if there is no '1' in the string
-    if (!modifiedStr.includes('1')) {
-      modifiedStr += 'X'
+    if (size <= 0n) throw Error(`${name}: size must be at least 1, got ${size}`)
+    const last = base + size * BigInt(this.regDefs.wordSize / 8) - 1n
+    if (base < 0n || last >= limit) {
+      throw Error(`${name}: window 0x${base.toString(16)}-0x${last.toString(16)} doesn't fit in the ${this.addrWidth()}-bit bus address`)
     }
-
-    return modifiedStr
+    // An unsigned compare against 0 or the top address is always true, and Verilator flags it.
+    const terms: string[] = []
+    if (base > 0n) terms.push(`(regs.ADDR >= ${this.addrLiteral(base)})`)
+    if (last < limit - 1n) terms.push(`(regs.ADDR <= ${this.addrLiteral(last)})`)
+    return terms.length > 0 ? terms.join(' && ') : "1'b1"
   }
 
-  private padZeroes (address: string, width: number): string {
-    const padLength = width - address.length
-    if (padLength <= 0) return address
-    return '0'.repeat(padLength) + address
+  /**
+   * `value`, `width` bits wide, as a word-wide read-back value: zero-extended, or truncated to
+   * the word if it is wider.
+   */
+  private toWord (value: string, width: number): string {
+    const wordSize = this.regDefs.wordSize
+    if (width === wordSize) return value
+    if (width > wordSize) return `${value}[${wordSize - 1}:0]`
+    return `{${wordSize - width}'b0, ${value}}`
   }
 
-  private padZeroesRight (address: string, width: number): string {
-    const padLength = width - address.length
-    if (padLength <= 0) return address
-    return address + '0'.repeat(padLength)
+  /**
+   * A field register's read-back value: each `<R>_field<i>` at its declared bit range, unused
+   * bits 0. Throws if a range is reversed, past the word, or overlaps another field.
+   */
+  private fieldReadback (regName: string, fields: Record<string, Field>): string {
+    const wordSize = this.regDefs.wordSize
+    const placed = Object.entries(fields).map(([fieldName, field], index) => {
+      const [hi, lo] = field.bitRange
+      if (hi < lo) throw Error(`${regName}.${fieldName}: bitRange [${hi}, ${lo}] must be [msb, lsb]`)
+      if (hi >= wordSize) throw Error(`${regName}.${fieldName}: bit ${hi} is past the ${wordSize}-bit word`)
+      return { sig: `${regName}_field${index}`, name: fieldName, hi, lo }
+    }).sort((a, b) => b.lo - a.lo)
+
+    const parts: string[] = []
+    let next = wordSize - 1 // highest bit not yet placed
+    for (const f of placed) {
+      if (f.hi > next) {
+        const other = placed.find(o => o !== f && o.lo <= f.hi && o.hi >= f.lo)
+        throw Error(`${regName}.${f.name}: bits [${f.hi}:${f.lo}] overlap ${regName}.${other?.name ?? 'another field'}`)
+      }
+      if (f.hi < next) parts.push(`${next - f.hi}'b0`)
+      parts.push(f.sig)
+      next = f.lo - 1
+    }
+    if (next >= 0) parts.push(`${next + 1}'b0`)
+    return parts.length === 1 ? parts[0] : `{${parts.join(', ')}}`
   }
 
-  private calculateDecMask (size?: bigint): string {
-    if (size === undefined) return '0'
-    const sizeBits = size.toString(2).length
-    return `${sizeBits}'b${'1'.repeat(sizeBits / 2).padEnd(sizeBits, '0')}`
-  }
+  /**
+   * The read multiplexer. Each readable register's `<R>_RE` (its address decode and `regs.RE`)
+   * selects its read-back value. `READY` is 1 except while a `RAM`/`ROM` read waits on its
+   * `<R>_ready`; a read that matches no register returns 0.
+   */
+  private addReadMux (): void {
+    const branches: string[] = []
+    for (const regName in this.regDefs.addrMap) {
+      const reg = this.resolveRegister(regName)
+      const width = reg.width ?? this.regDefs.wordSize
+      const lines: string[] = []
+      switch (reg.type) {
+        case RegisterType.WO:
+          continue
+        case RegisterType.RAM:
+          lines.push(`regs.DATA_RD = ${this.toWord(`${regName}_wdata`, width)};`)
+          lines.push(`regs.READY   = ${regName}_ready;`)
+          break
+        case RegisterType.ROM:
+          lines.push(`regs.DATA_RD = ${this.toWord(`${regName}_rdata`, width)};`)
+          lines.push(`regs.READY   = ${regName}_ready;`)
+          break
+        case RegisterType.RW:
+          if (reg.fields && Object.keys(reg.fields).length > 0) {
+            lines.push(`regs.DATA_RD = ${this.fieldReadback(regName, reg.fields)};`)
+            break
+          }
+          lines.push(`regs.DATA_RD = ${this.toWord(regName, width)};`)
+          break
+        case RegisterType.RO:
+        case RegisterType.RWU:
+          lines.push(`regs.DATA_RD = ${this.toWord(regName, width)};`)
+          break
+      }
+      const kw = branches.length === 0 ? 'if' : 'end else if'
+      branches.push(`    ${kw} (${regName}_RE) begin\n${lines.map(l => `      ${l}`).join('\n')}`)
+    }
+    if (branches.length > 0) branches.push('    end')
 
-  private calculatePassMask (size?: bigint): string {
-    if (size === undefined) return '0'
-    const sizeBits = size.toString(2).length
-    return `${sizeBits}'b${'0'.repeat(sizeBits / 2).padEnd(sizeBits, '1')}`
+    this.addCombAlways({ outputs: ['regs.DATA_RD', 'regs.READY'] }, `
+  begin : read_mux
+    regs.DATA_RD = '0;
+    regs.READY   = 1'b1;
+${branches.join('\n')}
+  end
+`)
   }
 
   writeRALF (): string {
