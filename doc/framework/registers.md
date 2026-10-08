@@ -9,8 +9,8 @@ This guide covers defining a block by hand or from YAML, what the generated modu
 and the RALF output. Signatures are in [`doc/reference/Registers.md`](../reference/Registers.md).
 The FIR module is a worked example that uses a block: [FIR tutorial, Part 4](../tutorials/fir.md#part-4--parameterized-register-block-via-repeatedregister-yaml).
 
-> **Read "Current limitations" before relying on a block's read path or on RO, WO, RAM or ROM
-> registers.** The generated logic has gaps that the earlier docs didn't mention. The
+> **Read "Current limitations" before relying on RO, WO, RAM or ROM registers, or on write
+> strobes.** The generated logic has gaps that the earlier docs didn't mention. The
 > register-type table below describes what the code emits today, not what the type names
 > suggest.
 
@@ -108,14 +108,19 @@ Every block has these ports. The register ports from §3 go between `rst_b` and 
 
 Inside, the block has three parts:
 
-- **An address decoder**: each register gets `<R>_matchExpr = (regs.ADDR == <address>)`, or a
-  range compare for `RAM`/`ROM` with a `size`, combined with `regs.WE`/`regs.RE` into
-  `<R>_WE`/`<R>_RE`.
+- **An address decoder**: each register gets `<R>_matchExpr`, which compares all of `regs.ADDR`
+  with the register's address as a `busAddressWidth`-bit literal (`regs.ADDR == 32'h100`). A
+  `RAM` or `ROM` with a `size` matches the window `[address, address + size × wordSize/8)`
+  instead. `<R>_matchExpr` is combined with `regs.WE`/`regs.RE` into `<R>_WE`/`<R>_RE`, so
+  reads and writes decode the same addresses. An address or window that doesn't fit in
+  `busAddressWidth` bits throws when the block is constructed.
 - **The register state**: flops built with `addRegister`, all on `clk`/`rst_b`, or a
   hand-written `always_ff` for `RWU`.
-- **The read multiplexer**: an `always @(regs.ADDR or regs.RE)` block with a `casex` on
-  `regs.ADDR`. When `regs.RE` is high it drives `regs.DATA_RD` and `regs.READY` from the
-  addressed register.
+- **The read multiplexer**: an `always_comb` block named `read_mux`. It sets `regs.DATA_RD` to 0
+  and `regs.READY` to 1, then, in `addrMap` order, the first register whose `<R>_RE` is high
+  drives `regs.DATA_RD` with its read-back value (§3), zero-extended to the word. A `RAM` or
+  `ROM` also drives `regs.READY` from its `<R>_ready`. A read of a `WO` register or of an
+  address no register decodes returns 0.
 
 The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, `DATA_WR`,
 `DATA_RD`, `WE`, `RE`, `READY`, `WSTRB`. The JSDoc above `RegisterBlock` holds two WaveDrom
@@ -132,8 +137,9 @@ They show the intended handshake:
 - **Read**: `ADDR` and `RE` go out together. `READY` drops, then rises with `DATA_RD` valid,
   possibly several cycles later.
 
-As generated, a plain register doesn't drive `READY` on a write. A read gets `READY = 1'b1` in
-the same cycle.
+As generated, `READY` is high except during a `RAM` or `ROM` read, when it follows that
+register's `<R>_ready`. Writes, and reads of the other types, finish in the cycle they are
+issued: `DATA_RD` is valid combinationally while `RE` is high.
 
 ## 3. Register types
 
@@ -143,10 +149,10 @@ current code generates.
 | Type | Ports created | Write | Read-back | RALF access |
 |---|---|---|---|---|
 | `RW`, no fields | output `<R>` | Flop loads all of `regs.DATA_WR` when `<R>_WE`; `WSTRB` isn't applied | `<R>` | `rw` |
-| `RW`, with fields | output `<R>_field<i>` per field, numbered in declaration order | Each field's flop loads `regs.DATA_WR[msb:lsb]` when `<R>_WE` and any `WSTRB` bit is set; reset from the field | Fields concatenated, highest index first (see §5) | `rw` |
+| `RW`, with fields | output `<R>_field<i>` per field, numbered in declaration order | Each field's flop loads `regs.DATA_WR[msb:lsb]` when `<R>_WE` and any `WSTRB` bit is set; reset from the field | Each field at its `bitRange`, other bits 0. A reversed range, a bit past the word or two overlapping fields throws | `rw` |
 | `RWU` | output `<R>`; inputs `<R>_hw_update`, `<R>_hw_update_val` | Software write on `<R>_WE`, hardware update on `<R>_hw_update`; `updatePriority` picks the winner when both are high | `<R>` | `rw` |
 | `RO` | output `<R>` | None | `<R>`, but nothing drives the output (§5) | `ro` |
-| `WO` | output `<R>` | `<R>` is assigned `regs.DATA_WR` continuously, whatever the address | `<R>` | `wo` |
+| `WO` | output `<R>` | `<R>` is assigned `regs.DATA_WR` continuously, whatever the address (§5) | None: reads 0 | `wo` |
 | `RAM` | outputs `<R>_rdata`, `_re`, `_we`, `_wdata`, `_wstrb`, `_ready` | On `<R>_WE`, registers `DATA_WR`, the strobes and the enables onto those outputs | `<R>_wdata` (the last write) | `rw` |
 | `ROM` | outputs `<R>_rdata`, `_re`, `_ready` | None; `_ready` registers `regs.READY` on any bus write | `<R>_rdata`, which nothing drives (§5) | `ro` |
 
@@ -268,38 +274,20 @@ from outside, give the parent a port of the same interface type and bind `regs` 
 ## 5. Current limitations
 
 These are properties of the code on `main`. Check them before you depend on a block. Each one
-links to the bug that tracks it: [#79](https://github.com/TypeScriptSystemVerilog/TSSV/issues/79) (read path), [#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80) (register-type ports), [#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81)
+links to the bug that tracks it: [#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80) (register-type ports), [#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81)
 (write strobes) and [#86](https://github.com/TypeScriptSystemVerilog/TSSV/issues/86) (`TL_UL`).
 
-- **The read decoder sees 8 address bits.** The read `casex` patterns are 8 bits wide, so a
-  register at `0x100` or above (like `DATA_MEM` in `example_regblock.yaml`) gets a 9-bit
-  pattern in an 8-bit literal and can't be read back correctly. The write decoder compares the
-  full address. ([#79](https://github.com/TypeScriptSystemVerilog/TSSV/issues/79))
-- **`RAM`/`ROM` read patterns ignore `size`.** The pattern is the base address with its zero
-  bits made don't-care, so the decoded window is set by the base address's alignment, not by
-  `size`. ([#79](https://github.com/TypeScriptSystemVerilog/TSSV/issues/79))
-- **Fields with gaps read back in the wrong place.** Read-back concatenates the fields with no
-  padding, so `[0:0]`, `[2:1]` and `[15:8]` come back packed into bits `[10:0]`. Fields that
-  tile the word without gaps (like `REG2` above) read back correctly. Field ports are named
-  `<R>_field<i>`, not after the field. ([#79](https://github.com/TypeScriptSystemVerilog/TSSV/issues/79))
 - **`RO` and `ROM` data has no input.** `RO`'s `<R>` and `ROM`'s `<R>_rdata` are output ports
   that nothing inside the block drives, so the logic that should supply the value can't. `ROM`'s
   `<R>_re` is undriven too. `RO` ignores `reset` and `fields`. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
 - **`WO` outputs aren't registered or qualified.** `<R>` follows `regs.DATA_WR` on every cycle.
   `<R>_WE` is computed but not exported. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
-- **An empty `READY` assignment if the first register is `WO` or has no entry.** If the first
-  entry in `addrMap` is a `WO` register, or a register with no entry in `registers`, the read
-  multiplexer gets `regs.READY <= ;`. That is a syntax error, and emission doesn't catch it
-  (see [concepts.md §7](concepts.md#7-emission)). Verilator rejects the file. ([#79](https://github.com/TypeScriptSystemVerilog/TSSV/issues/79))
 - **`RAM` is incomplete.** Its outputs only update on a write. No address output exists:
   `<R>_ADDR` is internal. A read returns the last written value, and `<R>_wstrb` is as wide
   as the register and always written as `1`. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
 - **`WSTRB` is only partly applied.** A field register's enable treats `WSTRB` as one bit (any
   strobe set). A register without fields ignores it. The strobe signals are sized from
   `busAddressWidth`, not from the data width. ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81))
-- **The read multiplexer is level-sensitive.** It drives `DATA_RD`/`READY` with non-blocking
-  assignments from an `always @(regs.ADDR or regs.RE)` block. When `RE` is low it holds the
-  previous values, and `READY` isn't reset. ([#79](https://github.com/TypeScriptSystemVerilog/TSSV/issues/79))
 - **`TL_UL` in YAML doesn't work** ([#86](https://github.com/TypeScriptSystemVerilog/TSSV/issues/86)). The generated file imports `TL_UL` from
   `tssv/lib/interfaces/AMBA/TL_UL`, which doesn't exist (the class is in
   `ts/src/interfaces/TileLink.ts`), and `RegisterBlock` accepts only `Memory` and `APB4`. For an APB block, generate with `Memory` and pass an `APB4` instance in
