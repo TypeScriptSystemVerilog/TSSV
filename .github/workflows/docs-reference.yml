@@ -9,6 +9,11 @@ name: docs-reference
 # outside ts/src/core/, and the output also depends on the TypeDoc packages
 # and config. It needs only Node, so it is quick.
 #
+# `npm run docs` also renders the reference's WaveDrom diagrams to SVG, so a
+# stale diagram fails the same check. A second check runs `npm run
+# check:wavedrom` for the diagrams in hand-written docs (module specs), whose
+# SVGs are committed beside them.
+#
 # Also runs on pushes to main, which catches two PRs that are each fresh on
 # their own but stale once both are merged.
 on:
@@ -49,3 +54,6 @@ jobs:
             echo "::error::doc/reference/ is stale. Run 'npm run docs' and commit the result; never hand-edit it."
             exit 1
           fi
+
+      - name: Check the WaveDrom SVGs in doc/ are up to date
+        run: npm run check:wavedrom
