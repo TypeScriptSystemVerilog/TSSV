@@ -5,8 +5,9 @@ import { OptionDefaults } from 'typedoc'
 
 /** @type {Partial<import('typedoc').TypeDocOptions & import('typedoc-plugin-markdown').PluginOptions>} */
 export default {
-  // The core only. The TSSV.ts / TSSVLib.ts barrels are left out:
-  // TSSVLib.ts re-exports APB_to_Memory, which is outside the core.
+  // The core, plus the Memory interface that RegisterBlock's bus uses.
+  // The TSSV.ts / TSSVLib.ts barrels are left out: TSSVLib.ts re-exports
+  // APB_to_Memory, which is outside the core.
   //
   // Base.ts goes last on purpose. typedoc-plugin-missing-exports documents
   // a non-exported symbol in the last module that referenced it, and
@@ -15,6 +16,7 @@ export default {
   entryPoints: [
     'ts/src/core/Registers.ts',
     'ts/src/core/SVModuleHeader.ts',
+    'ts/src/interfaces/Memory.ts',
     'ts/src/core/Base.ts'
   ],
   out: 'doc/reference',

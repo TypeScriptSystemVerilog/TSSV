@@ -1,3 +1,4 @@
+/** @module Registers */
 import { Module, type TSSVParameters, type IntRange, Expr, type Interface } from 'tssv/lib/core/TSSV'
 
 import { Memory } from 'tssv/lib/interfaces/Memory'

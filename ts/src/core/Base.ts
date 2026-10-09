@@ -1,3 +1,4 @@
+/** @module Base */
 import { readFileSync } from 'fs'
 import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
 import { runVerible } from '../tools/formatters/verible.js'

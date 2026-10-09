@@ -6,6 +6,11 @@
 
 # SVModuleHeader
 
+SystemVerilog module-header parser used by `Module.addSystemVerilogSubmodule()` to find the
+module name and the declared direction of each port of an imported `.sv` file.  It runs
+`verible-verilog-syntax --export_json --printtree` on the source and reads the module headers
+from the concrete syntax tree.  Verible (https://github.com/chipsalliance/verible) must be installed.
+
 ## Interfaces
 
 ### SVModuleHeader
