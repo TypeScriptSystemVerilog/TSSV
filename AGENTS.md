@@ -211,7 +211,7 @@ Place a `/** ... */` block directly above every exported class, interface, type,
 
 ### Timing diagrams with `@wavedrom`
 
-`@wavedrom` is a block tag (registered in `typedoc.config.mjs`). Text on the tag's line is the diagram's label. Put the WaveDrom JSON in a fenced ` ```json ``` ` block after it, and nothing else in the tag. In the core's reference, `scripts/typedoc-wavedrom.mjs` turns each tag into the same `<!-- wavedrom <file>.svg ... -->` form that hand-written docs use ("Timing diagrams in markdown docs" above), and `npm run docs` renders it to an SVG beside the page, named after the documented item and the label (`doc/reference/RegisterBlock-write-on-regs.svg`). Give each diagram on an item a different label. A malformed tag, invalid JSON, or JSON containing `--` fails `npm run docs`. The comment must sit directly above an exported declaration; a comment that is attached to nothing, or to a non-exported function, appears nowhere.
+`@wavedrom` is a block tag (registered in `typedoc.config.mjs`). Text on the tag's line is the diagram's label. Put the WaveDrom JSON in a fenced ` ```json ``` ` block after it, and nothing else in the tag. In the core's reference, `scripts/typedoc-wavedrom.mjs` turns each tag into the same `<!-- wavedrom <file>.svg ... -->` form that hand-written docs use ("Timing diagrams in markdown docs" above), and `npm run docs` renders it to an SVG beside the page, named after the documented item and the label (`doc/reference/Memory-zero-wait-write.svg`). Give each diagram on an item a different label. A malformed tag, invalid JSON, or JSON containing `--` fails `npm run docs`. The comment must sit directly above an exported declaration; a comment that is attached to nothing, or to a non-exported function, appears nowhere.
 
 ```typescript
 /**
@@ -229,4 +229,4 @@ Place a `/** ... */` block directly above every exported class, interface, type,
  */
 ```
 
-Working examples are on `RegisterBlock` in `ts/src/core/Registers.ts` (write and read cycles, shown in `doc/reference/Registers.md`) and on `FIR_Ports` in `ts/src/modules/FIR/FIR.ts`. FIR is outside the reference's core-only scope, so its diagram is also copied into `doc/modules/FIR/FIR-spec.md`.
+Working examples are on `Memory` in `ts/src/interfaces/Memory.ts` (four bus cycles, shown in `doc/reference/Memory.md`) and on `FIR_Ports` in `ts/src/modules/FIR/FIR.ts`. FIR is outside the reference's scope, so its diagram is also copied into `doc/modules/FIR/FIR-spec.md`. `Memory`'s diagrams draw arrows with WaveDrom's `node` and `edge` keys. Name the nodes with capital letters: WaveDrom prints lowercase node names on the diagram.
