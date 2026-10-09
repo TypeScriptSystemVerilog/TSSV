@@ -23,11 +23,29 @@ sfifo_sim: tsc
 	  (cd obj_dir/sfifo_$$cfg && ./Vtb_SFIFO); \
 	done < $(SFIFO_TB_DIR)/configs.txt
 
+# RegisterBlock read path (TSSV#79): lint both regression blocks with -Wall, then run the
+# self-checking testbench against them. regblock_read_waivers.vlt holds the only waivers,
+# each for a signal owned by another open bug.
+REGBLOCK_DIR = ../sv-examples/RegisterBlock_read
+
+regblock_read_sim: tsc
+	cd ..; node out/test/test_RegisterBlock_read.js
+	set -e; for b in regblock_read32 regblock_read64; do \
+	  verilator --lint-only -Wall --top-module $${b}_lint_top regblock_read_waivers.vlt \
+	    $(REGBLOCK_DIR)/$$b.sv $(REGBLOCK_DIR)/$${b}_lint_top.sv; \
+	  echo "lint -Wall clean: $$b"; \
+	done
+	mkdir -p obj_dir
+	verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/regblock_read -o Vtb_RegisterBlock_read \
+	  tb_RegisterBlock_read.sv $(REGBLOCK_DIR)/regblock_read32.sv $(REGBLOCK_DIR)/regblock_read64.sv \
+	  > obj_dir/regblock_read.build.log 2>&1 || { cat obj_dir/regblock_read.build.log; exit 1; }
+	cd obj_dir/regblock_read && ./Vtb_RegisterBlock_read
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd
 
-.PHONY: sfifo_sim
+.PHONY: sfifo_sim regblock_read_sim
 .FORCE:
 tsc: .FORCE
 	cd ..; npx tsc
