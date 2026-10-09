@@ -143,6 +143,10 @@ allowing different port views of the signal bundle as well as
 just a bundle of wires.   Interfaces simpilfy interface signal binding
 by combining all signals into a single bundled bind.
 
+#### Extended by
+
+- [`Memory`](Memory.md#memory)
+
 #### Constructors
 
 ##### Constructor
@@ -954,6 +958,7 @@ string containing the generated SystemVerilog code for this module
 #### Extended by
 
 - [`RegisterBlockParameters`](Registers.md#registerblockparameters)
+- [`Memory_Parameters`](Memory.md#memory_parameters)
 
 #### Indexable
 
