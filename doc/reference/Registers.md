@@ -91,45 +91,10 @@ A module holding the registers in a [RegisterBlockDef](#registerblockdef). They 
 `regs` Memory interface, or through an `apb` APB4 interface that an APB_to_Memory
 submodule bridges onto `regs`.
 
-#### Wavedrom
-
-Write on `regs`
-
-<!-- wavedrom RegisterBlock-write-on-regs.svg
-{
-  "signal": [
-    {"name": "     clk", "wave": "p........."},
-    {"name": " data_wr", "wave": "03........", "data": ["D"]},
-    {"name": "    addr", "wave": "04........", "data": ["A"]},
-    {"name": "      we", "wave": "01.0......"},
-    {"name": "      re", "wave": "0........."},
-    {"name": " data_rd", "wave": "0........."},
-    {"name": "   ready", "wave": "10.1......"}
-  ]
-}
--->
-
-![Write on `regs`](RegisterBlock-write-on-regs.svg)
-
-#### Wavedrom
-
-Read on `regs`
-
-<!-- wavedrom RegisterBlock-read-on-regs.svg
-{
-  "signal": [
-    {"name": "     clk", "wave": "p........."},
-    {"name": " data_wr", "wave": "0........."},
-    {"name": "    addr", "wave": "04........", "data": ["A"]},
-    {"name": "      we", "wave": "0........."},
-    {"name": "      re", "wave": "01.0......"},
-    {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
-    {"name": "   ready", "wave": "10......1."}
-  ]
-}
--->
-
-![Read on `regs`](RegisterBlock-read-on-regs.svg)
+`regs` follows the [Memory](Memory.md#memory) contract, which has the timing diagrams. A register access
+has no wait states: `READY` stays high, and read data is captured on the clock edge after the
+`RE` pulse and held until the next request. After an access to a `RAM`/`ROM` window,
+`DATA_RD` comes from the window instead.
 
 #### Extends
 

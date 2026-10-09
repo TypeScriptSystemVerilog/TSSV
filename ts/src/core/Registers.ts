@@ -1,3 +1,4 @@
+/** @module Registers */
 import { Module, type TSSVParameters, type IntRange, Expr, type Interface } from 'tssv/lib/core/TSSV'
 
 import { Memory } from 'tssv/lib/interfaces/Memory'
@@ -75,37 +76,10 @@ function ralfAccessType (type: RegisterType): string {
  * `regs` Memory interface, or through an `apb` APB4 interface that an APB_to_Memory
  * submodule bridges onto `regs`.
  *
- * @wavedrom Write on `regs`
- *
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "03........", "data": ["D"]},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "01.0......"},
- *     {"name": "      re", "wave": "0........."},
- *     {"name": " data_rd", "wave": "0........."},
- *     {"name": "   ready", "wave": "10.1......"}
- *   ]
- * }
- * ```
- *
- * @wavedrom Read on `regs`
- *
- * ```json
- * {
- *   "signal": [
- *     {"name": "     clk", "wave": "p........."},
- *     {"name": " data_wr", "wave": "0........."},
- *     {"name": "    addr", "wave": "04........", "data": ["A"]},
- *     {"name": "      we", "wave": "0........."},
- *     {"name": "      re", "wave": "01.0......"},
- *     {"name": " data_rd", "wave": "0.......5.", "data": ["D"]},
- *     {"name": "   ready", "wave": "10......1."}
- *   ]
- * }
- * ```
+ * `regs` follows the {@link Memory} contract, which has the timing diagrams. A register access
+ * has no wait states: `READY` stays high, and read data is captured on the clock edge after the
+ * `RE` pulse and held until the next request. After an access to a `RAM`/`ROM` window,
+ * `DATA_RD` comes from the window instead.
  *
  * @noInheritDoc
  */
@@ -447,49 +421,77 @@ always_ff @( posedge clk or negedge rst_b )
   }
 
   /**
-   * The read multiplexer. Each readable register's `<R>_RE` (its address decode and `regs.RE`)
-   * selects its read-back value. `READY` is 1 except while a `RAM`/`ROM` read waits on its
-   * `<R>_ready`; a read that matches no register returns 0.
+   * The read path, in three parts. `read_mux` picks the next read value: the first readable
+   * register, in `addrMap` order, whose `<R>_RE` (its address decode and `regs.RE`) is high, or
+   * 0 when none is. `rd_data_q` captures it on the edge after the `RE` pulse and holds it until
+   * the next read. Each `RAM`/`ROM` window has a `<R>_last_q` flag that is set when the last
+   * request (read or write) hit it. `regs.DATA_RD` then comes from that window, or else from
+   * `rd_data_q`. `regs.READY` is high: a register access has no wait states, and a window has
+   * no ready input until #80 gives it one, when `read_out` will drive `READY` from the window too.
    */
   private addReadMux (): void {
+    const wordSize = this.regDefs.wordSize
     const branches: string[] = []
+    const windows: string[] = []
     for (const regName in this.regDefs.addrMap) {
       const reg = this.resolveRegister(regName)
-      const width = reg.width ?? this.regDefs.wordSize
-      const lines: string[] = []
+      const width = reg.width ?? wordSize
+      let value: string
       switch (reg.type) {
         case RegisterType.WO:
           continue
         case RegisterType.RAM:
-          lines.push(`regs.DATA_RD = ${this.toWord(`${regName}_wdata`, width)};`)
-          lines.push(`regs.READY   = ${regName}_ready;`)
-          break
         case RegisterType.ROM:
-          lines.push(`regs.DATA_RD = ${this.toWord(`${regName}_rdata`, width)};`)
-          lines.push(`regs.READY   = ${regName}_ready;`)
-          break
+          windows.push(regName)
+          continue
         case RegisterType.RW:
-          if (reg.fields && Object.keys(reg.fields).length > 0) {
-            lines.push(`regs.DATA_RD = ${this.fieldReadback(regName, reg.fields)};`)
-            break
-          }
-          lines.push(`regs.DATA_RD = ${this.toWord(regName, width)};`)
+          value = reg.fields && Object.keys(reg.fields).length > 0
+            ? this.fieldReadback(regName, reg.fields)
+            : this.toWord(regName, width)
           break
         case RegisterType.RO:
         case RegisterType.RWU:
-          lines.push(`regs.DATA_RD = ${this.toWord(regName, width)};`)
+          value = this.toWord(regName, width)
           break
       }
       const kw = branches.length === 0 ? 'if' : 'end else if'
-      branches.push(`    ${kw} (${regName}_RE) begin\n${lines.map(l => `      ${l}`).join('\n')}`)
+      branches.push(`    ${kw} (${regName}_RE) begin\n      rd_data_nxt = ${value};`)
     }
     if (branches.length > 0) branches.push('    end')
 
-    this.addCombAlways({ outputs: ['regs.DATA_RD', 'regs.READY'] }, `
+    this.addSignal('rd_data_nxt', { width: wordSize })
+    this.addSignal('rd_data_q', { width: wordSize })
+    this.addCombAlways({ outputs: ['rd_data_nxt'] }, `
   begin : read_mux
-    regs.DATA_RD = '0;
-    regs.READY   = 1'b1;
+    rd_data_nxt = '0;
 ${branches.join('\n')}
+  end
+`)
+    this.addRegister({ d: 'rd_data_nxt', clk: 'clk', reset: 'rst_b', en: 'regs.RE', q: 'rd_data_q' })
+
+    // The window <R>_ready outputs are not a ready from the memory: the block registers them from
+    // its own regs.READY, and they reset low, so routing them here would hang a read after reset.
+    this.addAssign({ in: new Expr("1'b1"), out: 'regs.READY' })
+    if (windows.length === 0) {
+      this.addAssign({ in: new Expr('rd_data_q'), out: 'regs.DATA_RD' })
+      return
+    }
+
+    // A window's read data stays on the old flat ports until #80 replaces them with an
+    // outward Memory port per window.
+    const selects = windows.map((regName, i) => {
+      const reg = this.resolveRegister(regName)
+      const data = reg.type === RegisterType.RAM ? `${regName}_wdata` : `${regName}_rdata`
+      const last = this.addSignal(`${regName}_last_q`, { width: 1 })
+      this.addRegister({ d: `${regName}_matchExpr`, clk: 'clk', reset: 'rst_b', en: 'regs.RE || regs.WE', q: last })
+      return `    ${i === 0 ? 'if' : 'end else if'} (${last.toString()}) begin
+      regs.DATA_RD = ${this.toWord(data, reg.width ?? wordSize)};`
+    })
+    this.addCombAlways({ outputs: ['regs.DATA_RD'] }, `
+  begin : read_out
+    regs.DATA_RD = rd_data_q;
+${selects.join('\n')}
+    end
   end
 `)
   }
