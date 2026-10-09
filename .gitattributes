@@ -14,3 +14,6 @@ ts/**/regs-*.ts linguist-generated=true
 
 # Generated API reference (npm run docs from the core's JSDoc)
 doc/reference/** linguist-generated=true
+
+# Per-issue agent notes (tssv-noc doc/process/session-handoff.md)
+.agent/** linguist-generated=true
