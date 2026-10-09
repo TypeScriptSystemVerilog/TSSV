@@ -4,20 +4,20 @@
 //
 // In the source, a tag is a label on the tag line and a fenced json block:
 //
-//   @wavedrom Write on `regs`
+//   @wavedrom Zero-wait write
 //   ```json
 //   { "signal": [ ... ] }
 //   ```
 //
 // In the generated page it becomes
 //
-//   Write on `regs`
+//   Zero-wait write
 //
-//   <!-- wavedrom RegisterBlock-write-on-regs.svg
+//   <!-- wavedrom Memory-zero-wait-write.svg
 //   { "signal": [ ... ] }
 //   -->
 //
-//   ![Write on `regs`](RegisterBlock-write-on-regs.svg)
+//   ![Zero-wait write](Memory-zero-wait-write.svg)
 //
 // and `npm run docs` then runs render-wavedrom.mjs on doc/reference/ to write
 // the SVG beside the page. The SVG is named after the documented item and the
