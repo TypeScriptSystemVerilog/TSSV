@@ -1,0 +1,31 @@
+`verilator_config
+// Lint waivers for the APB_to_Memory regression block (ts/test/test_APB_to_Memory.ts), used by
+// `make apb_to_memory_sim`. Every waiver names one signal, and why it is waived: the open bug that
+// owns it, or the APB_to_Memory spec. Delete a line when its bug is fixed.
+
+// TSSV emits the interface definitions into the block's file, ahead of the modules.
+lint_off -rule DECLFILENAME -file "*/APB_to_Memory/apb_regblock.sv" -match "*IFACE name: 'APB4_32_32'"
+
+// doc/modules/APB_to_Memory/APB_to_Memory-spec.md: clk and rst_b are ports for consistency only,
+// and the adapter has no use for the APB clock, reset, protection or clock-enable signals
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'clk'"
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'rst_b'"
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PCLK'"
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PRESETn'"
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PPROT'"
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PCLKEN'"
+
+// TSSV#80: RAM `<R>_re`/`<R>_we` output ports differ only in case from the internal decodes
+lint_off -rule SIMILARNAME -file "*/APB_to_Memory/apb_regblock.sv" -match "*'MEM_RE'"
+lint_off -rule SIMILARNAME -file "*/APB_to_Memory/apb_regblock.sv" -match "*'MEM_WE'"
+// TSSV#80: RAM `<R>_rdata` is an output port nothing drives
+lint_off -rule UNDRIVEN -file "*/APB_to_Memory/apb_regblock.sv" -match "*'MEM_rdata'"
+// TSSV#80: RAM `<R>_ADDR` is internal, with no address output
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'MEM_ADDR'"
+// TSSV#80: a WO register's `<R>_WE` is computed but not exported
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'CMD_WE'"
+
+// TSSV#81: a WO register's `<R>_wstrb` is unused
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'CMD_wstrb'"
+// TSSV#81: a register without fields computes a strobed `<R>_d` and then ignores it
+lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'SCRATCH_d'"
