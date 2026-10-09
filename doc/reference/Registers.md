@@ -93,8 +93,8 @@ submodule bridges onto `regs`.
 
 `regs` follows the [Memory](Memory.md#memory) contract, which has the timing diagrams. A register access
 has no wait states: `READY` stays high, and read data is captured on the clock edge after the
-`RE` pulse and held until the next request. A `RAM`/`ROM` window drives `READY` and `DATA_RD`
-itself after an access to it.
+`RE` pulse and held until the next request. After an access to a `RAM`/`ROM` window,
+`DATA_RD` comes from the window instead.
 
 #### Extends
 

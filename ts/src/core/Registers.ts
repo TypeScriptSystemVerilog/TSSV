@@ -78,8 +78,8 @@ function ralfAccessType (type: RegisterType): string {
  *
  * `regs` follows the {@link Memory} contract, which has the timing diagrams. A register access
  * has no wait states: `READY` stays high, and read data is captured on the clock edge after the
- * `RE` pulse and held until the next request. A `RAM`/`ROM` window drives `READY` and `DATA_RD`
- * itself after an access to it.
+ * `RE` pulse and held until the next request. After an access to a `RAM`/`ROM` window,
+ * `DATA_RD` comes from the window instead.
  *
  * @noInheritDoc
  */
@@ -425,8 +425,9 @@ always_ff @( posedge clk or negedge rst_b )
    * register, in `addrMap` order, whose `<R>_RE` (its address decode and `regs.RE`) is high, or
    * 0 when none is. `rd_data_q` captures it on the edge after the `RE` pulse and holds it until
    * the next read. Each `RAM`/`ROM` window has a `<R>_last_q` flag that is set when the last
-   * request (read or write) hit it. `regs.DATA_RD` and `regs.READY` then come from that window,
-   * or else from `rd_data_q` with `READY` high: a register access has no wait states.
+   * request (read or write) hit it. `regs.DATA_RD` then comes from that window, or else from
+   * `rd_data_q`. `regs.READY` is high: a register access has no wait states, and a window has
+   * no ready input until #80 gives it one, when `read_out` will drive `READY` from the window too.
    */
   private addReadMux (): void {
     const wordSize = this.regDefs.wordSize
@@ -468,31 +469,27 @@ ${branches.join('\n')}
 `)
     this.addRegister({ d: 'rd_data_nxt', clk: 'clk', reset: 'rst_b', en: 'regs.RE', q: 'rd_data_q' })
 
+    // The window <R>_ready outputs are not a ready from the memory: the block registers them from
+    // its own regs.READY, and they reset low, so routing them here would hang a read after reset.
+    this.addAssign({ in: new Expr("1'b1"), out: 'regs.READY' })
     if (windows.length === 0) {
       this.addAssign({ in: new Expr('rd_data_q'), out: 'regs.DATA_RD' })
-      this.addAssign({ in: new Expr("1'b1"), out: 'regs.READY' })
       return
     }
 
-    // The data and ready a window drives after an access to it. They stay on the old flat
-    // ports until #80 replaces them with an outward Memory port per window.
-    const source = (regName: string): { data: string, ready: string } => {
+    // A window's read data stays on the old flat ports until #80 replaces them with an
+    // outward Memory port per window.
+    const selects = windows.map((regName, i) => {
       const reg = this.resolveRegister(regName)
       const data = reg.type === RegisterType.RAM ? `${regName}_wdata` : `${regName}_rdata`
-      return { data: this.toWord(data, reg.width ?? wordSize), ready: `${regName}_ready` }
-    }
-    const selects = windows.map((regName, i) => {
       const last = this.addSignal(`${regName}_last_q`, { width: 1 })
       this.addRegister({ d: `${regName}_matchExpr`, clk: 'clk', reset: 'rst_b', en: 'regs.RE || regs.WE', q: last })
-      const { data, ready } = source(regName)
       return `    ${i === 0 ? 'if' : 'end else if'} (${last.toString()}) begin
-      regs.DATA_RD = ${data};
-      regs.READY   = ${ready};`
+      regs.DATA_RD = ${this.toWord(data, reg.width ?? wordSize)};`
     })
-    this.addCombAlways({ outputs: ['regs.DATA_RD', 'regs.READY'] }, `
+    this.addCombAlways({ outputs: ['regs.DATA_RD'] }, `
   begin : read_out
     regs.DATA_RD = rd_data_q;
-    regs.READY   = 1'b1;
 ${selects.join('\n')}
     end
   end

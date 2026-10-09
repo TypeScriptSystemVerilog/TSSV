@@ -122,8 +122,8 @@ Inside, the block has three parts:
   pulse and holds it, and drives `regs.DATA_RD`. A read of a `WO` register or of an address no
   register decodes returns 0. Each `RAM` or `ROM` window also has a flag, `<R>_last_q`, set when
   the last request (read or write) hit the window. While it is set, an `always_comb` block named
-  `read_out` drives `regs.DATA_RD` and `regs.READY` from the window's `<R>_wdata` or `<R>_rdata`
-  and `<R>_ready` instead. A block with no `RAM` or `ROM` drives `regs.READY` high.
+  `read_out` drives `regs.DATA_RD` from the window's `<R>_wdata` (`RAM`) or `<R>_rdata` (`ROM`)
+  instead. `regs.READY` is tied high (§5).
 
 The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, `DATA_WR`,
 `DATA_RD`, `WE`, `RE`, `READY`, `WSTRB`. Its contract and timing diagrams are in
@@ -133,8 +133,8 @@ The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, 
   rising `clk` edge. `ADDR` is a byte address.
 - A register access has no wait states. `READY` stays high, a write takes effect on the capture
   edge, and read data is valid from the capture edge until the next request.
-- After an access to a `RAM` or `ROM` window, `READY` and `DATA_RD` come from the window. A
-  window that needs wait states holds `READY` low until its access settles.
+- After an access to a `RAM` or `ROM` window, `DATA_RD` comes from the window. A window has no
+  ready input yet, so it can't insert wait states (§5).
 
 ## 3. Register types
 
@@ -280,6 +280,9 @@ links to the bug that tracks it: [#80](https://github.com/TypeScriptSystemVerilo
 - **`RAM` is incomplete.** Its outputs only update on a write. No address output exists:
   `<R>_ADDR` is internal. A read returns the last written value, and `<R>_wstrb` is as wide
   as the register and always written as `1`. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
+- **`RAM` and `ROM` can't insert wait states.** `regs.READY` is always high. The `<R>_ready`
+  outputs are registered from `regs.READY` on a write, not supplied by the memory, so the
+  block doesn't use them. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
 - **`WSTRB` is only partly applied.** A field register's enable treats `WSTRB` as one bit (any
   strobe set). A register without fields ignores it. The strobe signals are sized from
   `busAddressWidth`, not from the data width. ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81))

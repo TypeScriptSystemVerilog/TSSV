@@ -14,7 +14,8 @@
 //
 // The RAM's read data is its last write (<R>_wdata) and a ROM's is <R>_rdata, which nothing
 // drives yet (TSSV#80). So for RAM/ROM the testbench checks that the block routes those signals
-// and their <R>_ready after an access to the window, not what they hold.
+// after an access to the window, not what they hold. READY is always high: a window has no ready
+// input until TSSV#80.
 //
 // Timing: inputs change on a falling edge and outputs are checked 1 ns after a falling edge.
 // ---------------------------------------------------------------------------
@@ -100,19 +101,18 @@ module tb_RegisterBlock_read;
   // One read of the 32-bit block at addr, checked against the model
   task automatic read32 (input logic [31:0] addr);
     logic [31:0] exp_data;
-    logic        exp_ready, in_mem, in_tbl;
+    logic        in_mem, in_tbl;
     string       where;
     in_mem = addr >= 32'h20 && addr <= 32'h2f;
     in_tbl = addr >= 32'h40 && addr <= 32'h47;
     exp_data = '0;
-    exp_ready = 1'b1;
     unique case (1'b1)
       addr == 32'h4:     exp_data = m_ctrl;
       addr == 32'h8:     exp_data = m_scratch;
       addr == 32'hc:     exp_data = {20'b0, m_narrow};
       addr == 32'h10:    exp_data = {16'b0, m_stat};
-      in_mem:            begin exp_data = m_mem; exp_ready = MEM_ready; end
-      in_tbl:            begin exp_data = TBL_rdata; exp_ready = TBL_ready; end
+      in_mem:            exp_data = m_mem;
+      in_tbl:            exp_data = TBL_rdata;
       addr == 32'h100:   exp_data = m_hi;
       addr == 32'h12340: exp_data = m_far;
       default: ;  // CMD (WO) and unmapped addresses read 0
@@ -127,23 +127,22 @@ module tb_RegisterBlock_read;
     bus32.ADDR = 'x; bus32.RE = 1'b0;
     #1;
     check({where, " DATA_RD"}, 64'(bus32.DATA_RD), 64'(exp_data));
-    check({where, " READY"}, 64'(bus32.READY), 64'(exp_ready));
+    check({where, " READY"}, 64'(bus32.READY), 64'h1);
     @(negedge clk);
     #1;
     check({where, " DATA_RD held"}, 64'(bus32.DATA_RD), 64'(exp_data));
-    check({where, " READY held"}, 64'(bus32.READY), 64'(exp_ready));
+    check({where, " READY held"}, 64'(bus32.READY), 64'h1);
   endtask
 
   task automatic read64 (input logic [31:0] addr);
     logic [63:0] exp_data;
-    logic        exp_ready, in_buf;
+    logic        in_buf;
     string       where;
     in_buf = addr >= 32'h10 && addr <= 32'h1f;
     exp_data = '0;
-    exp_ready = 1'b1;
     unique case (1'b1)
       addr == 32'h0:   exp_data = m_csr;
-      in_buf:          begin exp_data = m_buf; exp_ready = BUF_ready; end
+      in_buf:          exp_data = m_buf;
       addr == 32'h100: exp_data = m_hi64;
       default: ;
     endcase
@@ -156,11 +155,11 @@ module tb_RegisterBlock_read;
     bus64.ADDR = 'x; bus64.RE = 1'b0;
     #1;
     check({where, " DATA_RD"}, bus64.DATA_RD, exp_data);
-    check({where, " READY"}, 64'(bus64.READY), 64'(exp_ready));
+    check({where, " READY"}, 64'(bus64.READY), 64'h1);
     @(negedge clk);
     #1;
     check({where, " DATA_RD held"}, bus64.DATA_RD, exp_data);
-    check({where, " READY held"}, 64'(bus64.READY), 64'(exp_ready));
+    check({where, " READY held"}, 64'(bus64.READY), 64'h1);
   endtask
 
   // Every word address to 0x1fc, both edges of each window (byte-granular), and addresses that
