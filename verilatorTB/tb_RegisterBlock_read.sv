@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// tb_RegisterBlock_read — self-checking testbench for RegisterBlock's read path (TSSV#79)
+// tb_RegisterBlock_read — self-checking testbench for RegisterBlock's read path (TSSV#79, TSSV#116)
 //
 // ts/test/test_RegisterBlock_read.ts generates the two DUTs; their register maps are
 // described there. Run with `make -C verilatorTB regblock_read_sim`.
@@ -7,14 +7,16 @@
 // A reference model holds every readable register's expected value. After reset and after
 // each batch of writes, the testbench sweeps reads over every word address up to 0x1fc, the
 // edges of each RAM/ROM window, and addresses that match a register only in their low bits.
-// Each read checks DATA_RD and READY against the model, and checks that a RAM/ROM window's
-// decode (<R>_RE) is set exactly inside [base, base + size * wordSize/8).
+// Each read checks that a RAM/ROM window's decode (<R>_RE) is set exactly inside
+// [base, base + size * wordSize/8) during the RE pulse. It then checks DATA_RD and READY
+// against the model after the clock edge that captures the read, and again one idle cycle later,
+// because DATA_RD must hold until the next request (the Memory contract, TSSV#116).
 //
 // The RAM's read data is its last write (<R>_wdata) and a ROM's is <R>_rdata, which nothing
-// drives yet (TSSV#80). So for RAM/ROM the testbench checks that the mux routes those signals
-// and their <R>_ready, not what they hold.
+// drives yet (TSSV#80). So for RAM/ROM the testbench checks that the block routes those signals
+// and their <R>_ready after an access to the window, not what they hold.
 //
-// Timing: inputs change just after each falling edge and outputs are checked 1 ns later.
+// Timing: inputs change on a falling edge and outputs are checked 1 ns after a falling edge.
 // ---------------------------------------------------------------------------
 `timescale 1ns / 1ps
 
@@ -119,11 +121,17 @@ module tb_RegisterBlock_read;
     bus32.ADDR = addr; bus32.RE = 1'b1;
     #1;
     where = $sformatf("read32 @0x%0h", addr);
-    check({where, " DATA_RD"}, 64'(bus32.DATA_RD), 64'(exp_data));
-    check({where, " READY"}, 64'(bus32.READY), 64'(exp_ready));
     check({where, " MEM_RE"}, 64'(dut32.MEM_RE), 64'(in_mem));
     check({where, " TBL_RE"}, 64'(dut32.TBL_RE), 64'(in_tbl));
-    bus32.RE = 1'b0;
+    @(negedge clk);
+    bus32.ADDR = 'x; bus32.RE = 1'b0;
+    #1;
+    check({where, " DATA_RD"}, 64'(bus32.DATA_RD), 64'(exp_data));
+    check({where, " READY"}, 64'(bus32.READY), 64'(exp_ready));
+    @(negedge clk);
+    #1;
+    check({where, " DATA_RD held"}, 64'(bus32.DATA_RD), 64'(exp_data));
+    check({where, " READY held"}, 64'(bus32.READY), 64'(exp_ready));
   endtask
 
   task automatic read64 (input logic [31:0] addr);
@@ -143,10 +151,16 @@ module tb_RegisterBlock_read;
     bus64.ADDR = addr; bus64.RE = 1'b1;
     #1;
     where = $sformatf("read64 @0x%0h", addr);
+    check({where, " BUF_RE"}, 64'(dut64.BUF_RE), 64'(in_buf));
+    @(negedge clk);
+    bus64.ADDR = 'x; bus64.RE = 1'b0;
+    #1;
     check({where, " DATA_RD"}, bus64.DATA_RD, exp_data);
     check({where, " READY"}, 64'(bus64.READY), 64'(exp_ready));
-    check({where, " BUF_RE"}, 64'(dut64.BUF_RE), 64'(in_buf));
-    bus64.RE = 1'b0;
+    @(negedge clk);
+    #1;
+    check({where, " DATA_RD held"}, bus64.DATA_RD, exp_data);
+    check({where, " READY held"}, 64'(bus64.READY), 64'(exp_ready));
   endtask
 
   // Every word address to 0x1fc, both edges of each window (byte-granular), and addresses that
@@ -181,12 +195,15 @@ module tb_RegisterBlock_read;
     sweep32();
     sweep64();
 
-    // ---- RE low: no register drives DATA_RD, and READY stays high ----
-    @(negedge clk);
-    bus32.ADDR = 32'h100; bus32.RE = 1'b0;
-    #1;
-    check("RE low DATA_RD", 64'(bus32.DATA_RD), 64'h0);
-    check("RE low READY", 64'(bus32.READY), 64'h1);
+    // ---- a read holds through idle cycles, whatever ADDR does, until the next request ----
+    read32(32'h100);
+    repeat (3) begin
+      @(negedge clk);
+      bus32.ADDR = 32'h8;
+      #1;
+      check("idle after read @0x100 DATA_RD", 64'(bus32.DATA_RD), 64'(m_hi));
+      check("idle after read @0x100 READY", 64'(bus32.READY), 64'h1);
+    end
 
     // ---- writes: every register, plus addresses that alias one in its low bits ----
     write32(32'h0, 32'h5555_5555);                    // CMD (WO)
