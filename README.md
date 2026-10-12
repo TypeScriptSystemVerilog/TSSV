@@ -209,11 +209,19 @@ hash -r && verilator --version   # expect: Verilator 5.052 2026-09-05
 The build takes about 10 minutes. To move the pin, change `VERILATOR_VERSION` and the version in
 the table above, then rerun the block.
 
-For macOS:
+For macOS, also install lz4 and put Homebrew's headers and libraries on the compiler's search
+path. Verilator 5.052 includes `<lz4.h>` when a testbench traces to FST, but Homebrew's
+`verilator` doesn't depend on lz4, and Apple clang doesn't search `/opt/homebrew`. Without
+both, the build fails with `'lz4.h' file not found`.
 ```bash
-brew install verilator
+brew install verilator lz4
 verilator --version   # expect 5.052; if Homebrew's version differs, build the pin from source as above
+cat >> ~/.zshrc <<'EOF'
+export CPATH="/opt/homebrew/include${CPATH:+:$CPATH}"
+export LIBRARY_PATH="/opt/homebrew/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
+EOF
 ```
+Open a new terminal afterwards so the exports take effect.
 
 **Network note for mainland China:** GitHub and npm can be slow or blocked from a China
 network. That has nothing to do with TSSV. If `git clone` or `npm install` fails or crawls,
