@@ -16,7 +16,7 @@ These are the two types you pass as signal arguments to `add*()` methods.
 
 ### `new Sig(name: string)`
 
-A named signal reference. Carries the signal name and (optionally) metadata. Most `add*()` methods return a `Sig` so you can chain calls.
+A named signal reference. It carries only the name: width and other metadata live in the module's `IOs`/`signals` tables (see `concepts.md` §3). Most `add*()` methods return a `Sig` so you can chain calls.
 
 ```typescript
 const tap = this.addSignal('tap_0', { width: 8, isSigned: true })
@@ -311,7 +311,7 @@ this.addSubmodule(
 
 **`autoBind=true`** (default): scans submodule ports; if a matching name exists in the parent, binds automatically.
 
-**`createMissing=true`**: for any unbound port not found in parent, creates a new signal or interface — effectively promoting the submodule's bus interface to the parent's ports. Required when a submodule has an unbound `Interface` (e.g. Memory bus).
+**`createMissing=true`**: for any unbound port not found in parent, creates a new *internal* signal, or a role-less local interface bundle, in the parent. It does not add parent ports: to expose a submodule's bus, give the parent a port of the same interface type and bind to it (see `concepts.md` §5).
 
 **Interface bindings** are checked at elaboration:
 
@@ -353,7 +353,7 @@ Renders the module to a SV string. Recursively includes all submodule definition
 
 ## `RegisterBlock` (`ts/src/core/Registers.ts`)
 
-Generates a self-contained register file module backed by a bus interface.
+Generates a self-contained register file module backed by a bus interface. `registers.md` describes the generated logic and its current limitations.
 
 ### `RegisterBlockDef<T>`
 
@@ -394,7 +394,7 @@ const coeffRegs = new RegisterBlock<typeof addrMap>(
 | Register type | Output ports | Behavior |
 |---|---|---|
 | `'RW'` | One output per register (or per field) | Host writes, logic reads |
-| `'RO'` | One input per register | Logic drives, host reads |
+| `'RO'` | One output per register | Host reads; nothing in the block drives the output today (see `registers.md` §5) |
 | `'WO'` | One output per register | Host writes, not readable |
 | `'RAM'` | `re`, `we`, `rdata`, `wdata`, `wstrb`, `addr`, `ready` | External SRAM-style interface |
 | `'ROM'` | `re`, `rdata`, `addr`, `ready` | External ROM-style interface |
@@ -418,7 +418,7 @@ For hand-authored register maps, use the generator script instead of writing `Re
 
 ```bash
 ./scripts/gen_regblock.sh ts/src/modules/MyModule/my_regs.yaml
-# → ts/src/modules/MyModule/stub.my_regs.ts  (git-ignored)
+# → ts/src/modules/MyModule/regs-my_regs.ts  (commit it with the YAML)
 ```
 
 The stub includes a JSDoc markdown table (renders in TypeDoc) and the full `addrMap`, `RegisterBlockDef`, and `RegisterBlock` instantiation. See `scripts/example_regblock.yaml` for the YAML schema.
