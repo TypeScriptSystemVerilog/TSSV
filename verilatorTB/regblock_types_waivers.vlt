@@ -1,0 +1,10 @@
+`verilator_config
+// Lint waivers for the RegisterBlock register-type blocks (ts/test/test_RegisterBlock_types.ts),
+// used by `make regblock_types_sim`. Every waiver names one signal, and the open bug that owns it.
+// The register types themselves (TSSV#80) need none. Delete a line when its bug is fixed.
+
+// TSSV emits the Memory interface's definition into each block's file, ahead of the module.
+lint_off -rule DECLFILENAME -file "*/RegisterBlock_types/regblock_types*.sv" -match "*IFACE name: 'memory_*"
+
+// TSSV#81: a register without fields computes a strobed `<R>_d` and then ignores it
+lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_types/regblock_types32.sv" -match "*'SCRATCH_d'"
