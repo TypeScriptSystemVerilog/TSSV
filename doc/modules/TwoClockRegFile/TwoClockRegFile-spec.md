@@ -217,7 +217,7 @@ The target also gets its own step in `.github/workflows/test.yml`.
 
 ## Implementation Notes
 
-- **Emitting `ram_style`.** `Signal` in `ts/src/core/Base.ts` can't carry an SV attribute. Two ways to add it: give `Signal` an attribute field, which changes the core and so needs `npm run docs`; or declare `mem` in the body with `addBody()`. The first is the reusable one, since the `AFIFO` synchronizers need `ASYNC_REG` too.
+- **Emitting `ram_style`.** `mem` gets its attribute through the `attributes` field that #131 adds to `Signal` in `ts/src/core/Base.ts`, so this module is built after #131 merges. It isn't declared by hand in the body.
 - **SYN-3.** The style guide requires every crossing signal to go through a synchronizer. This module is the exception that rule depends on: data crosses through the storage without one, and the caller synchronizes the control that guards it ([Access rules](#access-rules)). The PR records this as a SYN-3 waiver. SYN-4's list of memory modules should then include `TwoClockRegFile`.
 - **No collision checking.** Detecting a broken access rule would need logic that crosses domains, so the module doesn't try. A testbench that wants checking keeps its own model, as `tb_TwoClockRegFile.sv` does.
 - **One write port and one read port only.** A two-clock register file in which both ports read and write needs a bank per port and a table of which bank holds each word, because a flop has only one clock. That isn't worth its cost for the `AFIFO`, so it's out of scope.
