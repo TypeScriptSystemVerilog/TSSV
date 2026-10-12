@@ -1,0 +1,116 @@
+name: test
+
+# Builds TSSV and runs its tests. Modeled on tssv-noc's sim.yml: same image,
+# triggers, path filter and concurrency.
+#
+# The path filter skips a push or PR whose changed files are ALL Markdown
+# ('**.md', anywhere in the tree) or under doc/, except doc/modules/ and
+# doc/rtl-style/, which the tests read: test_SFIFO checks ports against
+# doc/modules/SFIFO/SFIFO-spec.md and builds its test vectors from that spec's
+# timing diagrams, and the RTL-style checks read doc/rtl-style/. Later patterns
+# override earlier ones, so those two are added back after the exclusions. One
+# other file anywhere in the change set triggers the workflow as normal.
+# workflow_dispatch ignores path filters, so manual runs are always available.
+#
+# `push` is deliberately limited to main. `pull_request` fires on `synchronize`
+# — i.e. on every push to the head branch — so a wider push filter would run
+# the suite twice for each push to a branch with an open PR. Between them
+# these cover every change exactly once: main pushes via `push`, everything
+# else via its PR. A branch with no PR open therefore gets no run; open it as a
+# draft to get CI before it is review-ready.
+#
+# Keeping `pull_request` rather than `push` is what tests the *merged* result:
+# it runs against a simulated merge with the base branch, so a change that
+# passes alone but breaks against a moved main is caught before merge.
+#
+# Unlike tssv-noc there is no subset for PRs: the whole suite runs in about a
+# minute, so every event runs all of it.
+on:
+  push:
+    branches: [main]
+    paths: ['**', '!**.md', '!doc/**', 'doc/modules/**', 'doc/rtl-style/**']
+  pull_request:
+    paths: ['**', '!**.md', '!doc/**', 'doc/modules/**', 'doc/rtl-style/**']
+  workflow_dispatch:
+
+# A new push to the same branch cancels an in-flight run. github.ref is
+# refs/pull/<n>/merge for a pull_request event and refs/heads/main for a push,
+# so successive pushes to one PR share a group and supersede each other.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+
+    # The whole toolchain comes from the CI image (ci/image/): the Verilator
+    # and Verible versions pinned in README.md, Node 24, and build-essential.
+    # Move CI to a new toolchain by bumping this tag after ci-image.yml
+    # publishes it. jobs.<id>.container can't read the env context, hence the
+    # literal. Steps run as root: no sudo.
+    container:
+      image: ghcr.io/typescriptsystemverilog/tssv-ci:v1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain versions
+        run: |
+          verilator --version
+          verible-verilog-format --version
+          node --version
+          npm --version
+
+      # Node comes from the image, so there is no setup-node and no npm cache
+      # from it; cache npm's download cache directly instead.
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npx tsc
+
+      - name: ESLint
+        run: npx eslint .
+
+      # Every script under out/test/ except the ones runAllTests.sh skips
+      # (with its reasons). Also generates the sv-examples/ output that the
+      # checks below read.
+      - name: Test scripts
+        run: bash runAllTests.sh
+
+      - name: RTL-style checks
+        run: |
+          npm run check:rtl-style
+          npm run lint:style-examples
+
+      - name: WaveDrom diagrams up to date
+        run: npm run check:wavedrom
+
+      # Self-checking testbench, one Verilator build per configuration in
+      # sv-examples/SFIFO/tb/configs.txt; $fatal on any failed check.
+      - name: SFIFO simulation
+        run: make -C verilatorTB sfifo_sim
+
+      - name: Upload SFIFO build logs and waveforms
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfifo-sim
+          path: |
+            verilatorTB/obj_dir/sfifo_*.build.log
+            verilatorTB/obj_dir/sfifo_*/*.fst
+          if-no-files-found: ignore
