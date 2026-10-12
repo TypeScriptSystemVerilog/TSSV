@@ -19,10 +19,13 @@
 //   registerResponse flop that is on, plus the slave's
 // - ROM: reads return the slave model's preloaded words; a write completes at once and never
 //   reaches the ROM
-// - Write strobes: each RW register and each RAM window is written with each single WSTRB bit
-//   set, then with none and with all. Each write's data differs from the old value in every bit,
-//   and only the bytes whose strobe is set may change: in the register's outputs and its read-back
-//   value, or in the slave model's word
+// - Write strobes: each RW, WO and RWU register and each RAM window is written with each single
+//   WSTRB bit set, then with none and with all. Each write's data differs from the old value in
+//   every bit, and only the bytes whose strobe is set may change: in the register's outputs and
+//   its read-back value, or in the slave model's word. A WO's <R>_we pulses only after a write
+//   with a strobe set in a byte the register stores. An RWU is also written with a hardware update
+//   on the capture edge: with updatePriority 'hw' the update sets the whole register, and with
+//   'sw' it sets the bytes whose strobe is low
 // Register accesses have no wait states. Any contract violation a slave model sees fails the test.
 //
 // `make -C verilatorTB regblock_types_sim` runs this, lints each block with -Wall and runs each
@@ -52,6 +55,8 @@ const def32 = {
     SCRATCH: 0x18n, // RW, to check registers stay zero-wait around the windows
     MODE: 0x1cn, // RW with fields: 1 bit, one across a byte boundary, a whole byte, and an empty byte
     NARROW: 0x20n, // RW, 12 bits: a partial top byte
+    HWSTAT: 0x24n, // RWU, 24 bits, hardware wins a collision
+    SWSTAT: 0x28n, // RWU, software wins a collision in the strobed bytes
     RAM_REQ_RSP: 0x100n, // RAM, both flops (the default)
     RAM_REQ: 0x140n, // RAM, registered request only
     RAM_RSP: 0x180n, // RAM, registered response only
@@ -79,6 +84,8 @@ const def32 = {
       fields: { en: { bitRange: [0, 0], reset: 1n }, level: { bitRange: [11, 4], reset: 0x5an }, code: { bitRange: [31, 24] } }
     },
     NARROW: { type: RegisterType.RW, width: 12, reset: 0x321n },
+    HWSTAT: { type: RegisterType.RWU, width: 24, updatePriority: 'hw', reset: 0x123456n },
+    SWSTAT: { type: RegisterType.RWU, updatePriority: 'sw' },
     RAM_REQ_RSP: { type: RegisterType.RAM, size: 4n },
     RAM_REQ: { type: RegisterType.RAM, size: 4n, registerResponse: false },
     RAM_RSP: { type: RegisterType.RAM, size: 4n, registerRequest: false },
@@ -96,6 +103,7 @@ const def64 = {
     CMD: 0x10n,
     SCRATCH: 0x18n, // RW: 8 byte lanes
     MODE: 0x20n, // RW with fields, one across the 32-bit boundary
+    EVENTS: 0x28n, // RWU, software wins a collision in the strobed bytes
     BUF: 0x40n, // RAM, 2 words of 8 bytes
     TBL: 0x80n // ROM, 2 words of 8 bytes
   },
@@ -108,6 +116,7 @@ const def64 = {
       type: RegisterType.RW,
       fields: { en: { bitRange: [0, 0] }, span: { bitRange: [39, 28], reset: 0xabcn }, top: { bitRange: [63, 56], reset: 0x81n } }
     },
+    EVENTS: { type: RegisterType.RWU, updatePriority: 'sw', reset: 0xfedcba9876543210n },
     BUF: { type: RegisterType.RAM, size: 2n },
     TBL: { type: RegisterType.ROM, size: 2n, registerResponse: false }
   }
@@ -229,6 +238,9 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
 
   // ---- WO ----
   const woNames = regNames.filter(r => regOf(r).type === RegisterType.WO)
+  /** The data of each WO's last write, and how many times its <R>_we should have pulsed */
+  const woLast: Record<string, bigint> = {}
+  const wePulses: Record<string, number> = {}
   for (const r of woNames) {
     const reg = regOf(r)
     monitors.push(`  int ${r}_we_count = 0;
@@ -260,11 +272,13 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
       check(`WO ${r}_we in the first cycle with the new value`, `${r}_we`, "1'b1")
       steps.push('    @(negedge clk); #1;')
       check(`WO ${r}_we for one cycle only`, `${r}_we`, "1'b0")
+      woLast[r] = data
+      wePulses[r] = (wePulses[r] ?? 0) + 1
     }
     read(`WO ${r} reads`, a, lit(0n, W), 0)
   }
 
-  // ---- Write strobes on RW registers, from their reset values ----
+  // ---- Write strobes on RW, WO and RWU registers ----
   const all = (1n << BigInt(W)) - 1n
   /** Each single WSTRB bit, then none, then all */
   const strobes = [...Array.from({ length: B }, (_, b) => 1n << BigInt(b)), 0n, (1n << BigInt(B)) - 1n]
@@ -277,27 +291,67 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
   const strbTag = (strb: bigint): string => `WSTRB ${lit(strb, B)}`
   for (const r of regNames) {
     const reg = regOf(r)
-    if (reg.type !== RegisterType.RW) continue
+    const type = reg.type
+    if (type !== RegisterType.RW && type !== RegisterType.WO && type !== RegisterType.RWU) continue
     const a = def.addrMap[r]
     const fields = Object.entries(reg.fields ?? {})
     // The bits the register stores; the others read 0 and a write can't change them
     const stored = hasFields(reg) ? placeFields(reg, (_f, _i, width) => (1n << BigInt(width)) - 1n) : (1n << BigInt(reg.width ?? W)) - 1n
-    let value = hasFields(reg) ? placeFields(reg, (f) => reg.fields?.[f].reset ?? 0n) : (reg.reset ?? 0n) & stored
+    // RW and RWU start from reset; WO from its last write above
+    let value = type === RegisterType.WO
+      ? woLast[r] & stored
+      : hasFields(reg) ? placeFields(reg, (f) => reg.fields?.[f].reset ?? 0n) : (reg.reset ?? 0n) & stored
+    // m.write returns in the first cycle with the new value
     const observe = (what: string): void => {
       if (hasFields(reg)) {
         fields.forEach(([f, field], i) => { check(`${what}: ${r}.${f}`, `${r}_field${i}`, lit(fieldBits(value, ...field.bitRange), W)) })
       } else {
         check(`${what}: ${r}`, r, lit(value, W))
       }
-      read(what, a, lit(value, W), 0)
     }
-    observe(`RW ${r} after reset`)
+    const readBack = (what: string): void => { if (type !== RegisterType.WO) read(what, a, lit(value, W), 0) }
+    observe(`${type} ${r} before its strobed writes`)
+    readBack(`${type} ${r} before its strobed writes`)
     for (const strb of strobes) {
       const data = ~value & all
-      write(`RW ${r} ${strbTag(strb)}`, a, data, 0, strb)
+      write(`${type} ${r} ${strbTag(strb)}`, a, data, 0, strb)
       const changed = laneMask(strb) & stored
       value = (value & ~changed) | (data & changed)
-      observe(`RW ${r} after a write with ${strbTag(strb)}`)
+      const what = `${type} ${r} after a write with ${strbTag(strb)}`
+      observe(what)
+      if (type === RegisterType.WO) {
+        const pulse = changed !== 0n
+        check(`${what}: ${r}_we`, `${r}_we`, pulse ? "1'b1" : "1'b0")
+        steps.push('    @(negedge clk); #1;')
+        check(`${what}: ${r}_we a cycle later`, `${r}_we`, "1'b0")
+        if (pulse) wePulses[r]++
+      }
+      readBack(what)
+    }
+    if (type !== RegisterType.RWU) continue
+
+    // A hardware update on the edge that captures each write
+    const hwFirst = (reg.updatePriority ?? 'hw') === 'hw'
+    const width = reg.width ?? W
+    for (const strb of [...strobes.slice(0, B), 0n]) {
+      const data = ~value & all
+      // Differs from both the old value and the write data in every byte
+      const hw = (value ^ 0x5555555555555555n) & stored
+      steps.push(`    fork
+      m.write(${addr(a)}, ${lit(data, W)}, ${lit(strb, B)});
+      begin
+        @(posedge regs_bus.WE);
+        ${r}_hw_update = 1'b1;
+        ${r}_hw_update_val = ${lit(hw, width)};
+        @(negedge clk);
+        ${r}_hw_update = 1'b0;
+      end
+    join`)
+      const changed = laneMask(strb) & stored
+      value = hwFirst ? hw : (hw & ~changed) | (data & changed)
+      const what = `RWU ${r} (${hwFirst ? 'hw' : 'sw'} priority) after a write with ${strbTag(strb)} and a hardware update`
+      observe(what)
+      readBack(what)
     }
   }
 
@@ -368,7 +422,7 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
   }
 
   for (const r of woNames) {
-    finals.push(`    check("WO ${r}_we pulses, one per write to its address", 64'(${r}_we_count), 64'd2);`)
+    finals.push(`    check("WO ${r}_we pulses, one per write to its address with a strobe in its bytes", 64'(${r}_we_count), 64'd${wePulses[r]});`)
   }
 
   return `// tb_${name}: self-checking testbench for ${name}, generated by ${GENERATOR} (TSSV#80, TSSV#81)
