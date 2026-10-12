@@ -256,6 +256,11 @@ function buildRegEntry(rn) {
     lines.push('      width: ' + r.width + ',');
   if (r.isSigned)
     lines.push('      isSigned: true,');
+  // Copied for every type, so RegisterBlock rejects one on a type that doesn't allow it
+  for (const key of ['constant', 'registerRequest', 'registerResponse']) {
+    if (r[key] != null)
+      lines.push('      ' + key + ': ' + (String(r[key]) === 'true') + ',');
+  }
   if (isMem && r.size != null)
     lines.push('      size: ' + BigInt(String(r.size)).toString() + 'n,');
 

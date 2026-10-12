@@ -275,6 +275,8 @@ registers:
 | `registers.<R>.width` | Written out only when it differs from `wordSize`; dropped for `RAM`/`ROM` |
 | `registers.<R>.isSigned`, `.description` | As in `RegisterBlockDef` |
 | `registers.<R>.size` | `RAM`/`ROM` only |
+| `registers.<R>.constant` | `RO` only (§3) |
+| `registers.<R>.registerRequest`, `.registerResponse` | `RAM`/`ROM` only (§3) |
 | `registers.<R>.fields.<F>` | `bits: "msb:lsb"` (or `bitRange: [msb, lsb]`), optional `reset` and `description` |
 
 The output exports three things: `<name>AddrMap` (the `as const` map), `<name>Def` (the
