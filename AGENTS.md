@@ -25,7 +25,7 @@ doc/ideas/            Design notes and spike specs, each marked with its status
 doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, with their checks
 doc/process/          Repo process specs (issue-workflow.md)
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
-.github/              Issue forms, PR template, commit template, workflows (ci-image.yml)
+.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml)
 ```
 
 Docs live under `doc/`, never under `ts/`. A module's spec is always at
@@ -162,7 +162,8 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`) |
 | TypeDoc documentation | Complete | Auto-generated; rebuild with `npm run docs` |
-| Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js` |
+| Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
+| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, the RTL-style and WaveDrom checks, `make sfifo_sim`. Runs on PRs and on pushes to `main` |
 
 ## Common Tasks — Where to Start
 
@@ -170,7 +171,8 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Adding a new interface**: read `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` for the signal-bundle and modport pattern
 - **Using the register helpers**: read `ts/src/core/Registers.ts` and the `RegisterBlock` section of `doc/framework/core-api-reference.md`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`
-- **Running all tests**: `bash runAllTests.sh`
+- **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed in the script with the reason)
+- **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in the workflow after publishing a new one
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv`
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`; details in `doc/framework/simulation.md`
