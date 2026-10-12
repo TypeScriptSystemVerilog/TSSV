@@ -65,6 +65,12 @@ is the authoritative spec; this section is the operating procedure an agent foll
   `Bug`, `Docs`, `Spike`, `Chore`. Set with `gh issue create --type <Type>` or
   `gh issue edit <n> --type <Type>`. `--template` only seeds the body text — it does *not*
   apply the template's `type:` key, so always pass `--type` explicitly from the CLI.
+- **Status** — exactly one, on the [TSSV project board](https://github.com/orgs/TypeScriptSystemVerilog/projects/4),
+  not a label: `Triage` → `Ready` → `In Progress` → `In Review` (or `Blocked` at any
+  point) → `Done`. Issues are auto-added to the board when filed. Closing an issue sets
+  `Status = Done` automatically and vice versa, so never track doneness separately.
+  Editing Status from the CLI needs the `project` scope (`gh auth refresh -s project`,
+  then `gh project item-edit`); the board UI is the normal path.
 - **Labels** — none required; Type carries the classification. Stock labels (`duplicate`,
   `wontfix`, `question`, `good first issue`, `help wanted`) are still fine as attribute tags.
 - **Relationships** — native sub-issues for hierarchy (`gh issue edit <child> --parent <n>`)
