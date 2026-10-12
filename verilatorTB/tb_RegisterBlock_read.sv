@@ -7,15 +7,16 @@
 // A reference model holds every readable register's expected value. After reset and after
 // each batch of writes, the testbench sweeps reads over every word address up to 0x1fc, the
 // edges of each RAM/ROM window, and addresses that match a register only in their low bits.
-// Each read checks that a RAM/ROM window's decode (<R>_RE) is set exactly inside
-// [base, base + size * wordSize/8) during the RE pulse. It then checks DATA_RD and READY
-// against the model after the clock edge that captures the read, and again one idle cycle later,
-// because DATA_RD must hold until the next request (the Memory contract, TSSV#116).
+// Each read checks that a RAM/ROM window's decode (<R>_rd_hit) is set exactly inside
+// [base, base + size * wordSize/8) during the RE pulse. It holds ADDR until READY, checks that a
+// register read has no wait states and a window read has 2 (the default registerRequest and
+// registerResponse, TSSV#80), then checks DATA_RD against the model, and again one idle cycle
+// later, because DATA_RD must hold until the next request (the Memory contract, TSSV#116).
 //
-// The RAM's read data is its last write (<R>_wdata) and a ROM's is <R>_rdata, which nothing
-// drives yet (TSSV#80). So for RAM/ROM the testbench checks that the block routes those signals
-// after an access to the window, not what they hold. READY is always high: a window has no ready
-// input until TSSV#80.
+// Each RAM/ROM window is served by a zero-wait slave model from memory_models.sv
+// (ts/test/models/MemoryModels.ts). A window read expects the model's word at the window's
+// offset, and the writes check which model word they landed in. TSSV#130 replaces this
+// testbench with a generated one.
 //
 // Timing: inputs change on a falling edge and outputs are checked 1 ns after a falling edge.
 // ---------------------------------------------------------------------------
@@ -41,40 +42,44 @@ module tb_RegisterBlock_read;
   logic [15:0] STAT;
   logic        STAT_hw_update = 1'b0;
   logic [15:0] STAT_hw_update_val = '0;
-  logic [31:0] MEM_rdata, MEM_wdata, MEM_wstrb, TBL_rdata;
-  logic        MEM_re, MEM_we, MEM_ready, TBL_re, TBL_ready;
+  logic        CMD_we;
   logic [31:0] HI, FAR;
+  memory_bidi_32_32    mem32_bus ();
+  memory_rd_only_32_32 tbl32_bus ();
 
   regblock_read32 dut32 (
     .clk, .rst_b,
-    .CMD, .CTRL_field0, .CTRL_field1, .CTRL_field2, .SCRATCH, .NARROW,
+    .CMD, .CMD_we, .CTRL_field0, .CTRL_field1, .CTRL_field2, .SCRATCH, .NARROW,
     .STAT, .STAT_hw_update, .STAT_hw_update_val,
-    .MEM_rdata, .MEM_re, .MEM_we, .MEM_wdata, .MEM_wstrb, .MEM_ready,
-    .TBL_rdata, .TBL_re, .TBL_ready,
     .HI, .FAR,
-    .regs (bus32)
+    .regs (bus32),
+    .MEM (mem32_bus),
+    .TBL (tbl32_bus)
   );
+  memory_slave_bidi_32_32    #(.DEPTH(4)) mem32 (.clk, .rst_b, .bus (mem32_bus));
+  memory_slave_rd_only_32_32 #(.DEPTH(2)) tbl32 (.clk, .rst_b, .bus (tbl32_bus));
 
   // ---- 64-bit block ----
   memory_bidi_64_32 bus64 ();
-  logic [63:0] CSR, BUF_rdata, BUF_wdata, HI64;
-  logic [63:0] BUF_wstrb;
-  logic        BUF_re, BUF_we, BUF_ready;
+  logic [63:0] CSR, HI64;
+  memory_bidi_64_32 buf64_bus ();
 
   regblock_read64 dut64 (
     .clk, .rst_b,
-    .CSR, .BUF_rdata, .BUF_re, .BUF_we, .BUF_wdata, .BUF_wstrb, .BUF_ready, .HI (HI64),
-    .regs (bus64)
+    .CSR, .HI (HI64),
+    .regs (bus64),
+    .BUF (buf64_bus)
   );
+  memory_slave_bidi_64_32 #(.DEPTH(2)) buf64 (.clk, .rst_b, .bus (buf64_bus));
 
   // ---- reference model (32-bit block) ----
   localparam logic [31:0] CTRL_MASK = 32'h0000_ff07;  // enable [0], mode [2:1], divisor [15:8]
-  logic [31:0] m_ctrl, m_scratch, m_hi, m_far, m_mem;
+  logic [31:0] m_ctrl, m_scratch, m_hi, m_far;
   logic [11:0] m_narrow;
   logic [15:0] m_stat;
 
   // ---- reference model (64-bit block) ----
-  logic [63:0] m_csr, m_buf, m_hi64;
+  logic [63:0] m_csr, m_hi64;
 
   task automatic check (input string what, input logic [63:0] got, input logic [63:0] exp);
     checks++;
@@ -84,24 +89,43 @@ module tb_RegisterBlock_read;
     end
   endtask
 
+  // From the falling edge after the capture edge: the cycles READY is low, until it is high
+  task automatic wait_ready32 (output int waits);
+    waits = 0;
+    #1;
+    while (!bus32.READY) begin waits++; @(negedge clk); #1; end
+  endtask
+
+  task automatic wait_ready64 (output int waits);
+    waits = 0;
+    #1;
+    while (!bus64.READY) begin waits++; @(negedge clk); #1; end
+  endtask
+
+  // ADDR, DATA_WR and WSTRB hold until READY (the Memory contract)
   task automatic write32 (input logic [31:0] addr, input logic [31:0] data);
+    int waits;
     @(negedge clk);
     bus32.ADDR = addr; bus32.DATA_WR = data; bus32.WSTRB = '1; bus32.WE = 1'b1;
     @(negedge clk);
     bus32.WE = 1'b0;
+    wait_ready32(waits);
   endtask
 
   task automatic write64 (input logic [31:0] addr, input logic [63:0] data);
+    int waits;
     @(negedge clk);
     bus64.ADDR = addr; bus64.DATA_WR = data; bus64.WSTRB = '1; bus64.WE = 1'b1;
     @(negedge clk);
     bus64.WE = 1'b0;
+    wait_ready64(waits);
   endtask
 
   // One read of the 32-bit block at addr, checked against the model
   task automatic read32 (input logic [31:0] addr);
     logic [31:0] exp_data;
     logic        in_mem, in_tbl;
+    int          waits;
     string       where;
     in_mem = addr >= 32'h20 && addr <= 32'h2f;
     in_tbl = addr >= 32'h40 && addr <= 32'h47;
@@ -111,8 +135,8 @@ module tb_RegisterBlock_read;
       addr == 32'h8:     exp_data = m_scratch;
       addr == 32'hc:     exp_data = {20'b0, m_narrow};
       addr == 32'h10:    exp_data = {16'b0, m_stat};
-      in_mem:            exp_data = m_mem;
-      in_tbl:            exp_data = TBL_rdata;
+      in_mem:            exp_data = mem32.mem[(addr - 32'h20) / 4];
+      in_tbl:            exp_data = tbl32.mem[(addr - 32'h40) / 4];
       addr == 32'h100:   exp_data = m_hi;
       addr == 32'h12340: exp_data = m_far;
       default: ;  // CMD (WO) and unmapped addresses read 0
@@ -121,13 +145,14 @@ module tb_RegisterBlock_read;
     bus32.ADDR = addr; bus32.RE = 1'b1;
     #1;
     where = $sformatf("read32 @0x%0h", addr);
-    check({where, " MEM_RE"}, 64'(dut32.MEM_RE), 64'(in_mem));
-    check({where, " TBL_RE"}, 64'(dut32.TBL_RE), 64'(in_tbl));
+    check({where, " MEM_rd_hit"}, 64'(dut32.MEM_rd_hit), 64'(in_mem));
+    check({where, " TBL_rd_hit"}, 64'(dut32.TBL_rd_hit), 64'(in_tbl));
     @(negedge clk);
-    bus32.ADDR = 'x; bus32.RE = 1'b0;
-    #1;
+    bus32.RE = 1'b0;
+    wait_ready32(waits);
+    bus32.ADDR = 'x;
+    check({where, " wait states"}, 64'(waits), (in_mem || in_tbl) ? 64'd2 : 64'd0);
     check({where, " DATA_RD"}, 64'(bus32.DATA_RD), 64'(exp_data));
-    check({where, " READY"}, 64'(bus32.READY), 64'h1);
     @(negedge clk);
     #1;
     check({where, " DATA_RD held"}, 64'(bus32.DATA_RD), 64'(exp_data));
@@ -137,12 +162,13 @@ module tb_RegisterBlock_read;
   task automatic read64 (input logic [31:0] addr);
     logic [63:0] exp_data;
     logic        in_buf;
+    int          waits;
     string       where;
     in_buf = addr >= 32'h10 && addr <= 32'h1f;
     exp_data = '0;
     unique case (1'b1)
       addr == 32'h0:   exp_data = m_csr;
-      in_buf:          exp_data = m_buf;
+      in_buf:          exp_data = buf64.mem[(addr - 32'h10) / 8];
       addr == 32'h100: exp_data = m_hi64;
       default: ;
     endcase
@@ -150,12 +176,13 @@ module tb_RegisterBlock_read;
     bus64.ADDR = addr; bus64.RE = 1'b1;
     #1;
     where = $sformatf("read64 @0x%0h", addr);
-    check({where, " BUF_RE"}, 64'(dut64.BUF_RE), 64'(in_buf));
+    check({where, " BUF_rd_hit"}, 64'(dut64.BUF_rd_hit), 64'(in_buf));
     @(negedge clk);
-    bus64.ADDR = 'x; bus64.RE = 1'b0;
-    #1;
+    bus64.RE = 1'b0;
+    wait_ready64(waits);
+    bus64.ADDR = 'x;
+    check({where, " wait states"}, 64'(waits), in_buf ? 64'd2 : 64'd0);
     check({where, " DATA_RD"}, bus64.DATA_RD, exp_data);
-    check({where, " READY"}, 64'(bus64.READY), 64'h1);
     @(negedge clk);
     #1;
     check({where, " DATA_RD held"}, bus64.DATA_RD, exp_data);
@@ -185,8 +212,10 @@ module tb_RegisterBlock_read;
     bus32.ADDR = '0; bus32.DATA_WR = '0; bus32.WSTRB = '0; bus32.RE = 1'b0; bus32.WE = 1'b0;
     bus64.ADDR = '0; bus64.DATA_WR = '0; bus64.WSTRB = '0; bus64.RE = 1'b0; bus64.WE = 1'b0;
     m_ctrl = 32'h0000_1000;  // divisor resets to 0x10
-    m_scratch = '0; m_narrow = '0; m_stat = '0; m_mem = '0; m_hi = 32'ha5a5_a5a5; m_far = '0;
-    m_csr = '0; m_buf = '0; m_hi64 = '0;
+    m_scratch = '0; m_narrow = '0; m_stat = '0; m_hi = 32'ha5a5_a5a5; m_far = '0;
+    m_csr = '0; m_hi64 = '0;
+    tbl32.mem[0] = 32'h7ab1_e000; tbl32.mem[1] = 32'h7ab1_e001;  // ROM contents
+    buf64.mem[0] = 64'h0b0f_0000_0000_0000;
     repeat (2) @(negedge clk);
     rst_b = 1'b1;
 
@@ -211,7 +240,7 @@ module tb_RegisterBlock_read;
     write32(32'hc, 32'hffff_ffff); m_narrow = 12'hfff;
     write32(32'h20, 32'h1111_1111);
     write32(32'h28, 32'h3333_3333);
-    write32(32'h2c, 32'h4444_4444); m_mem = 32'h4444_4444;
+    write32(32'h2c, 32'h4444_4444);
     write32(32'h30, 32'h9999_9999);                   // just past MEM's window: no hit
     write32(32'h100, 32'h1234_5678); m_hi = 32'h1234_5678;
     write32(32'h1_2340, 32'hcafe_f00d); m_far = 32'hcafe_f00d;
@@ -224,7 +253,11 @@ module tb_RegisterBlock_read;
     check("CTRL_field0 after 0xffffffff", 64'(CTRL_field0), 64'h1);
     check("CTRL_field1 after 0xffffffff", 64'(CTRL_field1), 64'h3);
     check("CTRL_field2 after 0xffffffff", 64'(CTRL_field2), 64'hff);
-    check("MEM_wdata after the window's last write", 64'(MEM_wdata), 64'h4444_4444);
+    check("MEM word 0 after writes", 64'(mem32.mem[0]), 64'h1111_1111);
+    check("MEM word 1 after writes", 64'(mem32.mem[1]), 64'h0);
+    check("MEM word 2 after writes", 64'(mem32.mem[2]), 64'h3333_3333);
+    check("MEM word 3 after writes", 64'(mem32.mem[3]), 64'h4444_4444);
+    check("CMD after its write", 64'(CMD), 64'h5555_5555);
     sweep32();
 
     // ---- field patterns: each field lands at its own bits ----
@@ -241,12 +274,15 @@ module tb_RegisterBlock_read;
 
     // ---- 64-bit block: a 2-word RAM spans 16 bytes ----
     write64(32'h0, 64'h0123_4567_89ab_cdef); m_csr = 64'h0123_4567_89ab_cdef;
-    write64(32'h18, 64'hfeed_face_dead_beef); m_buf = 64'hfeed_face_dead_beef;
+    write64(32'h18, 64'hfeed_face_dead_beef);
+    check("BUF word 1 after its write", buf64.mem[1], 64'hfeed_face_dead_beef);
     write64(32'h20, 64'h1);                           // just past BUF's window: no hit
     write64(32'h100, 64'hfedc_ba98_7654_3210); m_hi64 = 64'hfedc_ba98_7654_3210;
     write64(32'h8000_0100, 64'h0);                    // aliases HI in 8 bits
     sweep64();
 
+    // Contract violations the slave models saw on the window buses
+    errors += mem32.errors + tbl32.errors + buf64.errors;
     if (errors == 0) begin
       $display("tb_RegisterBlock_read: PASS (%0d checks)", checks);
       $finish;

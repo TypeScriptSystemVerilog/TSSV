@@ -39,6 +39,7 @@ regblock_read_sim: tsc
 	mkdir -p obj_dir
 	verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/regblock_read -o Vtb_RegisterBlock_read \
 	  tb_RegisterBlock_read.sv $(REGBLOCK_DIR)/regblock_read32.sv $(REGBLOCK_DIR)/regblock_read64.sv \
+	  $(REGBLOCK_DIR)/memory_models.sv \
 	  > obj_dir/regblock_read.build.log 2>&1 || { cat obj_dir/regblock_read.build.log; exit 1; }
 	cd obj_dir/regblock_read && ./Vtb_RegisterBlock_read
 
@@ -54,7 +55,7 @@ apb_to_memory_sim: tsc
 	@echo "lint -Wall clean: apb_regblock"
 	mkdir -p obj_dir
 	verilator --binary --timing -j 0 -Mdir obj_dir/apb_to_memory -o Vtb_APB_to_Memory \
-	  tb_APB_to_Memory.sv $(APB_DIR)/apb_regblock.sv \
+	  tb_APB_to_Memory.sv $(APB_DIR)/apb_regblock.sv $(APB_DIR)/memory_models.sv \
 	  > obj_dir/apb_to_memory.build.log 2>&1 || { cat obj_dir/apb_to_memory.build.log; exit 1; }
 	cd obj_dir/apb_to_memory && ./Vtb_APB_to_Memory
 
