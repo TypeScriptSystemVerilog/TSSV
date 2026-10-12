@@ -41,11 +41,27 @@ regblock_read_sim: tsc
 	  > obj_dir/regblock_read.build.log 2>&1 || { cat obj_dir/regblock_read.build.log; exit 1; }
 	cd obj_dir/regblock_read && ./Vtb_RegisterBlock_read
 
+# TSSV#116: ts/test/test_APB_to_Memory.ts writes a RegisterBlock with an APB port, so its
+# APB_to_Memory submodule drives the block's Memory bus. This lints the block with -Wall and runs
+# a self-checking APB testbench against it. apb_to_memory_waivers.vlt holds the only waivers.
+APB_DIR = ../sv-examples/APB_to_Memory
+
+apb_to_memory_sim: tsc
+	cd ..; node out/test/test_APB_to_Memory.js
+	verilator --lint-only -Wall --top-module apb_regblock_lint_top apb_to_memory_waivers.vlt \
+	  $(APB_DIR)/apb_regblock.sv $(APB_DIR)/apb_regblock_lint_top.sv
+	@echo "lint -Wall clean: apb_regblock"
+	mkdir -p obj_dir
+	verilator --binary --timing -j 0 -Mdir obj_dir/apb_to_memory -o Vtb_APB_to_Memory \
+	  tb_APB_to_Memory.sv $(APB_DIR)/apb_regblock.sv \
+	  > obj_dir/apb_to_memory.build.log 2>&1 || { cat obj_dir/apb_to_memory.build.log; exit 1; }
+	cd obj_dir/apb_to_memory && ./Vtb_APB_to_Memory
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd
 
-.PHONY: sfifo_sim regblock_read_sim
+.PHONY: sfifo_sim regblock_read_sim apb_to_memory_sim
 .FORCE:
 tsc: .FORCE
 	cd ..; npx tsc

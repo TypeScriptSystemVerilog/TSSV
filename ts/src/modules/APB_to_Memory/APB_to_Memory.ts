@@ -8,7 +8,9 @@ export interface APB_to_Memory_Parameters extends TSSVParameters {
 }
 
 /**
- * Converts an APB4 slave port into a Memory master port.
+ * Converts an APB4 slave port into a Memory master port. It issues the Memory request in the
+ * APB setup phase and ends the access phase when the slave's `READY` is high, so a zero-wait
+ * slave completes with no APB wait states. See {@link Memory} for the Memory contract.
  * Instantiate this as a submodule inside a RegisterBlock when busInterface is 'APB'.
  *
  * @see doc/modules/APB_to_Memory/APB_to_Memory-spec.md
@@ -38,20 +40,23 @@ export class APB_to_Memory extends Module {
       'outward'
     ))
 
-    // Address and write data pass straight through
+    // Address, write data and strobes pass straight through. APB holds them from the setup
+    // phase to the end of the access phase, which is the hold the Memory contract asks for.
     this.addAssign({ in: new Expr('apb.PADDR'), out: 'mem.ADDR' })
     this.addAssign({ in: new Expr('apb.PWDATA'), out: 'mem.DATA_WR' })
     this.addAssign({ in: new Expr('apb.PSTRB'), out: 'mem.WSTRB' })
 
-    // Read data and ready pass back to APB master
+    // The Memory request is a one-cycle pulse in the APB setup phase, so the slave captures it
+    // on the edge that starts the access phase
+    this.addAssign({ in: new Expr('apb.PSELx & ~apb.PENABLE & apb.PWRITE'), out: 'mem.WE' })
+    this.addAssign({ in: new Expr('apb.PSELx & ~apb.PENABLE & ~apb.PWRITE'), out: 'mem.RE' })
+
+    // The access phase ends when the slave's access settles. A zero-wait slave keeps READY
+    // high, so the transfer has no APB wait states; read data is valid while READY is high
+    this.addAssign({ in: new Expr('mem.READY'), out: 'apb.PREADY' })
     this.addAssign({ in: new Expr('mem.DATA_RD'), out: 'apb.PRDATA' })
-    this.addAssign({ in: new Expr('apb.PSELx & apb.PENABLE'), out: 'apb.PREADY' })
 
     // No error conditions in a simple register block
     this.addAssign({ in: new Expr("1'b0"), out: 'apb.PSLVERR' })
-
-    // Generate WE and RE from APB handshake signals
-    this.addAssign({ in: new Expr('apb.PSELx & apb.PENABLE & apb.PWRITE'), out: 'mem.WE' })
-    this.addAssign({ in: new Expr('apb.PSELx & apb.PENABLE & ~apb.PWRITE'), out: 'mem.RE' })
   }
 }
