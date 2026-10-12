@@ -324,6 +324,9 @@ ${decls.join('\n')}
 ${monitors.join('\n')}
 
   initial begin
+    // Waveform, written to the run directory when the model is built with --trace-fst
+    $dumpfile("tb_${name}.fst");
+    $dumpvars(0, tb_${name});
 ${inits.join('\n')}
     repeat (2) @(negedge clk);
     rst_b = 1'b1;
