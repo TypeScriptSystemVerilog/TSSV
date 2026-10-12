@@ -7,8 +7,9 @@ and, where behavior matters, correct in simulation. Every Don't example is check
 way the guide says it does.
 
 - **The rules:** [sv-coding-style.md](sv-coding-style.md)
-- **Run every check:** `npm run check:rtl-style` from the repo root. It needs the Verilator
-  version pinned in the top-level `README.md`, and it refuses any other version.
+- **Run every check:** `npm run check:rtl-style` from the repo root. It runs this guide's checks
+  and the TSSV guide's. It needs the Verilator version pinned in the top-level `README.md`, and
+  it refuses any other version.
 
 ## Layout
 
@@ -20,17 +21,18 @@ doc/rtl-style/sv-style/
     seq/                simulation examples for SEQ-2 and SEQ-5, with their testbenches
     width/              width_examples.sv, the examples for every WIDTH rule, and its testbench
   tools/
-    check-rtl-style.mjs         runs all the checks below
     lint-style-examples.mjs     lints the guide's inline SV examples as annotated
     check-rules.mjs             rule coverage, simulation examples, doc/file consistency
     check-width-examples.mjs    width examples: lint and exact arithmetic at 5 widths
-    check-builder-examples.mjs  TSSV builder examples and the SV they generate
+    check-builder-examples.mjs  builder checks for both guides, and the SV they generate
     sv-scans.mjs                text checks on generated SV (COMB-9, SYN-1, LINT-3)
-    verilator.mjs               shared helpers: Verilator pin, lint, simulate
-ts/test/rtl_style/      the builder examples (TypeScript has to live under ts/)
+doc/rtl-style/tools/
+  check-rtl-style.mjs   runs every check of both guides
+  verilator.mjs         shared helpers: Verilator pin, lint, simulate
+ts/test/rtl_style/      the builder checks (TypeScript has to live under ts/)
 ```
 
-The builder examples write their SV to `sv-examples/rtl_style/`, which git ignores.
+The builder checks write their SV to `sv-examples/rtl_style/`, which git ignores.
 
 ## How a rule is verified
 
@@ -41,12 +43,14 @@ Each `rules.json` entry lists one or more checks:
 | `lint` | The rule's inline SV examples lint as annotated: Do is clean, Don't raises the warnings it lists | `lint-style-examples.mjs` |
 | `sim` | The rule's RTL files lint clean and each testbench prints `PASS` | `check-rules.mjs` |
 | `width` | Every example output the rule cites exists in `width_examples.sv`, which lints clean and matches exact arithmetic | `check-rules.mjs`, `check-width-examples.mjs` |
-| `builder` | A check in `ts/test/rtl_style/` confirms what the builder emits or rejects | `check-builder-examples.mjs` |
+| `builder` | A check in `ts/test/rtl_style/` confirms what the builder emits or rejects. The TSSV guide's rules use this too | `check-builder-examples.mjs` |
 | `generated` | The SV the builders generate lints clean (LINT-1) and passes the text checks in `sv-scans.mjs` | `check-builder-examples.mjs` |
 | `review` | Design judgment, or no automated check yet; the entry's `reason` says which | `check-rules.mjs` (checks a reason is given) |
 
 Other fields:
 
+- `movedTo` marks a rule that moved to the TSSV guide. Its entry has no `checks`, the guide keeps
+  only a *moved* note naming the new ID, and the TSSV guide's checks confirm that ID exists.
 - `docVerbatim` maps an example label in the guide (`"Do"`, `"Don't"`, `"Also fine"`) to the
   file that must contain that example verbatim. This keeps a simulated example and the guide
   from drifting apart.
