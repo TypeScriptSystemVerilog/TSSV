@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { GENERATED_RULES, SCANS } from './sv-scans.mjs'
-import { lint, requirePinnedVerilator } from './verilator.mjs'
+import { lint, requirePinnedVerilator } from '../../tools/verilator.mjs'
 
 const TEST = 'out/test/rtl_style/test_rtl_style_builders.js'
 const OUT = 'sv-examples/rtl_style'

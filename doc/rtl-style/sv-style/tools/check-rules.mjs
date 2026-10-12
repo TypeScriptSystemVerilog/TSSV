@@ -12,7 +12,7 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { lint, requirePinnedVerilator, simulate } from './verilator.mjs'
+import { lint, requirePinnedVerilator, simulate } from '../../tools/verilator.mjs'
 
 const ROOT = 'doc/rtl-style/sv-style'
 const DOC = `${ROOT}/sv-coding-style.md`
