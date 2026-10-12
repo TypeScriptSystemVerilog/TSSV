@@ -97,20 +97,28 @@ jobs:
           npm run check:rtl-style
           npm run lint:style-examples
 
-      - name: WaveDrom diagrams up to date
-        run: npm run check:wavedrom
+      # `npm run check:wavedrom` isn't here: docs-reference.yml runs it on
+      # every PR, without this workflow's path filter.
 
-      # Self-checking testbench, one Verilator build per configuration in
-      # sv-examples/SFIFO/tb/configs.txt; $fatal on any failed check.
+      # Self-checking testbenches in verilatorTB/, each $fatal on any failed
+      # check. sfifo_sim builds one model per configuration in
+      # sv-examples/SFIFO/tb/configs.txt; the other two lint their DUTs with
+      # -Wall first.
       - name: SFIFO simulation
         run: make -C verilatorTB sfifo_sim
 
-      - name: Upload SFIFO build logs and waveforms
+      - name: RegisterBlock read-path simulation
+        run: make -C verilatorTB regblock_read_sim
+
+      - name: APB_to_Memory simulation
+        run: make -C verilatorTB apb_to_memory_sim
+
+      - name: Upload simulation build logs and waveforms
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: sfifo-sim
+          name: verilator-sims
           path: |
-            verilatorTB/obj_dir/sfifo_*.build.log
-            verilatorTB/obj_dir/sfifo_*/*.fst
+            verilatorTB/obj_dir/*.build.log
+            verilatorTB/obj_dir/*/*.fst
           if-no-files-found: ignore
