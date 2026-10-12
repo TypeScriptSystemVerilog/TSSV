@@ -97,7 +97,8 @@ not write them: `const a = new RegAddr(0n, 32)`, then `a.next()` returns `0x0`, 
 
 ## 2. The generated module
 
-Every block has these ports. The register ports from §3 go between `rst_b` and the bus port:
+Every block has these ports. The register ports from §3 go between `rst_b` and the bus port,
+and each `RAM` or `ROM` window's `Memory` port goes after it:
 
 | Port | Kind |
 |---|---|
@@ -111,19 +112,21 @@ Inside, the block has three parts:
 - **An address decoder**: each register gets `<R>_matchExpr`, which compares all of `regs.ADDR`
   with the register's address as a `busAddressWidth`-bit literal (`regs.ADDR == 32'h100`). A
   `RAM` or `ROM` with a `size` matches the window `[address, address + size × wordSize/8)`
-  instead. `<R>_matchExpr` is combined with `regs.WE`/`regs.RE` into `<R>_WE`/`<R>_RE`, so
-  reads and writes decode the same addresses. An address or window that doesn't fit in
+  instead. `<R>_matchExpr` is combined with `regs.WE`/`regs.RE` into `<R>_wr_hit`/`<R>_rd_hit`,
+  so reads and writes decode the same addresses. An address or window that doesn't fit in
   `busAddressWidth` bits throws when the block is constructed.
 - **The register state**: flops built with `addRegister`, all on `clk`/`rst_b`, or a
-  hand-written `always_ff` for `RWU`.
+  hand-written `always_ff` for `RWU`. Each window also has its request and response flops and
+  `<R>_wait_q`, which is high while the memory has an access in flight (§3).
 - **The read path**: an `always_comb` block named `read_mux` sets `rd_data_nxt` to 0, then, in
-  `addrMap` order, to the read-back value (§3) of the first register whose `<R>_RE` is high,
+  `addrMap` order, to the read-back value (§3) of the first register whose `<R>_rd_hit` is high,
   zero-extended to the word. `rd_data_q` loads `rd_data_nxt` on the clock edge after the `RE`
   pulse and holds it, and drives `regs.DATA_RD`. A read of a `WO` register or of an address no
   register decodes returns 0. Each `RAM` or `ROM` window also has a flag, `<R>_last_q`, set when
-  the last request (read or write) hit the window. While it is set, an `always_comb` block named
-  `read_out` drives `regs.DATA_RD` from the window's `<R>_wdata` (`RAM`) or `<R>_rdata` (`ROM`)
-  instead. `regs.READY` is tied high (§5).
+  the last request was a read of the window or a write to a `RAM`. While it is set, an
+  `always_comb` block named `read_out` drives `regs.DATA_RD` from the window's response:
+  `<R>_rdata_q`, or `<R>.DATA_RD` without `registerResponse`. `regs.READY` is low while any
+  window has an access in flight, and high otherwise.
 
 The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, `DATA_WR`,
 `DATA_RD`, `WE`, `RE`, `READY`, `WSTRB`. Its contract and timing diagrams are in
@@ -133,8 +136,9 @@ The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, 
   rising `clk` edge. `ADDR` is a byte address.
 - A register access has no wait states. `READY` stays high, a write takes effect on the capture
   edge, and read data is valid from the capture edge until the next request.
-- After an access to a `RAM` or `ROM` window, `DATA_RD` comes from the window. A window has no
-  ready input yet, so it can't insert wait states (§5).
+- An access to a `RAM` or `ROM` window has wait states: one for each of the window's
+  `registerRequest` and `registerResponse` flops that is on, plus the memory's own (§3). The
+  master holds `ADDR` and the write data until `READY` is high again, as the contract requires.
 
 ## 3. Register types
 
@@ -338,20 +342,9 @@ from outside, give the parent a port of the same interface type and bind `regs` 
 ## 5. Current limitations
 
 These are properties of the code on `main`. Check them before you depend on a block. Each one
-links to the bug that tracks it: [#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80) (register-type ports), [#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81)
-(write strobes) and [#86](https://github.com/TypeScriptSystemVerilog/TSSV/issues/86) (`TL_UL`).
+links to the bug that tracks it: [#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81) (write strobes) and
+[#86](https://github.com/TypeScriptSystemVerilog/TSSV/issues/86) (`TL_UL`).
 
-- **`RO` and `ROM` data has no input.** `RO`'s `<R>` and `ROM`'s `<R>_rdata` are output ports
-  that nothing inside the block drives, so the logic that should supply the value can't. `ROM`'s
-  `<R>_re` is undriven too. `RO` ignores `reset` and `fields`. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
-- **`WO` outputs aren't registered or qualified.** `<R>` follows `regs.DATA_WR` on every cycle.
-  `<R>_WE` is computed but not exported. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
-- **`RAM` is incomplete.** Its outputs only update on a write. No address output exists:
-  `<R>_ADDR` is internal. A read returns the last written value, and `<R>_wstrb` is as wide
-  as the register and always written as `1`. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
-- **`RAM` and `ROM` can't insert wait states.** `regs.READY` is always high. The `<R>_ready`
-  outputs are registered from `regs.READY` on a write, not supplied by the memory, so the
-  block doesn't use them. ([#80](https://github.com/TypeScriptSystemVerilog/TSSV/issues/80))
 - **`WSTRB` is only partly applied.** A field register's enable treats `WSTRB` as one bit (any
   strobe set). A register without fields ignores it. The strobe signals are sized from
   `busAddressWidth`, not from the data width. ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81))

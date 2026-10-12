@@ -344,6 +344,26 @@ endmodule
 `
 }
 
+// Options a type doesn't allow throw when the block is built
+for (const [what, reg, match] of [
+  ['constant on RW', { type: RegisterType.RW, constant: true }, 'constant is only allowed on RO'],
+  ['registerRequest on RO', { type: RegisterType.RO, registerRequest: false }, 'only allowed on RAM and ROM'],
+  ['registerResponse on WO', { type: RegisterType.WO, registerResponse: true }, 'only allowed on RAM and ROM'],
+  ['a RAM width other than wordSize', { type: RegisterType.RAM, size: 2n, width: 16 }, "window's width must be the wordSize"],
+  ['a constant reset wider than the register', { type: RegisterType.RO, constant: true, width: 8, reset: 0x1ffn }, "reset 0x1ff doesn't fit in 8 bits"],
+  ['a constant field reset wider than the field', { type: RegisterType.RO, constant: true, fields: { f: { bitRange: [3, 0], reset: 0x10n } } }, "R.f: reset 0x10 doesn't fit in 4 bits"]
+] as Array<[string, Reg, string]>) {
+  let message = ''
+  try {
+    // eslint-disable-next-line no-new
+    new RegisterBlock({ name: 'bad', busAddressWidth: 32 }, { wordSize: 32, addrMap: { R: 0n }, registers: { R: reg } }, new Memory())
+  } catch (e) {
+    message = (e as Error).message
+  }
+  if (!message.includes(match)) throw Error(`${what}: expected a throw mentioning "${match}", got "${message}"`)
+  console.log(`PASS: ${what} throws`)
+}
+
 const blocks = [
   { block: new RegisterBlock({ name: 'regblock_types32', busAddressWidth: 32 }, def32, new Memory()), def: def32 as Def },
   { block: new RegisterBlock({ name: 'regblock_types64', busAddressWidth: 32 }, def64, new Memory()), def: def64 as Def }

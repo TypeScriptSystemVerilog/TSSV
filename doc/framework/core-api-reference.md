@@ -364,12 +364,16 @@ interface RegisterBlockDef<T extends Record<string, bigint>> {
   baseAddress?: bigint
   registers: {
     [name in keyof T]?: {
-      type: 'RW' | 'RO' | 'WO' | 'RAM' | 'ROM'
+      type: 'RW' | 'RWU' | 'RO' | 'WO' | 'RAM' | 'ROM'
       reset?: bigint
       description?: string
       width?: IntRange<1,64>          // defaults to wordSize
       isSigned?: boolean
       size?: bigint                   // RAM/ROM only: number of entries
+      constant?: boolean              // RO only: no port, reads its reset
+      registerRequest?: boolean       // RAM/ROM only: default true
+      registerResponse?: boolean      // RAM/ROM only: default true
+      updatePriority?: 'hw' | 'sw'    // RWU only: default 'hw'
       fields?: Record<string, {
         bitRange: [MSB, LSB]          // e.g. [7, 0]
         reset?: bigint
@@ -391,13 +395,16 @@ const coeffRegs = new RegisterBlock<typeof addrMap>(
 )
 ```
 
-| Register type | Output ports | Behavior |
+| Register type | Ports | Behavior |
 |---|---|---|
 | `'RW'` | One output per register (or per field) | Host writes, logic reads |
-| `'RO'` | One output per register | Host reads; nothing in the block drives the output today (see `registers.md` §5) |
-| `'WO'` | One output per register | Host writes, not readable |
-| `'RAM'` | `re`, `we`, `rdata`, `wdata`, `wstrb`, `addr`, `ready` | External SRAM-style interface |
-| `'ROM'` | `re`, `rdata`, `addr`, `ready` | External ROM-style interface |
+| `'RWU'` | An output, plus `<R>_hw_update` and `<R>_hw_update_val` inputs | Host and logic both write |
+| `'RO'` | One input per register (or per field); none with `constant: true` | Logic drives, host reads |
+| `'WO'` | One output per register (or per field), plus a `<R>_we` pulse | Host writes, not readable |
+| `'RAM'` | An outward `Memory` port `<R>` (`bidi`) | An external memory serves the window |
+| `'ROM'` | An outward `Memory` port `<R>` (`rd_only`) | An external memory serves reads; writes are dropped |
+
+[`registers.md` §3](registers.md#3-register-types) has the exact port lists and the window timing.
 
 ### `RegAddr` helper
 
