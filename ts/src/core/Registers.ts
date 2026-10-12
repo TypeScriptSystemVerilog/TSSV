@@ -59,10 +59,24 @@ export interface RegisterBlockParameters extends TSSVParameters {
   busAddressWidth?: 32
 }
 
+function ralfAccessType (type: RegisterType): string {
+  switch (type) {
+    case RegisterType.RO:
+    case RegisterType.ROM: return 'ro'
+    case RegisterType.WO: return 'wo'
+    case RegisterType.RW:
+    case RegisterType.RAM:
+    default: return 'rw'
+  }
+}
+
 /**
- * WRITE
+ * A module holding the registers in a {@link RegisterBlockDef}. They are reached through its
+ * `regs` Memory interface, or through an `apb` APB4 interface that an APB_to_Memory
+ * submodule bridges onto `regs`.
  *
- * @wavedrom
+ * @wavedrom Write on `regs`
+ *
  * ```json
  * {
  *   "signal": [
@@ -76,12 +90,9 @@ export interface RegisterBlockParameters extends TSSVParameters {
  *   ]
  * }
  * ```
- */
-
-/**
- * READ
  *
- * @wavedrom
+ * @wavedrom Read on `regs`
+ *
  * ```json
  * {
  *   "signal": [
@@ -95,18 +106,9 @@ export interface RegisterBlockParameters extends TSSVParameters {
  *   ]
  * }
  * ```
+ *
+ * @noInheritDoc
  */
-function ralfAccessType (type: RegisterType): string {
-  switch (type) {
-    case RegisterType.RO:
-    case RegisterType.ROM: return 'ro'
-    case RegisterType.WO: return 'wo'
-    case RegisterType.RW:
-    case RegisterType.RAM:
-    default: return 'rw'
-  }
-}
-
 export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   declare params: RegisterBlockParameters
   regDefs: RegisterBlockDef<T>
