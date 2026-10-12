@@ -1,4 +1,5 @@
-// Self-checking test of RegisterBlock's register types (TSSV#80). For each RegisterBlockDef
+// Self-checking test of RegisterBlock's register types (TSSV#80) and write strobes (TSSV#81). For
+// each RegisterBlockDef
 // below, this writes, under sv-examples/RegisterBlock_types/:
 // - <block>.sv: the block
 // - <block>_lint_top.sv: a lint wrapper (ts/test/models/lintWrapper.ts)
@@ -18,6 +19,10 @@
 //   registerResponse flop that is on, plus the slave's
 // - ROM: reads return the slave model's preloaded words; a write completes at once and never
 //   reaches the ROM
+// - Write strobes: each RW register and each RAM window is written with each single WSTRB bit
+//   set, then with none and with all. Each write's data differs from the old value in every bit,
+//   and only the bytes whose strobe is set may change: in the register's outputs and its read-back
+//   value, or in the slave model's word
 // Register accesses have no wait states. Any contract violation a slave model sees fails the test.
 //
 // `make -C verilatorTB regblock_types_sim` runs this, lints each block with -Wall and runs each
@@ -45,6 +50,8 @@ const def32 = {
     CMD: 0x10n, // WO, 12 bits
     GO: 0x14n, // WO with fields
     SCRATCH: 0x18n, // RW, to check registers stay zero-wait around the windows
+    MODE: 0x1cn, // RW with fields: 1 bit, one across a byte boundary, a whole byte, and an empty byte
+    NARROW: 0x20n, // RW, 12 bits: a partial top byte
     RAM_REQ_RSP: 0x100n, // RAM, both flops (the default)
     RAM_REQ: 0x140n, // RAM, registered request only
     RAM_RSP: 0x180n, // RAM, registered response only
@@ -67,6 +74,11 @@ const def32 = {
     CMD: { type: RegisterType.WO, width: 12, reset: 0xabcn },
     GO: { type: RegisterType.WO, fields: { start: { bitRange: [0, 0] }, op: { bitRange: [11, 8], reset: 3n } } },
     SCRATCH: { type: RegisterType.RW },
+    MODE: {
+      type: RegisterType.RW,
+      fields: { en: { bitRange: [0, 0], reset: 1n }, level: { bitRange: [11, 4], reset: 0x5an }, code: { bitRange: [31, 24] } }
+    },
+    NARROW: { type: RegisterType.RW, width: 12, reset: 0x321n },
     RAM_REQ_RSP: { type: RegisterType.RAM, size: 4n },
     RAM_REQ: { type: RegisterType.RAM, size: 4n, registerResponse: false },
     RAM_RSP: { type: RegisterType.RAM, size: 4n, registerRequest: false },
@@ -82,6 +94,8 @@ const def64 = {
     STATUS: 0x0n,
     ID: 0x8n,
     CMD: 0x10n,
+    SCRATCH: 0x18n, // RW: 8 byte lanes
+    MODE: 0x20n, // RW with fields, one across the 32-bit boundary
     BUF: 0x40n, // RAM, 2 words of 8 bytes
     TBL: 0x80n // ROM, 2 words of 8 bytes
   },
@@ -89,6 +103,11 @@ const def64 = {
     STATUS: { type: RegisterType.RO },
     ID: { type: RegisterType.RO, constant: true, reset: 0x0123456789abcdefn },
     CMD: { type: RegisterType.WO },
+    SCRATCH: { type: RegisterType.RW, reset: 0x0011223344556677n },
+    MODE: {
+      type: RegisterType.RW,
+      fields: { en: { bitRange: [0, 0] }, span: { bitRange: [39, 28], reset: 0xabcn }, top: { bitRange: [63, 56], reset: 0x81n } }
+    },
     BUF: { type: RegisterType.RAM, size: 2n },
     TBL: { type: RegisterType.ROM, size: 2n, registerResponse: false }
   }
@@ -171,8 +190,8 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
     @(negedge clk); #1;
     check("${what} @0x${a.toString(16)} DATA_RD held", 64'(regs_bus.DATA_RD), 64'(${exp}));`)
   }
-  const write = (what: string, a: bigint, data: bigint, waits: number): void => {
-    steps.push(`    m.write(${addr(a)}, ${lit(data, W)});
+  const write = (what: string, a: bigint, data: bigint, waits: number, strb?: bigint): void => {
+    steps.push(`    m.write(${addr(a)}, ${lit(data, W)}${strb === undefined ? '' : `, ${lit(strb, B)}`});
     check("${what} @0x${a.toString(16)} wait states", 64'(m.waits), 64'd${waits});`)
   }
   const check = (what: string, got: string, exp: string): void => {
@@ -245,6 +264,43 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
     read(`WO ${r} reads`, a, lit(0n, W), 0)
   }
 
+  // ---- Write strobes on RW registers, from their reset values ----
+  const all = (1n << BigInt(W)) - 1n
+  /** Each single WSTRB bit, then none, then all */
+  const strobes = [...Array.from({ length: B }, (_, b) => 1n << BigInt(b)), 0n, (1n << BigInt(B)) - 1n]
+  /** The data bits that `strb` enables */
+  const laneMask = (strb: bigint): bigint => {
+    let mask = 0n
+    for (let b = 0; b < B; b++) if (((strb >> BigInt(b)) & 1n) === 1n) mask |= 0xffn << BigInt(8 * b)
+    return mask
+  }
+  const strbTag = (strb: bigint): string => `WSTRB ${lit(strb, B)}`
+  for (const r of regNames) {
+    const reg = regOf(r)
+    if (reg.type !== RegisterType.RW) continue
+    const a = def.addrMap[r]
+    const fields = Object.entries(reg.fields ?? {})
+    // The bits the register stores; the others read 0 and a write can't change them
+    const stored = hasFields(reg) ? placeFields(reg, (_f, _i, width) => (1n << BigInt(width)) - 1n) : (1n << BigInt(reg.width ?? W)) - 1n
+    let value = hasFields(reg) ? placeFields(reg, (f) => reg.fields?.[f].reset ?? 0n) : (reg.reset ?? 0n) & stored
+    const observe = (what: string): void => {
+      if (hasFields(reg)) {
+        fields.forEach(([f, field], i) => { check(`${what}: ${r}.${f}`, `${r}_field${i}`, lit(fieldBits(value, ...field.bitRange), W)) })
+      } else {
+        check(`${what}: ${r}`, r, lit(value, W))
+      }
+      read(what, a, lit(value, W), 0)
+    }
+    observe(`RW ${r} after reset`)
+    for (const strb of strobes) {
+      const data = ~value & all
+      write(`RW ${r} ${strbTag(strb)}`, a, data, 0, strb)
+      const changed = laneMask(strb) & stored
+      value = (value & ~changed) | (data & changed)
+      observe(`RW ${r} after a write with ${strbTag(strb)}`)
+    }
+  }
+
   // ---- RW, between the windows ----
   const rwName = regNames.find(r => regOf(r).type === RegisterType.RW)
   const rwCheck = (round: string): void => {
@@ -290,11 +346,32 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
     }
   }
 
+  // ---- Write strobes on RAM windows: they reach the slave, which writes only the strobed bytes ----
+  for (const r of regNames) {
+    const reg = regOf(r)
+    if (reg.type !== RegisterType.RAM) continue
+    const word = Number(reg.size ?? 1n) - 1
+    const a = def.addrMap[r] + BigInt(word * B)
+    const waits = Number(reg.registerRequest ?? true) + Number(reg.registerResponse ?? true)
+    for (const slaveWaits of SLAVE_WAITS) {
+      const tag = `RAM ${r} (slave ${slaveWaits} waits) word ${word}`
+      let value = pattern(`${r}.strb.${slaveWaits}`, W)
+      steps.push(`    ${r}_mem.wait_states = ${slaveWaits};\n    ${r}_mem.mem[${word}] = ${lit(value, W)};`)
+      for (const strb of strobes) {
+        const data = ~value & all
+        write(`${tag} ${strbTag(strb)}`, a, data, waits + slaveWaits, strb)
+        value = (value & ~laneMask(strb)) | (data & laneMask(strb))
+        check(`${tag} after a write with ${strbTag(strb)}`, `${r}_mem.mem[${word}]`, lit(value, W))
+      }
+      read(tag, a, lit(value, W), waits + slaveWaits)
+    }
+  }
+
   for (const r of woNames) {
     finals.push(`    check("WO ${r}_we pulses, one per write to its address", 64'(${r}_we_count), 64'd2);`)
   }
 
-  return `// tb_${name}: self-checking testbench for ${name}, generated by ${GENERATOR} (TSSV#80)
+  return `// tb_${name}: self-checking testbench for ${name}, generated by ${GENERATOR} (TSSV#80, TSSV#81)
 \`timescale 1ns / 1ps
 
 module tb_${name};
