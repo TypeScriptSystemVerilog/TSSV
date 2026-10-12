@@ -21,10 +21,10 @@ Defined in `TwoClockRegFile_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, in the order below: `TwoClockRegFile_<dataWidth>_<depth>_<readMode>`, for example `TwoClockRegFile_1026_32_combinational` |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, in the order below: `TwoClockRegFile_<dataWidth>_<depth>_<readMode>`, for example `TwoClockRegFile_1026_32_async` |
 | `dataWidth` | `bigint` (≥ 1) | — | Word width in bits. There is no upper limit, so NoC flits of 514 or 1026 bits fit |
 | `depth` | `bigint` (2 to 32) | — | Number of words. Doesn't have to be a power of two |
-| `readMode?` | `'registered' \| 'combinational'` | `'registered'` | How the read port returns data; see [Reads](#reads) |
+| `readMode?` | `'registered' \| 'async'` | `'registered'` | How the read port returns data; see [Reads](#reads) |
 
 Invalid values throw an `Error` that names the module, the parameter and the value: `dataWidth < 1`, `depth` outside 2 to 32, or a `readMode` string that isn't listed above. TypeScript catches the last one at compile time, but JavaScript callers don't get that check.
 
@@ -47,7 +47,7 @@ Port names follow `SRAM`'s `1r_1w` convention: port A writes and port B reads.
 | `b_addr` | `input` | `addrWidth` | — | Read address |
 | `b_data_out` | `output` | `dataWidth` | — | Read data |
 
-With `readMode = 'combinational'` the read port has no clock, so the module's only clock is `a_clk`. There is no reset (see [Reset behavior](#reset-behavior)).
+With `readMode = 'async'` the read port has no clock, so the module's only clock is `a_clk`. There is no reset (see [Reset behavior](#reset-behavior)).
 
 ---
 
@@ -64,22 +64,22 @@ A write takes effect on the rising edge of `a_clk` when `a_we` is high, and chan
 | `readMode` | `b_data_out` | Latency | Read enable |
 |---|---|---|---|
 | `'registered'` | Registered on `b_clk`. It holds its value while `b_re` is low | One `b_clk` | `b_re` |
-| `'combinational'` | A combinational read of word `b_addr`. It follows `b_addr` and the stored word with no clock edge | None | None |
+| `'async'` | A combinational read of word `b_addr`. It follows `b_addr` and the stored word with no clock edge | None | None |
 
-`'combinational'` is what the `AFIFO`'s show-ahead read needs: the head word is on `b_data_out` as soon as the read pointer points at it. `'registered'` breaks the timing path from the storage to the reader's logic. That path crosses clock domains, so a registered read is the easier one to close timing on.
+`'async'` is what the `AFIFO`'s show-ahead read needs: the head word is on `b_data_out` as soon as the read pointer points at it. `'registered'` breaks the timing path from the storage to the reader's logic. That path crosses clock domains, so a registered read is the easier one to close timing on.
 
 ### Access rules
 
 The register file has no collision detection. The caller has to keep the two ports from using the same word at the same time, and has to synchronize every handoff of a word between them:
 
 1. **Write, then read:** after port A writes word *w*, port B must not read *w* until it has learned of the write through a synchronizer from the `a_clk` domain, with at least two flops.
-2. **Read, then overwrite:** after port B reads word *w*, port A must not write *w* again until it has learned through a synchronizer that B is finished with it. For a registered read, B is finished at the `b_re` edge. For a combinational read, B is finished once its own logic has captured `b_data_out`.
+2. **Read, then overwrite:** after port B reads word *w*, port A must not write *w* again until it has learned through a synchronizer that B is finished with it. For a registered read, B is finished at the `b_re` edge. For an async read, B is finished once its own logic has captured `b_data_out`.
 
 If the caller breaks a rule, reads of the affected word are undefined until it's written again under the rules, and a registered read that breaks rule 1 can go metastable. Other words keep their values.
 
 ### Use in the AFIFO
 
-The `AFIFO` uses a power-of-two `depth` from 4 to 32. Port A is the write side: `a_clk` is `wr_clk`, `a_addr` is the binary write pointer, and `a_we` is a push the FIFO accepts. Port B is the read side, addressed by the binary read pointer. The AFIFO's show-ahead read mode uses `readMode = 'combinational'`, and its registered read mode uses `'registered'` with `b_re` as the accepted pop. The Gray-coded pointers, synchronized into the other domain, satisfy the [Access rules](#access-rules): the reader reads a word only after the synchronized write pointer has passed it, and the writer reuses a word only after the synchronized read pointer has passed it.
+The `AFIFO` uses a power-of-two `depth` from 4 to 32. Port A is the write side: `a_clk` is `wr_clk`, `a_addr` is the binary write pointer, and `a_we` is a push the FIFO accepts. Port B is the read side, addressed by the binary read pointer. The AFIFO's show-ahead read mode uses `readMode = 'async'`, and its registered read mode uses `'registered'` with `b_re` as the accepted pop. The Gray-coded pointers, synchronized into the other domain, satisfy the [Access rules](#access-rules): the reader reads a word only after the synchronized write pointer has passed it, and the writer reuses a word only after the synchronized read pointer has passed it.
 
 ### Reset behavior
 
@@ -123,11 +123,11 @@ Port A writes `A` to word 0 and `B` to word 1. Port B reads both words, and each
 -->
 ![TwoClockRegFile timing: registered read](TwoClockRegFile-timing-registered.svg)
 
-### Combinational read
+### Async read
 
 The same writes, with no read clock. While `b_addr` is 0, `b_data_out` changes to `A` right after the `a_clk` edge that writes word 0. When `b_addr` changes to 1, `b_data_out` follows at once. `b_addr` is drawn on `a_clk`'s grid, but it doesn't have to be synchronous to `a_clk`.
 
-<!-- wavedrom TwoClockRegFile-timing-combinational.svg
+<!-- wavedrom TwoClockRegFile-timing-async.svg
 {
   "signal": [
     {"name": "a_clk",      "wave": "p......."},
@@ -141,12 +141,12 @@ The same writes, with no read clock. While `b_addr` is 0, `b_data_out` changes t
     {"name": "b_addr",     "wave": "=...=...", "data": ["0", "1"]},
     {"name": "b_data_out", "wave": "x.3.4...", "data": ["A", "B"]}
   ],
-  "head": {"text": "TwoClockRegFile, readMode = 'combinational'"}
+  "head": {"text": "TwoClockRegFile, readMode = 'async'"}
 }
 -->
-![TwoClockRegFile timing: combinational read](TwoClockRegFile-timing-combinational.svg)
+![TwoClockRegFile timing: async read](TwoClockRegFile-timing-async.svg)
 
-_Read latency: **one `b_clk`** with `readMode = 'registered'`, and **none** with `'combinational'`. Write latency: the word changes on the `a_clk` edge._
+_Read latency: **one `b_clk`** with `readMode = 'registered'`, and **none** with `'async'`. Write latency: the word changes on the `a_clk` edge._
 
 ---
 
@@ -155,7 +155,7 @@ _Read latency: **one `b_clk`** with `readMode = 'registered'`, and **none** with
 All of the module's logic is in `ts/src/modules/TwoClockRegFile/TwoClockRegFile.ts`. It has no submodules.
 
 - **Storage:** one array, `mem`, of `depth` words. It's written in an `always_ff` on `a_clk` when `a_we` is high, and has no reset.
-- **Read:** `assign b_data_out = mem[b_addr]` with `readMode = 'combinational'`. With `'registered'`, an `always_ff` on `b_clk` loads `mem[b_addr]` into `b_data_out` when `b_re` is high.
+- **Read:** `assign b_data_out = mem[b_addr]` with `readMode = 'async'`. With `'registered'`, an `always_ff` on `b_clk` loads `mem[b_addr]` into `b_data_out` when `b_re` is high.
 
 ### Synthesis mapping
 
@@ -181,28 +181,28 @@ All of the module's logic is in `ts/src/modules/TwoClockRegFile/TwoClockRegFile.
 ## Test Plan
 
 **Test script:** `ts/test/modules/test_TwoClockRegFile.ts`. It generates both read modes and checks each one's ports against the IO table above. It checks that register files differing in any parameter get different module names, and that `dataWidth = 1026n` with `depth = 32n` generates. It checks that each invalid parameter in [Parameters](#parameters) throws: `depth` 1 and 33, `dataWidth` 0, and an unlisted `readMode`. Finally, it generates the testbench configurations below. `runAllTests.sh` runs it.
-**Testbench:** `verilatorTB/tb_TwoClockRegFile.sv`, built once per configuration. A reference model of the storage checks every read. The testbench drives `a_clk` and `b_clk` at unrelated periods (10 ns and 13 ns), and runs every test twice: once with the read clock slower, and once with it faster (7 ns). With `readMode = 'combinational'`, the testbench still runs a 13 ns or 7 ns reader clock to sample `b_data_out`. It enforces the [Access rules](#access-rules) with a model of the handoff: port B may read a word only after two `b_clk` edges have passed since it was written, and port A may rewrite a word only after two `a_clk` edges have passed since it was read.
+**Testbench:** `verilatorTB/tb_TwoClockRegFile.sv`, built once per configuration. A reference model of the storage checks every read. The testbench drives `a_clk` and `b_clk` at unrelated periods (10 ns and 13 ns), and runs every test twice: once with the read clock slower, and once with it faster (7 ns). With `readMode = 'async'`, the testbench still runs a 13 ns or 7 ns reader clock to sample `b_data_out`. It enforces the [Access rules](#access-rules) with a model of the handoff: port B may read a word only after two `b_clk` edges have passed since it was written, and port A may rewrite a word only after two `a_clk` edges have passed since it was read.
 **Output:** `sv-examples/TwoClockRegFile/<module>/` and `sv-examples/TwoClockRegFile/tb/`
 
 | Configuration | `dataWidth` | `depth` | `readMode` |
 |---|---|---|---|
 | `w8_d4_reg` | 8 | 4 | `'registered'` |
-| `w8_d4_comb` | 8 | 4 | `'combinational'` |
+| `w8_d4_async` | 8 | 4 | `'async'` |
 | `w8_d5_reg` | 8 | 5 | `'registered'` |
-| `w8_d5_comb` | 8 | 5 | `'combinational'` |
+| `w8_d5_async` | 8 | 5 | `'async'` |
 | `w1026_d32_reg` | 1026 | 32 | `'registered'` |
-| `w1026_d32_comb` | 1026 | 32 | `'combinational'` |
+| `w1026_d32_async` | 1026 | 32 | `'async'` |
 
 | Test case | Configurations | Notes |
 |---|---|---|
 | Write then read every word | all | Port A writes every word, then port B reads each one back |
 | Registered read hold | `readMode = 'registered'` | `b_data_out` holds while `b_re` is low, through writes to the word last read |
-| Combinational read | `readMode = 'combinational'` | `b_data_out` follows `b_addr` with no read clock edge, and shows a write to the addressed word right after the `a_clk` edge |
+| Async read | `readMode = 'async'` | `b_data_out` follows `b_addr` with no read clock edge, and shows a write to the addressed word right after the `a_clk` edge |
 | Out-of-range address | `depth = 5` | Writes to addresses 5 to 7 leave words 0 to 4 unchanged |
 | Random | all | 5000 random reads and writes, obeying the access rules, checked against the reference model |
-| Timing diagrams | `w8_d4_reg`, `w8_d4_comb` | Each diagram in [Timing](#timing) replays cycle for cycle, with vectors built from its WaveDrom JSON as `test_SFIFO.ts` does |
+| Timing diagrams | `w8_d4_reg`, `w8_d4_async` | Each diagram in [Timing](#timing) replays cycle for cycle, with vectors built from its WaveDrom JSON as `test_SFIFO.ts` does |
 
-**FPGA mapping:** a Vivado synthesis run of `TwoClockRegFile_1026_32_registered` and `TwoClockRegFile_1026_32_combinational` maps `mem` to distributed RAM (LUTRAM) and uses no block RAM. This is a manual check, recorded on the PR with the Vivado version.
+**FPGA mapping:** a Vivado synthesis run of `TwoClockRegFile_1026_32_registered` and `TwoClockRegFile_1026_32_async` maps `mem` to distributed RAM (LUTRAM) and uses no block RAM. This is a manual check, recorded on the PR with the Vivado version.
 
 ### Simulation
 
