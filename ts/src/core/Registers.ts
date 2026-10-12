@@ -168,27 +168,17 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       }
 
       if (thisReg.type === RegisterType.RW) {
-        const wstrbWidth = (params.busAddressWidth || 8) / 8
-        const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
-
-        // new code
-        this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
-
         if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-          this.addFieldRegisters(regName, thisReg.fields, wstrb.toString())
+          this.addFieldRegisters(regName, thisReg.fields)
         } else {
+          const width = thisReg.width || regDefs.wordSize
           this.IOs[regName.toString()] = {
             direction: 'output',
-            width: thisReg.width || regDefs.wordSize,
+            width,
             isSigned: thisReg.isSigned
           }
-
-          this.addSignal(`${regName}_d`, { width: regDefs.wordSize })
-          // new
-          this.addAssign({ in: new Expr(`regs.DATA_WR & ${wstrb.toString()}`), out: `${regName}_d` })
-
           this.addRegister({
-            d: 'regs.DATA_WR', // added & wstrb
+            d: new Expr(this.strobedWrite(regName, width - 1, 0)),
             clk: 'clk',
             reset: 'rst_b',
             q: regName.toString(),
@@ -239,7 +229,7 @@ always_ff @( posedge clk or negedge rst_b )
         }
       } else if (thisReg.type === RegisterType.WO) {
         if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-          const wstrb = this.addSignal(`${regName}_wstrb`, { width: (params.busAddressWidth || 8) / 8 })
+          const wstrb = this.addSignal(`${regName}_wstrb`, { width: regDefs.wordSize / 8 })
           this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
           this.addFieldRegisters(regName, thisReg.fields, wstrb.toString())
         } else {
@@ -282,26 +272,46 @@ always_ff @( posedge clk or negedge rst_b )
   }
 
   /**
-   * One output `<R>_field<i>` per field, each a flop that loads its bit range of `regs.DATA_WR`
-   * on a write to the register while any `WSTRB` bit is set.
+   * One output `<R>_field<i>` per field, each a flop that loads its bit range of `regs.DATA_WR` on
+   * a write to the register. Without `wstrb`, only the field's bytes whose `WSTRB` bit is set
+   * change ({@link strobedWrite}). With `wstrb`, the whole field loads while any bit of it is set.
    */
-  private addFieldRegisters (regName: string, fields: Record<string, Field>, wstrb: string): void {
+  private addFieldRegisters (regName: string, fields: Record<string, Field>, wstrb?: string): void {
     Object.values(fields).forEach((field, index) => {
       const fieldSigName = `${regName}_field${index}`
+      const [hi, lo] = field.bitRange
       this.IOs[fieldSigName] = {
         direction: 'output',
-        width: field.bitRange[0] - field.bitRange[1] + 1,
+        width: hi - lo + 1,
         isSigned: field.isSigned
       }
       this.addRegister({
-        d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
+        d: new Expr(wstrb === undefined ? this.strobedWrite(fieldSigName, hi, lo) : `regs.DATA_WR[${hi}:${lo}]`),
         clk: 'clk',
         reset: 'rst_b',
         q: fieldSigName,
-        en: `${regName}_wr_hit && ${wstrb}`, // added && ${wstrb}
+        en: wstrb === undefined ? `${regName}_wr_hit` : `${regName}_wr_hit && ${wstrb}`,
         resetVal: field.reset || 0n
       })
     })
+  }
+
+  /**
+   * The value that bits `[hi:lo]` of a register take on a write to it, one byte lane at a time:
+   * `regs.DATA_WR` in each lane whose `WSTRB` bit is set, and the current value, `current`, in
+   * the others. `current` holds bit `lo` at its bit 0.
+   */
+  private strobedWrite (current: string, hi: number, lo: number): string {
+    const bits = (sig: string, h: number, l: number): string => h === l ? `${sig}[${h}]` : `${sig}[${h}:${l}]`
+    const lanes: string[] = []
+    for (let laneLo = lo; laneLo <= hi; laneLo = (Math.floor(laneLo / 8) + 1) * 8) {
+      const lane = Math.floor(laneLo / 8)
+      const laneHi = Math.min(hi, lane * 8 + 7)
+      // A lane that covers all of `current` uses it whole: a 1-bit signal has no bit range
+      const keep = laneLo === lo && laneHi === hi ? current : bits(current, laneHi - lo, laneLo - lo)
+      lanes.unshift(`regs.WSTRB[${lane}] ? ${bits('regs.DATA_WR', laneHi, laneLo)} : ${keep}`)
+    }
+    return lanes.length === 1 ? lanes[0] : `{${lanes.map(l => `(${l})`).join(', ')}}`
   }
 
   /**
@@ -335,7 +345,7 @@ always_ff @( posedge clk or negedge rst_b )
       request.push(
         { sig: 'WE', value: `${regName}_wr_hit`, width: 1, held: false },
         { sig: 'DATA_WR', value: 'regs.DATA_WR', width: wordSize, held: true },
-        { sig: 'WSTRB', value: 'regs.WSTRB', width: addrWidth / 8, held: true })
+        { sig: 'WSTRB', value: 'regs.WSTRB', width: wordSize / 8, held: true })
     }
     let issue = hit
     for (const { sig, value, width, held } of request) {

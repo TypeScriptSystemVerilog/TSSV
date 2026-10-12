@@ -70,9 +70,9 @@ export type Memory_Role = 'outward' | 'inward' | undefined
  *   wait states keeps it high. A synchronous SRAM with a one-cycle read can tie it high.
  * - **`DATA_RD`.** After a read, it is valid in every cycle `READY` is high, and holds until the
  *   next request. After a write it is undefined.
- * - **`WSTRB`** has one bit per byte of `DATA_WR`: bit `i` enables `DATA_WR[8*i+7:8*i]`. Its
- *   width is `ADDR_WIDTH / 8` today instead of `DATA_WIDTH / 8`
- *   ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81)).
+ * - **`WSTRB`** has one bit per byte of `DATA_WR`, so it is `DATA_WIDTH / 8` bits wide, as in AXI
+ *   and APB4 (`PSTRB`). Bit `i` enables `DATA_WR[8*i+7:8*i]`. A write changes only the bytes whose
+ *   bit is set; the slave keeps the others.
  *
  * In the diagrams, the arrow marks the `clk` edge that captures the request, and the span on
  * `ready` marks the wait states the slave inserts.
@@ -188,7 +188,7 @@ export class Memory extends Interface {
       RE: 1,
       WE: 1,
       READY: 1,
-      WSTRB: (this.params.ADDR_WIDTH || 32) / 8
+      WSTRB: (this.params.DATA_WIDTH || 32) / 8
     }
     this.signals = Object.fromEntries(Object.entries(widths)
       .filter(([name]) => name in outward)

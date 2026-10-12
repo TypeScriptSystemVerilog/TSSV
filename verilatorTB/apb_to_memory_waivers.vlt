@@ -14,6 +14,3 @@ lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PC
 lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PRESETn'"
 lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PPROT'"
 lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'PCLKEN'"
-
-// TSSV#81: a register without fields computes a strobed `<R>_d` and then ignores it
-lint_off -rule UNUSEDSIGNAL -file "*/APB_to_Memory/apb_regblock.sv" -match "*'SCRATCH_d'"
