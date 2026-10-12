@@ -14,9 +14,11 @@ ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_conve
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
-docs/                 Auto-generated TypeDoc HTML — never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
-doc/framework/        How to use the framework: core API reference, simulation
+doc/framework/        How the framework works and how to use it: concepts, register blocks,
+                      core API reference, simulation
+doc/interfaces/       Writing interface classes (signal bundles)
+doc/reference/        Generated API reference for the core (npm run docs) — never hand-edit
 doc/modules/          One folder per module: doc/modules/<Module>/<Module>-spec.md
 doc/templates/        Templates for new docs (module spec)
 doc/tutorials/        Worked examples (FIR, end to end)
@@ -25,7 +27,7 @@ doc/ideas/            Design notes and spike specs, each marked with its status
 doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, with their checks
 doc/process/          Repo process specs (issue-workflow.md)
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
-.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml)
+.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml)
 ```
 
 Docs live under `doc/`, never under `ts/`. A module's spec is always at
@@ -38,7 +40,11 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | Document | Authoritative For |
 |---|---|
 | `ts/src/core/Base.ts` | All builder APIs: `addSignal`, `addRegister`, `addSubmodule`, `addCombAlways`, etc. |
+| `doc/reference/README.md` | The core's API reference (`Base.ts`, `Registers.ts`, `SVModuleHeader.ts`): one markdown page per file, generated from the JSDoc by `npm run docs`. Never hand-edit |
 | `doc/framework/core-api-reference.md` | Quick reference for the builders, with examples. A stopgap: #71 moves it into the core's JSDoc and deletes it |
+| `doc/framework/concepts.md` | How a module is elaborated and emitted: parameters and module naming, `Sig`/`Expr` and signal metadata, interfaces and binding checks, submodule binding (`autoBind`, `createMissing`, `autoWidthExtension`), `addRegister` grouping, single- and multi-file emission, the Verible formatter, importing SV. Read before changing `ts/src/core/` |
+| `doc/framework/registers.md` | `RegisterBlock`: register types and the logic they generate, the YAML → `scripts/gen_regblock.sh` flow, RALF output (`writeRALF`), current limitations |
+| `doc/interfaces/adding-an-interface.md` | Writing an interface class: the signal/modport pattern (`AXI4.ts`), AMBA file naming, generating a draft from IP-XACT XML with `xml_interface_build` |
 | `doc/framework/simulation.md` | The `verilatorTB/` flow: TS → SV → Verilator → VCD → GTKWave, Makefile variables, driver macros |
 | `doc/modules/<Module>/<Module>-spec.md` | One per module in `ts/src/modules/`: parameters, IOs, behavior, timing, test plan |
 | `doc/templates/module-spec-template.md` | The template for a new module's spec |
@@ -65,6 +71,12 @@ is the authoritative spec; this section is the operating procedure an agent foll
   `Bug`, `Docs`, `Spike`, `Chore`. Set with `gh issue create --type <Type>` or
   `gh issue edit <n> --type <Type>`. `--template` only seeds the body text — it does *not*
   apply the template's `type:` key, so always pass `--type` explicitly from the CLI.
+- **Status** — exactly one, on the [TSSV project board](https://github.com/orgs/TypeScriptSystemVerilog/projects/4),
+  not a label: `Triage` → `Ready` → `In Progress` → `In Review` (or `Blocked` at any
+  point) → `Done`. Issues are auto-added to the board when filed. Closing an issue sets
+  `Status = Done` automatically and vice versa, so never track doneness separately.
+  Editing Status from the CLI needs the `project` scope (`gh auth refresh -s project`,
+  then `gh project item-edit`); the board UI is the normal path.
 - **Labels** — none required; Type carries the classification. Stock labels (`duplicate`,
   `wontfix`, `question`, `good first issue`, `help wanted`) are still fine as attribute tags.
 - **Relationships** — native sub-issues for hierarchy (`gh issue edit <child> --parent <n>`)
@@ -103,7 +115,7 @@ is the authoritative spec; this section is the operating procedure an agent foll
 ## Conventions
 
 - **Naming**: module classes PascalCase; signals and parameters camelCase; interface files follow exact AMBA spec naming (e.g. `AXI4-Lite.ts`)
-- **Generated files**: `sv-examples/`, `docs/`, and `out/` must never be manually edited
+- **Generated files**: `sv-examples/`, `doc/reference/`, and `out/` must never be manually edited. `doc/reference/` is committed: after changing the core's API or its JSDoc, run `npm run docs` and commit the result in the same PR
 - **New module pattern**: see "Adding a New Module" under Core Architecture below
 - **Docs**: every doc lives under `doc/` and is listed in Key Documents above; no `.md` files under `ts/`. A module's spec is `doc/modules/<Module>/<Module>-spec.md`
 - **RTL coding style**: the SV a module emits — especially `addCombAlways()`/`addSequentialAlways()`/`addLatchAlways()` bodies — follows `doc/rtl-style/sv-style/sv-coding-style.md`; cite rule IDs (e.g. `COMB-2`) in reviews and lint waivers
@@ -134,7 +146,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | `writeSystemVerilog()` | Render the module and its submodules to SV |
 
 ### Interface (`ts/src/core/Base.ts`)
-`Interface` wraps a group of signals with modports. An instance's role picks one of its modports (`inward`, `outward`, `monitor` in the bundled interfaces). Interfaces in `ts/src/interfaces/` follow this pattern: each file defines a class with `signals` and `modports`.
+`Interface` wraps a group of signals with modports. An instance's role picks one of its modports (`inward` or `outward`; the generated AMBA5 `*_rtl.ts` classes use `master`/`slave`). An instance without a role is a local bundle, not a port. Interfaces in `ts/src/interfaces/` follow this pattern: each file defines a class with `signals` and `modports`. How roles, SV type names and binding checks work is in `doc/framework/concepts.md` §4; how to write a new one is in `doc/interfaces/adding-an-interface.md`.
 
 ### Signals and Expressions
 - `Sig` — a named signal reference
@@ -161,33 +173,38 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`) |
-| TypeDoc documentation | Complete | Auto-generated; rebuild with `npm run docs` |
+| API reference (`doc/reference/`) | Core only | Markdown generated from the core's JSDoc by `npm run docs`; CI fails a PR whose reference is stale. Modules, interfaces and tools aren't covered yet |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
-| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, the RTL-style and WaveDrom checks, `make sfifo_sim`. Runs on PRs and on pushes to `main` |
+| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, the RTL-style checks, `make sfifo_sim`. Runs on PRs and on pushes to `main` |
 
 ## Common Tasks — Where to Start
 
-- **Adding a new module**: read `ts/src/core/Base.ts` (builder API), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
-- **Adding a new interface**: read `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` for the signal-bundle and modport pattern
-- **Using the register helpers**: read `ts/src/core/Registers.ts` and the `RegisterBlock` section of `doc/framework/core-api-reference.md`
+- **Adding a new module**: read `doc/framework/concepts.md` (how elaboration, binding and emission fit together), `ts/src/core/Base.ts` (builder API), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
+- **Adding a new interface**: read `doc/interfaces/adding-an-interface.md`, which walks through `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` as the pattern and covers file naming and `xml_interface_build`
+- **Using the register helpers**: read `doc/framework/registers.md` (including its "Current limitations"), then `ts/src/core/Registers.ts`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`
 - **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed in the script with the reason)
 - **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in the workflow after publishing a new one
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv`
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`; details in `doc/framework/simulation.md`
-- **Timing diagrams in markdown docs**: GitHub doesn't render WaveDrom, so put the JSON in a `<!-- wavedrom <file>.svg ... -->` comment followed by `![...](<file>.svg)`, then run `npm run render:wavedrom` to write the SVG next to the doc. Never hand-edit the SVG. `npm run check:wavedrom` fails if any SVG is missing, stale or unlinked. Example: `doc/modules/SFIFO/SFIFO-spec.md`
-- **Learning the framework end to end**: `doc/tutorials/fir.md`
+- **Timing diagrams in markdown docs**: GitHub doesn't render WaveDrom, so put the JSON in a `<!-- wavedrom <file>.svg ... -->` comment followed by `![...](<file>.svg)`, then run `npm run render:wavedrom` to write the SVG next to the doc. Never hand-edit the SVG. `npm run check:wavedrom` fails if any SVG is missing, stale or unlinked, and the `docs-reference` workflow runs it on every PR. Example: `doc/modules/SFIFO/SFIFO-spec.md`
+- **Learning the framework end to end**: `doc/framework/concepts.md`, then `doc/tutorials/fir.md`
+- **Reviewing a change to the core** (`ts/src/core/`): `doc/framework/concepts.md` states the behavior the change must keep or deliberately alter
 
 ---
 
 ## Documentation
 
-TSSV documentation is generated by **TypeDoc** from JSDoc-style comments in `ts/src/**/*.ts`. The output lands in `docs/typedoc/` — never hand-edit those files. Rebuild with:
+The core's API reference is generated by **TypeDoc** with `typedoc-plugin-markdown` from the JSDoc in `ts/src/core/Base.ts`, `Registers.ts` and `SVModuleHeader.ts`. It is written to `doc/reference/` as markdown, one page per source file plus a `README.md` index and an SVG per `@wavedrom` diagram, and committed. Never hand-edit those files. Regenerate them with:
 
 ```bash
 npm run docs
 ```
+
+The options are in `typedoc.config.mjs`. Entries carry no source line numbers, so the reference changes only when the API or its comments do, and its diff in a PR shows the API change. The `docs-reference` workflow (`.github/workflows/docs-reference.yml`) regenerates the reference on every PR and on pushes to `main`, and fails if the result differs from what is committed. It also runs `npm run check:wavedrom` for the diagrams in hand-written docs.
+
+TypeDoc warns about every undocumented core export. Those are warnings for now; #71 backfills the JSDoc and makes them errors. JSDoc outside the core isn't rendered anywhere yet, but write it to the same conventions.
 
 ### JSDoc comment conventions
 
@@ -198,17 +215,16 @@ Place a `/** ... */` block directly above every exported class, interface, type,
 | *(plain text)* | Description of the item | `/** Container for a named SV signal */` |
 | `@param name desc` | Document a constructor or method parameter | `@param instanceName the name for this instance` |
 | `@returns desc` | Document the return value | `@returns the resulting interface` |
-| `@wavedrom` | Embed an interactive timing diagram (see below) | |
+| `@wavedrom label` | Attach a timing diagram, rendered to SVG in the reference (see below) | `@wavedrom Write cycle` |
 
 ### Timing diagrams with `@wavedrom`
 
-TSSV includes a custom TypeDoc plugin (`ts/src/tools/typedoc-plugins/typedoc-wavedrom-plugin/`) that renders `@wavedrom` tags as live WaveDrom diagrams in the generated HTML. Write WaveDrom JSON inside a fenced ` ```json ``` ` block immediately after the tag:
+`@wavedrom` is a block tag (registered in `typedoc.config.mjs`). Text on the tag's line is the diagram's label. Put the WaveDrom JSON in a fenced ` ```json ``` ` block after it, and nothing else in the tag. In the core's reference, `scripts/typedoc-wavedrom.mjs` turns each tag into the same `<!-- wavedrom <file>.svg ... -->` form that hand-written docs use ("Timing diagrams in markdown docs" above), and `npm run docs` renders it to an SVG beside the page, named after the documented item and the label (`doc/reference/Memory-zero-wait-write.svg`). Give each diagram on an item a different label. A malformed tag, invalid JSON, or JSON containing `--` fails `npm run docs`. The comment must sit directly above an exported declaration; a comment that is attached to nothing, or to a non-exported function, appears nowhere.
 
 ```typescript
 /**
- * WRITE
+ * @wavedrom Write on `regs`
  *
- * @wavedrom
  * ```json
  * {
  *   "signal": [
@@ -221,4 +237,4 @@ TSSV includes a custom TypeDoc plugin (`ts/src/tools/typedoc-plugins/typedoc-wav
  */
 ```
 
-Working examples are in `ts/src/core/Registers.ts` (read and write cycles) and `ts/src/modules/FIR.ts`.
+Working examples are on `Memory` in `ts/src/interfaces/Memory.ts` (four bus cycles, shown in `doc/reference/Memory.md`) and on `FIR_Ports` in `ts/src/modules/FIR/FIR.ts`. FIR is outside the reference's scope, so its diagram is also copied into `doc/modules/FIR/FIR-spec.md`. `Memory`'s diagrams draw arrows with WaveDrom's `node` and `edge` keys. Name the nodes with capital letters: WaveDrom prints lowercase node names on the diagram.
