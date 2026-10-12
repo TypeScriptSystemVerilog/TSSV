@@ -16,7 +16,7 @@ Synchronous **First-In First-Out** queue backed by an `SRAM` submodule. Supports
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `string` | auto | Instance name |
-| `dataWidth` | `IntRange<1,256>` | — | Data word width |
+| `dataWidth` | `bigint` (≥ 1) | — | Data word width |
 | `depth` | `bigint` | — | Maximum number of entries |
 | `simultPushPop` | `boolean` | `true` | `true`: push and pop may occur in the same cycle; storage is a dual-port (`1r_1w`) `SRAM` and the enables are `push_en`/`pop_en`. `false`: push and pop are mutually exclusive; storage is a single-port (`1rw`) `SRAM` and the enables are `en`/`push1_pop0` |
 | `inclAlmostFull` | `boolean` | `false` | Enables `almost_full_depth` input and `almost_full` output |
@@ -234,7 +234,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 | Import | Source |
 |---|---|
-| `Module`, `TSSVParameters`, `IntRange`, `Expr` | `tssv/lib/core/TSSV` |
+| `Module`, `TSSVParameters`, `Expr` | `tssv/lib/core/TSSV` |
 | `SRAM` | `tssv/lib/modules/SRAM` |
 
 ---
@@ -245,13 +245,14 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 **Testbench:** `verilatorTB/tb_SFIFO.sv`, built once per configuration. Every cycle, a queue reference model checks `empty`, `full`, `curr_depth`, the almost flags and, while not empty, `pop_data`.
 **Output:** `sv-examples/SFIFO/<module>/` and `sv-examples/SFIFO/tb/`
 
-| Configuration | `depth` | `simultPushPop` | Almost flags |
-|---|---|---|---|
-| `d8_dual_flags` | 8 | `true` | both |
-| `d4_dual_flags` | 4 | `true` | both |
-| `d4_single` | 4 | `false` | none |
-| `d5_single_flags` | 5 | `false` | both |
-| `d1_dual` | 1 | `true` | none |
+| Configuration | `dataWidth` | `depth` | `simultPushPop` | Almost flags |
+|---|---|---|---|---|
+| `d8_dual_flags` | 8 | 8 | `true` | both |
+| `d4_dual_flags` | 8 | 4 | `true` | both |
+| `d4_single` | 8 | 4 | `false` | none |
+| `d5_single_flags` | 8 | 5 | `false` | both |
+| `d1_dual` | 8 | 1 | `true` | none |
+| `d4_dual_flags_w1026` | 1026 | 4 | `true` | both |
 
 | Test case | Configurations | Notes |
 |---|---|---|
@@ -263,7 +264,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 | Almost-full / almost-empty thresholds | with almost flags | `almost_full_depth = depth - 2`, `almost_empty_depth = 2`, fill then drain |
 | Threshold boundaries | with almost flags | `almost_full_depth = depth` tracks `full`; `almost_empty_depth = 0` tracks `empty` |
 | Threshold sweep | with almost flags | Every representable threshold, including values above `depth`, fill then drain |
-| Timing diagrams | `d4_dual_flags`, `d4_single` | Each diagram in [Timing](#timing) replays cycle for cycle. `test_SFIFO.ts` builds the vectors from the diagrams' WaveDrom JSON, so a diagram change is tested without editing the testbench |
+| Timing diagrams | `d4_dual_flags`, `d4_single`, `d4_dual_flags_w1026` | Each diagram in [Timing](#timing) replays cycle for cycle. `test_SFIFO.ts` builds the vectors from the diagrams' WaveDrom JSON, so a diagram change is tested without editing the testbench |
 | Random | all | 3000 cycles of random pushes and pops in fill-biased, drain-biased and balanced phases, with thresholds changed every 50 cycles |
 
 ### Simulation

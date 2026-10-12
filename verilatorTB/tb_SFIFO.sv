@@ -23,7 +23,7 @@
 
 module tb_SFIFO;
 
-  localparam int DW        = 8;
+  localparam int DW        = `DATA_WIDTH;
   localparam int DEPTH     = `DEPTH;
   localparam int CW        = $clog2(DEPTH + 1);  // curr_depth and threshold width
   localparam int ABSENT    = -2;                 // vector field not in the diagram
@@ -104,13 +104,29 @@ module tb_SFIFO;
     if (got != exp) fail(ctx, what, got, exp);
   endfunction
 
+  // pop_data at full width; expect_eq's int would truncate a wide word
+  function automatic void expect_data(string ctx, logic [DW-1:0] got, logic [DW-1:0] exp);
+    checks++;
+    if (got !== exp) begin
+      errors++;
+      $display("[%0t] %s: pop_data = 0x%0h, expected 0x%0h", $time, ctx, got, exp);
+    end
+  endfunction
+
+  // a random word of any width, built 32 bits at a time
+  function automatic logic [DW-1:0] rand_data();
+    logic [DW-1:0] d = '0;
+    for (int i = 0; i < DW; i += 32) d = (d << 32) | DW'($urandom);
+    return d;
+  endfunction
+
   // compare every output against the model
   function automatic void check_model(string ctx);
     int n = model.size();
     expect_eq(ctx, "empty", int'(empty), int'(n == 0));
     expect_eq(ctx, "full", int'(full), int'(n == DEPTH));
     expect_eq(ctx, "curr_depth", int'(curr_depth), n);
-    if (n > 0) expect_eq(ctx, "pop_data", int'(pop_data), int'(model[0]));
+    if (n > 0) expect_data(ctx, pop_data, model[0]);
 `ifdef ALMOST_FULL
     expect_eq(ctx, "almost_full", int'(almost_full), int'(n >= int'(almost_full_depth)));
 `endif
@@ -135,7 +151,7 @@ module tb_SFIFO;
     en         = push || pop;
     push1_pop0 = push ? 1'b1 : (pop ? 1'b0 : 1'($urandom));
 `endif
-    push_data = push ? data : DW'($urandom);
+    push_data = push ? data : rand_data();
   endfunction
 
   task automatic push(string ctx, logic [DW-1:0] data);
@@ -172,11 +188,11 @@ module tb_SFIFO;
   // Show-ahead: a pushed word is on pop_data the cycle empty deasserts, with no pop
   task automatic test_show_ahead();
     reset();
-    push("show-ahead", 8'h5A);
+    push("show-ahead", DW'(8'h5A));
     drive(1'b0, 1'b0, '0);
     #1;
     expect_eq("show-ahead", "empty", int'(empty), 0);
-    expect_eq("show-ahead", "pop_data", int'(pop_data), 'h5A);
+    expect_data("show-ahead", pop_data, DW'(8'h5A));
     tick("show-ahead");
   endtask
 
@@ -185,7 +201,7 @@ module tb_SFIFO;
     reset();
     for (int i = 0; i < DEPTH; i++) push("fill", DW'(8'h10 + i));
     expect_eq("fill", "full", int'(full), 1);
-    push("fill: push while full", 8'hEE);
+    push("fill: push while full", DW'(8'hEE));
     expect_eq("fill", "curr_depth", int'(curr_depth), DEPTH);
     for (int i = 0; i < DEPTH; i++) pop("drain");
     expect_eq("drain", "empty", int'(empty), 1);
@@ -200,7 +216,7 @@ module tb_SFIFO;
     int exp_count;
     reset();
     for (int i = 0; i < count; i++) push(ctx, DW'(8'h20 + i));
-    drive(1'b1, 1'b1, 8'hC3);
+    drive(1'b1, 1'b1, DW'(8'hC3));
     tick(ctx);
     // empty: the pop is ignored; full: the push is ignored; otherwise net zero
     exp_count = (count == 0) ? 1 : (count == DEPTH) ? DEPTH - 1 : count;
@@ -208,7 +224,7 @@ module tb_SFIFO;
     #1;
     expect_eq(ctx, "curr_depth", int'(curr_depth), exp_count);
     // the pushed word becomes the head unless the push was dropped because the FIFO was full
-    if (count <= 1 && count < DEPTH) expect_eq(ctx, "pop_data", int'(pop_data), 'hC3);
+    if (count <= 1 && count < DEPTH) expect_data(ctx, pop_data, DW'(8'hC3));
     tick(ctx);
   endtask
 
@@ -230,7 +246,7 @@ module tb_SFIFO;
   // Fill then drain, checking flags against the model every cycle
   task automatic fill_drain(string ctx);
     reset();
-    for (int i = 0; i <= DEPTH; i++) push(ctx, DW'($urandom));
+    for (int i = 0; i <= DEPTH; i++) push(ctx, rand_data());
     for (int i = 0; i <= DEPTH; i++) pop(ctx);
   endtask
 
@@ -249,7 +265,7 @@ module tb_SFIFO;
     set_thresholds(DEPTH, 0);
     reset();
     for (int i = 0; i <= DEPTH; i++) begin
-      drive(1'b1, 1'b0, DW'($urandom));
+      drive(1'b1, 1'b0, rand_data());
       #1 boundary_check();
       tick("boundaries");
     end
@@ -290,7 +306,7 @@ module tb_SFIFO;
         else q = 1'b0;
       end
 `endif
-      drive(p, q, DW'($urandom));
+      drive(p, q, rand_data());
       tick("random");
     end
   endtask
@@ -320,14 +336,14 @@ module tb_SFIFO;
       pop_en             = 1'(in_val(v[k].pop_en, 0, 1));
       en                 = 1'(in_val(v[k].en, 0, 1));
       push1_pop0         = 1'(in_val(v[k].push1_pop0, 0, 1));
-      push_data          = DW'(in_val(v[k].push_data, int'($urandom_range(0, 255)), DW));
+      push_data          = (v[k].push_data < 0) ? rand_data() : DW'(v[k].push_data);
       almost_full_depth  = CW'(in_val(v[k].almost_full_depth, int'(almost_full_depth), CW));
       almost_empty_depth = CW'(in_val(v[k].almost_empty_depth, int'(almost_empty_depth), CW));
       #1;
       expect_vec(ctx, "empty", int'(empty), v[k].empty);
       expect_vec(ctx, "full", int'(full), v[k].full);
       expect_vec(ctx, "curr_depth", int'(curr_depth), v[k].curr_depth);
-      if (v[k].pop_data >= 0) expect_eq(ctx, "pop_data", int'(pop_data), v[k].pop_data);
+      if (v[k].pop_data >= 0) expect_data(ctx, pop_data, DW'(v[k].pop_data));
 `ifdef ALMOST_FULL
       expect_vec(ctx, "almost_full", int'(almost_full), v[k].almost_full);
 `endif

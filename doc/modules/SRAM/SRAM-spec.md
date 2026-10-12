@@ -16,7 +16,7 @@ Synchronous **Static RAM** with configurable port topology (`1rw`, `1r_1w`, `2rw
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `string` | auto | Instance name |
-| `dataWidth` | `IntRange<1,256>` | — | Word width in bits |
+| `dataWidth` | `bigint` (≥ 1) | — | Word width in bits |
 | `depth` | `bigint` | — | Number of words |
 | `ports` | `'1rw' \| '1r_1w' \| '2rw'` | — | Port configuration |
 | `writeEnableMask` | `'none' \| 'bit' \| 'byte'` | `'none'` | Granularity of write mask. `'byte'` requires `dataWidth` divisible by 8 |
@@ -63,7 +63,7 @@ Port `a_` and port `b_` each have `re`, `we`, `addr`, `data_in`, `data_out` (and
 
 | Import | Source |
 |---|---|
-| `Module`, `TSSVParameters`, `IntRange` | `tssv/lib/core/TSSV` |
+| `Module`, `TSSVParameters`, `Expr` | `tssv/lib/core/TSSV` |
 
 ---
 

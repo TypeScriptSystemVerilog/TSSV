@@ -1,4 +1,4 @@
-import { Module, type TSSVParameters, type IntRange, Expr } from 'tssv/lib/core/TSSV'
+import { Module, type TSSVParameters, Expr } from 'tssv/lib/core/TSSV'
 
 /**
  * configuration parameters of the SRAM module
@@ -7,7 +7,7 @@ export interface SRAM_Parameters extends TSSVParameters {
   /**
      * bit width of SRAM data
      */
-  dataWidth: IntRange<1, 256>
+  dataWidth: bigint
   /**
      * number of data words in the SRAM
      */
@@ -67,18 +67,21 @@ export class SRAM extends Module {
       readBehavior: params.readBehavior || 'undefOnWrite',
       macroConfig: params.macroConfig || 'default'
     })
+    if (this.params.dataWidth < 1n) throw Error(`SRAM: dataWidth must be at least 1, got ${this.params.dataWidth}`)
+    // signal widths are numbers in the framework; convert once here
+    const dataWidth = Number(this.params.dataWidth)
 
     // add tmp register 'mem'
-    this.addSignal('mem', { width: this.params.dataWidth, isArray: this.params.depth })
+    this.addSignal('mem', { width: dataWidth, isArray: this.params.depth })
 
     // add variables for the "mask" operation
     let mask_cnt = 0
     let mask_w = 0
     if (this.params.writeEnableMask === 'bit') {
-      mask_cnt = this.params.dataWidth
+      mask_cnt = dataWidth
       mask_w = 1
     } else if (this.params.writeEnableMask === 'byte') {
-      mask_cnt = this.params.dataWidth / 8
+      mask_cnt = dataWidth / 8
       mask_w = 8
     }
 
@@ -90,15 +93,15 @@ export class SRAM extends Module {
           clk: { direction: 'input', isClock: 'posedge' },
           a_re: { direction: 'input' },
           a_we: { direction: 'input' },
-          a_data_in: { direction: 'input', width: this.params.dataWidth },
-          a_data_out: { direction: 'output', width: this.params.dataWidth },
+          a_data_in: { direction: 'input', width: dataWidth },
+          a_data_out: { direction: 'output', width: dataWidth },
           a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
         }
         if (this.params.writeEnableMask === 'bit') {
-          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth }
+          this.IOs.a_wmask = { direction: 'input', width: dataWidth }
         } else if (this.params.writeEnableMask === 'byte') {
-          if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+          if ((dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
+          this.IOs.a_wmask = { direction: 'input', width: dataWidth / 8 }
         }
         // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
         let read_enable = 'a_re'
@@ -189,22 +192,22 @@ export class SRAM extends Module {
           clk: { direction: 'input', isClock: 'posedge' },
           a_re: { direction: 'input' },
           a_we: { direction: 'input' },
-          a_data_in: { direction: 'input', width: this.params.dataWidth },
-          a_data_out: { direction: 'output', width: this.params.dataWidth },
+          a_data_in: { direction: 'input', width: dataWidth },
+          a_data_out: { direction: 'output', width: dataWidth },
           a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }, // remove - 1n
           b_re: { direction: 'input' },
           b_we: { direction: 'input' },
-          b_data_in: { direction: 'input', width: this.params.dataWidth },
-          b_data_out: { direction: 'output', width: this.params.dataWidth },
+          b_data_in: { direction: 'input', width: dataWidth },
+          b_data_out: { direction: 'output', width: dataWidth },
           b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
         }
         if (this.params.writeEnableMask === 'bit') {
-          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth }
-          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth }
+          this.IOs.a_wmask = { direction: 'input', width: dataWidth }
+          this.IOs.b_wmask = { direction: 'input', width: dataWidth }
         } else if (this.params.writeEnableMask === 'byte') {
-          if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-          this.IOs.a_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
-          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+          if ((dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
+          this.IOs.a_wmask = { direction: 'input', width: dataWidth / 8 }
+          this.IOs.b_wmask = { direction: 'input', width: dataWidth / 8 }
         }
         // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
         let a_read_enable = 'a_re'
@@ -411,17 +414,17 @@ export class SRAM extends Module {
         this.IOs = {
           clk: { direction: 'input', isClock: 'posedge' },
           a_re: { direction: 'input' },
-          a_data_out: { direction: 'output', width: this.params.dataWidth },
+          a_data_out: { direction: 'output', width: dataWidth },
           a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
           b_we: { direction: 'input' },
-          b_data_in: { direction: 'input', width: this.params.dataWidth },
+          b_data_in: { direction: 'input', width: dataWidth },
           b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
         }
         if (this.params.writeEnableMask === 'bit') {
-          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth }
+          this.IOs.b_wmask = { direction: 'input', width: dataWidth }
         } else if (this.params.writeEnableMask === 'byte') {
-          if ((this.params.dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-          this.IOs.b_wmask = { direction: 'input', width: this.params.dataWidth / 8 }
+          if ((dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
+          this.IOs.b_wmask = { direction: 'input', width: dataWidth / 8 }
         }
         // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
         let read_enable = 'a_re'
