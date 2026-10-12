@@ -24,3 +24,14 @@ try {
 } catch (err) {
   console.error(err)
 }
+
+// wider than the old 256-bit dataWidth limit, in both single- and dual-port forms
+for (const ports of ['1rw', '1r_1w'] as const) {
+  const wideMem = new SRAM({ dataWidth: 1026n, depth: 4n, ports })
+  try {
+    mkdirSync(`sv-examples/SRAM/${wideMem.name}`, { recursive: true })
+    writeFileSync(`sv-examples/SRAM/${wideMem.name}/${wideMem.name}.sv`, wideMem.writeSystemVerilog())
+  } catch (err) {
+    console.error(err)
+  }
+}
