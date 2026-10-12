@@ -16,6 +16,7 @@ SFIFO_TB_DIR = ../sv-examples/SFIFO/tb
 
 sfifo_sim: tsc
 	cd ..; node out/test/modules/test_SFIFO.js
+	mkdir -p obj_dir
 	set -e; while read -r cfg dut; do \
 	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sfifo_$$cfg -o Vtb_SFIFO \
 	    -DCFG_$$cfg -I$(SFIFO_TB_DIR) tb_SFIFO.sv ../$$dut > obj_dir/sfifo_$$cfg.build.log 2>&1 \
