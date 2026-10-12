@@ -15,7 +15,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 
 const SPEC = 'doc/modules/SFIFO/SFIFO-spec.md'
 const TB_DIR = 'sv-examples/SFIFO/tb'
-const DATA_WIDTH = 8
+const DATA_WIDTH = 8n
 
 /** write a FIFO's SV to sv-examples/SFIFO/<name>/<name>.sv and return that path */
 function emit (fifo: SFIFO): string {

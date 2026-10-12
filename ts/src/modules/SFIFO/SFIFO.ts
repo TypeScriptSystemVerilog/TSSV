@@ -1,4 +1,4 @@
-import { Module, type TSSVParameters, type IntRange, Expr } from 'tssv/lib/core/TSSV'
+import { Module, type TSSVParameters, Expr } from 'tssv/lib/core/TSSV'
 import { SRAM } from 'tssv/lib/modules/SRAM'
 
 /**
@@ -8,7 +8,7 @@ export interface SFIFO_Parameters extends TSSVParameters {
   /**
    * bit width of SFIFO data
    */
-  dataWidth: IntRange<1, 256>
+  dataWidth: bigint
   /**
    * number of data words in the SFIFO
    */
@@ -51,6 +51,9 @@ export class SFIFO extends Module {
     })
     const depth = this.params.depth
     if (depth < 1n) throw Error(`SFIFO: depth must be at least 1, got ${depth}`)
+    if (this.params.dataWidth < 1n) throw Error(`SFIFO: dataWidth must be at least 1, got ${this.params.dataWidth}`)
+    // signal widths are numbers in the framework; convert once here
+    const dataWidth = Number(this.params.dataWidth)
     const simult = this.params.simultPushPop === true
 
     // fifo_cnt counts 0..depth; the SRAM address counts 0..depth-1
@@ -60,8 +63,8 @@ export class SFIFO extends Module {
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
       rst_n: { direction: 'input', isReset: 'lowasync' },
-      push_data: { direction: 'input', width: this.params.dataWidth },
-      pop_data: { direction: 'output', width: this.params.dataWidth },
+      push_data: { direction: 'input', width: dataWidth },
+      pop_data: { direction: 'output', width: dataWidth },
       empty: { direction: 'output' },
       full: { direction: 'output' },
       curr_depth: { direction: 'output', width: cntWidth }
@@ -128,7 +131,7 @@ export class SFIFO extends Module {
     // (dual-port only) a push alongside the pop of the last entry. Every push is also
     // written to the SRAM, so the pointers never depend on where the head is shown from.
     this.addSignal('load_bypass', {})
-    this.addSignal('bypass_q', { width: this.params.dataWidth })
+    this.addSignal('bypass_q', { width: dataWidth })
     if (simult) {
       this.addAssign({ in: new Expr(`push_fire && (empty || (pop_fire && (fifo_cnt_q == ${cntWidth}'d1)))`), out: 'load_bypass' })
     } else {
@@ -171,7 +174,7 @@ export class SFIFO extends Module {
     // exposes it. Entries behind the head were written on earlier edges, so the read never
     // hits the address being written. The SRAM holds its read data while sram_re is low.
     this.addSignal('sram_re', {})
-    this.addSignal('sram_rdata', { width: this.params.dataWidth })
+    this.addSignal('sram_rdata', { width: dataWidth })
     this.addAssign({ in: new Expr(`pop_fire && (fifo_cnt_q > ${cntWidth}'d1)`), out: 'sram_re' })
 
     this.addSignal('head_from_bypass_q', {})

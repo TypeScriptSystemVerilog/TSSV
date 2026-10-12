@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { Module, Expr, type IntRange } from 'tssv/lib/core/TSSV'
+import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { SRAM } from 'tssv/lib/modules/SRAM'
 
 // interface SramModule {
@@ -246,7 +246,7 @@ function createLibrary (sramModules: SramModule[], type: string): string {
       {
         name: `${sramMName}`, // took out removeLastCharacter
         depth: BigInt(sram.depth),
-        dataWidth: sram.dataWidth as IntRange<1, 256>,
+        dataWidth: BigInt(sram.dataWidth),
         ports: '1rw',
         writeEnableMask: 'bit'
       }
