@@ -31,7 +31,7 @@ module tb_RegisterBlock_read;
   int checks = 0;
 
   // ---- 32-bit block ----
-  memory_32_32 bus32 ();
+  memory_bidi_32_32 bus32 ();
   logic [31:0] CMD;
   logic        CTRL_field0;
   logic [1:0]  CTRL_field1;
@@ -56,7 +56,7 @@ module tb_RegisterBlock_read;
   );
 
   // ---- 64-bit block ----
-  memory_64_32 bus64 ();
+  memory_bidi_64_32 bus64 ();
   logic [63:0] CSR, BUF_rdata, BUF_wdata, HI64;
   logic [63:0] BUF_wstrb;
   logic        BUF_re, BUF_we, BUF_ready;

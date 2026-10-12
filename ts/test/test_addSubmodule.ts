@@ -332,7 +332,19 @@ try {
   badParent.addInterface('bus', new Memory({ DATA_WIDTH: 64 }))
   expectThrow('mismatched interface parameters', () => {
     badParent.addSubmodule('u', memChild(32), { mem: 'bus' }, false)
-  }, 'interface type mismatch on memChild_32: memory_64_32 vs memory_32_32')
+  }, 'interface type mismatch on memChild_32: memory_bidi_64_32 vs memory_bidi_32_32')
+
+  // A Memory's type sets which signals it has, so it is part of the SV interface type
+  const typeParent = new Module({ name: 'ifBindType' }, {}, {}, '')
+  typeParent.addInterface('bus', new Memory({ type: 'rd_only', DATA_WIDTH: 32 }))
+  expectThrow('mismatched Memory type', () => {
+    typeParent.addSubmodule('u', memChild(32), { mem: 'bus' }, false)
+  }, 'interface type mismatch on memChild_32: memory_rd_only_32_32 vs memory_bidi_32_32')
+
+  expectThrow('unknown Memory type', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new Memory({ type: 'ro' as any })
+  }, "Memory: unknown type 'ro'")
 
   const missingParent = new Module({ name: 'ifBindMissing' }, {}, {}, '')
   expectThrow('binding to an interface that does not exist', () => {

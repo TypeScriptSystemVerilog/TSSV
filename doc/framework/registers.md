@@ -103,7 +103,7 @@ Every block has these ports. The register ports from §3 go between `rst_b` and 
 |---|---|
 | `clk` | input, rising edge |
 | `rst_b` | input, active-low asynchronous reset |
-| `regs` | `memory_<DATA>_<ADDR>.inward`, with a `Memory` bus |
+| `regs` | `memory_bidi_<DATA>_<ADDR>.inward`, with a `Memory` bus |
 | `apb` | `APB4_….inward`, with an `APB4` bus; `regs` is then an internal bundle driven by an `APB_to_Memory` instance ([spec](../modules/APB_to_Memory/APB_to_Memory-spec.md)) |
 
 Inside, the block has three parts:

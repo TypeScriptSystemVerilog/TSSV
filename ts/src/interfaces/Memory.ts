@@ -1,8 +1,25 @@
 /** @module Memory */
 import { type TSSVParameters, type IntRange, Interface } from 'tssv/lib/core/TSSV'
 
+/** The {@link Memory} types: which signals a bus has. */
+export const MEMORY_TYPES = ['bidi', 'rd_only', 'wr_only'] as const
+
+/**
+ * Which signals a {@link Memory} bus has:
+ *
+ * - `bidi`: all of them. A master can read and write.
+ * - `rd_only`: `ADDR`, `RE`, `DATA_RD` and `READY`. A master can only read, for example from a ROM.
+ * - `wr_only`: `ADDR`, `WE`, `DATA_WR`, `WSTRB` and `READY`. A master can only write.
+ *
+ * The type is part of the SV interface name, so only two ports of the same type can be connected.
+ */
+export type Memory_Type = typeof MEMORY_TYPES[number]
+
 /** Parameters of a {@link Memory} bus. */
 export interface Memory_Parameters extends TSSVParameters {
+  /** Which signals the bus has (see {@link Memory_Type}). Default `bidi`. */
+  type?: Memory_Type
+
   /** Width of `DATA_WR` and `DATA_RD` in bits. Default 32. */
   DATA_WIDTH?: 32 | 64 | 128 | 256 | 512 | 1024
 
@@ -35,6 +52,10 @@ export type Memory_Role = 'outward' | 'inward' | undefined
  * word, the word address is `ADDR[ADDR_WIDTH-1:$clog2(B)]`. The low `$clog2(B)` bits pick a byte
  * within the word, and a slave that stores whole words ignores them. `WSTRB` says which bytes of
  * the word a write changes.
+ *
+ * The bus's `type` ({@link Memory_Type}) leaves out the signals a `rd_only` or `wr_only` master
+ * never uses. The rules below then apply to the signals the bus has. The SV interface name is
+ * `memory_<type>_<DATA_WIDTH>_<ADDR_WIDTH>`, for example `memory_bidi_32_32`.
  *
  * #### Handshake
  *
@@ -134,43 +155,48 @@ export class Memory extends Interface {
   declare params: Memory_Parameters
   declare signals
   constructor (params: Memory_Parameters = {}, role: Memory_Role = undefined) {
+    const type = params.type ?? 'bidi'
+    if (!(MEMORY_TYPES as readonly string[]).includes(type)) {
+      throw Error(`Memory: unknown type '${String(type)}' (expected ${MEMORY_TYPES.join(' | ')})`)
+    }
     super(
       'memory',
       {
+        // `type` first: it leads the SV interface name, memory_<type>_<DATA_WIDTH>_<ADDR_WIDTH>
+        type,
         DATA_WIDTH: params.DATA_WIDTH || 32,
         ADDR_WIDTH: params.ADDR_WIDTH || 32
       },
       role
     )
-    this.signals =
-        {
-          ADDR: { width: this.params.ADDR_WIDTH || 32 },
-          DATA_WR: { width: this.params.DATA_WIDTH || 32 },
-          DATA_RD: { width: this.params.DATA_WIDTH || 32 },
-          RE: { width: 1 },
-          WE: { width: 1 },
-          READY: { width: 1 },
-          WSTRB: { width: (this.params.ADDR_WIDTH || 32) / 8 }
-        }
+    const reads = type !== 'wr_only'
+    const writes = type !== 'rd_only'
+    // A signal's direction from the master's side; the slave's is the opposite
+    const outward: Record<string, 'input' | 'output'> = {
+      ADDR: 'output',
+      ...(writes ? { DATA_WR: 'output' } : {}),
+      ...(reads ? { DATA_RD: 'input' } : {}),
+      ...(writes ? { WE: 'output' } : {}),
+      ...(reads ? { RE: 'output' } : {}),
+      READY: 'input',
+      ...(writes ? { WSTRB: 'output' } : {})
+    }
+    const widths: Record<string, number> = {
+      ADDR: this.params.ADDR_WIDTH || 32,
+      DATA_WR: this.params.DATA_WIDTH || 32,
+      DATA_RD: this.params.DATA_WIDTH || 32,
+      RE: 1,
+      WE: 1,
+      READY: 1,
+      WSTRB: (this.params.ADDR_WIDTH || 32) / 8
+    }
+    this.signals = Object.fromEntries(Object.entries(widths)
+      .filter(([name]) => name in outward)
+      .map(([name, width]) => [name, { width }]))
     this.modports = {
-      outward: {
-        ADDR: 'output',
-        DATA_WR: 'output',
-        DATA_RD: 'input',
-        WE: 'output',
-        RE: 'output',
-        READY: 'input',
-        WSTRB: 'output'
-      },
-      inward: {
-        ADDR: 'input',
-        DATA_WR: 'input',
-        DATA_RD: 'output',
-        WE: 'input',
-        RE: 'input',
-        READY: 'output',
-        WSTRB: 'input'
-      }
+      outward,
+      inward: Object.fromEntries(Object.entries(outward).map(([name, dir]) =>
+        [name, dir === 'output' ? 'input' : 'output']))
     }
   }
 }

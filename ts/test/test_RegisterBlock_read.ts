@@ -65,7 +65,7 @@ const block64 = new RegisterBlock({ name: 'regblock_read64', busAddressWidth: 32
 function lintTop (block: RegisterBlock<Record<string, bigint>>, dataWidth: number, addrWidth: number): string {
   const name = block.name
   const IOs = (block as unknown as { IOs: Record<string, { direction: string, width?: number, isSigned?: boolean }> }).IOs
-  const iface = `memory_${dataWidth}_${addrWidth}`
+  const iface = `memory_bidi_${dataWidth}_${addrWidth}`
   const ports = [
     'input  logic clk',
     'input  logic rst_b',

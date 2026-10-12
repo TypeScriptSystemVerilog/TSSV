@@ -273,7 +273,7 @@ Adds a signal bundle to the module. Returns the `Interface` for use in bindings.
 
 ```typescript
 const regs = this.addInterface('regs', new Memory({ DATA_WIDTH: 32, ADDR_WIDTH: 32 }, 'inward'))
-// → memory_32_32.inward regs  in the port list
+// → memory_bidi_32_32.inward regs  in the port list
 ```
 
 Interface instances appear as SV interface type ports (with modport) in the generated module header.
