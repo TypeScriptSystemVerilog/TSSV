@@ -19,6 +19,9 @@ person).
   or, for a fine-grained token, **Issues: read/write**, **Pull requests: read/write**, and
   **Contents: read/write** on this repository. Re-run `gh auth login --scopes repo` if it
   shows expired or missing scopes.
+- Reading or editing the board's `Status` field from the CLI (`gh project ...`) needs the
+  `project` scope on top of `repo` (`gh auth refresh -s project`). Nothing else here
+  requires it: Type is set via `gh issue`, and Status is normally moved in the board UI.
 - The `gh issue edit --type`/`--parent`/`--add-blocked-by` flags used below need a recent
   `gh` (`--add-blocked-by` needs ≥ 2.94.0). Check `gh issue edit --help` if one is rejected,
   and upgrade `gh` rather than working around it.
@@ -46,17 +49,36 @@ Set from the issue form's `type:` key when filed through the web UI (§3), or wi
 GitHub's stock `Feature` type is not used. New functionality is an `Idea` until it's scoped,
 then a `Task` or `Epic`.
 
-### Status
+### Status (project board field — exactly one)
 
-There is no project board or status label. An issue's state is read from GitHub itself:
+An issue's Status is where it stands *while open*. It lives in the **Status** field on the
+[TSSV project board](https://github.com/orgs/TypeScriptSystemVerilog/projects/4), not in a
+label. The board was copied from `tssv-noc`'s, so the two repos share one vocabulary. A
+project workflow adds new issues to the board when they're filed, and another adds the
+sub-issues of anything already on it.
 
-| State | How you can tell |
+| Status | Meaning |
 |---|---|
-| Open, not started | Open, no assignee, no linked branch/PR |
-| In progress | Assigned, `Links` field (§5) shows a branch |
-| In review | `Links` field shows an open PR |
-| Blocked | Has a native blocked-by dependency (below) |
-| Done | Closed — normally by a merged PR's `Closes #N` |
+| `Triage` | Newly filed; not yet scoped or accepted (where new issues land) |
+| `Ready` | Scoped, AC written and agreed, ready for someone (human or agent) to start |
+| `In Progress` | Branch exists, actively being worked |
+| `In Review` | PR open, awaiting review/merge |
+| `Blocked` | Waiting on an external dependency or a decision |
+| `Done` | Terminal; kept in lockstep with the issue's closed state (below) |
+
+Project workflows move Status for you at the ends of the lifecycle:
+
+- **`Pull request linked to issue`**: a PR that references the issue opens → `In Review`
+- **`Item closed`** / **`Pull request merged`**: the issue closes (any reason) or its PR
+  merges → `Done`
+- **`Auto-close issue`**: `Status` set to `Done` → the issue closes
+
+`Ready`, `In Progress` and `Blocked` are set by hand. Closing via a PR's `Closes #N` (§4) is
+the normal path to `Done`; setting `Status` to `Done` is a convenience.
+
+The board has three views: **Backlog (Table)** and **Backlog (Board)** show every item not
+`Done`, and **Shared Pool** shows `Ready` issues labelled `help wanted`, meaning anyone can
+pick them up rather than waiting to be assigned.
 
 ### Labels
 
@@ -70,10 +92,12 @@ orthogonal to Type, not a substitute for it. Don't use the stock `bug`, `enhance
 Two relationships, kept separate:
 
 - **Hierarchy** (an `Epic`'s children, or a `Task` split across several PRs): native
-  **sub-issues**, via `gh issue edit <child> --parent <n>`.
+  **sub-issues**, via `gh issue edit <child> --parent <n>`. The board rolls these up as
+  `Parent issue` and `Sub-issues progress`.
 - **Blocking** (A can't start until B merges): native **issue dependencies**, via
   `gh issue edit <n> --add-blocked-by <blocker>`, readable with
-  `gh issue view <n> --json blockedBy`.
+  `gh issue view <n> --json blockedBy`. Boards can't render blocked-by as a column, so
+  `Status = Blocked` is the board-visible signal.
 
 Don't record either as prose in the issue body. Create a blocking link only for a real
 blocker on someone's next action, not to note that two issues are related.
