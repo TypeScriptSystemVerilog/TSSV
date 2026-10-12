@@ -144,6 +144,7 @@ The metadata lives in those tables, as the `IOSignal` (ports) and `Signal` (inte
 | `type` | `'logic'` (the default), `'wire'`, `'reg'`, `'const logic'` or `'enum'` | Declarations, binding rules; `add*Always`, `addMux` and `addRegister` promote `wire`/unset outputs to `logic` |
 | `isArray` | Unpacked array depth (a bigint); internal signals only | Declarations. A port can't be an array, and most methods refuse an array signal |
 | `value` | The constant of a `'const logic'` signal | `addConstSignal` |
+| `attributes` | SystemVerilog attributes, emitted in front of the declaration as `(* ram_style = "distributed" *)`. A string value is quoted, a number or bigint is bare, and `true` emits the name alone. Not supported on interface signals | Declarations of ports and internal signals |
 
 An [`Expr`](../reference/Base.md#expr) is a right-hand side: SystemVerilog text, or a function
 of a parameter record that returns the text. The core doesn't parse it. An `Expr` is converted
@@ -154,7 +155,7 @@ Some methods name the signals they create. You'll see these names in emitted SV:
 
 | Name | Created by |
 |---|---|
-| `<d>_q` | `addRegister` when `q` is omitted (copies `d`'s metadata) |
+| `<d>_q` | `addRegister` when `q` is omitted (copies `d`'s metadata, except `attributes`) |
 | `sum_<a>x<b>`, `diff_…`, `prod_…` | `addAdder`, `addSubtractor`, `addMultiplier` when `result` is omitted |
 | `const_w<width><s\|u><value>` (`m` prefix for negative) | A bigint submodule binding (§5). The arithmetic helpers write bigint operands as literals instead |
 | `ext_w<bits><s\|u>_<signal>` | `addSubmodule` with `autoWidthExtension` (§5) |
@@ -218,8 +219,8 @@ parent:
 For each child port the bindings leave unbound, autoBind tries these in order:
 
 1. A parent port or signal with the same name is bound to it.
-2. Otherwise, with `createMissing`, a new **internal** signal with the port's metadata is added
-   to the parent and bound.
+2. Otherwise, with `createMissing`, a new **internal** signal with the port's metadata (except
+   `attributes`) is added to the parent and bound.
 3. Otherwise an unbound **input** throws `unbound input on <child>: <port>`. Unbound outputs
    and inouts are left out of the instance, which leaves them unconnected.
 

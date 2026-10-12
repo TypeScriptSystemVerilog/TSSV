@@ -997,16 +997,17 @@ signal parameters
 
 #### Properties
 
-| Property | Type |
-| ------ | ------ |
-| <a id="type"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` |
-| <a id="width-1"></a> `width?` | `number` |
-| <a id="isclock"></a> `isClock?` | `"posedge"` \| `"negedge"` |
-| <a id="isreset"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` |
-| <a id="issigned"></a> `isSigned?` | `boolean` |
-| <a id="isarray"></a> `isArray?` | `bigint` |
-| <a id="description"></a> `description?` | `string` |
-| <a id="enum"></a> `enum?` | [`SVEnum`](#svenum) |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="type"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | - |
+| <a id="width-1"></a> `width?` | `number` | - |
+| <a id="isclock"></a> `isClock?` | `"posedge"` \| `"negedge"` | - |
+| <a id="isreset"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | - |
+| <a id="issigned"></a> `isSigned?` | `boolean` | - |
+| <a id="isarray"></a> `isArray?` | `bigint` | - |
+| <a id="description"></a> `description?` | `string` | - |
+| <a id="enum"></a> `enum?` | [`SVEnum`](#svenum) | - |
+| <a id="attributes"></a> `attributes?` | [`SVAttributes`](#svattributes) | attributes emitted in front of the declaration, as `(* name = value *)`. Not supported on interface signals. |
 
 ***
 
@@ -1020,17 +1021,18 @@ defines an IO signal (a.k.a port of the the TSSV module)
 
 #### Properties
 
-| Property | Type | Inherited from |
-| ------ | ------ | ------ |
-| <a id="type-1"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | [`baseSignal`](#basesignal).[`type`](#type) |
-| <a id="width-2"></a> `width?` | `number` | [`baseSignal`](#basesignal).[`width`](#width-1) |
-| <a id="isclock-1"></a> `isClock?` | `"posedge"` \| `"negedge"` | [`baseSignal`](#basesignal).[`isClock`](#isclock) |
-| <a id="isreset-1"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | [`baseSignal`](#basesignal).[`isReset`](#isreset) |
-| <a id="issigned-1"></a> `isSigned?` | `boolean` | [`baseSignal`](#basesignal).[`isSigned`](#issigned) |
-| <a id="isarray-1"></a> `isArray?` | `bigint` | [`baseSignal`](#basesignal).[`isArray`](#isarray) |
-| <a id="description-1"></a> `description?` | `string` | [`baseSignal`](#basesignal).[`description`](#description) |
-| <a id="enum-1"></a> `enum?` | [`SVEnum`](#svenum) | [`baseSignal`](#basesignal).[`enum`](#enum) |
-| <a id="direction"></a> `direction` | [`PortDirection`](#portdirection) | - |
+| Property | Type | Description | Inherited from |
+| ------ | ------ | ------ | ------ |
+| <a id="type-1"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | - | [`baseSignal`](#basesignal).[`type`](#type) |
+| <a id="width-2"></a> `width?` | `number` | - | [`baseSignal`](#basesignal).[`width`](#width-1) |
+| <a id="isclock-1"></a> `isClock?` | `"posedge"` \| `"negedge"` | - | [`baseSignal`](#basesignal).[`isClock`](#isclock) |
+| <a id="isreset-1"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | - | [`baseSignal`](#basesignal).[`isReset`](#isreset) |
+| <a id="issigned-1"></a> `isSigned?` | `boolean` | - | [`baseSignal`](#basesignal).[`isSigned`](#issigned) |
+| <a id="isarray-1"></a> `isArray?` | `bigint` | - | [`baseSignal`](#basesignal).[`isArray`](#isarray) |
+| <a id="description-1"></a> `description?` | `string` | - | [`baseSignal`](#basesignal).[`description`](#description) |
+| <a id="enum-1"></a> `enum?` | [`SVEnum`](#svenum) | - | [`baseSignal`](#basesignal).[`enum`](#enum) |
+| <a id="attributes-1"></a> `attributes?` | [`SVAttributes`](#svattributes) | attributes emitted in front of the declaration, as `(* name = value *)`. Not supported on interface signals. | [`baseSignal`](#basesignal).[`attributes`](#attributes) |
+| <a id="direction"></a> `direction` | [`PortDirection`](#portdirection) | - | - |
 
 ***
 
@@ -1057,17 +1059,18 @@ signal parameters
 
 #### Properties
 
-| Property | Type | Inherited from |
-| ------ | ------ | ------ |
-| <a id="type-4"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | [`baseSignal`](#basesignal).[`type`](#type) |
-| <a id="width-3"></a> `width?` | `number` | [`baseSignal`](#basesignal).[`width`](#width-1) |
-| <a id="isclock-2"></a> `isClock?` | `"posedge"` \| `"negedge"` | [`baseSignal`](#basesignal).[`isClock`](#isclock) |
-| <a id="isreset-2"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | [`baseSignal`](#basesignal).[`isReset`](#isreset) |
-| <a id="issigned-2"></a> `isSigned?` | `boolean` | [`baseSignal`](#basesignal).[`isSigned`](#issigned) |
-| <a id="isarray-2"></a> `isArray?` | `bigint` | [`baseSignal`](#basesignal).[`isArray`](#isarray) |
-| <a id="description-2"></a> `description?` | `string` | [`baseSignal`](#basesignal).[`description`](#description) |
-| <a id="enum-2"></a> `enum?` | [`SVEnum`](#svenum) | [`baseSignal`](#basesignal).[`enum`](#enum) |
-| <a id="value"></a> `value?` | `bigint` \| `bigint`[] | - |
+| Property | Type | Description | Inherited from |
+| ------ | ------ | ------ | ------ |
+| <a id="type-4"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | - | [`baseSignal`](#basesignal).[`type`](#type) |
+| <a id="width-3"></a> `width?` | `number` | - | [`baseSignal`](#basesignal).[`width`](#width-1) |
+| <a id="isclock-2"></a> `isClock?` | `"posedge"` \| `"negedge"` | - | [`baseSignal`](#basesignal).[`isClock`](#isclock) |
+| <a id="isreset-2"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | - | [`baseSignal`](#basesignal).[`isReset`](#isreset) |
+| <a id="issigned-2"></a> `isSigned?` | `boolean` | - | [`baseSignal`](#basesignal).[`isSigned`](#issigned) |
+| <a id="isarray-2"></a> `isArray?` | `bigint` | - | [`baseSignal`](#basesignal).[`isArray`](#isarray) |
+| <a id="description-2"></a> `description?` | `string` | - | [`baseSignal`](#basesignal).[`description`](#description) |
+| <a id="enum-2"></a> `enum?` | [`SVEnum`](#svenum) | - | [`baseSignal`](#basesignal).[`enum`](#enum) |
+| <a id="attributes-2"></a> `attributes?` | [`SVAttributes`](#svattributes) | attributes emitted in front of the declaration, as `(* name = value *)`. Not supported on interface signals. | [`baseSignal`](#basesignal).[`attributes`](#attributes) |
+| <a id="value"></a> `value?` | `bigint` \| `bigint`[] | - | - |
 
 ***
 
@@ -1161,6 +1164,24 @@ type ParameterValue =
   | string[]
   | IntRange<number, number>[]
   | object;
+```
+
+***
+
+### SVAttributes
+
+```ts
+type SVAttributes = Record<string, string | number | bigint | true>;
+```
+
+SystemVerilog attributes for a signal or port declaration, keyed by attribute name.
+A string value is emitted quoted, a number or bigint bare, and `true` as the name alone.
+
+#### Example
+
+```typescript
+this.addSignal('mem', { width: 8, isArray: 4n, attributes: { ram_style: 'distributed' } })
+// (* ram_style = "distributed" *) logic [7:0] mem[0:3];
 ```
 
 ***
