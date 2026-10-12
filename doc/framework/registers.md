@@ -138,21 +138,88 @@ The bus side is the `Memory` interface (`ts/src/interfaces/Memory.ts`): `ADDR`, 
 
 ## 3. Register types
 
-`<R>` is the register's name from `addrMap`. This table describes the ports and logic the
-current code generates.
+`<R>` is the register's name from `addrMap`, and `W` is its `width`, or `wordSize` when it has
+none. `<R>_wr_hit` and `<R>_rd_hit` are the block's internal write and read decodes: the
+register's address decode (§2) and `regs.WE` or `regs.RE`. This table lists every port each
+type creates.
 
 | Type | Ports created | Write | Read-back | RALF access |
 |---|---|---|---|---|
-| `RW`, no fields | output `<R>` | Flop loads all of `regs.DATA_WR` when `<R>_WE`; `WSTRB` isn't applied | `<R>` | `rw` |
-| `RW`, with fields | output `<R>_field<i>` per field, numbered in declaration order | Each field's flop loads `regs.DATA_WR[msb:lsb]` when `<R>_WE` and any `WSTRB` bit is set; reset from the field | Each field at its `bitRange`, other bits 0. A reversed range, a bit past the word or two overlapping fields throws | `rw` |
-| `RWU` | output `<R>`; inputs `<R>_hw_update`, `<R>_hw_update_val` | Software write on `<R>_WE`, hardware update on `<R>_hw_update`; `updatePriority` picks the winner when both are high | `<R>` | `rw` |
-| `RO` | output `<R>` | None | `<R>`, but nothing drives the output (§5) | `ro` |
-| `WO` | output `<R>` | `<R>` is assigned `regs.DATA_WR` continuously, whatever the address (§5) | None: reads 0 | `wo` |
-| `RAM` | outputs `<R>_rdata`, `_re`, `_we`, `_wdata`, `_wstrb`, `_ready` | On `<R>_WE`, registers `DATA_WR`, the strobes and the enables onto those outputs | `<R>_wdata` (the last write) | `rw` |
-| `ROM` | outputs `<R>_rdata`, `_re`, `_ready` | None; `_ready` registers `regs.READY` on any bus write | `<R>_rdata`, which nothing drives (§5) | `ro` |
+| `RW`, no fields | output `<R>` [W] | Flop loads all of `regs.DATA_WR` on `<R>_wr_hit`; `WSTRB` isn't applied (§5) | `<R>` | `rw` |
+| `RW`, with fields | output `<R>_field<i>` per field, numbered in declaration order | Each field's flop loads `regs.DATA_WR[msb:lsb]` on `<R>_wr_hit` when any `WSTRB` bit is set; reset from the field | Each field at its `bitRange`, other bits 0. A reversed range, a bit past the word or two overlapping fields throws | `rw` |
+| `RWU` | output `<R>` [W]; inputs `<R>_hw_update`, `<R>_hw_update_val` [W] | Software write on `<R>_wr_hit`, hardware update on `<R>_hw_update`; `updatePriority` picks the winner when both are high | `<R>` | `rw` |
+| `RO`, no fields | input `<R>` [W] | None | `<R>` | `ro` |
+| `RO`, with fields | input `<R>_field<i>` per field, numbered in declaration order | None | Each field at its `bitRange`, other bits 0, with the same checks as `RW` | `ro` |
+| `RO`, `constant: true` | None | None | `reset`, or each field's `reset` at its `bitRange`; 0 where none is given | `ro` |
+| `WO`, no fields | outputs `<R>` [W], `<R>_we` | `<R>` loads `regs.DATA_WR` on `<R>_wr_hit`, and resets to `reset`. `<R>_we` is high for one cycle, the first cycle `<R>` shows the new value | None: reads 0 | `wo` |
+| `WO`, with fields | outputs `<R>_field<i>` per field, numbered in declaration order; `<R>_we` | Each field's flop loads `regs.DATA_WR[msb:lsb]` on `<R>_wr_hit` when any `WSTRB` bit is set, as for `RW`; reset from the field. One `<R>_we` for the whole register, timed as above | None: reads 0. The field ranges get the same checks as `RW` | `wo` |
+| `RAM` | `Memory` port `<R>`, `bidi`, `outward` (below) | Sent to the memory on `<R>`; completes when the memory's `READY` comes back | The memory's `DATA_RD` | `rw` |
+| `ROM` | `Memory` port `<R>`, `rd_only`, `outward` (below) | Dropped, and completes at once: a `rd_only` port has no `WE` | The memory's `DATA_RD` | `ro` |
 
 `RWU` is for status registers that hardware updates and software can also write (for example
 to clear them). `ts/test/test_RWU.ts` generates one block of each priority.
+
+`constant` is only allowed on `RO`, and any other type with it throws. Without `constant`, an
+`RO` register's `reset` (or a field's) doesn't change the logic: the input stays, and the
+value goes only into the RALF, where UVM's reset test checks it. Use `constant` for ID, version
+and capability registers.
+
+### `RAM` and `ROM` windows
+
+A `RAM` or `ROM` register with `size` N covers the window `[address, address + N × wordSize/8)`.
+It gets its own `Memory` port named `<R>`, with the role `outward`. The block is the master on
+it, and the memory behind it is the slave. Both follow the `Memory` contract
+([`doc/reference/Memory.md`](../reference/Memory.md#memory)). The port's `type` sets which
+signals it has:
+
+| Type | `<R>` port | Signals |
+|---|---|---|
+| `RAM` | `memory_bidi_<wordSize>_<busAddressWidth>.outward` | `ADDR`, `RE`, `WE`, `DATA_WR`, `WSTRB`, `DATA_RD`, `READY` |
+| `ROM` | `memory_rd_only_<wordSize>_<busAddressWidth>.outward` | `ADDR`, `RE`, `DATA_RD`, `READY` |
+
+The block sends each access in the window to `<R>` as one `Memory` request:
+
+| `<R>` signal | Value |
+|---|---|
+| `ADDR` | `regs.ADDR - address`: the byte offset inside the window. A slave that stores words uses `ADDR / (wordSize/8)` as the word index |
+| `RE`, `WE` | One cycle high for each read or write of the window |
+| `DATA_WR`, `WSTRB` | `regs.DATA_WR` and `regs.WSTRB` of the write. `WSTRB` is passed unchanged ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81) sizes it) |
+| `DATA_RD` | Returned on `regs.DATA_RD` after a read of the window |
+| `READY` | The access completes when it is high. `regs.READY` is low from the cycle after the request until then |
+
+`regs.READY` and `regs.DATA_RD` follow the window for a `RAM` read or write, or a `ROM` read. Any
+other request, including a dropped `ROM` write, completes with no wait states, as a register
+access does.
+
+#### Timing: `registerRequest` and `registerResponse`
+
+By default the block puts a flop between `regs` and `<R>` in each direction. No path goes
+combinationally through the block, so the window costs no timing on either bus. Each `RAM` or
+`ROM` register can turn either flop off, to save a cycle:
+
+| Option (default) | `true` | `false` |
+|---|---|---|
+| `registerRequest` (`true`) | `<R>`'s `ADDR`, `RE`, `WE`, `DATA_WR` and `WSTRB` come from flops, loaded on the edge that captures the `regs` request. They hold until the access completes | They are driven combinationally from `regs` in the request cycle |
+| `registerResponse` (`true`) | The block captures `<R>.DATA_RD` on the edge where `<R>.READY` completes the access. `regs.READY` and `regs.DATA_RD` come from flops | `regs.READY` and `regs.DATA_RD` follow `<R>.READY` and `<R>.DATA_RD` combinationally |
+
+A window access adds one wait state on `regs` for each flop that is on, plus the slave's own:
+
+| `registerRequest` | `registerResponse` | Window access with a zero-wait slave | Paths through the block |
+|---|---|---|---|
+| `true` | `true` | 2 wait states | None |
+| `true` | `false` | 1 wait state | `<R>.READY`, `<R>.DATA_RD` → `regs` |
+| `false` | `true` | 1 wait state | `regs` → `<R>` request signals |
+| `false` | `false` | 0 wait states | Both directions |
+
+A path through the block continues through whatever drives `regs`. For example, `APB_to_Memory`
+drives `apb.PREADY` from `regs.READY` combinationally.
+
+An idle slave must keep `READY` high, including after reset, because the block only raises
+`RE` or `WE` while the master on `regs` sees `READY` high.
+
+`width` must equal `wordSize` for `RAM` and `ROM`, and any other value throws, because the
+`Memory` port's data width is `wordSize`. `fields` and `isSigned` are ignored. `registerRequest`
+and `registerResponse` on any other type throw.
 
 ## 4. From YAML: `scripts/gen_regblock.sh`
 
