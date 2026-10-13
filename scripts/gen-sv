@@ -22,8 +22,10 @@ Usage: scripts/gen-sv [--base <ref>] [--keep] [test ...]
       Exits 1 if a test failed.
 
   Diff mode (--base <branch|commit>)
-      Also build <ref> in a scratch worktree under $TMPDIR, outside the repo
-      tree, and run the same tests there. Then compare only the files the
+      Also build the base in a scratch worktree under $TMPDIR, outside the
+      repo tree, and run the same tests there. The base is where this
+      checkout's HEAD branched from <ref> (their merge base), as GitHub
+      compares a PR, so commits on <ref> since then don't show up. Then compare only the files the
       tests wrote on each side: per-file changed lines (added plus removed),
       the total, and files added or removed. The full unified diff is saved,
       and its path printed. The head side is this checkout as it stands,
@@ -140,8 +142,9 @@ fi
 
 # --- diff mode ---------------------------------------------------------------
 
-sha=$(git rev-parse --verify --quiet "$base^{commit}") || die "unknown branch or commit: $base"
-echo "Base: $base ($(git log -1 --format='%h %s' "$sha"))"
+ref=$(git rev-parse --verify --quiet "$base^{commit}") || die "unknown branch or commit: $base"
+sha=$(git merge-base "$ref" HEAD) || die "$base and HEAD have no common ancestor"
+echo "Base: merge base of $base and HEAD ($(git log -1 --format='%h %s' "$sha"))"
 
 git worktree add -q --detach "$BASE_WT" "$sha" || die "could not create the base worktree"
 echo "Building the base in $BASE_WT"

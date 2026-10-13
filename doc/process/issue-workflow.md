@@ -216,6 +216,8 @@ scripts/gen-sv ts/test/test_addMux.ts                  # no --base: regenerate o
 
 With `--base`, it builds the base in a scratch worktree outside the repo tree (under
 `$TMPDIR`), runs the same tests on both sides, and compares only the files those tests wrote.
+The base is the merge base of the ref and your `HEAD`, as GitHub compares a PR, so commits that
+landed on `main` after you branched don't show up as changes.
 The head side is your checkout as it stands, uncommitted changes included. It prints each
 changed file with its changed-line count, the total, and any files added or removed, and saves
 the full unified diff (added files included whole) to a file whose path it prints: that file is
