@@ -159,8 +159,8 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 2. Define a typed `Parameters` interface
 3. Declare IOs as a port map
 4. In the constructor, build logic with `add*()` methods
-5. Add a test in `ts/test/test_<Module>.ts` that instantiates the class and writes its SV under `sv-examples/<Module>/<instance>/`
-6. `npx tsc && node out/test/test_<Module>.js` to generate and inspect the SV output
+5. Add a test in `ts/test/modules/test_<Module>.ts` that instantiates the class and writes its SV under `sv-examples/<Module>/<instance>/`
+6. `npx tsc && node out/test/modules/test_<Module>.js` to generate and inspect the SV output
 7. Follow `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall`
 8. Write its spec from `doc/templates/module-spec-template.md` at `doc/modules/<Module>/<Module>-spec.md`, and add `@see doc/modules/<Module>/<Module>-spec.md` to the class's JSDoc
 
@@ -184,7 +184,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Adding a new module**: read `doc/framework/concepts.md` (how elaboration, binding and emission fit together), `ts/src/core/Base.ts` (builder API), `doc/rtl-style/sv-style/sv-coding-style.md` (rules for the emitted SV), then `ts/src/modules/FIR/FIR.ts` with `doc/modules/FIR/FIR-spec.md` as a reference implementation; follow "Adding a New Module" above
 - **Adding a new interface**: read `doc/interfaces/adding-an-interface.md`, which walks through `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` as the pattern and covers file naming and `xml_interface_build`
 - **Using the register helpers**: read `doc/framework/registers.md` (including its "Current limitations"), then `ts/src/core/Registers.ts`
-- **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`
+- **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`. Most module tests are under `out/test/modules/` (FIR's and APB_to_Memory's are not)
 - **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed in the script with the reason)
 - **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in the workflow after publishing a new one. Add a new self-checking `verilatorTB/` target to `test.yml` as its own step
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
