@@ -16,5 +16,11 @@ Run every check for both guides with `npm run check:rtl-style` from the repo roo
 Verilator version pinned in the top-level `README.md`, and it refuses any other version.
 [`tools/`](tools/) holds the runner and the Verilator helpers both guides share.
 
+`npm run check:generated-sv`, run after `bash runAllTests.sh`, holds everything the test scripts
+generate to the SV guide: `-Wall` lint and the generated-SV scans. It fails on any finding that
+isn't in its per-file baseline, and on a baseline entry that no longer occurs.
+[sv-style/README.md](sv-style/README.md#generated-sv-the-baseline) describes the baseline and how
+a fix removes its entries.
+
 Bringing the framework and the existing modules in line with both guides is tracked in
 [#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59).
