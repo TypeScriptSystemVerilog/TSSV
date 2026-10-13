@@ -97,6 +97,7 @@ cleanup() {
   [ "$keep_run" = 1 ] || [ "$keep" = 1 ] || rm -rf "$RUN"
 }
 trap cleanup EXIT
+trap 'exit 130' INT TERM   # so cleanup runs on Ctrl-C too
 
 # --- generate ----------------------------------------------------------------
 
