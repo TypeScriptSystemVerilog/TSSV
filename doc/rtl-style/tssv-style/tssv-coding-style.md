@@ -436,12 +436,13 @@ Linted on its own, a module with an interface port reports some of the interface
 expected, and the example below allows it. Lint the module inside a parent that connects both
 ends.
 
-<!-- ts: do body emits "memory_32_16.outward mem" allow UNDRIVEN allow UNUSEDSIGNAL
+<!-- ts: do body emits "memory_bidi_32_16.outward mem" allow UNDRIVEN allow UNUSEDSIGNAL
 clk: { direction: 'input', isClock: 'posedge' }
 rst_n: { direction: 'input', isReset: 'lowasync' }
 addr: { direction: 'input', width: 16 }
 wdata: { direction: 'input', width: 32 }
 wr: { direction: 'input' }
+rd: { direction: 'input' }
 rdata: { direction: 'output', width: 32 }
 rdy: { direction: 'output' }
 -->
@@ -450,8 +451,8 @@ this.addInterface('mem', new Memory({ DATA_WIDTH: 32, ADDR_WIDTH: 16 }, 'outward
 this.addAssign({ in: new Expr('addr'), out: 'mem.ADDR' })
 this.addAssign({ in: new Expr('wdata'), out: 'mem.DATA_WR' })
 this.addAssign({ in: new Expr('wr'), out: 'mem.WE' })
-this.addAssign({ in: new Expr('!wr'), out: 'mem.RE' })
-this.addAssign({ in: new Expr("{2{1'b1}}"), out: 'mem.WSTRB' })
+this.addAssign({ in: new Expr('rd'), out: 'mem.RE' })
+this.addAssign({ in: new Expr("{4{1'b1}}"), out: 'mem.WSTRB' })
 this.addAssign({ in: new Expr('mem.DATA_RD'), out: 'rdata' })
 this.addAssign({ in: new Expr('mem.READY'), out: 'rdy' })
 ```
