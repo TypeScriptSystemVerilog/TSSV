@@ -178,6 +178,8 @@ you're writing back.
 `sv-examples/` is git-ignored, so a PR that changes what TSSV generates shows its TypeScript
 diff but not the SystemVerilog that comes out of it. Reviewing that diff alone means guessing
 at the SV, or checking out both branches and regenerating it. The author shows it instead.
+tssv-noc's `doc/process/issue-workflow.md` §6 has the same rules for tssv-noc PRs; keep the two
+in step.
 
 **What to show** depends on the change:
 
