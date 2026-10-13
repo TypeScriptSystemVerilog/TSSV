@@ -1,7 +1,11 @@
 import { FIR } from 'tssv/lib/modules/FIR'
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
+import { lintWrapper } from 'tssv/test/models/lintWrapper'
 import { markTestbench } from 'tssv/test/models/testbench'
+
+const GENERATOR = 'ts/test/test_FIR.ts'
 
 mkdirSync('sv-examples/FIR/myFIR3', { recursive: true })
 
@@ -18,6 +22,9 @@ const myFir3 = new FIR(
 const myFir3Sv = myFir3.writeSystemVerilog()
 try {
   writeFileSync('sv-examples/FIR/myFIR3/myFIR3.sv', myFir3Sv)
+  // Its ports are interfaces, so it's linted through a wrapper that instantiates them
+  writeFileSync('sv-examples/FIR/myFIR3/myFIR3_lint_top.sv', lintWrapper(myFir3, GENERATOR))
+  writeLintFilelist('sv-examples/FIR/myFIR3', 'myFIR3_lint_top', ['myFIR3.sv', 'myFIR3_lint_top.sv'], GENERATOR)
 } catch (err) {
   console.error(err)
 }
