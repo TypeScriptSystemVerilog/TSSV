@@ -7,14 +7,16 @@
 //
 // The testbench is an APB master. It runs writes and reads, with and without idle cycles between
 // them, and checks that:
-// - every transfer completes with no APB wait states, and PSLVERR stays low
+// - a register transfer completes with no APB wait states, and a RAM window transfer with 2 (the
+//   window's default registerRequest and registerResponse, TSSV#80); PSLVERR stays low
 // - a write has taken effect by the access phase: the block captured it on the setup phase's edge
 // - PRDATA in the access phase matches a reference model
 // A monitor on `dut.regs` checks the Memory side of every cycle: WE and RE are never high
 // together, a request lasts one cycle, comes only in the APB setup phase and only while READY
 // is high, and each transfer makes exactly one request.
 //
-// The RAM's read data is its last write (MEM_wdata) until TSSV#80, so the model reads that back.
+// The RAM window is served by a zero-wait slave model from memory_models.sv
+// (ts/test/models/MemoryModels.ts), which also flags any contract violation on the window's bus.
 //
 // Timing: inputs change on a falling edge and outputs are checked 1 ns after a falling edge.
 // ---------------------------------------------------------------------------
@@ -42,21 +44,23 @@ module tb_APB_to_Memory;
   logic [15:0] STAT;
   logic        STAT_hw_update = 1'b0;
   logic [15:0] STAT_hw_update_val = '0;
-  logic [31:0] MEM_rdata, MEM_wdata, MEM_wstrb;
-  logic        MEM_re, MEM_we, MEM_ready;
+  logic        CMD_we;
+  memory_bidi_32_32 mem_bus ();
 
   apb_regblock dut (
     .clk, .rst_b,
     .CTRL_field0, .CTRL_field1, .CTRL_field2, .SCRATCH,
     .STAT, .STAT_hw_update, .STAT_hw_update_val,
-    .CMD,
-    .MEM_rdata, .MEM_re, .MEM_we, .MEM_wdata, .MEM_wstrb, .MEM_ready,
-    .apb
+    .CMD, .CMD_we,
+    .apb,
+    .MEM (mem_bus)
   );
+  memory_slave_bidi_32_32 #(.DEPTH(4)) mem (.clk, .rst_b, .bus (mem_bus));
 
   // ---- reference model ----
   localparam logic [31:0] CTRL_MASK = 32'h0000_ff07;  // enable [0], mode [2:1], divisor [15:8]
-  logic [31:0] m_ctrl, m_scratch, m_mem;
+  logic [31:0] m_ctrl, m_scratch;
+  logic [31:0] m_mem [4];
   logic [15:0] m_stat;
 
   task automatic check (input string what, input logic [31:0] got, input logic [31:0] exp);
@@ -95,7 +99,9 @@ module tb_APB_to_Memory;
                            output logic [31:0] rdata);
     int waits;
     string where;
+    logic in_mem;
     where = $sformatf("%s @0x%0h", write ? "write" : "read", addr);
+    in_mem = addr >= 32'h20 && addr <= 32'h2f;
     @(negedge clk);
     apb.PSELx = 1'b1; apb.PENABLE = 1'b0; apb.PWRITE = write; apb.PADDR = addr;
     apb.PWDATA = write ? wdata : 'x; apb.PSTRB = write ? 4'hf : 4'h0;
@@ -109,7 +115,7 @@ module tb_APB_to_Memory;
       @(negedge clk);
       #1;
     end
-    check({where, " APB wait states"}, 32'(waits), 32'h0);
+    check({where, " APB wait states"}, 32'(waits), in_mem ? 32'd2 : 32'd0);
     check({where, " PSLVERR"}, 32'(apb.PSLVERR), 32'h0);
     rdata = apb.PRDATA;
     transfers++;
@@ -141,7 +147,10 @@ module tb_APB_to_Memory;
       32'h4: begin m_scratch = data; check("write SCRATCH", SCRATCH, data); end
       32'h8: begin m_stat = data[15:0]; check("write STAT", 32'(STAT), 32'(data[15:0])); end
       32'hc: check("write CMD", CMD, data);
-      32'h20, 32'h24, 32'h28, 32'h2c: begin m_mem = data; check("write MEM_wdata", MEM_wdata, data); end
+      32'h20, 32'h24, 32'h28, 32'h2c: begin
+        m_mem[(addr - 32'h20) / 4] = data;
+        check("write MEM word", mem.mem[(addr - 32'h20) / 4], data);
+      end
       default: ;
     endcase
   endtask
@@ -152,7 +161,7 @@ module tb_APB_to_Memory;
     apb_read(32'h4, m_scratch);
     apb_read(32'h8, {16'b0, m_stat});
     apb_read(32'hc, '0);
-    apb_read(32'h24, m_mem);
+    apb_read(32'h24, m_mem[1]);
     apb_read(32'h100, '0);
   endtask
 
@@ -160,7 +169,8 @@ module tb_APB_to_Memory;
     apb.PSELx = 1'b0; apb.PENABLE = 1'b0; apb.PWRITE = 1'b0; apb.PADDR = '0; apb.PWDATA = '0;
     apb.PSTRB = '0; apb.PPROT = '0; apb.PCLKEN = 1'b1;
     m_ctrl = 32'h0000_1000;  // divisor resets to 0x10
-    m_scratch = 32'h5a5a_5a5a; m_stat = '0; m_mem = '0;
+    m_scratch = 32'h5a5a_5a5a; m_stat = '0;
+    foreach (m_mem[i]) m_mem[i] = '0;
     repeat (2) @(negedge clk);
     rst_b = 1'b1;
     idle(1);
@@ -194,6 +204,7 @@ module tb_APB_to_Memory;
     idle(2);
 
     check("one Memory request per APB transfer", 32'(requests), 32'(transfers));
+    errors += mem.errors;  // contract violations the slave model saw on the window's bus
 
     if (errors == 0) begin
       $display("tb_APB_to_Memory: PASS (%0d checks, %0d transfers)", checks, transfers);

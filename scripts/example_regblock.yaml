@@ -23,6 +23,13 @@ registers:
     type: RO
     description: Status register
 
+  VERSION:
+    address: "0x008"
+    type: RO
+    constant: true          # no input port: reads its reset
+    reset: "0x00010002"
+    description: Version, 1.2
+
   COUNT:
     address: "0x010"
     type: RW
@@ -32,4 +39,5 @@ registers:
     address: "0x100"
     type: RAM
     size: 64
+    registerResponse: false # read data comes straight from the memory: one wait state, not two
     description: Data memory (64 words)

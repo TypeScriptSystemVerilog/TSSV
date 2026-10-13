@@ -7,7 +7,7 @@
 
 ## Overview
 
-A thin combinational adapter that converts an APB4 slave interface into a Memory master interface. It is intended to be instantiated as a submodule inside a `RegisterBlock` when `busInterface` is set to `'APB'`, allowing register blocks to be accessed over an APB4 bus. It follows the `Memory` contract ([`doc/reference/Memory.md`](../../reference/Memory.md#memory)): it issues the one-cycle Memory request in the APB setup phase, and ends the APB access phase when the slave's `READY` is high. A zero-wait slave, such as a `RegisterBlock`, completes every transfer with no APB wait states; a slave that inserts Memory wait states inserts the same number of APB wait states. All signal assignments are combinational `assign` statements, and the module has no state of its own.
+A thin combinational adapter that converts an APB4 slave interface into a Memory master interface. It is intended to be instantiated as a submodule inside a `RegisterBlock` when `busInterface` is set to `'APB'`, allowing register blocks to be accessed over an APB4 bus. It follows the `Memory` contract ([`doc/reference/Memory.md`](../../reference/Memory.md#memory)): it issues the one-cycle Memory request in the APB setup phase, and ends the APB access phase when the slave's `READY` is high. A zero-wait slave, such as a `RegisterBlock`'s registers, completes every transfer with no APB wait states; a slave that inserts Memory wait states, such as a `RegisterBlock`'s `RAM` or `ROM` window, inserts the same number of APB wait states. All signal assignments are combinational `assign` statements, and the module has no state of its own.
 
 ---
 
@@ -161,9 +161,9 @@ The test script generates a `RegisterBlock` with `busInterface: 'APB'` (a field 
 
 | Test case | Stimulus | Checked |
 |---|---|---|
-| Zero wait states | Every transfer | `PREADY` is high in the first access cycle, and `PSLVERR` is 0 |
+| Wait states | Every transfer | `PREADY` is high in the first access cycle for a register, and after 2 wait states for the `RAM` window (its default `registerRequest` and `registerResponse` flops, with a zero-wait slave model behind it); `PSLVERR` is 0 |
 | Write | Write to each register type, with idle cycles between | The register's output already holds the new value in the access phase: the block captured it on the setup phase's edge |
-| Read | Read every register, the `RAM` window, a `WO` register and an unmapped address, after reset and after writes | `PRDATA` in the access phase matches a reference model |
+| Read | Read every register, the `RAM` window, a `WO` register and an unmapped address, after reset and after writes | `PRDATA` in the access phase matches a reference model; a `RAM` write lands in the slave model's word at the window offset |
 | Back to back | A write followed directly by a read of the same address | The read returns the new value |
 | Memory request | Every cycle, on the block's internal `regs` bus | `WE` and `RE` are never high together; a request lasts one cycle, comes only in the APB setup phase and only while `READY` is high; one request per APB transfer |
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Run the TSSV builder examples (ts/test/rtl_style/test_rtl_style_builders.ts), then check
+// Run the TSSV builder checks (ts/test/rtl_style/test_rtl_style_builders.ts), then check
 // the SV they generate: it must lint clean under -Wall and pass the generated-SV rules
-// (COMB-9, SYN-1, LINT-3). Exits 0 if everything passes, 1 otherwise.
+// (COMB-9, SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's
+// rules.json entry must list "builder". Exits 0 if everything passes, 1 otherwise.
 //
 // Known framework violations (rules.json "known") are reported but don't fail the run.
 // Each one should be tracked by an issue and removed from rules.json when it's fixed.
@@ -10,11 +11,13 @@ import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { GENERATED_RULES, SCANS } from './sv-scans.mjs'
-import { lint, requirePinnedVerilator } from './verilator.mjs'
+import { lint, requirePinnedVerilator } from '../../tools/verilator.mjs'
 
 const TEST = 'out/test/rtl_style/test_rtl_style_builders.js'
 const OUT = 'sv-examples/rtl_style'
 const RULES = JSON.parse(readFileSync('doc/rtl-style/sv-style/rules.json', 'utf8'))
+const TSSV_RULES = JSON.parse(readFileSync('doc/rtl-style/tssv-style/rules.json', 'utf8'))
+const ALL_RULES = { ...RULES, ...TSSV_RULES }
 
 function isKnown (rule, finding) {
   return (RULES[rule]?.known ?? []).some((k) => finding.includes(k.match))
@@ -35,7 +38,7 @@ if (run.status !== 0) fail(`${TEST} exited ${run.status}\n${run.stdout}${run.std
 
 // Builder checks.
 const results = run.stdout.split('\n').filter((l) => l.startsWith('RESULT ')).map((l) => JSON.parse(l.slice(7)))
-const builderRules = Object.keys(RULES).filter((r) => RULES[r].checks.includes('builder'))
+const builderRules = Object.keys(ALL_RULES).filter((r) => ALL_RULES[r].checks?.includes('builder'))
 for (const r of results) {
   if (!builderRules.includes(r.rule)) fail(`${r.rule}: builder check "${r.what}" but rules.json doesn't list "builder" for it`)
   else if (r.pass) console.log(`PASS: ${r.rule} ${r.what}`)
@@ -66,7 +69,7 @@ for (const f of readdirSync(OUT).filter((n) => n.endsWith('.sv')).sort()) {
 }
 
 for (const [k, n] of known) console.log(`KNOWN: ${k} (${n} file${n === 1 ? '' : 's'})`)
-for (const rule of Object.keys(RULES).filter((r) => RULES[r].checks.includes('generated'))) {
+for (const rule of Object.keys(RULES).filter((r) => RULES[r].checks?.includes('generated'))) {
   if (!GENERATED_RULES.includes(rule)) fail(`${rule}: rules.json lists "generated" but no generated-SV check exists`)
 }
 

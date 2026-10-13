@@ -29,6 +29,10 @@ word, the word address is `ADDR[ADDR_WIDTH-1:$clog2(B)]`. The low `$clog2(B)` bi
 within the word, and a slave that stores whole words ignores them. `WSTRB` says which bytes of
 the word a write changes.
 
+The bus's `type` ([Memory\_Type](#memory_type)) leaves out the signals a `rd_only` or `wr_only` master
+never uses. The rules below then apply to the signals the bus has. The SV interface name is
+`memory_<type>_<DATA_WIDTH>_<ADDR_WIDTH>`, for example `memory_bidi_32_32`.
+
 #### Handshake
 
 - **Request.** The master raises `WE` or `RE`, never both, for exactly one cycle, and only
@@ -42,9 +46,9 @@ the word a write changes.
   wait states keeps it high. A synchronous SRAM with a one-cycle read can tie it high.
 - **`DATA_RD`.** After a read, it is valid in every cycle `READY` is high, and holds until the
   next request. After a write it is undefined.
-- **`WSTRB`** has one bit per byte of `DATA_WR`: bit `i` enables `DATA_WR[8*i+7:8*i]`. Its
-  width is `ADDR_WIDTH / 8` today instead of `DATA_WIDTH / 8`
-  ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81)).
+- **`WSTRB`** has one bit per byte of `DATA_WR`, so it is `DATA_WIDTH / 8` bits wide, as in AXI
+  and APB4 (`PSTRB`). Bit `i` enables `DATA_WR[8*i+7:8*i]`. A write changes only the bytes whose
+  bit is set; the slave keeps the others.
 
 In the diagrams, the arrow marks the `clk` edge that captures the request, and the span on
 `ready` marks the wait states the slave inserts.
@@ -170,20 +174,6 @@ new Memory(params?, role?): Memory;
 | ------ | ------ | ------ |
 | <a id="params"></a> `params` | [`Memory_Parameters`](#memory_parameters) | [`Interface`](Base.md#interface).[`params`](Base.md#params-1) |
 | <a id="signals"></a> `signals` | `object` | [`Interface`](Base.md#interface).[`signals`](Base.md#signals-1) |
-| `signals.ADDR` | `object` | - |
-| `signals.ADDR.width` | \| `16` \| `17` \| `18` \| `19` \| `20` \| `21` \| `22` \| `23` \| `24` \| `25` \| `26` \| `27` \| `28` \| `29` \| `30` \| `31` \| `32` \| `33` \| `34` \| `35` \| `36` \| `37` \| `38` \| `39` \| `40` \| `41` \| `42` \| `43` \| `44` \| `45` \| `46` \| `47` \| `48` \| `49` \| `50` \| `51` \| `52` \| `53` \| `54` \| `55` \| `56` \| `57` \| `58` \| `59` \| `60` \| `61` \| `62` \| `63` \| `64` | - |
-| `signals.DATA_WR` | `object` | - |
-| `signals.DATA_WR.width` | `32` \| `64` \| `128` \| `256` \| `512` \| `1024` | - |
-| `signals.DATA_RD` | `object` | - |
-| `signals.DATA_RD.width` | `32` \| `64` \| `128` \| `256` \| `512` \| `1024` | - |
-| `signals.RE` | `object` | - |
-| `signals.RE.width` | `number` | - |
-| `signals.WE` | `object` | - |
-| `signals.WE.width` | `number` | - |
-| `signals.READY` | `object` | - |
-| `signals.READY.width` | `number` | - |
-| `signals.WSTRB` | `object` | - |
-| `signals.WSTRB.width` | `number` | - |
 
 ## Interfaces
 
@@ -206,10 +196,27 @@ Parameters of a [Memory](#memory) bus.
 | Property | Type | Description | Inherited from |
 | ------ | ------ | ------ | ------ |
 | <a id="name"></a> `name?` | `string` | - | [`TSSVParameters`](Base.md#tssvparameters).[`name`](Base.md#name) |
+| <a id="type"></a> `type?` | `"bidi"` \| `"rd_only"` \| `"wr_only"` | Which signals the bus has (see [Memory\_Type](#memory_type)). Default `bidi`. | - |
 | <a id="data_width"></a> `DATA_WIDTH?` | `32` \| `64` \| `128` \| `256` \| `512` \| `1024` | Width of `DATA_WR` and `DATA_RD` in bits. Default 32. | - |
 | <a id="addr_width"></a> `ADDR_WIDTH?` | \| `16` \| `32` \| `64` \| `17` \| `18` \| `19` \| `20` \| `21` \| `22` \| `23` \| `24` \| `25` \| `30` \| `36` \| `26` \| `27` \| `28` \| `29` \| `31` \| `33` \| `34` \| `35` \| `37` \| `38` \| `39` \| `40` \| `41` \| `42` \| `43` \| `44` \| `45` \| `46` \| `47` \| `48` \| `49` \| `50` \| `51` \| `52` \| `53` \| `54` \| `55` \| `56` \| `57` \| `58` \| `59` \| `60` \| `61` \| `62` \| `63` | Width of `ADDR` in bits. `ADDR` is a byte address. Default 32. | - |
 
 ## Type Aliases
+
+### Memory\_Type
+
+```ts
+type Memory_Type = typeof MEMORY_TYPES[number];
+```
+
+Which signals a [Memory](#memory) bus has:
+
+- `bidi`: all of them. A master can read and write.
+- `rd_only`: `ADDR`, `RE`, `DATA_RD` and `READY`. A master can only read, for example from a ROM.
+- `wr_only`: `ADDR`, `WE`, `DATA_WR`, `WSTRB` and `READY`. A master can only write.
+
+The type is part of the SV interface name, so only two ports of the same type can be connected.
+
+***
 
 ### Memory\_Role
 
@@ -219,3 +226,13 @@ type Memory_Role = "outward" | "inward" | undefined;
 
 `outward` is a master's port, `inward` is a slave's port, and `undefined` is a local bundle
 that is not a port.
+
+## Variables
+
+### MEMORY\_TYPES
+
+```ts
+const MEMORY_TYPES: readonly ["bidi", "rd_only", "wr_only"];
+```
+
+The [Memory](#memory) types: which signals a bus has.

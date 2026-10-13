@@ -12,5 +12,8 @@ first. This file only adds notes specific to Claude Code as a tool.
 - Work follows the issue-driven workflow in AGENTS.md ("GitHub Issue-Driven Workflow") and
   `doc/process/issue-workflow.md`: issue with Acceptance Criteria → branch → PR that closes it.
   It applies equally whether the session is Claude Code or another agent.
+- Before writing or reviewing a module, read both style guides: the TSSV guide
+  (`doc/rtl-style/tssv-style/tssv-coding-style.md`) for its TypeScript and the SV guide
+  (`doc/rtl-style/sv-style/sv-coding-style.md`) for the SV it emits. Cite their rule IDs.
 - Commands like `npx tsc`, `node out/test/test_<Name>.js` and `verilator` need the tools from
   README.md's Setup section. Generation fails without Verible on `PATH`.

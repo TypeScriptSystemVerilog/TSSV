@@ -96,7 +96,7 @@ check('emission without options is repeatable', baseline === baselineAgain)
 check('single-file emission defines the whole design',
   definitions(baseline).has('dut') && definitions(baseline).has('leaf') &&
   definitions(baseline).has('agent') && definitions(baseline).has('tb') &&
-  definitions(baseline).has('memory_32_32'),
+  definitions(baseline).has('memory_bidi_32_32'),
   `defined: ${sorted(definitions(baseline))}`)
 
 // ---- Test 2: dut-then-tb partitions that emission -----------------------------------------
@@ -126,18 +126,18 @@ check('the testbench file still instantiates the excluded DUT',
 check('`defined` includes the emitted module\'s own name', defined.has('dut'),
   `defined: ${sorted(defined)}`)
 check('`defined` includes its submodules and interfaces',
-  defined.has('leaf') && defined.has('memory_32_32'), `defined: ${sorted(defined)}`)
+  defined.has('leaf') && defined.has('memory_bidi_32_32'), `defined: ${sorted(defined)}`)
 check('the testbench file does not redefine the DUT', !inTb.has('dut') && !inTb.has('leaf'))
 
 // ---- Test 4: emission order decides where a shared definition lands -----------------------
 check('the shared interface is defined in the first file emitted',
-  inDut.has('memory_32_32') && !inTb.has('memory_32_32'))
+  inDut.has('memory_bidi_32_32') && !inTb.has('memory_bidi_32_32'))
 
 const tbFirstDefined = new Set<string>()
 const tbFirst = makeTb(new Dut())
 tbFirst.writeSystemVerilog({ defined: tbFirstDefined })
 check('emitting the testbench first would instead define it there',
-  tbFirstDefined.has('memory_32_32'))
+  tbFirstDefined.has('memory_bidi_32_32'))
 
 // ---- Test 5: excluding a module from its own emission is an error -------------------------
 let threw = false
