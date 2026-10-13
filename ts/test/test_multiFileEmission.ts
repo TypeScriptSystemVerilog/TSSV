@@ -21,6 +21,7 @@ import { Module, type TSSVParameters } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { mkdirSync, writeFileSync } from 'fs'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try { mkdirSync('sv-examples/Core/multiFileEmission', { recursive: true }) } catch (e) {}
 
@@ -72,6 +73,7 @@ class Agent extends Module {
     super({ name: 'agent', ...params })
     this.IOs = { clk: { direction: 'input', width: 1 } }
     this.addInterface('mem', new Memory({}, 'outward'))
+    markTestbench(this)
   }
 }
 
@@ -87,7 +89,7 @@ function makeTb (dut: Dut): Module {
       this.addSubmodule('u_agent', new Agent(), { clk: 'clk', mem: 'w_mem' }, false)
     }
   })()
-  return tb
+  return markTestbench(tb)
 }
 
 // ---- Test 1: no options - unchanged and repeatable ---------------------------------------

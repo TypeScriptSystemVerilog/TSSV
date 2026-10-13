@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addSequentialAlways', { recursive: true })
@@ -42,7 +43,7 @@ logic [15:0] count_n;
     end
 `
 
-const seq_tb = new Module(
+const seq_tb = markTestbench(new Module(
   { name: 'seq_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -50,7 +51,7 @@ const seq_tb = new Module(
   },
   {},
   tbBody
-)
+))
 
 const body =
 `

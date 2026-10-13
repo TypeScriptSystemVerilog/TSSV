@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addAdder', { recursive: true })
@@ -53,7 +54,7 @@ const tbBody =
     end
 `
 
-const add_tb = new Module(
+const add_tb = markTestbench(new Module(
   { name: 'add_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -61,7 +62,7 @@ const add_tb = new Module(
   },
   {},
   tbBody
-)
+))
 add_tb.addSignal('a', { width: 8, isSigned: false })
 add_tb.addSignal('b', { width: 4, isSigned: false })
 add_tb.addAdder({ a: 'a', b: 'b' })
@@ -126,7 +127,7 @@ const tbBodyS =
     end
 `
 
-const addS_tb = new Module(
+const addS_tb = markTestbench(new Module(
   { name: 'addS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -134,7 +135,7 @@ const addS_tb = new Module(
   },
   {},
   tbBodyS
-)
+))
 addS_tb.addSignal('a', { width: 8, isSigned: true })
 addS_tb.addSignal('b', { width: 8, isSigned: true })
 addS_tb.addAdder({ a: 'a', b: 'b' })
@@ -199,7 +200,7 @@ const tbBodyUS =
   end
 `
 
-const addUS_tb = new Module(
+const addUS_tb = markTestbench(new Module(
   { name: 'addUS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -207,7 +208,7 @@ const addUS_tb = new Module(
   },
   {},
   tbBodyUS
-)
+))
 addUS_tb.addSignal('a', { width: 8, isSigned: false })
 addUS_tb.addSignal('b', { width: 8, isSigned: true })
 addUS_tb.addAdder({ a: 'a', b: 'b' })
@@ -272,7 +273,7 @@ const tbBodySU =
   end
 `
 
-const addSU_tb = new Module(
+const addSU_tb = markTestbench(new Module(
   { name: 'addSU_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -280,7 +281,7 @@ const addSU_tb = new Module(
   },
   {},
   tbBodySU
-)
+))
 addSU_tb.addSignal('a', { width: 8, isSigned: true })
 addSU_tb.addSignal('b', { width: 8, isSigned: false })
 addSU_tb.addAdder({ a: 'a', b: 'b' })
@@ -345,7 +346,7 @@ endcase
 end
 `
 
-const addB_tb = new Module(
+const addB_tb = markTestbench(new Module(
   { name: 'sub_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -353,7 +354,7 @@ const addB_tb = new Module(
   },
   {},
   tbBodyB
-)
+))
 addB_tb.addSignal('a', { width: 16, isSigned: true })
 addB_tb.addSignal('b', { width: 16, isSigned: true })
 addB_tb.addSignal('sum', { width: 18, isSigned: true })

@@ -1,6 +1,7 @@
 import { FIR } from 'tssv/lib/modules/FIR'
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 mkdirSync('sv-examples/FIR/myFIR3', { recursive: true })
 
@@ -52,7 +53,7 @@ const tbBody =
           s_axis.TDATA <= (phase == 5'd16) ? -8'sd127 : ((phase == 5'd0) ? 8'sd127 : 8'sd0);
         end
 `
-const tb_lpFIR = new Module(
+const tb_lpFIR = markTestbench(new Module(
   { name: 'tb_lpFIR' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -64,7 +65,7 @@ const tb_lpFIR = new Module(
     step: { width: 5 }
   },
   tbBody
-)
+))
 tb_lpFIR.addSubmodule(
   'dut',
   myFir3,

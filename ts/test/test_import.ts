@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/import', { recursive: true })
@@ -51,7 +52,7 @@ logic [15:0] count;
     end
 `
 
-const import_tb = new Module(
+const import_tb = markTestbench(new Module(
   { name: 'import_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -59,7 +60,7 @@ const import_tb = new Module(
   },
   {},
   tbBody
-)
+))
 import_tb.addSignal('a', { width: 8 })
 import_tb.addSignal('b', { width: 9 })
 import_tb.addSignal('out', { width: 10 })

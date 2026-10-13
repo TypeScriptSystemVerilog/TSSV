@@ -1,5 +1,6 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addAssign', { recursive: true })
@@ -45,7 +46,7 @@ endcase
 end
 `
 
-const assign_tb = new Module(
+const assign_tb = markTestbench(new Module(
   { name: 'assign_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -53,7 +54,7 @@ const assign_tb = new Module(
   },
   {},
   tbBody
-)
+))
 assign_tb.addSignal('in', { width: 8 })
 assign_tb.addSignal('val', { width: 6 })
 assign_tb.addAssign({ in: new Expr('in'), out: 'val' })
@@ -118,7 +119,7 @@ endcase
 end
 `
 
-const assignAdd_tb = new Module(
+const assignAdd_tb = markTestbench(new Module(
   { name: 'assignAdd_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -126,7 +127,7 @@ const assignAdd_tb = new Module(
   },
   {},
   tbBodyAdd
-)
+))
 assignAdd_tb.addSignal('a', { width: 4 })
 assignAdd_tb.addSignal('b', { width: 4 })
 assignAdd_tb.addSignal('val', { width: 5 })
@@ -210,7 +211,7 @@ endcase
 end
 `
 
-const assignM_tb = new Module(
+const assignM_tb = markTestbench(new Module(
   { name: 'assignM_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -218,7 +219,7 @@ const assignM_tb = new Module(
   },
   {},
   tbBodyM
-)
+))
 assignM_tb.addSignal('a', { width: 8 })
 assignM_tb.addSignal('b', { width: 8 })
 assignM_tb.addSignal('c', { width: 8 })

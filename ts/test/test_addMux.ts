@@ -1,5 +1,6 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addMux', { recursive: true })
@@ -47,7 +48,7 @@ default: sel <= 4'd0;
 endcase
 end
 `
-const mux_tb = new Module(
+const mux_tb = markTestbench(new Module(
   { name: 'mux_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -55,7 +56,7 @@ const mux_tb = new Module(
   },
   {},
   tbBody
-)
+))
 mux_tb.addSignal('a', { width: 4, isSigned: false })
 mux_tb.addSignal('b', { width: 4, isSigned: false })
 mux_tb.addSignal('c', { width: 4, isSigned: false })
@@ -138,7 +139,7 @@ endcase
 end
 `
 
-const muxS_tb = new Module(
+const muxS_tb = markTestbench(new Module(
   { name: 'muxS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -146,7 +147,7 @@ const muxS_tb = new Module(
   },
   {},
   tbBodyS
-)
+))
 muxS_tb.addSignal('a', { width: 16, isSigned: true })
 muxS_tb.addSignal('b', { width: 16, isSigned: true })
 muxS_tb.addSignal('c', { width: 16, isSigned: true })
@@ -217,7 +218,7 @@ endcase
 end
 `
 
-const muxE_tb = new Module(
+const muxE_tb = markTestbench(new Module(
   { name: 'muxE_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -225,7 +226,7 @@ const muxE_tb = new Module(
   },
   {},
   tbBodyE
-)
+))
 const a = new Expr('a-5') // - 5
 const b = new Expr('b+5') // + 5
 const c = new Expr('c-5') // - 5
@@ -301,7 +302,7 @@ endcase
 end
 `
 
-const muxD_tb = new Module(
+const muxD_tb = markTestbench(new Module(
   { name: 'muxE_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -309,7 +310,7 @@ const muxD_tb = new Module(
   },
   {},
   tbBodyD
-)
+))
 
 muxD_tb.addSignal('a', { width: 5, isSigned: true })
 muxD_tb.addSignal('b', { width: 5, isSigned: true })
