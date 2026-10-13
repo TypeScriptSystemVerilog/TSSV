@@ -20,10 +20,14 @@ export class addAlways extends Module {
       en: { direction: 'input', type: 'wire' },
       data_in: { direction: 'input', type: 'wire', width: this.params.data_Width },
       data_out: { direction: 'output', type: 'wire', width: this.params.data_Width },
+      data_out2: { direction: 'output', type: 'wire', width: this.params.data_Width },
       a: { direction: 'input', type: 'wire' },
       b: { direction: 'input', type: 'wire' },
-      c: { direction: 'output', type: 'logic' }
+      c: { direction: 'output', type: 'logic' },
+      c2: { direction: 'output', type: 'logic' }
     }
+
+    // Each pair of variants drives its own output: one output with two drivers is MULTIDRIVEN
 
     // always_ff test
     // exclude sensitivityList
@@ -40,10 +44,10 @@ export class addAlways extends Module {
         `
         always_ff @( posedge clk or negedge rst_b )
             begin
-              ${'data_out'} <= ${'data_in'};  
+              ${'data_out2'} <= ${'data_in'};  
             end
         `
-    this.addSequentialAlways({ clk: 'clk', reset: 'rst_b', outputs: ['data_out'] }, seq_body2)
+    this.addSequentialAlways({ clk: 'clk', reset: 'rst_b', outputs: ['data_out2'] }, seq_body2)
 
     // always_comb test
 
@@ -60,9 +64,9 @@ export class addAlways extends Module {
         `
         always @( a or b )
             begin
-              c = a & b;  
+              c2 = a & b;  
             end
         `
-    this.addCombAlways({ inputs: ['a', 'b'], outputs: ['c'] }, comb_body2)
+    this.addCombAlways({ inputs: ['a', 'b'], outputs: ['c2'] }, comb_body2)
   }
 }
