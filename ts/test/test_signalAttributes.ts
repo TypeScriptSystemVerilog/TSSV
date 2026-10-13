@@ -43,6 +43,12 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
+/** Writes `sv` to `<outDir>/<file>` and prints it, so the emitted attributes can be read. */
+function emitFile (file: string, sv: string): void {
+  writeFileSync(`${outDir}/${file}`, sv)
+  console.log(`\n---- ${outDir}/${file} ----\n${sv}`)
+}
+
 /** Lines of `sv`, trimmed, so a check doesn't depend on Verible's indentation. */
 const lines = (sv: string): string[] => sv.split('\n').map((l) => l.trim())
 
@@ -76,7 +82,7 @@ class AttrDemo extends Module {
 }
 
 const demoSV = new AttrDemo().writeSystemVerilog()
-writeFileSync(`${outDir}/attr_demo.sv`, demoSV)
+emitFile('attr_demo.sv', demoSV)
 const demoLines = lines(demoSV)
 
 const expected: Array<[string, string]> = [
@@ -133,9 +139,10 @@ expectThrow('Test 3: false', emit({ keep: false as unknown as true }), 'unsuppor
 expectThrow('Test 3: error names the module and port', emit({ 'bad-name': true }, true), 'one_attr.a: attribute name')
 
 // Timing-intent attributes (#99) go through the same emission as any other
+const timingSV = emit({ tssv_timing_exception: 'cdc', ASYNC_REG: 'TRUE' })()
+emitFile('one_attr.sv', timingSV)
 check('Test 3: tssv_timing_* and ASYNC_REG emit like any other attribute',
-  lines(emit({ tssv_timing_exception: 'cdc', ASYNC_REG: 'TRUE' })())
-    .includes('(* tssv_timing_exception = "cdc", ASYNC_REG = "TRUE" *) logic t;'))
+  lines(timingSV).includes('(* tssv_timing_exception = "cdc", ASYNC_REG = "TRUE" *) logic t;'))
 
 // ---- Test 4: addRegister's auto-named q ---------------------------------------------------
 check('Test 4: vec_q is declared without vec\'s attributes', demoLines.includes('logic [7:0] vec_q;'),
@@ -164,8 +171,8 @@ class Parent extends Module {
 const defined = new Set<string>()
 const childSV = new Child().writeSystemVerilog({ defined })
 const parentSV = new Parent().writeSystemVerilog({ exclude: defined })
-writeFileSync(`${outDir}/attr_child.sv`, childSV)
-writeFileSync(`${outDir}/attr_parent.sv`, parentSV)
+emitFile('attr_child.sv', childSV)
+emitFile('attr_parent.sv', parentSV)
 check('Test 5: the child keeps its port attribute',
   lines(childSV).includes('(* mark_debug = "true" *) input logic [7:0] din,'))
 check('Test 5: the created parent signal has no attributes',
