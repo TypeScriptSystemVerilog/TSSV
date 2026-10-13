@@ -6,7 +6,7 @@
 // Exits 0 if everything passes, 1 otherwise.
 
 import { readFileSync } from 'node:fs'
-import { lint, requirePinnedVerilator, simulate } from './verilator.mjs'
+import { lint, requirePinnedVerilator, simulate } from '../../tools/verilator.mjs'
 
 const DIR = 'doc/rtl-style/sv-style/sv/width'
 const DUT = `${DIR}/width_examples.sv`

@@ -164,7 +164,7 @@ Some methods name the signals they create. You'll see these names in emitted SV:
 
 An [`Interface`](../reference/Base.md#interface) is a bundle of signals plus a set of modports,
 each giving every signal a direction. It has a name and its own parameters. Its SV type name,
-from `interfaceName()`, is the name followed by the parameter values: `memory_32_32`, or
+from `interfaceName()`, is the name followed by the parameter values: `memory_bidi_32_32`, or
 `AXI4_32_32_4_0_withQOS_noREGION`. Two instances are the same SV type only if those strings are
 equal.
 
@@ -172,11 +172,11 @@ equal.
 on its **role**:
 
 - **With a role** (`new Memory({}, 'inward')`), the instance is a port. The module header gets
-  `memory_32_32.inward regs`, and the role must name one of the interface's modports. The
+  `memory_bidi_32_32.inward regs`, and the role must name one of the interface's modports. The
   bundled interfaces use `inward` (responder) and `outward` (initiator), except the generated
   AMBA5 classes (`*_rtl.ts`), which use `master` and `slave`.
 - **Without a role** (`new Memory({})`), it is a local bundle declared inside the module
-  (`memory_32_32 w ();`). Use it to connect two child instances to each other.
+  (`memory_bidi_32_32 w ();`). Use it to connect two child instances to each other.
 
 Logic inside the module refers to a member as `inst.SIGNAL`, both in `Expr` text and as a
 binding (`{ addr: 'regs.ADDR' }`).
@@ -234,7 +234,7 @@ inputs.
 anything the child exposes through them is reachable only from inside the parent. To expose a
 child's port or bus, declare the parent's own port (in `IOs`, or `addInterface` with a role)
 and bind to it. `RegisterBlock` inside FIR is bound this way: its `regs` bus becomes an internal
-`memory_32_32 regs ();` in FIR, although FIR's spec describes a `regs` port ([#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83)).
+`memory_bidi_32_32 regs ();` in FIR, although FIR's spec describes a `regs` port ([#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83)).
 
 ### Checks on every binding
 

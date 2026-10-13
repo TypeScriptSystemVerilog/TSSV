@@ -113,6 +113,9 @@ jobs:
       - name: RegisterBlock read-path simulation
         run: make -C verilatorTB regblock_read_sim
 
+      - name: RegisterBlock register-type simulation
+        run: make -C verilatorTB regblock_types_sim
+
       - name: APB_to_Memory simulation
         run: make -C verilatorTB apb_to_memory_sim
 

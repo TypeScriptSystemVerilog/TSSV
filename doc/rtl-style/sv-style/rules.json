@@ -5,8 +5,8 @@
   "COMB-4": { "checks": ["lint"] },
   "COMB-5": { "checks": ["lint"] },
   "COMB-6": { "checks": ["lint"] },
-  "COMB-7": { "checks": ["builder"] },
-  "COMB-8": { "checks": ["builder"] },
+  "COMB-7": { "movedTo": "BUILD-4" },
+  "COMB-8": { "movedTo": "BUILD-2" },
   "COMB-9": {
     "checks": ["lint", "generated"],
     "known": [
@@ -20,7 +20,7 @@
     "lintClean": ["sv/seq/seq2_inblock.sv", "sv/seq/seq2_split.sv"],
     "docVerbatim": { "Also fine": "sv/seq/seq2_inblock.sv" }
   },
-  "SEQ-3": { "checks": ["builder"] },
+  "SEQ-3": { "movedTo": "BUILD-3" },
   "SEQ-4": {
     "checks": ["lint", "review"],
     "reason": "Verilator doesn't flag a block sensitive to two clocks, so review has to catch the Don't."
@@ -35,7 +35,7 @@
     "checks": ["lint", "review"],
     "reason": "Verilator doesn't flag a reset to a non-constant value, so review has to catch the Don't."
   },
-  "RST-1": { "checks": ["builder"] },
+  "RST-1": { "movedTo": "MOD-4" },
   "RST-2": {
     "checks": ["review"],
     "reason": "The builders don't stop a module from mixing reset kinds; no automated check yet."
@@ -48,7 +48,7 @@
     "checks": ["review"],
     "reason": "No automated check yet for a reset driven by logic."
   },
-  "LATCH-1": { "checks": ["builder"] },
+  "LATCH-1": { "movedTo": "BUILD-5" },
   "WIDTH-1": { "checks": ["width"] },
   "WIDTH-2": { "checks": ["width"] },
   "WIDTH-3": { "checks": ["width"] },
@@ -56,16 +56,10 @@
   "WIDTH-5": { "checks": ["width"] },
   "WIDTH-6": { "checks": ["width"] },
   "WIDTH-7": { "checks": ["width"] },
-  "WIDTH-8": { "checks": ["builder"] },
-  "NAME-1": { "checks": ["builder"] },
-  "NAME-2": {
-    "checks": ["review"],
-    "reason": "How a module's TypeScript is structured is a design judgment."
-  },
-  "NAME-3": {
-    "checks": ["review"],
-    "reason": "Whether a builder fits is a design judgment."
-  },
+  "WIDTH-8": { "movedTo": "PARAM-3" },
+  "NAME-1": { "movedTo": "IDENT-1" },
+  "NAME-2": { "movedTo": "BUILD-6" },
+  "NAME-3": { "movedTo": "BUILD-1" },
   "SYN-1": { "checks": ["generated"] },
   "SYN-2": {
     "checks": ["review"],
@@ -80,10 +74,7 @@
     "reason": "Whether an array should be a memory module is a design judgment."
   },
   "LINT-1": { "checks": ["generated"] },
-  "LINT-2": {
-    "checks": ["review"],
-    "reason": "No automated check yet that every module has a ts/test script."
-  },
+  "LINT-2": { "movedTo": "TEST-1" },
   "LINT-3": {
     "checks": ["lint", "generated"],
     "known": [
