@@ -63,7 +63,7 @@ The always block is a `latch always` (sensitivity list covers all inputs), makin
 
 ## Test Plan
 
-**Test script:** `ts/test/test_LZC.ts` (if present)
+**Test script:** `ts/test/modules/test_LZC.ts`
 
 | Test case | `dataWidth` | `data_in` | Expected `zero_num` | Expected `is_zero` |
 |---|---|---|---|---|

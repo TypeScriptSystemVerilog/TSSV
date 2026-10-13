@@ -5,11 +5,8 @@
 
 cd "$(dirname "$0")" || exit 1
 
-# Scripts that need tools outside the pinned toolchain (README Setup), so they
-# can't run here or in CI.
-#   test_AXI4XBar: runs Rocket Chip's Scala generator, via Docker
-#                  (third-party/rocket-chip-component-gen)
-skip=(out/test/modules/test_AXI4XBar.js)
+# Sets skip=(...): the scripts that need tools outside the pinned toolchain.
+source scripts/test-skips.sh
 
 npx tsc || exit 1
 
