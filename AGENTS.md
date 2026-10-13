@@ -103,7 +103,9 @@ is the authoritative spec; this section is the operating procedure an agent foll
    decisions/deviations from the original scope.
 5. **Open the PR** with `gh pr create`, following `.github/PULL_REQUEST_TEMPLATE.md`: body
    has `Closes #<issue-number>`, reproduces the Acceptance Criteria checklist from the
-   issue, and states the test plan (commands actually run). Backfill the PR into the
+   issue, and states the test plan (commands actually run). If the PR changes generated SV,
+   post that SV as PR comments and link them from the description; if not, say so
+   (`doc/process/issue-workflow.md` §5, "Showing the generated SV"). Backfill the PR into the
    issue's `Links` field.
 6. **Verify AC before checking any box.** Run the build/tests/lint the checklist calls for
    (`npx tsc`, `node out/test/test_<Name>.js`, `bash runAllTests.sh`, `npx eslint .`,

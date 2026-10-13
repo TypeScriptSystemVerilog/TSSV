@@ -152,7 +152,8 @@ against the same issue). PR body must reference the issue with a GitHub closing 
 | **Issue body** | Problem statement, context, links to relevant source/specs, and the Acceptance Criteria checklist. Written once at scoping time; edited later only to refine scope, not to log progress — **with one narrow exception**: the `Links` field (below). |
 | **Issue comments** | The running log: "started branch X", investigation notes, decisions/deviations made mid-implementation. This is where an agent narrates *why* something changed from the original plan. |
 | **Commit messages** | One atomic, technical description per commit of *what changed and why*, using the template in §6. Commit type is about the nature of the diff, independent of the issue's Issue Type — a `Task` issue can still contain `fix` or `test` commits. |
-| **PR description** | Summary of the overall change, the `Closes #N` link, the Acceptance Criteria checklist copied from the issue with boxes checked only against verified evidence (§7), the test plan (commands actually run), and any deviations from the issue's original scope. |
+| **PR description** | Summary of the overall change, the `Closes #N` link, the Acceptance Criteria checklist copied from the issue with boxes checked only against verified evidence (§7), the test plan (commands actually run), what the change does to the generated SV ([below](#showing-the-generated-sv)), and any deviations from the issue's original scope. |
+| **PR comments** | The generated-SV evidence: one comment per example or module, linked from the description ([below](#showing-the-generated-sv)). |
 
 **Backfilling the `Links` field.** Every template except `epic.yml` starts with a `Links`
 field (`- Branch: _(none yet)_` / `- PR: _(none yet)_`) so the issue stays a self-contained
@@ -171,6 +172,65 @@ gh issue edit <N> --body-file issue-body.md
 
 If someone has edited the body since it was filed, the `sed` can silently no-op — check what
 you're writing back.
+
+### Showing the generated SV
+
+`sv-examples/` is git-ignored, so a PR that changes what TSSV generates shows its TypeScript
+diff but not the SystemVerilog that comes out of it. Reviewing that diff alone means guessing
+at the SV, or checking out both branches and regenerating it. The author shows it instead.
+
+**What to show** depends on the change:
+
+| The PR… | Show |
+|---|---|
+| changes an existing generation API helper (an `add*` method in `ts/src/core/Base.ts`) | The SV an example call emits, before and after the change. A change that affects more than one mode or option of the helper needs an example for each mode that changes. |
+| adds a generation API | Enough example calls, each with the SV it emits, to show how the API behaves, including each mode or option that changes the output. |
+| changes an existing module (`ts/src/modules/*`) | The diff of the module's generated SV, if it is about 100 changed lines or fewer. Larger than that: the commands below for the reviewer to run, and which generated files and parameter sets to read. The key hunks can still go inline. |
+| changes no generated SV | One line in the description: "No change to generated SV." Run the diff below to check this rather than assume it. |
+
+"Changed lines" means lines added plus lines removed in the diff, which the count command
+below prints. A module's test usually generates several parameter sets, and one change often
+repeats in each of them. When it does, show one set, list the others it applies to, and count
+that one set against the threshold. The `ts/test/test_add*.ts` scripts are a ready source of
+example calls for a helper.
+
+**Where it goes:** in PR comments, not the description. Post one comment per example or per
+module, with its SV inside a `<details>` block: a `diff` fence for before/after, a
+`systemverilog` fence for new output. Then list those comments in the description's
+**Generated SV** section, one link each (a comment's link is its timestamp). This keeps the
+description readable, and gives each example a comment that collapses on its own and that
+review feedback can link to. The comments only exist once the PR does, so open the PR, post
+them, then edit the description to add the links.
+
+**Generating the "before" SV.** Build the base branch in a scratch worktree outside the repo
+tree (`mktemp -d`), so it can't collide with your checkout or another session's. The base is
+`origin/main`, or the parent branch for a stacked PR. `runAllTests.sh` regenerates every
+example, so run it on both sides and diff the two `sv-examples/` trees:
+
+```bash
+# From your checkout of the PR's branch
+git fetch origin
+base=origin/main                  # or origin/<parent-branch> for a stacked PR
+scratch=$(mktemp -d)
+git worktree add --detach "$scratch/TSSV" "$base"
+(cd "$scratch/TSSV" && npm ci && bash runAllTests.sh)
+bash runAllTests.sh               # head side, regenerates sv-examples/ here
+
+# The IpXactComponent examples record their inputs' absolute paths; -I ignores those lines
+ignore='// [A-Za-z]*Path = /'
+diff -rq -I "$ignore" "$scratch/TSSV/sv-examples" sv-examples      # which files changed
+# <dir>: a directory that changed, such as SFIFO
+diff -ru -I "$ignore" "$scratch/TSSV/sv-examples/<dir>" sv-examples/<dir> > "$scratch/<dir>.diff"
+grep -E '^[-+]' "$scratch/<dir>.diff" | grep -vcE '^(\+\+\+|---) '   # changed lines
+
+# Once the evidence is posted
+git worktree remove --force "$scratch/TSSV" && rm -rf "$scratch"
+```
+
+For a module diff too large to post, put this block in the comment with `base` filled in, so
+the reviewer can run it from their own checkout of the PR's branch, and name the files to read.
+`runAllTests.sh` skips `test_AXI4XBar`, which needs Docker; a change to `AXI4XBar` needs that
+test run by hand on both sides.
 
 ## 6. Commit message template
 
