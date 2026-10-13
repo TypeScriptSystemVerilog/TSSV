@@ -92,6 +92,12 @@ jobs:
       - name: Test scripts
         run: bash runAllTests.sh
 
+      # verilator --lint-only on everything the test scripts wrote under
+      # sv-examples/, linting a multi-file emission through the filelist its
+      # test script writes (scripts/lint-sv.sh).
+      - name: Lint generated SV
+        run: npm run lint:sv
+
       - name: RTL-style checks
         run: |
           npm run check:rtl-style
