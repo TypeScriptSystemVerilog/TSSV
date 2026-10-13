@@ -700,8 +700,9 @@ reviewed clock-gate cell or module.
 The crossing goes through a synchronizer module. Never sample another domain's signal
 directly.
 
-**SYN-4 (SHOULD): Use the existing `SRAM`/`ROM`/`SFIFO` modules for memories** instead of
-ad-hoc arrays, so that inferred memory behavior stays consistent.
+**SYN-4 (SHOULD): Use the existing `SRAM`/`ROM`/`SFIFO`/`TwoClockRegFile` modules for
+memories** instead of ad-hoc arrays, so that inferred memory behavior stays consistent.
+`TwoClockRegFile` is the one for a memory written on one clock and read on another.
 
 ## 8. Lint and verification
 
