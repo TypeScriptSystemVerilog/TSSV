@@ -77,11 +77,32 @@ apb_to_memory_sim: tsc
 	  > obj_dir/apb_to_memory.build.log 2>&1 || { cat obj_dir/apb_to_memory.build.log; exit 1; }
 	cd obj_dir/apb_to_memory && ./Vtb_APB_to_Memory
 
+# Two-clock register file (TSSV#121): lint every generated variant with -Wall, then run the
+# self-checking testbench once per configuration that test_TwoClockRegFile.js lists in
+# configs.txt. Each build and its waveform (tb_TwoClockRegFile_<config>.fst) land in
+# obj_dir/twoclockregfile_<config>/. b_clk's period is a variable that's never zero, hence
+# --no-sched-zero-delay.
+TCRF_DIR = ../sv-examples/TwoClockRegFile
+
+twoclockregfile_sim: tsc
+	cd ..; node out/test/modules/test_TwoClockRegFile.js
+	set -e; for f in $(TCRF_DIR)/TwoClockRegFile_*/*.sv; do \
+	  verilator --lint-only -Wall $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	mkdir -p obj_dir
+	set -e; while read -r cfg dut; do \
+	  verilator --binary --timing --no-sched-zero-delay --trace-fst -j 0 -Mdir obj_dir/twoclockregfile_$$cfg -o Vtb_TwoClockRegFile \
+	    -DCFG_$$cfg -I$(TCRF_DIR)/tb tb_TwoClockRegFile.sv ../$$dut > obj_dir/twoclockregfile_$$cfg.build.log 2>&1 \
+	    || { cat obj_dir/twoclockregfile_$$cfg.build.log; exit 1; }; \
+	  (cd obj_dir/twoclockregfile_$$cfg && ./Vtb_TwoClockRegFile); \
+	done < $(TCRF_DIR)/tb/configs.txt
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd
 
-.PHONY: sfifo_sim regblock_read_sim regblock_types_sim apb_to_memory_sim
+.PHONY: sfifo_sim regblock_read_sim regblock_types_sim apb_to_memory_sim twoclockregfile_sim
 .FORCE:
 tsc: .FORCE
 	cd ..; npx tsc

@@ -175,7 +175,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | Core framework (`Base.ts`, `Registers.ts`) | Complete | `Module` base class with the full builder API |
 | AMBA 2–5 interfaces | Complete | 100+ files across AHB, APB, ATB, AXI, AXI4, ACE, CHI, CXS, LPI, GFB, LTI, P/Q-Channel |
 | TileLink + Memory interfaces | Complete | |
-| Built-in modules | Complete | FIR, SRAM, SFIFO, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
+| Built-in modules | Complete | FIR, SRAM, SFIFO, TwoClockRegFile, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
 | CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`) |
