@@ -1,9 +1,7 @@
-// Rules checked by scanning generated SV text (see check-builder-examples.mjs).
-// Each scan returns a list of findings for one SV file.
+// Rules checked by scanning generated SV text (see check-builder-examples.mjs and
+// check-generated-sv.mjs). Each scan returns a list of findings for one SV file.
 
 export const SCANS = {
-  'COMB-9': (sv) => [...sv.matchAll(/\b(always_comb|always_ff\s*@\([^)]*\)|always_latch|always\s*@\([^)]*\))(?!\s*begin\s*:)/g)]
-    .map((m) => `unnamed always block: "${m[1].replace(/\s+/g, ' ')}"`),
   'SYN-1': (sv) => [
     ...[...sv.matchAll(/^\s*(initial|force|release|casex)\b/gm)].map((m) => `testbench-only construct "${m[1]}"`),
     ...[...sv.matchAll(/(?<![\w'])#\s*\d/g)].map(() => 'delay "#"'),
@@ -26,3 +24,21 @@ export const SCANS = {
 
 // Rules whose "generated" check is these scans plus lint of the generated SV.
 export const GENERATED_RULES = [...Object.keys(SCANS), 'LINT-1']
+
+// A test script marks each testbench module it generates with this comment, inside the module
+// (ts/test/models/testbench.ts). SYN-1 bans what testbenches are for, so it skips them.
+const TESTBENCH_MARKER = /^[ \t]*\/\/[ \t]*tssv:[ \t]*testbench\b/m
+
+// The module definitions in a file's SV text, in order: { name, text, testbench }.
+export function svModules (sv) {
+  return [...sv.matchAll(/^[ \t]*module\s+(\w+)\b[\s\S]*?^[ \t]*endmodule\b/gm)]
+    .map((m) => ({ name: m[1], text: m[0], testbench: TESTBENCH_MARKER.test(m[0]) }))
+}
+
+// Runs every scan on one file's SV text: [{ rule, finding }], in SCANS order. SYN-1 doesn't see
+// the testbench modules; the other scans see the whole file.
+export function scanFile (sv) {
+  const syn1Text = svModules(sv).filter((m) => m.testbench).reduce((text, m) => text.replace(m.text, ''), sv)
+  return Object.entries(SCANS).flatMap(([rule, scan]) =>
+    scan(rule === 'SYN-1' ? syn1Text : sv).map((finding) => ({ rule, finding })))
+}

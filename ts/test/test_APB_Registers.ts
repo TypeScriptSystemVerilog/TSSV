@@ -2,6 +2,7 @@ import { type RegisterBlockDef, RegisterBlock, RegisterType } from 'tssv/lib/cor
 import { Module } from 'tssv/lib/core/TSSV'
 import { APB4 } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 const apbRegMap = {
   CTRL: BigInt('0x00000000'),
@@ -117,7 +118,7 @@ const tbBody =
   end
 `
 
-const tb = new Module(
+const tb = markTestbench(new Module(
   { name: 'tb_apb_reg_block' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -125,7 +126,7 @@ const tb = new Module(
   },
   {},
   tbBody
-)
+))
 tb.addInterface('apb', new APB4({ DATA_WIDTH: 32, ADDR_WIDTH: 32 }))
 tb.addSubmodule('dut', apbRegBlock, {}, true, true)
 

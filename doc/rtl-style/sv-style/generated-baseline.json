@@ -1,0 +1,1139 @@
+{
+  "about": "Findings in the SV the test scripts generate that check-generated-sv.mjs accepts today, per file, with how often each occurs. Fixing one means removing its entry: see README.md, 'Generated SV: the baseline'.",
+  "exempt": {
+    "sv-examples/AXI4XBar/": "Rocket Chip's generator writes this SV, not TSSV's builders, so the SV guide doesn't apply to it. test_AXI4XBar also needs Docker, so runAllTests.sh skips it (scripts/test-skips.sh)."
+  },
+  "findings": {
+    "sv-examples/APB_to_Memory/apb_regblock.sv": {
+      "LINT-1 DECLFILENAME: Filename 'apb_regblock' does not match IFACE name: 'APB4_32_32'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PPROT'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRESETn'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rst_b'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/APB_to_Memory/memory_models.sv": {
+      "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_addr'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_data'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 1,
+      "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'mem'": 1
+    },
+    "sv-examples/Core/Registers/tb_testRegBlock.sv": {
+      "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock' does not match MODULE name: 'ram_32x32'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'REG1'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 're'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'wdata'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'we'": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[31:5]": 2,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ADDR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'RE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field1'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 4,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
+    },
+    "sv-examples/Core/Registers/tb_testRegBlock2.sv": {
+      "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock2' does not match MODULE name: 'ram_32x32'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'REG1'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 're'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'wdata'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'we'": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[31:5]": 2,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ADDR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'RE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field1'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 4,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
+    },
+    "sv-examples/Core/Registers/tb_testRegBlock3.sv": {
+      "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock3' does not match MODULE name: 'ram_32x32'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'REG1'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 're'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'wdata'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'we'": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[31:5]": 2,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ADDR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'RE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field1'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 4,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
+    },
+    "sv-examples/Core/Registers/tb_testRegBlock4.sv": {
+      "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock4' does not match MODULE name: 'ram_32x32'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'REG1'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 're'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'wdata'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'we'": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[31:5]": 2,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ADDR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'RE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field0'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'REG2_field1'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 4,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
+    },
+    "sv-examples/Core/addAdder/addB_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAdder/addSU_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAdder/addS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAdder/addUS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAdder/add_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAlways/comb_seq_test.sv": {
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'en'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAssign/assignAdd_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAssign/assignM_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addAssign/assign_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_addBodyLine.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_empty.sv": {
+      "LINT-1 UNDRIVEN: Signal is not driven: 'b'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'a'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_engine_default.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_equiv_addBody.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_equiv_ref.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_normalize.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addBody/test_verbatim.sv": {
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addCombAlways/combN_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addCombAlways/comb_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/multB_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/multSB_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/multSU_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/multS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/multUB_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/multUS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMultiplier/mult_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMux/muxD_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMux/muxE_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMux/muxS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addMux/mux_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod2.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod3.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod4.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod5.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod6.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod7.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRegister/regMod8.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundA_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundD_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundE_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundRS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundU_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/roundZ_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addRound/round_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSaturate/saturateBS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSaturate/saturateB_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSaturate/saturateNS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSaturate/saturateN_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSaturate/saturateS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSaturate/saturate_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSequentialAlways/seq_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSubmodule/subA_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/Core/addSubmodule/subI_tb.sv": {
+      "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_WR'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'WE'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'WSTRB'": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 3,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
+    },
+    "sv-examples/Core/addSubmodule/subU_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/Core/addSubmodule/sub_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/Core/addSubtractor/subSU_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSubtractor/subS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSubtractor/subUS_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/addSubtractor/sub_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/import/import_tb.sv": {
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/Core/importParse/importParse_ansi.sv": {
+      "LINT-1 DECLFILENAME: Filename 'importParse_ansi' does not match MODULE name: 'leaf'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'sa'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'sb'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'sc'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'sen'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'ss'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ssy'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1,
+      "SYN-1 system task \"$display\"": 1,
+      "SYN-1 testbench-only construct \"initial\"": 1
+    },
+    "sv-examples/Core/importParse/importParse_multi.sv": {
+      "LINT-1 DECLFILENAME: Filename 'importParse_multi' does not match MODULE name: 'helper'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/importParse/importParse_nonansi.sv": {
+      "LINT-1 DECLFILENAME: Filename 'importParse_nonansi' does not match MODULE name: 'leaf_nonansi'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'na'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'nen'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'nsy'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ny'": 1,
+      "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'en'": 1,
+      "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'y'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/multiFileEmission/dut.sv": {
+      "LINT-1 DECLFILENAME: Filename 'dut' does not match IFACE name: 'memory_bidi_32_32'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'ADDR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'DATA_RD'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'DATA_WR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'RE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'READY'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'WE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'WSTRB'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/Core/multiFileEmission/tb.sv": {
+      "LINT-1 DECLFILENAME: Filename 'tb' does not match MODULE name: 'agent'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'clk'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/Core/signalAttributes/attr_child.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/signalAttributes/attr_demo.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/signalAttributes/attr_parent.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/test1/test1.sv": {
+      "LINT-1 DECLFILENAME: Filename 'test1' does not match IFACE name: 'TL_UL_4_32_2_8_8'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_address'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_corrupt'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_data'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_mask'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_opcode'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_param'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_ready'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_size'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_source'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_valid'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_corrupt'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_data'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_denied'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_opcode'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_param'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_ready'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_sink'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_size'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_source'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_valid'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'sum_d3'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'sum_d4'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'sum_d5'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 4,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
+    },
+    "sv-examples/Core/test1/testAddrDecode1.sv": {
+      "LINT-1 DECLFILENAME: Filename 'testAddrDecode1' does not match MODULE name: 'testAddrDecode_5_16_32_2882400000'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/test1/testMem1.sv": {
+      "LINT-1 DECLFILENAME: Filename 'testMem1' does not match MODULE name: 'testMem_8_32'": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[5]": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/Core/verible/missing_binary_fallback.sv": {
+      "LINT-1 DECLFILENAME: Filename 'missing_binary_fallback' does not match MODULE name: 'sample'": 1
+    },
+    "sv-examples/Core/verible/sample_formatted.sv": {
+      "LINT-1 DECLFILENAME: Filename 'sample_formatted' does not match MODULE name: 'sample'": 1
+    },
+    "sv-examples/Core/verible/timeout_fallback.sv": {
+      "LINT-1 DECLFILENAME: Filename 'timeout_fallback' does not match MODULE name: 'sample'": 1
+    },
+    "sv-examples/FIR/myFIR3/myFIR3.sv": {
+      "LINT-1 DECLFILENAME: Filename 'myFIR3' does not match IFACE name: 'AXI4Stream_32_4_0_4'": 1,
+      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
+      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'WSTRB'[0]": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'WE'": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not driven, nor used: 'DATA_WR'[31:8]": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not driven, nor used: 'WSTRB'[3:1]": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ACLK'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ACLKEN'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ARESETn'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'DATA_RD'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'READY'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/FIR/myFIR3/tb_lpFIR.sv": {
+      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
+      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'WSTRB'[0]": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'WE'": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 3,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
+    },
+    "sv-examples/IpXactComponent/apbComponent/apbComponentExample.sv": {
+      "LINT-1 EOFNEWLINE: Missing newline at end of file (POSIX 3.206).": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_P_RData'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_P_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_P_SlvErr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_P_RData'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_P_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_P_SlvErr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_P_Addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_P_Enable'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_P_Selx'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_P_WData'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_P_Write'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_P_Addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_P_Enable'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_P_Selx'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_P_WData'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_P_Write'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'unbound'": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/IpXactComponent/axiComponent/componentExample.sv": {
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_Ar_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_Aw_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_B_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_B_Resp'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_B_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_B_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_R_Data'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_R_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_R_Last'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_R_Resp'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_R_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_R_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_W_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_Ar_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_Aw_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_B_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_B_Resp'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_B_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_B_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_R_Data'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_R_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_R_Last'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_R_Resp'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_R_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_R_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Init1_W_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Burst'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Cache'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Len'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Lock'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Prot'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Qos'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Size'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Ar_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Burst'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Cache'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Len'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Lock'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Prot'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Qos'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Size'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_Aw_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_B_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_R_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_W_Data'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_W_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_W_Last'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_W_Strb'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ0_W_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Burst'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Cache'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Len'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Lock'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Prot'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Qos'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Size'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Ar_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Addr'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Burst'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Cache'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Len'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Lock'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Prot'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Qos'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Size'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_User'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_Aw_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_B_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_R_Ready'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_W_Data'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_W_Id'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_W_Last'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_W_Strb'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'Targ1_W_Valid'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'unbound'": 1,
+      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/LZC/LZC_21/LZC_21.sv": {
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'tmp_zero_num'[5]": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/LZC/LZC_28/LZC_28.sv": {
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'tmp_zero_num'[5]": 1,
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/LZC/LZC_64/LZC_64.sv": {
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_16_6_normal_array_test/ROM_16_6_normal_array_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_25_4_big_InitialFile8_NonMul8_test/ROM_25_4_big_InitialFile8_NonMul8_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_31_16_uint8array_NonMul8_test/ROM_31_16_uint8array_NonMul8_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_32_4_big_InitialFile8_test/ROM_32_4_big_InitialFile8_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_32_4_little_InitialFile8_test/ROM_32_4_little_InitialFile8_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_32_4_uint8array_little_test/ROM_32_4_uint8array_little_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_32_5_uint8array_big_test/ROM_32_5_uint8array_big_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_32_big_interal/ROM_32_big_interal.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/ROM/ROM_32_big_split2two/ROM_32_big_split2two.sv": {
+      "LINT-1 DECLFILENAME: Filename 'ROM_32_big_split2two' does not match MODULE name: 'ROM_32_big_split2two_lower'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 3,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
+    },
+    "sv-examples/ROM/ROM_9_5_normal_array_test/ROM_9_5_normal_array_test.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/RegisterBlock_read/memory_models.sv": {
+      "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 3,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 3,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_addr'": 3,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_data'": 2,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 2,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 3,
+      "LINT-1 UNUSEDSIGNAL: Function variable is not used: 'we'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'writes'": 1
+    },
+    "sv-examples/RegisterBlock_read/regblock_read32.sv": {
+      "LINT-1 DECLFILENAME: Filename 'regblock_read32' does not match IFACE name: 'memory_bidi_32_32'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/RegisterBlock_read/regblock_read64.sv": {
+      "LINT-1 DECLFILENAME: Filename 'regblock_read64' does not match IFACE name: 'memory_bidi_64_32'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/RegisterBlock_types/memory_models.sv": {
+      "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_master_bidi_32_32'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 4,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 4,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_addr'": 4,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_data'": 2,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 2,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 4,
+      "LINT-1 UNUSEDSIGNAL: Function variable is not used: 'we'": 2,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'writes'": 2
+    },
+    "sv-examples/RegisterBlock_types/regblock_types32.sv": {
+      "LINT-1 DECLFILENAME: Filename 'regblock_types32' does not match IFACE name: 'memory_bidi_32_32'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/RegisterBlock_types/regblock_types64.sv": {
+      "LINT-1 DECLFILENAME: Filename 'regblock_types64' does not match IFACE name: 'memory_bidi_64_32'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/RegisterBlock_types/tb_regblock_types32.sv": {
+      "LINT-1 BLKSEQ: Blocking assignment '=' in sequential logic process": 2,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'CMD_we_count'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'GO_we_count'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'clk'": 1
+    },
+    "sv-examples/RegisterBlock_types/tb_regblock_types64.sv": {
+      "LINT-1 BLKSEQ: Blocking assignment '=' in sequential logic process": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'CMD_we_count'": 1,
+      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'clk'": 1
+    },
+    "sv-examples/SFIFO/SFIFO_1026_4_true_true_true/SFIFO_1026_4_true_true_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_1026_4_true_true_true' does not match MODULE name: 'SFIFO_1026_4_true_true_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_1_true_false_false/SFIFO_8_1_true_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/SFIFO/SFIFO_8_4_false_false_false/SFIFO_8_4_false_false_false.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_4_false_false_false' does not match MODULE name: 'SFIFO_8_4_false_false_false_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_4_true_true_true/SFIFO_8_4_true_true_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_4_true_true_true' does not match MODULE name: 'SFIFO_8_4_true_true_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_false_false_false/SFIFO_8_5_false_false_false.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_false_false' does not match MODULE name: 'SFIFO_8_5_false_false_false_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_false_false_true/SFIFO_8_5_false_false_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_false_true' does not match MODULE name: 'SFIFO_8_5_false_false_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_false_true_false/SFIFO_8_5_false_true_false.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_true_false' does not match MODULE name: 'SFIFO_8_5_false_true_false_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_false_true_true/SFIFO_8_5_false_true_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_true_true' does not match MODULE name: 'SFIFO_8_5_false_true_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_true_false_false/SFIFO_8_5_true_false_false.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_false_false' does not match MODULE name: 'SFIFO_8_5_true_false_false_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_true_false_true/SFIFO_8_5_true_false_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_false_true' does not match MODULE name: 'SFIFO_8_5_true_false_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_true_true_false/SFIFO_8_5_true_true_false.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_true_false' does not match MODULE name: 'SFIFO_8_5_true_true_false_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_5_true_true_true/SFIFO_8_5_true_true_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_true_true' does not match MODULE name: 'SFIFO_8_5_true_true_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SFIFO/SFIFO_8_8_true_true_true/SFIFO_8_8_true_true_true.sv": {
+      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_8_true_true_true' does not match MODULE name: 'SFIFO_8_8_true_true_true_sram'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
+    },
+    "sv-examples/SRAM/SRAM_1026_4_1r_1w_none_undefOnWrite_default/SRAM_1026_4_1r_1w_none_undefOnWrite_default.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/SRAM/SRAM_1026_4_1rw_none_undefOnWrite_default/SRAM_1026_4_1rw_none_undefOnWrite_default.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/SRAM/SRAM_32_256_1r_1w_byte_readBeforeWrite_default/SRAM_32_256_1r_1w_byte_readBeforeWrite_default.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/SRAM/SRAM_8_32_1rw_bit_undefOnWrite_default/SRAM_8_32_1rw_bit_undefOnWrite_default.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/SRAM/SRAM_8_32_2rw_bit_undefOnWrite_default/SRAM_8_32_2rw_bit_undefOnWrite_default.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/TwoClockRegFile/TwoClockRegFile_1026_32/TwoClockRegFile_1026_32.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/TwoClockRegFile/TwoClockRegFile_8_4/TwoClockRegFile_8_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/TwoClockRegFile/TwoClockRegFile_8_4_block/TwoClockRegFile_8_4_block.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/TwoClockRegFile/TwoClockRegFile_8_4_distributed/TwoClockRegFile_8_4_distributed.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/TwoClockRegFile/TwoClockRegFile_8_5/TwoClockRegFile_8_5.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/build2_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/build3_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/build3_group.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/build4_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/build5_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/ident1_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/mod4_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/param3_do.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/seq5_highasync.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/seq5_highsync.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/seq5_lowasync.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/rtl_style/seq5_lowsync.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/shift/shift_16_left_5_unsigned/shift_16_left_5_unsigned.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/shift/shift_16_right_5_signed/shift_16_right_5_signed.sv": {
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[4:0]": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/shift/shift_16_right_5_unsigned/shift_16_right_5_unsigned.sv": {
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[4:0]": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/shift/shift_5_right_3_unsigned/shift_5_right_3_unsigned.sv": {
+      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[2:0]": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/test_APB_Registers_output/tb_apb_reg_block.sv": {
+      "LINT-1 DECLFILENAME: Filename 'tb_apb_reg_block' does not match IFACE name: 'APB4_32_32'": 1,
+      "LINT-1 UNDRIVEN: Signal is not driven: 'STATUS'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'PCLKEN'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'CTRL'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'DATA'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PPROT'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRDATA'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PREADY'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRESETn'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PSLVERR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rst_b'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 3,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
+    },
+    "sv-examples/test_RWU/status_block_hw_priority.sv": {
+      "LINT-1 DECLFILENAME: Filename 'status_block_hw_priority' does not match IFACE name: 'memory_bidi_32_32'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/test_RWU/status_block_sw_priority.sv": {
+      "LINT-1 DECLFILENAME: Filename 'status_block_sw_priority' does not match IFACE name: 'memory_bidi_32_32'": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    }
+  }
+}

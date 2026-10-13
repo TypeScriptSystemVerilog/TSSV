@@ -98,6 +98,13 @@ jobs:
       - name: Lint generated SV
         run: npm run lint:sv
 
+      # The same files under verilator --lint-only -Wall (LINT-1) and the generated-SV scans
+      # (SYN-1, LINT-3), against the per-file baseline of the findings they have today
+      # (doc/rtl-style/sv-style/generated-baseline.json). Fails on a finding the baseline doesn't
+      # list, and on one it lists that no longer occurs.
+      - name: Generated-SV style checks
+        run: npm run check:generated-sv
+
       - name: RTL-style checks
         run: |
           npm run check:rtl-style

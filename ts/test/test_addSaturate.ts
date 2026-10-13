@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addSaturate', { recursive: true })
@@ -45,7 +46,7 @@ const tbBody =
     end
 `
 // shouldnt over values be 15 because its unsigned
-const saturate_tb = new Module(
+const saturate_tb = markTestbench(new Module(
   { name: 'saturate_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -53,7 +54,7 @@ const saturate_tb = new Module(
   },
   {},
   tbBody
-)
+))
 saturate_tb.addSignal('in', { width: 8, isSigned: false })
 saturate_tb.addSignal('out', { width: 4, isSigned: false })
 saturate_tb.addSaturate({ in: 'in', out: 'out' }) // sat mode defaults to simple
@@ -110,7 +111,7 @@ const tbBodyS =
     end
 `
 
-const saturateS_tb = new Module(
+const saturateS_tb = markTestbench(new Module(
   { name: 'saturateS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -118,7 +119,7 @@ const saturateS_tb = new Module(
   },
   {},
   tbBodyS
-)
+))
 saturateS_tb.addSignal('in', { width: 8, isSigned: true })
 saturateS_tb.addSignal('out', { width: 4, isSigned: true })
 saturateS_tb.addSaturate({ in: 'in', out: 'out' }) // sat mode defaults to simple
@@ -175,7 +176,7 @@ const tbBodyN =
     end
 `
 // shouldnt over values be 15 because its unsigned
-const saturateN_tb = new Module(
+const saturateN_tb = markTestbench(new Module(
   { name: 'saturateN_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -183,7 +184,7 @@ const saturateN_tb = new Module(
   },
   {},
   tbBodyN
-)
+))
 saturateN_tb.addSignal('in', { width: 8, isSigned: false })
 saturateN_tb.addSignal('out', { width: 4, isSigned: false })
 saturateN_tb.addSaturate({ in: 'in', out: 'out' }, 'none') // sat mode defaults to simple
@@ -240,7 +241,7 @@ const tbBodyNS =
     end
 `
 
-const saturateNS_tb = new Module(
+const saturateNS_tb = markTestbench(new Module(
   { name: 'saturateNS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -248,7 +249,7 @@ const saturateNS_tb = new Module(
   },
   {},
   tbBodyNS
-)
+))
 saturateNS_tb.addSignal('in', { width: 8, isSigned: true })
 saturateNS_tb.addSignal('out', { width: 4, isSigned: true })
 saturateNS_tb.addSaturate({ in: 'in', out: 'out' }, 'none') // sat mode defaults to simple
@@ -267,7 +268,7 @@ try {
 
 // test balanced mode
 
-const saturateB_tb = new Module(
+const saturateB_tb = markTestbench(new Module(
   { name: 'saturateB_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -275,7 +276,7 @@ const saturateB_tb = new Module(
   },
   {},
   tbBody
-)
+))
 saturateB_tb.addSignal('in', { width: 8, isSigned: false })
 saturateB_tb.addSignal('out', { width: 4, isSigned: false })
 saturateB_tb.addSaturate({ in: 'in', out: 'out' }, 'balanced') // sat mode defaults to simple
@@ -348,7 +349,7 @@ const tbBodyBS =
     end
 `
 
-const saturateBS_tb = new Module(
+const saturateBS_tb = markTestbench(new Module(
   { name: 'saturateBS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -356,7 +357,7 @@ const saturateBS_tb = new Module(
   },
   {},
   tbBodyBS
-)
+))
 saturateBS_tb.addSignal('in', { width: 8, isSigned: true })
 saturateBS_tb.addSignal('out', { width: 4, isSigned: true })
 saturateBS_tb.addSaturate({ in: 'in', out: 'out' }, 'balanced') // sat mode defaults to simple

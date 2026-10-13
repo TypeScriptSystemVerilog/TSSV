@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addSubtractor', { recursive: true })
@@ -53,7 +54,7 @@ const tbBody =
   end
 `
 
-const sub_tb = new Module(
+const sub_tb = markTestbench(new Module(
   { name: 'sub_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -61,7 +62,7 @@ const sub_tb = new Module(
   },
   {},
   tbBody
-)
+))
 sub_tb.addSignal('a', { width: 8, isSigned: false })
 sub_tb.addSignal('b', { width: 4, isSigned: false })
 sub_tb.addSubtractor({ a: 'a', b: 'b' })
@@ -126,7 +127,7 @@ const tbBodyS =
   end
 `
 
-const subS_tb = new Module(
+const subS_tb = markTestbench(new Module(
   { name: 'subS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -134,7 +135,7 @@ const subS_tb = new Module(
   },
   {},
   tbBodyS
-)
+))
 subS_tb.addSignal('a', { width: 4, isSigned: true })
 subS_tb.addSignal('b', { width: 8, isSigned: true })
 subS_tb.addSubtractor({ a: 'a', b: 'b' })
@@ -199,7 +200,7 @@ const tbBodyUS =
   end
 `
 
-const subUS_tb = new Module(
+const subUS_tb = markTestbench(new Module(
   { name: 'subUS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -207,7 +208,7 @@ const subUS_tb = new Module(
   },
   {},
   tbBodyUS
-)
+))
 subUS_tb.addSignal('a', { width: 8, isSigned: false })
 subUS_tb.addSignal('b', { width: 8, isSigned: true })
 subUS_tb.addSubtractor({ a: 'a', b: 'b' })
@@ -272,7 +273,7 @@ const tbBodySU =
   end
 `
 
-const subSU_tb = new Module(
+const subSU_tb = markTestbench(new Module(
   { name: 'subSU_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -280,7 +281,7 @@ const subSU_tb = new Module(
   },
   {},
   tbBodySU
-)
+))
 subSU_tb.addSignal('a', { width: 8, isSigned: true })
 subSU_tb.addSignal('b', { width: 8, isSigned: false })
 subSU_tb.addSubtractor({ a: 'a', b: 'b' })

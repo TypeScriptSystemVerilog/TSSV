@@ -37,6 +37,7 @@ import { type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { lintWrapper } from 'tssv/test/models/lintWrapper'
+import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
 
 const OUT_DIR = 'sv-examples/RegisterBlock_types'
@@ -431,6 +432,7 @@ function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): str
 \`timescale 1ns / 1ps
 
 module tb_${name};
+  ${TESTBENCH_MARKER}
   logic clk = 1'b0;
   logic rst_b = 1'b0;
   always #5 clk = ~clk;

@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addRound', { recursive: true })
@@ -45,7 +46,7 @@ const tbBody =
     end
 `
 
-const round_tb = new Module(
+const round_tb = markTestbench(new Module(
   { name: 'round_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -53,7 +54,7 @@ const round_tb = new Module(
   },
   {},
   tbBody
-)
+))
 round_tb.addSignal('in', { width: 8, isSigned: false })
 round_tb.addSignal('rounded', { width: 7, isSigned: false })
 round_tb.addRound({ in: 'in', out: 'rounded', rShift: 1 })
@@ -110,7 +111,7 @@ const tbBodyS =
     end
 `
 
-const roundS_tb = new Module(
+const roundS_tb = markTestbench(new Module(
   { name: 'roundS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -118,7 +119,7 @@ const roundS_tb = new Module(
   },
   {},
   tbBodyS
-)
+))
 roundS_tb.addSignal('in', { width: 4, isSigned: true })
 roundS_tb.addSignal('rounded', { width: 8, isSigned: true })
 roundS_tb.addRound({ in: 'in', out: 'rounded', rShift: 0 })
@@ -183,7 +184,7 @@ const tbBodyRS =
     end
 `
 
-const roundRS_tb = new Module(
+const roundRS_tb = markTestbench(new Module(
   { name: 'roundRS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -191,7 +192,7 @@ const roundRS_tb = new Module(
   },
   {},
   tbBodyRS
-)
+))
 roundRS_tb.addSignal('in', { width: 5 })
 roundRS_tb.addSignal('rounded', { width: 8 })
 roundRS_tb.addSignal('shift', { width: 4 })
@@ -257,7 +258,7 @@ endcase
 end
 `
 
-const roundD_tb = new Module(
+const roundD_tb = markTestbench(new Module(
   { name: 'roundD_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -265,7 +266,7 @@ const roundD_tb = new Module(
   },
   {},
   tbBodyD
-)
+))
 roundD_tb.addSignal('in', { width: 8, isSigned: true })
 roundD_tb.addSignal('rounded', { width: 9, isSigned: true })
 roundD_tb.addSignal('shift', { width: 4 })
@@ -331,7 +332,7 @@ endcase
 end
 `
 
-const roundZ_tb = new Module(
+const roundZ_tb = markTestbench(new Module(
   { name: 'roundZ_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -339,7 +340,7 @@ const roundZ_tb = new Module(
   },
   {},
   tbBodyZ
-)
+))
 roundZ_tb.addSignal('in', { width: 8, isSigned: true })
 roundZ_tb.addSignal('rounded', { width: 9, isSigned: true })
 roundZ_tb.addSignal('shift', { width: 4 })
@@ -405,7 +406,7 @@ endcase
 end
 `
 
-const roundU_tb = new Module(
+const roundU_tb = markTestbench(new Module(
   { name: 'roundU_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -413,7 +414,7 @@ const roundU_tb = new Module(
   },
   {},
   tbBodyU
-)
+))
 roundU_tb.addSignal('in', { width: 8, isSigned: true })
 roundU_tb.addSignal('rounded', { width: 9, isSigned: true })
 roundU_tb.addSignal('shift', { width: 4 })
@@ -488,7 +489,7 @@ endcase
 end
 `
 
-const roundE_tb = new Module(
+const roundE_tb = markTestbench(new Module(
   { name: 'roundE_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -496,7 +497,7 @@ const roundE_tb = new Module(
   },
   {},
   tbBodyE
-)
+))
 roundE_tb.addSignal('in', { width: 8, isSigned: true })
 roundE_tb.addSignal('rounded', { width: 9, isSigned: true })
 roundE_tb.addSignal('shift', { width: 4 })
@@ -572,7 +573,7 @@ endcase
 end
 `
 
-const roundA_tb = new Module(
+const roundA_tb = markTestbench(new Module(
   { name: 'roundA_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -580,7 +581,7 @@ const roundA_tb = new Module(
   },
   {},
   tbBodyA
-)
+))
 roundA_tb.addSignal('in', { width: 8, isSigned: true })
 roundA_tb.addSignal('rounded', { width: 9, isSigned: true })
 roundA_tb.addSignal('shift', { width: 4 })

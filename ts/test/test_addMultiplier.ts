@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addMultiplier', { recursive: true })
@@ -53,7 +54,7 @@ const tbBody =
     end
 `
 
-const mult_tb = new Module(
+const mult_tb = markTestbench(new Module(
   { name: 'mult_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -61,7 +62,7 @@ const mult_tb = new Module(
   },
   {},
   tbBody
-)
+))
 mult_tb.addSignal('a', { width: 8, isSigned: false })
 mult_tb.addSignal('b', { width: 4, isSigned: false })
 mult_tb.addMultiplier({ a: 'a', b: 'b' })
@@ -126,7 +127,7 @@ const tbBodyS =
     end
 `
 
-const multS_tb = new Module(
+const multS_tb = markTestbench(new Module(
   { name: 'multS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -134,7 +135,7 @@ const multS_tb = new Module(
   },
   {},
   tbBodyS
-)
+))
 multS_tb.addSignal('a', { width: 8, isSigned: true })
 multS_tb.addSignal('b', { width: 8, isSigned: true })
 multS_tb.addMultiplier({ a: 'a', b: 'b' })
@@ -204,7 +205,7 @@ const tbBodyUS =
   end
 `
 
-const multUS_tb = new Module(
+const multUS_tb = markTestbench(new Module(
   { name: 'multUS_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -212,7 +213,7 @@ const multUS_tb = new Module(
   },
   {},
   tbBodyUS
-)
+))
 
 multUS_tb.addSignal('a', { width: 8, isSigned: false })
 multUS_tb.addSignal('b', { width: 8, isSigned: true })
@@ -283,7 +284,7 @@ const tbBodySU =
   end
 `
 
-const multSU_tb = new Module(
+const multSU_tb = markTestbench(new Module(
   { name: 'multSU_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -291,7 +292,7 @@ const multSU_tb = new Module(
   },
   {},
   tbBodySU
-)
+))
 
 multSU_tb.addSignal('a', { width: 8, isSigned: true })
 multSU_tb.addSignal('b', { width: 8, isSigned: false })
@@ -334,7 +335,7 @@ const tbBodyB =
   end
 `
 
-const multB_tb = new Module(
+const multB_tb = markTestbench(new Module(
   { name: 'multB_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -342,7 +343,7 @@ const multB_tb = new Module(
   },
   {},
   tbBodyB
-)
+))
 
 multB_tb.addMultiplier({ a: 20n, b: 7n })
 multB_tb.addMultiplier({ a: -120n, b: -19n })
@@ -407,7 +408,7 @@ const tbBodyUB =
   end
 `
 
-const multUB_tb = new Module(
+const multUB_tb = markTestbench(new Module(
   { name: 'multUB_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -415,7 +416,7 @@ const multUB_tb = new Module(
   },
   {},
   tbBodyUB
-)
+))
 multUB_tb.addSignal('a', { width: 8, isSigned: false })
 multUB_tb.addMultiplier({ a: 'a', b: 50n })
 
@@ -477,7 +478,7 @@ const tbBodySB =
   end
 `
 
-const multSB_tb = new Module(
+const multSB_tb = markTestbench(new Module(
   { name: 'multUB_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -485,7 +486,7 @@ const multSB_tb = new Module(
   },
   {},
   tbBodySB
-)
+))
 multSB_tb.addSignal('a', { width: 8, isSigned: true })
 multSB_tb.addMultiplier({ a: 'a', b: -50n })
 

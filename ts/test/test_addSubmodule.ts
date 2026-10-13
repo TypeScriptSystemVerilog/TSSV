@@ -3,6 +3,7 @@ import { writeFileSync, mkdirSync } from 'fs'
 // import * as fs from 'fs'
 import { FIR } from 'tssv/lib/modules/FIR'
 import { Memory } from 'tssv/lib/interfaces/Memory'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addSubmodule', { recursive: true })
@@ -79,7 +80,7 @@ endcase
 end
 `
 
-const sub_tb = new Module(
+const sub_tb = markTestbench(new Module(
   { name: 'sub_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -87,7 +88,7 @@ const sub_tb = new Module(
   },
   {},
   tbBody
-)
+))
 sub_tb.addSignal('a', { width: 16, isSigned: true })
 sub_tb.addSignal('b', { width: 16, isSigned: true })
 sub_tb.addSignal('sum', { width: 18, isSigned: true })
@@ -176,7 +177,7 @@ endcase
 end
 `
 
-const subA_tb = new Module(
+const subA_tb = markTestbench(new Module(
   { name: 'subA_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -184,7 +185,7 @@ const subA_tb = new Module(
   },
   {},
   tbBodyA
-)
+))
 subA_tb.addSignal('a', { width: 8, isSigned: true })
 subA_tb.addSignal('b', { width: 8, isSigned: true })
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
@@ -250,7 +251,7 @@ endcase
 end
 `
 
-const subU_tb = new Module(
+const subU_tb = markTestbench(new Module(
   { name: 'subU_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -258,7 +259,7 @@ const subU_tb = new Module(
   },
   {},
   tbBodyU
-)
+))
 subU_tb.addSignal('a', { width: 8, isSigned: false })
 subU_tb.addSignal('b', { width: 8, isSigned: false })
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
@@ -280,7 +281,7 @@ try {
 const tbBodyC =
 `
 `
-const subC_tb = new Module(
+const subC_tb = markTestbench(new Module(
   { name: 'subC_t' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -288,7 +289,7 @@ const subC_tb = new Module(
   },
   {},
   tbBodyC
-)
+))
 subC_tb.addSubmodule('FIR', new FIR({ numTaps: 2, coefficients: [1n, 2n] }), {}, true, true, true)
 
 try {

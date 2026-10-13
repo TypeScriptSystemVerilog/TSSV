@@ -12,6 +12,7 @@
 // memory_slave_<type>_<DATA_WIDTH>_<ADDR_WIDTH> or memory_master_<type>_<DATA_WIDTH>_<ADDR_WIDTH>.
 // Used by ts/test/test_RegisterBlock_types.ts and ts/test/test_RegisterBlock_read.ts (TSSV#80).
 import { Memory, type Memory_Type } from 'tssv/lib/interfaces/Memory'
+import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
 
 export interface MemoryModelOptions {
   /** The bus's type. Default `bidi`. */
@@ -83,6 +84,7 @@ module ${name} #(
   input logic rst_b,
   ${iface}.inward bus
 );
+  ${TESTBENCH_MARKER}
   localparam int BYTES = ${dw / 8};
 
   logic [${dw - 1}:0] mem [DEPTH];
@@ -164,6 +166,7 @@ module ${name} (
   input logic clk,
   ${iface}.outward bus
 );
+  ${TESTBENCH_MARKER}
   int waits = 0;
 
   initial begin

@@ -1,5 +1,6 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addCombAlways', { recursive: true })
@@ -53,7 +54,7 @@ logic [15:0] count;
     end
 `
 
-const comb_tb = new Module(
+const comb_tb = markTestbench(new Module(
   { name: 'comb_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -61,7 +62,7 @@ const comb_tb = new Module(
   },
   {},
   tbBody
-)
+))
 comb_tb.addSignal('a', { width: 8, isSigned: false })
 comb_tb.addSignal('b', { width: 8, isSigned: false })
 const inArr: string[] = ['a', 'b']
@@ -93,7 +94,7 @@ const tbBodyN =
 `
 `
 
-const combN_tb = new Module(
+const combN_tb = markTestbench(new Module(
   { name: 'combN_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -101,7 +102,7 @@ const combN_tb = new Module(
   },
   {},
   tbBodyN
-)
+))
 
 combN_tb.addSignal('out', { width: 9, isSigned: false })
 const outArrN: string[] = ['out']

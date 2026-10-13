@@ -4,8 +4,9 @@ import { Memory } from 'tssv/lib/interfaces/Memory'
 import { writeFileSync, mkdirSync } from 'fs'
 import { inspect } from 'util'
 import diff from 'deep-diff'
+import { markTestbench } from 'tssv/test/models/testbench'
 
-const ramModule = new Module(
+const ramModule = markTestbench(new Module(
   { name: 'ram_32x32' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -36,9 +37,9 @@ const ramModule = new Module(
       end
   end
 `
-)
+))
 
-const romModule = new Module(
+const romModule = markTestbench(new Module(
   { name: 'rom_32x32' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -73,7 +74,7 @@ const romModule = new Module(
       end
   end
 `
-)
+))
 
 const myRegMap = {
   REG0: BigInt('0x00000000'),
@@ -205,14 +206,14 @@ const tbBody =
     end
 `
 
-const tb_testRegBlock = new Module(
+const tb_testRegBlock = markTestbench(new Module(
   { name: 'tb_testRegBlock' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
   },
   {},
-  tbBody)
+  tbBody))
 tb_testRegBlock.addSubmodule(
   'ram_inst',
   ramModule,
@@ -303,14 +304,14 @@ const tbBody2 =
   end
 `
 
-const tb_testRegBlock2 = new Module(
+const tb_testRegBlock2 = markTestbench(new Module(
   { name: 'tb_testRegBlock2' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
   },
   {},
-  tbBody2)
+  tbBody2))
 tb_testRegBlock2.addSubmodule(
   'ram_inst',
   ramModule,
@@ -416,14 +417,14 @@ always @(posedge clk or negedge rst_b) begin
 end
 `
 
-const tb_testRegBlock3 = new Module(
+const tb_testRegBlock3 = markTestbench(new Module(
   { name: 'tb_testRegBlock3' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
   },
   {},
-  tbBody3)
+  tbBody3))
 tb_testRegBlock3.addSubmodule(
   'ram_inst',
   ramModule,
@@ -515,14 +516,14 @@ always @(posedge clk or negedge rst_b) begin
 end
 `
 
-const tb_testRegBlock4 = new Module(
+const tb_testRegBlock4 = markTestbench(new Module(
   { name: 'tb_testRegBlock4' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
   },
   {},
-  tbBody4)
+  tbBody4))
 tb_testRegBlock4.addSubmodule(
   'ram_inst',
   ramModule,

@@ -1,6 +1,7 @@
 // import { Module, addRegister } from 'tssv/lib/core/TSSV'
 import { Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
+import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addRegister', { recursive: true })
@@ -46,7 +47,7 @@ const tbBody =
     end
 `
 
-const regMod = new Module(
+const regMod = markTestbench(new Module(
   { name: 'addRegister_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -54,7 +55,7 @@ const regMod = new Module(
   },
   {},
   tbBody
-)
+))
 regMod.addSignal('dSig', {})
 regMod.addRegister(
   {
@@ -116,7 +117,7 @@ const tbBody2 =
     end
 `
 
-const regMod2 = new Module(
+const regMod2 = markTestbench(new Module(
   { name: 'addRegisterWidth_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -124,7 +125,7 @@ const regMod2 = new Module(
   },
   {},
   tbBody2
-)
+))
 regMod2.addSignal('dSig2', { width: 4 })
 regMod2.addRegister(
   {
@@ -185,7 +186,7 @@ endcase
 end
 `
 
-const regMod3 = new Module(
+const regMod3 = markTestbench(new Module(
   { name: 'addRegisterReset_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -193,7 +194,7 @@ const regMod3 = new Module(
   },
   {},
   tbBody3
-)
+))
 regMod3.addSignal('dSig3', {})
 regMod3.addRegister(
   {
@@ -265,7 +266,7 @@ const tbBody4 =
     end
 `
 
-const regMod4 = new Module(
+const regMod4 = markTestbench(new Module(
   { name: 'addRegisterEn_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -273,7 +274,7 @@ const regMod4 = new Module(
   },
   {},
   tbBody4
-)
+))
 regMod4.addSignal('dSig4', { width: 8 })
 regMod4.addSignal('en', {})
 regMod4.addSignal('q', { width: 8 })
@@ -345,7 +346,7 @@ const tbBody5 =
     end
 `
 
-const regMod5 = new Module(
+const regMod5 = markTestbench(new Module(
   { name: 'addRegisterH_tb' },
   {
     clk: { direction: 'input', isClock: 'negedge' },
@@ -353,7 +354,7 @@ const regMod5 = new Module(
   },
   {},
   tbBody5
-)
+))
 regMod5.addSignal('dSig5', {})
 regMod5.addSignal('rst', { isReset: 'highasync' })
 regMod5.addRegister(
@@ -420,7 +421,7 @@ begin
 end
 `
 
-const regMod6 = new Module(
+const regMod6 = markTestbench(new Module(
   { name: 'addRegisterSync_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -428,7 +429,7 @@ const regMod6 = new Module(
   },
   {},
   tbBody6
-)
+))
 regMod6.addSignal('reset_sync', { isReset: 'lowsync' })
 regMod6.addSignal('d', {})
 regMod6.addRegister(
@@ -497,7 +498,7 @@ const tbBody7 =
     end
 `
 
-const regMod7 = new Module(
+const regMod7 = markTestbench(new Module(
   { name: 'addRegisterSyncH_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -505,7 +506,7 @@ const regMod7 = new Module(
   },
   {},
   tbBody7
-)
+))
 regMod7.addSignal('d', {})
 regMod7.addSignal('rst', { isReset: 'highsync' })
 regMod7.addRegister(
@@ -572,7 +573,7 @@ const tbBody8 =
     end
 `
 
-const regMod8 = new Module(
+const regMod8 = markTestbench(new Module(
   { name: 'addRegisterBW_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -580,7 +581,7 @@ const regMod8 = new Module(
   },
   {},
   tbBody8
-)
+))
 regMod8.addSignal('d', { width: 8 })
 regMod8.addSignal('q', { width: 4 })
 regMod8.addRegister(
