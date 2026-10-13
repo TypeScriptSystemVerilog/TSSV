@@ -20,6 +20,7 @@
 import { Module, type TSSVParameters } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { mkdirSync, writeFileSync } from 'fs'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 try { mkdirSync('sv-examples/Core/multiFileEmission', { recursive: true }) } catch (e) {}
 
@@ -108,6 +109,7 @@ const tbSV = tb.writeSystemVerilog({ exclude: defined })
 
 writeFileSync('sv-examples/Core/multiFileEmission/dut.sv', dutSV)
 writeFileSync('sv-examples/Core/multiFileEmission/tb.sv', tbSV)
+writeLintFilelist('sv-examples/Core/multiFileEmission', 'tb', ['dut.sv', 'tb.sv'], 'ts/test/test_multiFileEmission.ts')
 
 const inDut = definitions(dutSV)
 const inTb = definitions(tbSV)

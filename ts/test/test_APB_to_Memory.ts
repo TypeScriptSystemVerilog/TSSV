@@ -5,16 +5,20 @@
 // - apb_regblock_lint_top.sv: a wrapper that brings the block's APB and RAM ports out to flat
 //   ports, so the block can be linted with `verilator --lint-only -Wall`
 // - memory_models.sv: the slave model for the RAM window
+// - a lint filelist (.f) for the lint top, and one that lints memory_models.sv through the
+//   testbench that uses it, for `npm run lint:sv`
 //
 // `make -C verilatorTB apb_to_memory_sim` runs this, lints the block and simulates
 // verilatorTB/tb_APB_to_Memory.sv against it.
 import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { APB4 } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4'
 import { mkdirSync, writeFileSync } from 'fs'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { lintWrapper } from 'tssv/test/models/lintWrapper'
 import { memorySlaveModel } from 'tssv/test/models/MemoryModels'
 
 const OUT_DIR = 'sv-examples/APB_to_Memory'
+const GENERATOR = 'ts/test/test_APB_to_Memory.ts'
 
 const block = new RegisterBlock({ name: 'apb_regblock', busAddressWidth: 32 }, {
   wordSize: 32,
@@ -43,7 +47,11 @@ const block = new RegisterBlock({ name: 'apb_regblock', busAddressWidth: 32 }, {
 
 mkdirSync(OUT_DIR, { recursive: true })
 writeFileSync(`${OUT_DIR}/${block.name}.sv`, block.writeSystemVerilog())
-writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, 'ts/test/test_APB_to_Memory.ts'))
+writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, GENERATOR))
 // A slave model for the RAM window (TSSV#80)
 writeFileSync(`${OUT_DIR}/memory_models.sv`, memorySlaveModel({ type: 'bidi', dataWidth: 32 }))
 console.log(`wrote ${OUT_DIR}/${block.name}.sv, ${block.name}_lint_top.sv and memory_models.sv`)
+writeLintFilelist(OUT_DIR, `${block.name}_lint_top`, [`${block.name}.sv`, `${block.name}_lint_top.sv`], GENERATOR)
+writeLintFilelist(OUT_DIR, 'tb_APB_to_Memory', [
+  '../../verilatorTB/tb_APB_to_Memory.sv', `${block.name}.sv`, 'memory_models.sv'
+], GENERATOR)

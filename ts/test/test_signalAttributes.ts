@@ -16,6 +16,7 @@
  */
 import { Module, Interface, type SVAttributes } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 const outDir = 'sv-examples/Core/signalAttributes'
 try { mkdirSync(outDir, { recursive: true }) } catch (e) {}
@@ -166,6 +167,7 @@ const childSV = new Child().writeSystemVerilog({ defined })
 const parentSV = new Parent().writeSystemVerilog({ exclude: defined })
 writeFileSync(`${outDir}/attr_child.sv`, childSV)
 writeFileSync(`${outDir}/attr_parent.sv`, parentSV)
+writeLintFilelist(outDir, 'attr_parent', ['attr_child.sv', 'attr_parent.sv'], 'ts/test/test_signalAttributes.ts')
 check('Test 5: the child keeps its port attribute',
   lines(childSV).includes('(* mark_debug = "true" *) input logic [7:0] din,'))
 check('Test 5: the created parent signal has no attributes',

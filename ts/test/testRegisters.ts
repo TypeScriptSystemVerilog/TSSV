@@ -189,7 +189,7 @@ const tbBody =
             end
             'd7: begin
                regs.WE <= 0;
-               MEM0_rdata <= 32'hAABBCCDD;
+               MEM0.DATA_RD <= 32'hAABBCCDD;
                regs.RE <= 1;
             end
             'd8: begin
@@ -385,7 +385,7 @@ always @(posedge clk or negedge rst_b) begin
       end
       'd5: begin
         regs.WE <= 0;
-        MEM1_rdata <= 32'hBADC0DE;
+        MEM1.DATA_RD <= 32'hBADC0DE;
         regs.RE <= 1;
       end
       'd6: begin
