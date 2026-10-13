@@ -1,4 +1,4 @@
-// Shared helpers for the doc/rtl-style checks: the Verilator pin, linting and simulation.
+// Shared helpers for the doc/rtl-style checks of both guides: the Verilator pin, linting and simulation.
 
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
