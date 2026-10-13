@@ -2,8 +2,6 @@
 // check-generated-sv.mjs). Each scan returns a list of findings for one SV file.
 
 export const SCANS = {
-  'COMB-9': (sv) => [...sv.matchAll(/\b(always_comb|always_ff\s*@\([^)]*\)|always_latch|always\s*@\([^)]*\))(?!\s*begin\s*:)/g)]
-    .map((m) => `unnamed always block: "${m[1].replace(/\s+/g, ' ')}"`),
   'SYN-1': (sv) => [
     ...[...sv.matchAll(/^\s*(initial|force|release|casex)\b/gm)].map((m) => `testbench-only construct "${m[1]}"`),
     ...[...sv.matchAll(/(?<![\w'])#\s*\d/g)].map(() => 'delay "#"'),

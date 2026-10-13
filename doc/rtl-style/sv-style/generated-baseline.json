@@ -5,7 +5,6 @@
   },
   "findings": {
     "sv-examples/APB_to_Memory/apb_regblock.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 9,
       "LINT-1 DECLFILENAME: Filename 'apb_regblock' does not match IFACE name: 'APB4_32_32'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
@@ -17,7 +16,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/APB_to_Memory/memory_models.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 1,
@@ -28,8 +26,6 @@
       "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'mem'": 1
     },
     "sv-examples/Core/Registers/tb_testRegBlock.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 11,
       "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock' does not match MODULE name: 'ram_32x32'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
@@ -50,8 +46,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
     },
     "sv-examples/Core/Registers/tb_testRegBlock2.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 11,
       "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock2' does not match MODULE name: 'ram_32x32'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
@@ -72,8 +66,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
     },
     "sv-examples/Core/Registers/tb_testRegBlock3.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 11,
       "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock3' does not match MODULE name: 'ram_32x32'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'REG1'": 1,
@@ -93,8 +85,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
     },
     "sv-examples/Core/Registers/tb_testRegBlock4.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 11,
       "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock4' does not match MODULE name: 'ram_32x32'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'READY'": 1,
@@ -115,7 +105,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 4
     },
     "sv-examples/Core/addAdder/addB_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -124,7 +113,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAdder/addSU_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -133,7 +121,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAdder/addS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -142,7 +129,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAdder/addUS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -151,7 +137,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAdder/add_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -160,14 +145,11 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAlways/comb_seq_test.sv": {
-      "COMB-9 unnamed always block: \"always @(a or b)\"": 2,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 2,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'en'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAssign/assignAdd_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -176,7 +158,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAssign/assignM_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -185,7 +166,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addAssign/assign_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -204,22 +184,18 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addBody/test_engine_default.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addBody/test_equiv_addBody.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addBody/test_equiv_ref.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addBody/test_normalize.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
@@ -237,8 +213,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addCombAlways/comb_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(a or b)\"": 1,
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -247,7 +221,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/multB_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -256,7 +229,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/multSB_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -265,7 +237,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/multSU_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -274,7 +245,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/multS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -283,7 +253,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/multUB_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -292,7 +261,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/multUS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -301,7 +269,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMultiplier/mult_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -310,8 +277,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMux/muxD_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_comb\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -320,8 +285,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMux/muxE_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_comb\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -330,8 +293,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMux/muxS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_comb\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -340,8 +301,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addMux/mux_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_comb\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -350,8 +309,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -360,8 +317,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod2.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -370,8 +325,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod3.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -380,8 +333,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod4.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -390,9 +341,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod5.sv": {
-      "COMB-9 unnamed always block: \"always @(negedge clk or posedge rst)\"": 1,
-      "COMB-9 unnamed always block: \"always_comb\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(negedge clk or posedge rst)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -401,8 +349,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod6.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -411,8 +357,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod7.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -421,8 +365,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRegister/regMod8.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -431,7 +373,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundA_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -440,7 +381,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundD_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -449,7 +389,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundE_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -458,7 +397,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundRS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -467,7 +405,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -476,7 +413,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundU_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -485,7 +421,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/roundZ_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -494,7 +429,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addRound/round_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -503,7 +437,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSaturate/saturateBS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -512,7 +445,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSaturate/saturateB_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -521,7 +453,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSaturate/saturateNS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -530,7 +461,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSaturate/saturateN_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -539,7 +469,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSaturate/saturateS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -548,7 +477,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSaturate/saturate_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -557,8 +485,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSequentialAlways/seq_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -567,7 +493,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSubmodule/subA_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -576,7 +501,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/Core/addSubmodule/subI_tb.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 4,
       "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_WR'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
@@ -588,7 +512,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
     },
     "sv-examples/Core/addSubmodule/subU_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -597,7 +520,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/Core/addSubmodule/sub_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -606,7 +528,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/Core/addSubtractor/subSU_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -615,7 +536,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSubtractor/subS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -624,7 +544,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSubtractor/subUS_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -633,7 +552,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/addSubtractor/sub_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -642,7 +560,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/import/import_tb.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
@@ -706,7 +623,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/signalAttributes/attr_demo.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 2,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
@@ -715,7 +631,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/test1/test1.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'test1' does not match IFACE name: 'TL_UL_4_32_2_8_8'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_address'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_corrupt'": 1,
@@ -749,26 +664,21 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/test1/testMem1.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'testMem1' does not match MODULE name: 'testMem_8_32'": 1,
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[5]": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/verible/missing_binary_fallback.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'missing_binary_fallback' does not match MODULE name: 'sample'": 1
     },
     "sv-examples/Core/verible/sample_formatted.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'sample_formatted' does not match MODULE name: 'sample'": 1
     },
     "sv-examples/Core/verible/timeout_fallback.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'timeout_fallback' does not match MODULE name: 'sample'": 1
     },
     "sv-examples/FIR/myFIR3/myFIR3.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 15,
       "LINT-1 DECLFILENAME: Filename 'myFIR3' does not match IFACE name: 'AXI4Stream_32_4_0_4'": 1,
       "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
       "LINT-1 UNDRIVEN: Bits of signal are not driven: 'WSTRB'[0]": 1,
@@ -786,8 +696,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/FIR/myFIR3/tb_lpFIR.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 15,
       "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
       "LINT-1 UNDRIVEN: Bits of signal are not driven: 'WSTRB'[0]": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
@@ -916,7 +824,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/LZC/LZC_21/LZC_21.sv": {
-      "COMB-9 unnamed always block: \"always_latch\"": 1,
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'tmp_zero_num'[5]": 1,
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
@@ -924,7 +831,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/LZC/LZC_28/LZC_28.sv": {
-      "COMB-9 unnamed always block: \"always_latch\"": 1,
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'tmp_zero_num'[5]": 1,
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
@@ -932,65 +838,53 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/LZC/LZC_64/LZC_64.sv": {
-      "COMB-9 unnamed always block: \"always_latch\"": 1,
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_16_6_normal_array_test/ROM_16_6_normal_array_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_25_4_big_InitialFile8_NonMul8_test/ROM_25_4_big_InitialFile8_NonMul8_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_31_16_uint8array_NonMul8_test/ROM_31_16_uint8array_NonMul8_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_32_4_big_InitialFile8_test/ROM_32_4_big_InitialFile8_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_32_4_little_InitialFile8_test/ROM_32_4_little_InitialFile8_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_32_4_uint8array_little_test/ROM_32_4_uint8array_little_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_32_5_uint8array_big_test/ROM_32_5_uint8array_big_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_32_big_interal/ROM_32_big_interal.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/ROM/ROM_32_big_split2two/ROM_32_big_split2two.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 3,
       "LINT-1 DECLFILENAME: Filename 'ROM_32_big_split2two' does not match MODULE name: 'ROM_32_big_split2two_lower'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 3,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
     },
     "sv-examples/ROM/ROM_9_5_normal_array_test/ROM_9_5_normal_array_test.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/RegisterBlock_read/memory_models.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 3,
       "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 3,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 3,
@@ -1002,19 +896,16 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'writes'": 1
     },
     "sv-examples/RegisterBlock_read/regblock_read32.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 14,
       "LINT-1 DECLFILENAME: Filename 'regblock_read32' does not match IFACE name: 'memory_bidi_32_32'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/RegisterBlock_read/regblock_read64.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 7,
       "LINT-1 DECLFILENAME: Filename 'regblock_read64' does not match IFACE name: 'memory_bidi_64_32'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/RegisterBlock_types/memory_models.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 4,
       "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_master_bidi_32_32'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 4,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 4,
@@ -1026,121 +917,86 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'writes'": 2
     },
     "sv-examples/RegisterBlock_types/regblock_types32.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 16,
       "LINT-1 DECLFILENAME: Filename 'regblock_types32' does not match IFACE name: 'memory_bidi_32_32'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/RegisterBlock_types/regblock_types64.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 10,
       "LINT-1 DECLFILENAME: Filename 'regblock_types64' does not match IFACE name: 'memory_bidi_64_32'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/RegisterBlock_types/tb_regblock_types32.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk)\"": 2,
       "LINT-1 BLKSEQ: Blocking assignment '=' in sequential logic process": 2,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'CMD_we_count'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'GO_we_count'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'clk'": 1
     },
     "sv-examples/RegisterBlock_types/tb_regblock_types64.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk)\"": 1,
       "LINT-1 BLKSEQ: Blocking assignment '=' in sequential logic process": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'CMD_we_count'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'clk'": 1
     },
     "sv-examples/SFIFO/SFIFO_1026_4_true_true_true/SFIFO_1026_4_true_true_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_1026_4_true_true_true' does not match MODULE name: 'SFIFO_1026_4_true_true_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_1_true_false_false/SFIFO_8_1_true_false_false.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/SFIFO/SFIFO_8_4_false_false_false/SFIFO_8_4_false_false_false.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_4_false_false_false' does not match MODULE name: 'SFIFO_8_4_false_false_false_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_4_true_true_true/SFIFO_8_4_true_true_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_4_true_true_true' does not match MODULE name: 'SFIFO_8_4_true_true_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_false_false_false/SFIFO_8_5_false_false_false.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_false_false' does not match MODULE name: 'SFIFO_8_5_false_false_false_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_false_false_true/SFIFO_8_5_false_false_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_false_true' does not match MODULE name: 'SFIFO_8_5_false_false_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_false_true_false/SFIFO_8_5_false_true_false.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_true_false' does not match MODULE name: 'SFIFO_8_5_false_true_false_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_false_true_true/SFIFO_8_5_false_true_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_true_true' does not match MODULE name: 'SFIFO_8_5_false_true_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_true_false_false/SFIFO_8_5_true_false_false.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_false_false' does not match MODULE name: 'SFIFO_8_5_true_false_false_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_true_false_true/SFIFO_8_5_true_false_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_false_true' does not match MODULE name: 'SFIFO_8_5_true_false_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_true_true_false/SFIFO_8_5_true_true_false.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_true_false' does not match MODULE name: 'SFIFO_8_5_true_true_false_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_5_true_true_true/SFIFO_8_5_true_true_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_true_true' does not match MODULE name: 'SFIFO_8_5_true_true_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
     },
     "sv-examples/SFIFO/SFIFO_8_8_true_true_true/SFIFO_8_8_true_true_true.sv": {
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk )\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @( posedge clk or negedge rst_n )\"": 1,
       "LINT-1 DECLFILENAME: Filename 'SFIFO_8_8_true_true_true' does not match MODULE name: 'SFIFO_8_8_true_true_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 2,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 2
@@ -1150,52 +1006,38 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/SRAM/SRAM_1026_4_1rw_none_undefOnWrite_default/SRAM_1026_4_1rw_none_undefOnWrite_default.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/SRAM/SRAM_32_256_1r_1w_byte_readBeforeWrite_default/SRAM_32_256_1r_1w_byte_readBeforeWrite_default.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/SRAM/SRAM_8_32_1rw_bit_undefOnWrite_default/SRAM_8_32_1rw_bit_undefOnWrite_default.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/SRAM/SRAM_8_32_2rw_bit_undefOnWrite_default/SRAM_8_32_2rw_bit_undefOnWrite_default.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 2,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/TwoClockRegFile/TwoClockRegFile_1026_32/TwoClockRegFile_1026_32.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge a_clk)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge b_clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/TwoClockRegFile/TwoClockRegFile_8_4/TwoClockRegFile_8_4.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge a_clk)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge b_clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/TwoClockRegFile/TwoClockRegFile_8_4_block/TwoClockRegFile_8_4_block.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge a_clk)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge b_clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/TwoClockRegFile/TwoClockRegFile_8_4_distributed/TwoClockRegFile_8_4_distributed.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge a_clk)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge b_clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/TwoClockRegFile/TwoClockRegFile_8_5/TwoClockRegFile_8_5.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge a_clk)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge b_clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
@@ -1204,12 +1046,10 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/build3_do.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/build3_group.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
@@ -1222,37 +1062,30 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/ident1_do.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/mod4_do.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/param3_do.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/seq5_highasync.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or posedge rst)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/seq5_highsync.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/seq5_lowasync.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/rtl_style/seq5_lowsync.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
@@ -1276,8 +1109,6 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/test_APB_Registers_output/tb_apb_reg_block.sv": {
-      "COMB-9 unnamed always block: \"always @(posedge clk or negedge rst_b)\"": 1,
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 3,
       "LINT-1 DECLFILENAME: Filename 'tb_apb_reg_block' does not match IFACE name: 'APB4_32_32'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'STATUS'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'PCLKEN'": 1,
@@ -1295,13 +1126,11 @@
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
     },
     "sv-examples/test_RWU/status_block_hw_priority.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 3,
       "LINT-1 DECLFILENAME: Filename 'status_block_hw_priority' does not match IFACE name: 'memory_bidi_32_32'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/test_RWU/status_block_sw_priority.sv": {
-      "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_b)\"": 3,
       "LINT-1 DECLFILENAME: Filename 'status_block_sw_priority' does not match IFACE name: 'memory_bidi_32_32'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1

@@ -8,10 +8,8 @@
   "COMB-7": { "movedTo": "BUILD-4" },
   "COMB-8": { "movedTo": "BUILD-2" },
   "COMB-9": {
-    "checks": ["lint", "generated"],
-    "known": [
-      { "match": "unnamed always block: \"always_ff", "why": "addRegister emits its always_ff without a begin : name label", "issue": "#59" }
-    ]
+    "checks": ["lint", "review"],
+    "reason": "Verilator doesn't flag an unnamed block, and the builders emit unnamed blocks: for a SHOULD, labelling them isn't worth the retrofit (#145)."
   },
   "SEQ-1": { "checks": ["lint"] },
   "SEQ-2": {

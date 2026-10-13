@@ -29,7 +29,7 @@ doc/rtl-style/sv-style/
     check-rules.mjs             rule coverage, simulation examples, doc/file consistency
     check-width-examples.mjs    width examples: lint and exact arithmetic at 5 widths
     check-builder-examples.mjs  builder checks for both guides, and the SV they generate
-    sv-scans.mjs                text checks on generated SV (COMB-9, SYN-1, LINT-3)
+    sv-scans.mjs                text checks on generated SV (SYN-1, LINT-3)
     check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/, against the baseline
 doc/rtl-style/tools/
   check-rtl-style.mjs   runs every check of both guides
@@ -82,7 +82,7 @@ Other fields:
 
 `npm run check:generated-sv` (`tools/check-generated-sv.mjs`) runs the `generated` checks on
 everything the test scripts write under `sv-examples/`: `verilator --lint-only -Wall`
-(LINT-1) and the scans in `tools/sv-scans.mjs` (COMB-9, SYN-1, LINT-3). Run it after
+(LINT-1) and the scans in `tools/sv-scans.mjs` (SYN-1, LINT-3). Run it after
 `bash runAllTests.sh` and before `npm run check:rtl-style`, as CI does: the TSSV guide's TEST-1
 example writes an SFIFO configuration of its own into `sv-examples/`. Nothing cleans
 `sv-examples/`, so the check also sees what an older version of a test, or another script,
@@ -96,9 +96,9 @@ finding and how many times it occurs. A finding is its rule and message, with no
 so an edit elsewhere in the file doesn't change it:
 
 ```json
-"sv-examples/SFIFO/SFIFO_8_1_true_false_false/SFIFO_8_1_true_false_false.sv": {
-  "COMB-9 unnamed always block: \"always_ff @(posedge clk or negedge rst_n)\"": 1,
-  "COMB-9 unnamed always block: \"always_ff @(posedge clk)\"": 1,
+"sv-examples/LZC/LZC_64/LZC_64.sv": {
+  "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
+  "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
   "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
   "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
 }

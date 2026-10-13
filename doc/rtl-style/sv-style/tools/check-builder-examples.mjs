@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Run the TSSV builder checks (ts/test/rtl_style/test_rtl_style_builders.ts), then check
 // the SV they generate: it must lint clean under -Wall and pass the generated-SV rules
-// (COMB-9, SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's
+// (SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's
 // rules.json entry must list "builder". Exits 0 if everything passes, 1 otherwise.
 //
 // Known framework violations (rules.json "known") are reported but don't fail the run.
