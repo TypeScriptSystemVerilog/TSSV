@@ -1,4 +1,4 @@
-import { Module, type TSSVParameters } from 'tssv/lib/core/TSSV'
+import { Module, Expr, type TSSVParameters } from 'tssv/lib/core/TSSV'
 
 /**
  * configuration parameters of the TwoClockRegFile module
@@ -60,6 +60,7 @@ export class TwoClockRegFile extends Module {
       b_data_out: { direction: 'output', width: dataWidth }
     }
 
+    // storage: written on a_clk, no reset
     this.addSignal('mem', {
       width: dataWidth,
       isArray: depth,
@@ -74,11 +75,7 @@ export class TwoClockRegFile extends Module {
     `)
 
     // read port: b_clk domain, registered
-    this.addSequentialAlways({ clk: 'b_clk', outputs: ['b_data_out'] }, `
-    begin
-        if (b_re) b_data_out <= mem[b_addr];
-    end
-    `)
+    this.addRegister({ d: new Expr('mem[b_addr]'), clk: 'b_clk', en: 'b_re', q: 'b_data_out' })
   }
 }
 
