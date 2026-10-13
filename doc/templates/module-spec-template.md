@@ -134,7 +134,7 @@ _Describe the sub-blocks and how data flows between them. A simple list is fine 
 
 ## Test Plan
 
-**Test script:** `ts/test/test_<ModuleName>.ts`
+**Test script:** `ts/test/modules/test_<ModuleName>.ts`
 **Output:** `sv-examples/<ModuleName>/<instanceName>/`
 
 | Test case | Inputs | Expected output | Notes |
@@ -147,7 +147,7 @@ _Describe the sub-blocks and how data flows between them. A simple list is fine 
 ### Simulation
 
 ```bash
-npx tsc && node out/test/test_<ModuleName>.js
+npx tsc && node out/test/modules/test_<ModuleName>.js
 cd verilatorTB
 make VERILOG_FILE=../sv-examples/<ModuleName>/<instanceName>/tb_<ModuleName>.sv \
      TOP_MODULE=Vtb_<ModuleName>
