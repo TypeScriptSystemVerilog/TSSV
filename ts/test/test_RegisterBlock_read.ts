@@ -6,16 +6,21 @@
 // - <block>_lint_top.sv for each: a wrapper that drives the block's bus from ports, so the
 //   block can be linted with `verilator --lint-only -Wall`. A module with an interface port
 //   can't be the top on its own: nothing would drive the interface
+// - memory_models.sv: slave models for the RAM and ROM windows
+// - a lint filelist (.f) for each lint top, and one that lints memory_models.sv through the
+//   testbench that uses it, for `npm run lint:sv`
 //
 // `make -C verilatorTB regblock_read_sim` runs this, lints both blocks and simulates
 // verilatorTB/tb_RegisterBlock_read.sv against them.
 import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { mkdirSync, writeFileSync } from 'fs'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { lintWrapper } from 'tssv/test/models/lintWrapper'
 import { memorySlaveModel } from 'tssv/test/models/MemoryModels'
 
 const OUT_DIR = 'sv-examples/RegisterBlock_read'
+const GENERATOR = 'ts/test/test_RegisterBlock_read.ts'
 
 const block32 = new RegisterBlock({ name: 'regblock_read32', busAddressWidth: 32 }, {
   wordSize: 32,
@@ -66,7 +71,8 @@ const block64 = new RegisterBlock({ name: 'regblock_read64', busAddressWidth: 32
 mkdirSync(OUT_DIR, { recursive: true })
 for (const block of [block32, block64]) {
   writeFileSync(`${OUT_DIR}/${block.name}.sv`, block.writeSystemVerilog())
-  writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, 'ts/test/test_RegisterBlock_read.ts'))
+  writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, GENERATOR))
+  writeLintFilelist(OUT_DIR, `${block.name}_lint_top`, [`${block.name}.sv`, `${block.name}_lint_top.sv`], GENERATOR)
   console.log(`wrote ${OUT_DIR}/${block.name}.sv and ${block.name}_lint_top.sv`)
 }
 // Slave models for the RAM and ROM windows (TSSV#80)
@@ -76,3 +82,6 @@ writeFileSync(`${OUT_DIR}/memory_models.sv`, [
   memorySlaveModel({ type: 'bidi', dataWidth: 64 })
 ].join('\n'))
 console.log(`wrote ${OUT_DIR}/memory_models.sv`)
+writeLintFilelist(OUT_DIR, 'tb_RegisterBlock_read', [
+  '../../verilatorTB/tb_RegisterBlock_read.sv', 'regblock_read32.sv', 'regblock_read64.sv', 'memory_models.sv'
+], GENERATOR)

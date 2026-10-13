@@ -7,6 +7,7 @@
 //   width, field range, reset value and expected wait-state count it checks comes from there
 // - memory_models.sv: the Memory master BFM and slave models the testbenches use
 //   (ts/test/models/MemoryModels.ts)
+// - a lint filelist (.f) for each lint top and each testbench, for `npm run lint:sv`
 //
 // The testbench drives `regs` with the master BFM and serves each RAM/ROM window with a slave
 // model. It checks, for each type:
@@ -34,6 +35,7 @@ import { RegisterBlock, RegisterType, type RegisterBlockDef } from 'tssv/lib/cor
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { lintWrapper } from 'tssv/test/models/lintWrapper'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
 
@@ -509,6 +511,8 @@ for (const { block, def } of blocks) {
   writeFileSync(`${OUT_DIR}/${block.name}.sv`, block.writeSystemVerilog())
   writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, GENERATOR))
   writeFileSync(`${OUT_DIR}/tb_${block.name}.sv`, testbench(block, def))
+  writeLintFilelist(OUT_DIR, `${block.name}_lint_top`, [`${block.name}.sv`, `${block.name}_lint_top.sv`], GENERATOR)
+  writeLintFilelist(OUT_DIR, `tb_${block.name}`, [`tb_${block.name}.sv`, `${block.name}.sv`, 'memory_models.sv'], GENERATOR)
   const dataWidth = def.wordSize as 32 | 64
   models.set(memoryMasterName({ dataWidth }), memoryMasterBfm({ dataWidth }))
   for (const type of ['bidi', 'rd_only'] as const) models.set(memorySlaveName({ type, dataWidth }), memorySlaveModel({ type, dataWidth }))
