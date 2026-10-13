@@ -12,6 +12,7 @@ ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRA
 ts/src/interfaces/    Signal-bundle definitions — AMBA 2–5 (100+ specs), TileLink, Memory
 ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_convert
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
+ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM) and a lint wrapper
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script

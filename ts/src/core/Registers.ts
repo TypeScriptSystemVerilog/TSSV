@@ -30,6 +30,21 @@ interface Register {
   fields?: Record<string, Field>
   /** RWU only: which update source wins when both assert in the same cycle. Default 'hw'. */
   updatePriority?: 'hw' | 'sw'
+  /** RO only: no input port; the register reads its `reset`, or each field's `reset`. */
+  constant?: boolean
+  /** RAM/ROM only: drive the window's request from flops. Default true. */
+  registerRequest?: boolean
+  /** RAM/ROM only: return the window's response through flops. Default true. */
+  registerResponse?: boolean
+}
+
+/** A RAM/ROM window's response, for the read path: when it is ready and what it returns. */
+interface WindowResponse {
+  regName: string
+  /** High unless the window has an access in flight. */
+  ready: string
+  /** The window's read data. */
+  data: string
 }
 
 export class RegAddr {
@@ -78,8 +93,11 @@ function ralfAccessType (type: RegisterType): string {
  *
  * `regs` follows the {@link Memory} contract, which has the timing diagrams. A register access
  * has no wait states: `READY` stays high, and read data is captured on the clock edge after the
- * `RE` pulse and held until the next request. After an access to a `RAM`/`ROM` window,
- * `DATA_RD` comes from the window instead.
+ * `RE` pulse and held until the next request. An access to a `RAM`/`ROM` window goes out on the
+ * window's own outward `Memory` port and completes when the memory behind it raises `READY`.
+ * It adds one wait state for each of the window's `registerRequest` and `registerResponse` flops
+ * that is on (both are by default). `doc/framework/registers.md` §3 has the port list of every
+ * register type.
  *
  * @noInheritDoc
  */
@@ -129,45 +147,35 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
     }
 
     // Create signals and logic for registers
+    const windows: WindowResponse[] = []
     for (const reg in this.regDefs.addrMap) {
       const regName = reg
       const baseAddr = this.regDefs.addrMap[regName]
-      const matchExpr = this.addSignal(`${regName}_matchExpr`, { width: 1 })
       const thisReg = this.resolveRegister(regName)
+      this.checkRegister(regName, thisReg)
+      const isWindow = thisReg.type === RegisterType.RAM || thisReg.type === RegisterType.ROM
+      const matchExpr = this.addSignal(`${regName}_matchExpr`, { width: 1 })
+      this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr, isWindow ? thisReg.size : undefined)), out: matchExpr })
+
+      // The read and write decodes, for the types that are read or written
+      if (thisReg.type !== RegisterType.WO) {
+        const rdHit = this.addSignal(`${regName}_rd_hit`, { width: 1 })
+        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: rdHit })
+      }
+      if (thisReg.type !== RegisterType.RO && thisReg.type !== RegisterType.ROM) {
+        const wrHit = this.addSignal(`${regName}_wr_hit`, { width: 1 })
+        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: wrHit })
+      }
 
       if (thisReg.type === RegisterType.RW) {
         const wstrbWidth = (params.busAddressWidth || 8) / 8
         const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
 
-        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
-
-        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
-        const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig })
-
         // new code
         this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
 
         if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-          Object.keys(thisReg.fields).forEach((fieldName, index) => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const field = thisReg.fields![fieldName]
-            const fieldSigName = `${regName}_field${index}`
-            this.IOs[fieldSigName] = {
-              direction: 'output',
-              width: field.bitRange[0] - field.bitRange[1] + 1,
-              isSigned: field.isSigned
-            }
-            this.addRegister({
-              d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
-              clk: 'clk',
-              reset: 'rst_b',
-              q: fieldSigName,
-              en: `${regName}_WE && ${wstrb.toString()}`, // added && ${wstrb.toString()}
-              resetVal: field.reset || 0n
-            })
-          })
+          this.addFieldRegisters(regName, thisReg.fields, wstrb.toString())
         } else {
           this.IOs[regName.toString()] = {
             direction: 'output',
@@ -184,7 +192,7 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
             clk: 'clk',
             reset: 'rst_b',
             q: regName.toString(),
-            en: `${regName}_WE`,
+            en: `${regName}_wr_hit`,
             resetVal: thisReg.reset || 0n
           })
         }
@@ -192,20 +200,14 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         const width = thisReg.width || regDefs.wordSize
         const resetHex = (thisReg.reset ?? 0n).toString(16)
 
-        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
-        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
-        const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig })
-
         this.IOs[regName] = { direction: 'output', width, isSigned: thisReg.isSigned, type: 'reg' }
         this.IOs[`${regName}_hw_update`] = { direction: 'input', width: 1 }
         this.IOs[`${regName}_hw_update_val`] = { direction: 'input', width, isSigned: thisReg.isSigned }
 
         const hwFirst = (thisReg.updatePriority ?? 'hw') === 'hw'
-        const firstCond = hwFirst ? `${regName}_hw_update` : `${regName}_WE`
+        const firstCond = hwFirst ? `${regName}_hw_update` : `${regName}_wr_hit`
         const firstVal = hwFirst ? `${regName}_hw_update_val` : `regs.DATA_WR[${width - 1}:0]`
-        const secondCond = hwFirst ? `${regName}_WE` : `${regName}_hw_update`
+        const secondCond = hwFirst ? `${regName}_wr_hit` : `${regName}_hw_update`
         const secondVal = hwFirst ? `regs.DATA_WR[${width - 1}:0]` : `${regName}_hw_update_val`
         this.body += `
 always_ff @( posedge clk or negedge rst_b )
@@ -217,128 +219,158 @@ always_ff @( posedge clk or negedge rst_b )
     ${regName} <= ${secondVal};
 `
       } else if (thisReg.type === RegisterType.RO) {
-        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
-
-        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
-        this.IOs[regName.toString()] = {
-          direction: 'output',
-          width: thisReg.width || regDefs.wordSize,
-          isSigned: thisReg.isSigned
+        // A constant RO has no port: the read path returns its reset value
+        if (thisReg.constant !== true) {
+          if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
+            Object.values(thisReg.fields).forEach((field, index) => {
+              this.IOs[`${regName}_field${index}`] = {
+                direction: 'input',
+                width: field.bitRange[0] - field.bitRange[1] + 1,
+                isSigned: field.isSigned
+              }
+            })
+          } else {
+            this.IOs[regName] = {
+              direction: 'input',
+              width: thisReg.width || regDefs.wordSize,
+              isSigned: thisReg.isSigned
+            }
+          }
         }
       } else if (thisReg.type === RegisterType.WO) {
-        const wstrbWidth = (params.busAddressWidth || 8) / 8
-        const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
-
-        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr)), out: matchExpr })
-        this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
-
-        const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig })
-        this.IOs[regName.toString()] = {
-          direction: 'output',
-          width: thisReg.width || regDefs.wordSize,
-          isSigned: thisReg.isSigned
+        if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
+          const wstrb = this.addSignal(`${regName}_wstrb`, { width: (params.busAddressWidth || 8) / 8 })
+          this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
+          this.addFieldRegisters(regName, thisReg.fields, wstrb.toString())
+        } else {
+          const width = thisReg.width || regDefs.wordSize
+          this.IOs[regName] = { direction: 'output', width, isSigned: thisReg.isSigned }
+          this.addRegister({
+            d: width < regDefs.wordSize ? new Expr(`regs.DATA_WR[${width - 1}:0]`) : 'regs.DATA_WR',
+            clk: 'clk',
+            reset: 'rst_b',
+            q: regName,
+            en: `${regName}_wr_hit`,
+            resetVal: thisReg.reset ?? 0n
+          })
         }
-        this.addAssign({ in: new Expr('regs.DATA_WR'), out: regName.toString() })
-      } else if (thisReg.type === RegisterType.ROM) {
-        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr, thisReg.size)), out: matchExpr })
-        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
-        const ROM_ADDR = this.addSignal(`${regName}_ADDR`, { width: params.busAddressWidth })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
-        this.addAssign({ in: new Expr('regs.ADDR'), out: ROM_ADDR })
-        this.IOs[`${regName}_rdata`] = { // changed from input
-          direction: 'output',
-          width: thisReg.width || regDefs.wordSize,
-          isSigned: thisReg.isSigned
-        }
-        this.IOs[`${regName}_re`] = {
-          direction: 'output',
-          width: 1
-        }
-        this.IOs[`${regName}_ready`] = {
-          direction: 'output',
-          width: 1
-        }
-        this.addRegister({
-          d: 'regs.READY',
-          clk: 'clk',
-          reset: 'rst_b',
-          en: 'regs.WE',
-          q: `${regName}_ready`
-        })
-      } else if (thisReg.type === RegisterType.RAM) {
-        this.addAssign({ in: new Expr(this.decodeExpr(regName, baseAddr, thisReg.size)), out: matchExpr })
-        const RAM_ADDR = this.addSignal(`${regName}_ADDR`, { width: params.busAddressWidth })
-        const RE_Sig = this.addSignal(`${regName}_RE`, { width: 1 })
-        const WE_Sig = this.addSignal(`${regName}_WE`, { width: 1 })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.RE`), out: RE_Sig })
-        this.addAssign({ in: new Expr(`${matchExpr.toString()} && regs.WE`), out: WE_Sig })
-        this.addAssign({ in: new Expr('regs.ADDR'), out: RAM_ADDR }) // remove  & ${PASS_MASK}
-        this.IOs[`${regName}_rdata`] = { // changed input to output
-          direction: 'output',
-          width: thisReg.width || regDefs.wordSize,
-          isSigned: thisReg.isSigned
-        }
-        this.IOs[`${regName}_re`] = {
-          direction: 'output',
-          width: 1
-        }
-        this.IOs[`${regName}_we`] = {
-          direction: 'output',
-          width: 1
-        }
-        this.IOs[`${regName}_wdata`] = {
-          direction: 'output',
-          width: thisReg.width || regDefs.wordSize,
-          isSigned: thisReg.isSigned
-        }
-        this.IOs[`${regName}_wstrb`] = {
-          direction: 'output',
-          width: thisReg.width || regDefs.wordSize
-        }
-        this.IOs[`${regName}_ready`] = {
-          direction: 'output',
-          width: 1
-        }
-        this.addRegister({
-          d: 'regs.READY',
-          clk: 'clk',
-          reset: 'rst_b',
-          en: `${regName}_WE`,
-          q: `${regName}_ready`
-        })
-        this.addRegister({
-          d: 'regs.DATA_WR',
-          clk: 'clk',
-          reset: 'rst_b',
-          en: `${regName}_WE`,
-          q: `${regName}_wdata`
-        })
-        this.addRegister({
-          d: RE_Sig,
-          clk: 'clk',
-          reset: 'rst_b',
-          en: `${regName}_WE`,
-          q: `${regName}_re`
-        })
-        this.addRegister({
-          d: WE_Sig,
-          clk: 'clk',
-          reset: 'rst_b',
-          en: `${regName}_WE`,
-          q: `${regName}_we`
-        })
-        this.addRegister({
-          d: new Expr('1'), // Assuming a simple write strobe signal
-          clk: 'clk',
-          reset: 'rst_b',
-          en: `${regName}_WE`,
-          q: `${regName}_wstrb`
-        })
+        // High for one cycle, the first cycle the register shows the new value
+        this.IOs[`${regName}_we`] = { direction: 'output', width: 1 }
+        this.addRegister({ d: `${regName}_wr_hit`, clk: 'clk', reset: 'rst_b', q: `${regName}_we` })
+      } else if (isWindow) {
+        windows.push(this.addWindow(regName, baseAddr, thisReg))
       }
     }
-    this.addReadMux()
+    this.addReadMux(windows)
+  }
+
+  /**
+   * Throws if `reg` uses an option its type doesn't allow: `constant` outside `RO`, the window
+   * timing options outside `RAM`/`ROM`, or a window `width` other than `wordSize`.
+   */
+  private checkRegister (regName: string, reg: Register): void {
+    const isWindow = reg.type === RegisterType.RAM || reg.type === RegisterType.ROM
+    if (reg.constant !== undefined && reg.type !== RegisterType.RO) {
+      throw Error(`${regName}: constant is only allowed on RO, not ${reg.type}`)
+    }
+    if ((reg.registerRequest !== undefined || reg.registerResponse !== undefined) && !isWindow) {
+      throw Error(`${regName}: registerRequest and registerResponse are only allowed on RAM and ROM, not ${reg.type}`)
+    }
+    if (isWindow && reg.width !== undefined && reg.width !== this.regDefs.wordSize) {
+      throw Error(`${regName}: a ${reg.type} window's width must be the wordSize, ${this.regDefs.wordSize}, not ${reg.width}`)
+    }
+  }
+
+  /**
+   * One output `<R>_field<i>` per field, each a flop that loads its bit range of `regs.DATA_WR`
+   * on a write to the register while any `WSTRB` bit is set.
+   */
+  private addFieldRegisters (regName: string, fields: Record<string, Field>, wstrb: string): void {
+    Object.values(fields).forEach((field, index) => {
+      const fieldSigName = `${regName}_field${index}`
+      this.IOs[fieldSigName] = {
+        direction: 'output',
+        width: field.bitRange[0] - field.bitRange[1] + 1,
+        isSigned: field.isSigned
+      }
+      this.addRegister({
+        d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
+        clk: 'clk',
+        reset: 'rst_b',
+        q: fieldSigName,
+        en: `${regName}_wr_hit && ${wstrb}`, // added && ${wstrb}
+        resetVal: field.reset || 0n
+      })
+    })
+  }
+
+  /**
+   * A `RAM`/`ROM` window: an outward `Memory` port `<R>` (`bidi` for `RAM`, `rd_only` for `ROM`)
+   * that carries each access in the window to the memory behind it. `<R>.ADDR` is the byte offset
+   * inside the window.
+   *
+   * `<R>_wait_q` is high from the cycle after the memory sees the request until the cycle its
+   * `READY` completes the access. With `registerRequest`, the request reaches `<R>` from flops,
+   * one cycle after the `regs` request. With `registerResponse`, `<R>_rdata_q` captures the read
+   * data when the access completes, and the window's `READY` term is made only of flops.
+   */
+  private addWindow (regName: string, base: bigint, reg: Register): WindowResponse {
+    const isROM = reg.type === RegisterType.ROM
+    const registerRequest = reg.registerRequest ?? true
+    const registerResponse = reg.registerResponse ?? true
+    const wordSize = this.regDefs.wordSize
+    const addrWidth = this.addrWidth()
+    this.addInterface(regName, new Memory({
+      type: isROM ? 'rd_only' : 'bidi',
+      DATA_WIDTH: wordSize,
+      ADDR_WIDTH: this.params.busAddressWidth
+    }, 'outward'))
+
+    const hit = isROM ? `${regName}_rd_hit` : `${regName}_rd_hit || ${regName}_wr_hit`
+    const request: Array<{ sig: string, value: string, width: number, held: boolean }> = [
+      { sig: 'ADDR', value: base === 0n ? 'regs.ADDR' : `regs.ADDR - ${this.addrLiteral(base)}`, width: addrWidth, held: true },
+      { sig: 'RE', value: `${regName}_rd_hit`, width: 1, held: false }
+    ]
+    if (!isROM) {
+      request.push(
+        { sig: 'WE', value: `${regName}_wr_hit`, width: 1, held: false },
+        { sig: 'DATA_WR', value: 'regs.DATA_WR', width: wordSize, held: true },
+        { sig: 'WSTRB', value: 'regs.WSTRB', width: addrWidth / 8, held: true })
+    }
+    let issue = hit
+    for (const { sig, value, width, held } of request) {
+      if (!registerRequest) {
+        this.addAssign({ in: new Expr(value), out: `${regName}.${sig}` })
+        continue
+      }
+      // RE and WE are one-cycle pulses; the address and write data hold until the next request
+      const q = this.addSignal(`${regName}_${sig.toLowerCase()}_q`, { width })
+      this.addRegister({ d: new Expr(value), clk: 'clk', reset: 'rst_b', q, ...(held ? { en: hit } : {}) })
+      this.addAssign({ in: new Expr(q.toString()), out: `${regName}.${sig}` })
+    }
+    if (registerRequest) issue = isROM ? `${regName}_re_q` : `${regName}_re_q || ${regName}_we_q`
+
+    const wait = this.addSignal(`${regName}_wait_q`, { width: 1 })
+    this.addRegister({
+      d: new Expr(`${issue} || (${wait.toString()} && !${regName}.READY)`),
+      clk: 'clk',
+      reset: 'rst_b',
+      q: wait
+    })
+    const issuing = !registerRequest ? '' : isROM ? `!${issue} && ` : `!(${issue}) && `
+    if (!registerResponse) {
+      const settled = `!${wait.toString()} || ${regName}.READY`
+      return { regName, ready: issuing === '' ? settled : `${issuing}(${settled})`, data: `${regName}.DATA_RD` }
+    }
+    const rdata = this.addSignal(`${regName}_rdata_q`, { width: wordSize })
+    this.addRegister({
+      d: `${regName}.DATA_RD`,
+      clk: 'clk',
+      reset: 'rst_b',
+      en: new Expr(`${wait.toString()} && ${regName}.READY`),
+      q: rdata
+    })
+    return { regName, ready: `${issuing}!${wait.toString()}`, data: rdata.toString() }
   }
 
   /** The register's definition, or the default for an `addrMap` entry with none: a full-word RW. */
@@ -421,41 +453,66 @@ always_ff @( posedge clk or negedge rst_b )
   }
 
   /**
-   * The read path, in three parts. `read_mux` picks the next read value: the first readable
-   * register, in `addrMap` order, whose `<R>_RE` (its address decode and `regs.RE`) is high, or
-   * 0 when none is. `rd_data_q` captures it on the edge after the `RE` pulse and holds it until
-   * the next read. Each `RAM`/`ROM` window has a `<R>_last_q` flag that is set when the last
-   * request (read or write) hit it. `regs.DATA_RD` then comes from that window, or else from
-   * `rd_data_q`. `regs.READY` is high: a register access has no wait states, and a window has
-   * no ready input until #80 gives it one, when `read_out` will drive `READY` from the window too.
+   * A constant `RO` register's read-back value, as a word-wide literal: its `reset`, or each
+   * field's `reset` at its bit range. Throws if a value doesn't fit its width.
    */
-  private addReadMux (): void {
+  private constantValue (regName: string, reg: Register): string {
+    const wordSize = this.regDefs.wordSize
+    const fits = (value: bigint, width: number, what: string): bigint => {
+      if (value < 0n || value >= (1n << BigInt(width))) {
+        throw Error(`${what}: reset 0x${value.toString(16)} doesn't fit in ${width} bits`)
+      }
+      return value
+    }
+    let value = 0n
+    if (reg.fields && Object.keys(reg.fields).length > 0) {
+      this.fieldReadback(regName, reg.fields) // checks the bit ranges
+      for (const [fieldName, field] of Object.entries(reg.fields)) {
+        const [hi, lo] = field.bitRange
+        value |= fits(field.reset ?? 0n, hi - lo + 1, `${regName}.${fieldName}`) << BigInt(lo)
+      }
+    } else {
+      value = fits(reg.reset ?? 0n, reg.width ?? wordSize, regName) & ((1n << BigInt(wordSize)) - 1n)
+    }
+    return `${wordSize}'h${value.toString(16)}`
+  }
+
+  /**
+   * The read path, in three parts. `read_mux` picks the next read value: the first readable
+   * register, in `addrMap` order, whose `<R>_rd_hit` (its address decode and `regs.RE`) is high,
+   * or 0 when none is. `rd_data_q` captures it on the edge after the `RE` pulse and holds it until
+   * the next read. Each `RAM`/`ROM` window has a `<R>_last_q` flag that is set when the last
+   * request was a read of the window, or a write to a `RAM`. `regs.DATA_RD` then comes from that
+   * window, or else from `rd_data_q`. `regs.READY` is low while any window has an access in
+   * flight.
+   */
+  private addReadMux (windows: WindowResponse[]): void {
     const wordSize = this.regDefs.wordSize
     const branches: string[] = []
-    const windows: string[] = []
     for (const regName in this.regDefs.addrMap) {
       const reg = this.resolveRegister(regName)
       const width = reg.width ?? wordSize
+      const hasFields = reg.fields !== undefined && Object.keys(reg.fields).length > 0
       let value: string
       switch (reg.type) {
         case RegisterType.WO:
-          continue
         case RegisterType.RAM:
         case RegisterType.ROM:
-          windows.push(regName)
           continue
-        case RegisterType.RW:
-          value = reg.fields && Object.keys(reg.fields).length > 0
-            ? this.fieldReadback(regName, reg.fields)
-            : this.toWord(regName, width)
-          break
         case RegisterType.RO:
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          value = reg.constant === true ? this.constantValue(regName, reg) : hasFields ? this.fieldReadback(regName, reg.fields!) : this.toWord(regName, width)
+          break
+        case RegisterType.RW:
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          value = hasFields ? this.fieldReadback(regName, reg.fields!) : this.toWord(regName, width)
+          break
         case RegisterType.RWU:
           value = this.toWord(regName, width)
           break
       }
       const kw = branches.length === 0 ? 'if' : 'end else if'
-      branches.push(`    ${kw} (${regName}_RE) begin\n      rd_data_nxt = ${value};`)
+      branches.push(`    ${kw} (${regName}_rd_hit) begin\n      rd_data_nxt = ${value};`)
     }
     if (branches.length > 0) branches.push('    end')
 
@@ -469,23 +526,21 @@ ${branches.join('\n')}
 `)
     this.addRegister({ d: 'rd_data_nxt', clk: 'clk', reset: 'rst_b', en: 'regs.RE', q: 'rd_data_q' })
 
-    // The window <R>_ready outputs are not a ready from the memory: the block registers them from
-    // its own regs.READY, and they reset low, so routing them here would hang a read after reset.
-    this.addAssign({ in: new Expr("1'b1"), out: 'regs.READY' })
     if (windows.length === 0) {
+      this.addAssign({ in: new Expr("1'b1"), out: 'regs.READY' })
       this.addAssign({ in: new Expr('rd_data_q'), out: 'regs.DATA_RD' })
       return
     }
+    // Only one access is in flight at a time, so at most one window's term is low
+    this.addAssign({ in: new Expr(windows.map(w => `(${w.ready})`).join(' && ')), out: 'regs.READY' })
 
-    // A window's read data stays on the old flat ports until #80 replaces them with an
-    // outward Memory port per window.
-    const selects = windows.map((regName, i) => {
-      const reg = this.resolveRegister(regName)
-      const data = reg.type === RegisterType.RAM ? `${regName}_wdata` : `${regName}_rdata`
+    const selects = windows.map(({ regName, data }, i) => {
+      const isROM = this.resolveRegister(regName).type === RegisterType.ROM
       const last = this.addSignal(`${regName}_last_q`, { width: 1 })
-      this.addRegister({ d: `${regName}_matchExpr`, clk: 'clk', reset: 'rst_b', en: 'regs.RE || regs.WE', q: last })
+      const hit = isROM ? `${regName}_rd_hit` : `${regName}_rd_hit || ${regName}_wr_hit`
+      this.addRegister({ d: new Expr(hit), clk: 'clk', reset: 'rst_b', en: 'regs.RE || regs.WE', q: last })
       return `    ${i === 0 ? 'if' : 'end else if'} (${last.toString()}) begin
-      regs.DATA_RD = ${this.toWord(data, reg.width ?? wordSize)};`
+      regs.DATA_RD = ${data};`
     })
     this.addCombAlways({ outputs: ['regs.DATA_RD'] }, `
   begin : read_out

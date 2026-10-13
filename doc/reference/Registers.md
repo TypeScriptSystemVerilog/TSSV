@@ -93,8 +93,11 @@ submodule bridges onto `regs`.
 
 `regs` follows the [Memory](Memory.md#memory) contract, which has the timing diagrams. A register access
 has no wait states: `READY` stays high, and read data is captured on the clock edge after the
-`RE` pulse and held until the next request. After an access to a `RAM`/`ROM` window,
-`DATA_RD` comes from the window instead.
+`RE` pulse and held until the next request. An access to a `RAM`/`ROM` window goes out on the
+window's own outward `Memory` port and completes when the memory behind it raises `READY`.
+It adds one wait state for each of the window's `registerRequest` and `registerResponse` flops
+that is on (both are by default). `doc/framework/registers.md` §3 has the port list of every
+register type.
 
 #### Extends
 
@@ -182,6 +185,23 @@ writeRALF(): string;
 | <a id="issigned-1"></a> `isSigned?` | `boolean` | - |
 | <a id="fields"></a> `fields?` | `Record`\<`string`, [`Field`](#field)\> | - |
 | <a id="updatepriority"></a> `updatePriority?` | `"hw"` \| `"sw"` | RWU only: which update source wins when both assert in the same cycle. Default 'hw'. |
+| <a id="constant"></a> `constant?` | `boolean` | RO only: no input port; the register reads its `reset`, or each field's `reset`. |
+| <a id="registerrequest"></a> `registerRequest?` | `boolean` | RAM/ROM only: drive the window's request from flops. Default true. |
+| <a id="registerresponse"></a> `registerResponse?` | `boolean` | RAM/ROM only: return the window's response through flops. Default true. |
+
+***
+
+### WindowResponse
+
+A RAM/ROM window's response, for the read path: when it is ready and what it returns.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="regname"></a> `regName` | `string` | - |
+| <a id="ready"></a> `ready` | `string` | High unless the window has an access in flight. |
+| <a id="data"></a> `data` | `string` | The window's read data. |
 
 ***
 
