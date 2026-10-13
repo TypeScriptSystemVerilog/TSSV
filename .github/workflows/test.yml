@@ -101,11 +101,14 @@ jobs:
       # every PR, without this workflow's path filter.
 
       # Self-checking testbenches in verilatorTB/, each $fatal on any failed
-      # check. sfifo_sim builds one model per configuration in
-      # sv-examples/SFIFO/tb/configs.txt; the other two lint their DUTs with
-      # -Wall first.
+      # check. sfifo_sim and twoclockregfile_sim build one model per
+      # configuration in their sv-examples/<module>/tb/configs.txt; the others
+      # lint their DUTs with -Wall first, as twoclockregfile_sim also does.
       - name: SFIFO simulation
         run: make -C verilatorTB sfifo_sim
+
+      - name: TwoClockRegFile simulation
+        run: make -C verilatorTB twoclockregfile_sim
 
       - name: RegisterBlock read-path simulation
         run: make -C verilatorTB regblock_read_sim
