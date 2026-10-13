@@ -32,6 +32,18 @@ interface SVEnum {
 }
 
 /**
+ * SystemVerilog attributes for a signal or port declaration, keyed by attribute name.
+ * A string value is emitted quoted, a number or bigint bare, and `true` as the name alone.
+ *
+ * @example
+ * ```typescript
+ * this.addSignal('mem', { width: 8, isArray: 4n, attributes: { ram_style: 'distributed' } })
+ * // (* ram_style = "distributed" *) logic [7:0] mem[0:3];
+ * ```
+ */
+export type SVAttributes = Record<string, string | number | bigint | true>
+
+/**
  * signal parameters
  */
 interface baseSignal {
@@ -43,6 +55,40 @@ interface baseSignal {
   isArray?: bigint
   description?: string
   enum?: SVEnum
+  /**
+   * attributes emitted in front of the declaration, as `(* name = value *)`. Not supported on
+   * interface signals.
+   */
+  attributes?: SVAttributes
+}
+
+/**
+ * Formats a declaration's attributes as `(* a = "x", b = 1, c *) `, or '' if it has none.
+ * @param declName the declared signal or port, for error messages
+ * @param attributes the declaration's attributes
+ * @returns the attribute instance, with a trailing space
+ */
+function attributePrefix (declName: string, attributes: SVAttributes | undefined): string {
+  if (attributes === undefined) return ''
+  const specs: string[] = []
+  for (const [name, value] of Object.entries(attributes)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(name)) {
+      throw Error(`${declName}: attribute name '${name}' is not a legal SystemVerilog identifier`)
+    }
+    if (value === true) {
+      specs.push(name)
+    } else if (typeof value === 'string') {
+      if (/["\\\r\n]/.test(value)) {
+        throw Error(`${declName}: attribute ${name} value ${JSON.stringify(value)} contains a quote, backslash or newline`)
+      }
+      specs.push(`${name} = "${value}"`)
+    } else if (typeof value === 'bigint' || (typeof value === 'number' && Number.isSafeInteger(value))) {
+      specs.push(`${name} = ${value.toString()}`)
+    } else {
+      throw Error(`${declName}: attribute ${name} has unsupported value ${String(value)}`)
+    }
+  }
+  return (specs.length > 0) ? `(* ${specs.join(', ')} *) ` : ''
 }
 
 type PortDirection = 'input' | 'output' | 'inout'
@@ -220,6 +266,9 @@ export class Interface {
     Object.keys(this.signals).forEach((key) => {
       const thisSignal = this.signals[key]
       if (thisSignal) {
+        if (Object.keys(thisSignal.attributes ?? {}).length > 0) {
+          throw Error(`${this.name}.${key}: attributes are not supported on interface signals`)
+        }
         let rangeString = ''
         const signString = (thisSignal.isSigned) ? ' signed' : ''
         if ((thisSignal.width || 0) > 1) {
@@ -638,7 +687,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       if (io.q === undefined) {
         qName = `${io.d.toString()}_q`
         if (this.signals[qName] || this.IOs[qName]) throw Error(`${qName} signal already exists`)
-        this.signals[qName] = { ...dSig, type: 'logic' }
+        // q describes a different net from d, so it doesn't inherit d's attributes
+        const { attributes: _dAttributes, ...dDef } = dSig
+        this.signals[qName] = { ...dDef, type: 'logic' }
       }
     }
     if (io.q) {
@@ -1458,7 +1509,7 @@ ${caseAssignments}
       if ((this.IOs[key].width || 0) > 1) {
         rangeString = `[${Number(this.IOs[key].width) - 1}:0]`
       }
-      IOArray.push(`${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`)
+      IOArray.push(`${attributePrefix(`${this.name}.${key}`, this.IOs[key].attributes)}${this.IOs[key].direction} ${this.IOs[key].type || 'logic'}${signString} ${rangeString} ${key}`)
     })
     Object.keys(this.interfaces).forEach((key) => {
       const thisInterface = this.interfaces[key]
@@ -1509,7 +1560,7 @@ ${caseAssignments}
         if (thisSignal.type === 'const logic') {
           valueString = ` = ${(thisSignal.value || 0n).toString()}`
         }
-        signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
+        signalArray.push(`${attributePrefix(`${this.name}.${key}`, thisSignal.attributes)}${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
       }
     })
     let signalString: string = `   ${signalArray.join(';\n   ')}`
