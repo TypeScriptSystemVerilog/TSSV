@@ -26,6 +26,7 @@ doc/tools/            CLI tool docs
 doc/ideas/            Design notes and spike specs, each marked with its status
 doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, with their checks
 doc/process/          Repo process specs (issue-workflow.md)
+scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base) and test-skips.sh (tests runAllTests.sh and gen-sv skip)
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
 .github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml)
 ```
@@ -185,7 +186,8 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Adding a new interface**: read `doc/interfaces/adding-an-interface.md`, which walks through `ts/src/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4.ts` as the pattern and covers file naming and `xml_interface_build`
 - **Using the register helpers**: read `doc/framework/registers.md` (including its "Current limitations"), then `ts/src/core/Registers.ts`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`. Most module tests are under `out/test/modules/` (FIR's and APB_to_Memory's are not)
-- **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed in the script with the reason)
+- **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed with the reason in `scripts/test-skips.sh`)
+- **Seeing what a change does to the generated SV**: `scripts/gen-sv --base origin/main [test ...]` regenerates `sv-examples/` here and on the base, and diffs the two; without `--base` it only regenerates. A PR that changes generated SV shows it ([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv) §5)
 - **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in the workflow after publishing a new one. Add a new self-checking `verilatorTB/` target to `test.yml` as its own step
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv`

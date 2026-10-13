@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# Regenerate the SystemVerilog under sv-examples/, and optionally diff it
+# against another branch or commit. doc/process/issue-workflow.md §5 ("Showing
+# the generated SV") says when a PR needs this and what to post.
+#
+# tssv-noc has a script of the same name with the same interface; keep them in
+# step.
+
+set -Eeuo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/gen-sv [--base <ref>] [--keep] [test ...]
+
+  test ...        Test scripts to run, as ts/test/....ts or out/test/....js
+                  paths. None: every test under ts/test/, less the ones
+                  scripts/test-skips.sh lists.
+
+  Generate mode (no --base)
+      Build, then run the tests from the repo root, so they write
+      sv-examples/ as usual. Lists failing tests and the .sv files written.
+      Exits 1 if a test failed.
+
+  Diff mode (--base <branch|commit>)
+      Also build <ref> in a scratch worktree under $TMPDIR, outside the repo
+      tree, and run the same tests there. Then compare only the files the
+      tests wrote on each side: per-file changed lines (added plus removed),
+      the total, and files added or removed. The full unified diff is saved,
+      and its path printed. The head side is this checkout as it stands,
+      uncommitted changes included. Run `git fetch` first if <ref> is remote.
+      Exits 0 if nothing differs, 1 if something does, 2 on an error.
+
+  --keep          Keep the scratch worktree instead of removing it on exit.
+EOF
+}
+
+die() { echo "gen-sv: $*" >&2; exit 2; }
+note() { echo "gen-sv: $*" >&2; }
+trap 'echo "gen-sv: failed at line $LINENO" >&2; exit 2' ERR
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "run this inside the TSSV repo"
+cd "$ROOT"
+
+# Lines that legitimately differ between two checkouts: the IpXactComponent
+# examples record the absolute paths of their inputs.
+IGNORE='// [A-Za-z]*Path = /'
+
+base="" keep=0 tests=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --base)   [ $# -ge 2 ] || die "--base needs a branch or commit"; base=$2; shift 2 ;;
+    --base=*) base=${1#--base=}; shift ;;
+    --keep)   keep=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*)       usage >&2; exit 2 ;;
+    *)        tests+=("$1"); shift ;;
+  esac
+done
+
+# --- which tests -------------------------------------------------------------
+
+to_js() {
+  case "$1" in
+    ts/test/*.ts)  local js=out/${1#ts/}; echo "${js%.ts}.js" ;;
+    out/test/*.js) echo "$1" ;;
+    *) return 1 ;;
+  esac
+}
+
+if [ ${#tests[@]} -eq 0 ]; then
+  source scripts/test-skips.sh
+  while IFS= read -r t; do
+    js=$(to_js "$t") || die "unexpected test path: $t"
+    [[ " ${skip[*]} " == *" $js "* ]] || tests+=("$js")
+  done < <(find ts/test -name '*.ts' ! -name '*.d.ts' | sort)
+else
+  for i in "${!tests[@]}"; do
+    js=$(to_js "${tests[i]}") || die "not a test script: ${tests[i]} (want ts/test/....ts or out/test/....js)"
+    tests[i]=$js
+  done
+fi
+
+# $RUN holds the logs, the saved diff and the base worktree. It is removed on
+# exit unless something in it is worth reading (keep_run=1).
+RUN=$(mktemp -d "${TMPDIR:-/tmp}/gen-sv.XXXXXX")
+BASE_WT="$RUN/base/TSSV"
+keep_run=0
+
+cleanup() {
+  if [ -d "$BASE_WT" ]; then
+    if [ "$keep" = 1 ]; then
+      note "kept the base worktree: $BASE_WT (remove with: git worktree remove --force $BASE_WT)"
+    else
+      git -C "$ROOT" worktree remove --force "$BASE_WT" 2>/dev/null || { rm -rf "$BASE_WT"; git -C "$ROOT" worktree prune; }
+    fi
+  fi
+  [ "$keep_run" = 1 ] || [ "$keep" = 1 ] || rm -rf "$RUN"
+}
+trap cleanup EXIT
+
+# --- generate ----------------------------------------------------------------
+
+# gen <checkout> <side>: run the tests in <checkout>, then record in
+# $RUN/<side>.files every file the run wrote under sv-examples/.
+gen() {
+  local dir=$1 side=$2 t log failed=0
+  mkdir -p "$RUN/logs/$side"
+  touch "$RUN/$side.start"
+  for t in "${tests[@]}"; do
+    if [ ! -f "$dir/$t" ]; then
+      echo "  ABSENT $t (not on the $side side)"
+      continue
+    fi
+    log="$RUN/logs/$side/$(tr / _ <<<"$t").log"
+    if ! (cd "$dir" && node "$t") >"$log" 2>&1; then
+      echo "  FAIL   $t (log: $log)"
+      failed=1 keep_run=1
+    fi
+  done
+  (cd "$dir" && { find sv-examples -type f -newer "$RUN/$side.start" 2>/dev/null || true; } | sort) >"$RUN/$side.files"
+  return $failed
+}
+
+build_head() {
+  echo "Building this checkout"
+  npx tsc || die "build failed"
+}
+
+if [ -z "$base" ]; then
+  build_head
+  echo "Running ${#tests[@]} test script(s)"
+  status=0
+  gen "$ROOT" head || status=1
+  grep '\.sv$' "$RUN/head.files" || true
+  echo "$(wc -l <"$RUN/head.files") file(s) written under sv-examples/"
+  [ $status = 0 ] || note "some tests failed; see the logs above"
+  exit $status
+fi
+
+# --- diff mode ---------------------------------------------------------------
+
+sha=$(git rev-parse --verify --quiet "$base^{commit}") || die "unknown branch or commit: $base"
+echo "Base: $base ($(git log -1 --format='%h %s' "$sha"))"
+
+git worktree add -q --detach "$BASE_WT" "$sha" || die "could not create the base worktree"
+echo "Building the base in $BASE_WT"
+(cd "$BASE_WT" && npm ci --silent && npx tsc) >"$RUN/base-build.log" 2>&1 \
+  || { keep_run=1; die "base build failed (log: $RUN/base-build.log)"; }
+build_head
+
+echo "Running ${#tests[@]} test script(s) on the base"
+gen "$BASE_WT" base || true
+echo "Running them on this checkout"
+gen "$ROOT" head || true
+
+DIFF="$RUN/sv.diff"
+: >"$DIFF"
+total=0 changed=0 added=() removed=()
+while IFS= read -r f; do
+  in_base=0 in_head=0
+  grep -qxF "$f" "$RUN/base.files" && in_base=1
+  grep -qxF "$f" "$RUN/head.files" && in_head=1
+  if [ $in_base = 1 ] && [ $in_head = 0 ]; then removed+=("$f"); continue; fi
+  if [ $in_base = 0 ] && [ $in_head = 1 ]; then added+=("$f"); continue; fi
+  hunk=$(diff -u -I "$IGNORE" --label "base/$f" --label "head/$f" "$BASE_WT/$f" "$ROOT/$f" || true)
+  [ -n "$hunk" ] || continue
+  n=$(grep -E '^[-+]' <<<"$hunk" | grep -vcE '^(\+\+\+|---) ' || true)
+  [ "$n" -gt 0 ] || continue
+  printf '%s\n' "$hunk" >>"$DIFF"
+  printf '  %6d  %s\n' "$n" "$f"
+  total=$((total + n)); changed=$((changed + 1))
+done < <(sort -u "$RUN/base.files" "$RUN/head.files")
+
+# Added and removed files go in the saved diff whole, so new output can be
+# read (and posted) from there too.
+for f in "${added[@]}"; do
+  diff -u --label /dev/null --label "head/$f" /dev/null "$ROOT/$f" >>"$DIFF" || true
+  printf '  added   %s (%d lines)\n' "$f" "$(wc -l <"$ROOT/$f")"
+done
+for f in "${removed[@]}"; do
+  diff -u --label "base/$f" --label /dev/null "$BASE_WT/$f" /dev/null >>"$DIFF" || true
+  printf '  removed %s (%d lines)\n' "$f" "$(wc -l <"$BASE_WT/$f")"
+done
+
+if [ $changed = 0 ] && [ ${#added[@]} = 0 ] && [ ${#removed[@]} = 0 ]; then
+  echo "No change to generated SV ($(wc -l <"$RUN/head.files") file(s) compared)"
+  exit 0
+fi
+echo "$total changed line(s) in $changed file(s), ${#added[@]} added, ${#removed[@]} removed"
+echo "Unified diff: $DIFF"
+keep_run=1
+exit 1

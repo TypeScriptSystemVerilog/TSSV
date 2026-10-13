@@ -187,11 +187,11 @@ in step.
 |---|---|
 | changes an existing generation API helper (an `add*` method in `ts/src/core/Base.ts`) | The SV an example call emits, before and after the change. A change that affects more than one mode or option of the helper needs an example for each mode that changes. |
 | adds a generation API | Enough example calls, each with the SV it emits, to show how the API behaves, including each mode or option that changes the output. |
-| changes an existing module (`ts/src/modules/*`) | The diff of the module's generated SV, if it is about 100 changed lines or fewer. Larger than that: the commands below for the reviewer to run, and which generated files and parameter sets to read. The key hunks can still go inline. |
-| changes no generated SV | One line in the description: "No change to generated SV." Run the diff below to check this rather than assume it. |
+| changes an existing module (`ts/src/modules/*`) | The diff of the module's generated SV, if it is about 100 changed lines or fewer. Larger than that: the `scripts/gen-sv` command (below) for the reviewer to run, and which generated files and parameter sets to read. The key hunks can still go inline. |
+| changes no generated SV | One line in the description: "No change to generated SV." Check it with `scripts/gen-sv --base` (below) rather than assume it. |
 
-"Changed lines" means lines added plus lines removed in the diff, which the count command
-below prints. A module's test usually generates several parameter sets, and one change often
+"Changed lines" means lines added plus lines removed in the diff, as `scripts/gen-sv` counts
+them. A module's test usually generates several parameter sets, and one change often
 repeats in each of them. When it does, show one set, list the others it applies to, and count
 that one set against the threshold. The `ts/test/test_add*.ts` scripts are a ready source of
 example calls for a helper.
@@ -204,35 +204,30 @@ description readable, and gives each example a comment that collapses on its own
 review feedback can link to. The comments only exist once the PR does, so open the PR, post
 them, then edit the description to add the links.
 
-**Generating the "before" SV.** Build the base branch in a scratch worktree outside the repo
-tree (`mktemp -d`), so it can't collide with your checkout or another session's. The base is
-`origin/main`, or the parent branch for a stacked PR. `runAllTests.sh` regenerates every
-example, so run it on both sides and diff the two `sv-examples/` trees:
+**Generating the SV: `scripts/gen-sv`.** It regenerates `sv-examples/`, and with `--base`
+diffs it against another branch or commit:
 
 ```bash
-# From your checkout of the PR's branch
 git fetch origin
-base=origin/main                  # or origin/<parent-branch> for a stacked PR
-scratch=$(mktemp -d)
-git worktree add --detach "$scratch/TSSV" "$base"
-(cd "$scratch/TSSV" && npm ci && bash runAllTests.sh)
-bash runAllTests.sh               # head side, regenerates sv-examples/ here
-
-# The IpXactComponent examples record their inputs' absolute paths; -I ignores those lines
-ignore='// [A-Za-z]*Path = /'
-diff -rq -I "$ignore" "$scratch/TSSV/sv-examples" sv-examples      # which files changed
-# <dir>: a directory that changed, such as SFIFO
-diff -ru -I "$ignore" "$scratch/TSSV/sv-examples/<dir>" sv-examples/<dir> > "$scratch/<dir>.diff"
-grep -E '^[-+]' "$scratch/<dir>.diff" | grep -vcE '^(\+\+\+|---) '   # changed lines
-
-# Once the evidence is posted
-git worktree remove --force "$scratch/TSSV" && rm -rf "$scratch"
+scripts/gen-sv --base origin/main                      # every test; or origin/<parent> for a stacked PR
+scripts/gen-sv --base origin/main ts/test/modules/test_SFIFO.ts   # just the tests named
+scripts/gen-sv ts/test/test_addMux.ts                  # no --base: regenerate only
 ```
 
-For a module diff too large to post, put this block in the comment with `base` filled in, so
-the reviewer can run it from their own checkout of the PR's branch, and name the files to read.
-`runAllTests.sh` skips `test_AXI4XBar`, which needs Docker; a change to `AXI4XBar` needs that
-test run by hand on both sides.
+With `--base`, it builds the base in a scratch worktree outside the repo tree (under
+`$TMPDIR`), runs the same tests on both sides, and compares only the files those tests wrote.
+The head side is your checkout as it stands, uncommitted changes included. It prints each
+changed file with its changed-line count, the total, and any files added or removed, and saves
+the full unified diff (added files included whole) to a file whose path it prints: that file is
+where the snippets to post come from. It exits 0 when nothing differs, which is the check behind
+"No change to generated SV", and 1 when something does. `--keep` keeps the base worktree for a
+closer look; `scripts/gen-sv --help` has the details.
+
+With no tests named it runs every script under `ts/test/` except those
+`scripts/test-skips.sh` lists, which takes about 15 s. `test_AXI4XBar` is one of those, since it
+needs Docker, so a change to `AXI4XBar` needs that test named and run where Docker is available.
+For a module diff too large to post, give the reviewer the `scripts/gen-sv --base …` line with
+the tests to name, and say which files to read.
 
 ## 6. Commit message template
 
