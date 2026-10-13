@@ -28,7 +28,11 @@ interface Register {
   width?: IntRange<1, 64>
   isSigned?: boolean
   fields?: Record<string, Field>
-  /** RWU only: which update source wins when both assert in the same cycle. Default 'hw'. */
+  /**
+   * RWU only: which update source wins when both assert in the same cycle. Default 'hw'. With
+   * 'hw', the hardware update sets the whole register. With 'sw', the software write sets the
+   * bytes whose `WSTRB` bit is set, and the hardware update sets the others.
+   */
   updatePriority?: 'hw' | 'sw'
   /** RO only: no input port; the register reads its `reset`, or each field's `reset`. */
   constant?: boolean
@@ -73,6 +77,22 @@ export interface RegisterBlockParameters extends TSSVParameters {
   endianess?: 'little'
   busIDWidth?: 8
   busAddressWidth?: 32
+}
+
+/** The byte lanes that bits `[hi:lo]` of the data bus span, lowest first */
+function byteLanes (hi: number, lo: number): number[] {
+  const lanes: number[] = []
+  for (let lane = Math.floor(lo / 8); lane <= Math.floor(hi / 8); lane++) lanes.push(lane)
+  return lanes
+}
+
+/**
+ * Bits `[h:l]` of `sig`, a `width`-bit signal. All of it is `sig` itself: a 1-bit signal has no
+ * bit range to select.
+ */
+function slice (sig: string, h: number, l: number, width: number): string {
+  if (l === 0 && h === width - 1) return sig
+  return h === l ? `${sig}[${h}]` : `${sig}[${h}:${l}]`
 }
 
 function ralfAccessType (type: RegisterType): string {
@@ -168,27 +188,17 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       }
 
       if (thisReg.type === RegisterType.RW) {
-        const wstrbWidth = (params.busAddressWidth || 8) / 8
-        const wstrb = this.addSignal(`${regName}_wstrb`, { width: wstrbWidth })
-
-        // new code
-        this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
-
         if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-          this.addFieldRegisters(regName, thisReg.fields, wstrb.toString())
+          this.addFieldRegisters(regName, thisReg.fields)
         } else {
+          const width = thisReg.width || regDefs.wordSize
           this.IOs[regName.toString()] = {
             direction: 'output',
-            width: thisReg.width || regDefs.wordSize,
+            width,
             isSigned: thisReg.isSigned
           }
-
-          this.addSignal(`${regName}_d`, { width: regDefs.wordSize })
-          // new
-          this.addAssign({ in: new Expr(`regs.DATA_WR & ${wstrb.toString()}`), out: `${regName}_d` })
-
           this.addRegister({
-            d: 'regs.DATA_WR', // added & wstrb
+            d: new Expr(this.strobedWrite(width - 1, 0, (h, l) => slice(regName, h, l, width))),
             clk: 'clk',
             reset: 'rst_b',
             q: regName.toString(),
@@ -205,10 +215,16 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         this.IOs[`${regName}_hw_update_val`] = { direction: 'input', width, isSigned: thisReg.isSigned }
 
         const hwFirst = (thisReg.updatePriority ?? 'hw') === 'hw'
+        const hwVal = `${regName}_hw_update_val`
+        // A software write keeps the unstrobed bytes, or with 'sw' priority gives them to a
+        // hardware update in the same cycle
+        const swVal = this.strobedWrite(width - 1, 0, hwFirst
+          ? (h, l) => slice(regName, h, l, width)
+          : (h, l) => `(${regName}_hw_update ? ${slice(hwVal, h, l, width)} : ${slice(regName, h, l, width)})`)
         const firstCond = hwFirst ? `${regName}_hw_update` : `${regName}_wr_hit`
-        const firstVal = hwFirst ? `${regName}_hw_update_val` : `regs.DATA_WR[${width - 1}:0]`
+        const firstVal = hwFirst ? hwVal : swVal
         const secondCond = hwFirst ? `${regName}_wr_hit` : `${regName}_hw_update`
-        const secondVal = hwFirst ? `regs.DATA_WR[${width - 1}:0]` : `${regName}_hw_update_val`
+        const secondVal = hwFirst ? swVal : hwVal
         this.body += `
 always_ff @( posedge clk or negedge rst_b )
   if (!rst_b)
@@ -238,15 +254,16 @@ always_ff @( posedge clk or negedge rst_b )
           }
         }
       } else if (thisReg.type === RegisterType.WO) {
+        const lanes = new Set<number>()
         if (thisReg.fields && Object.keys(thisReg.fields).length > 0) {
-          const wstrb = this.addSignal(`${regName}_wstrb`, { width: (params.busAddressWidth || 8) / 8 })
-          this.addAssign({ in: new Expr('regs.WSTRB'), out: wstrb })
-          this.addFieldRegisters(regName, thisReg.fields, wstrb.toString())
+          this.addFieldRegisters(regName, thisReg.fields)
+          Object.values(thisReg.fields).forEach(f => { byteLanes(...f.bitRange).forEach(b => lanes.add(b)) })
         } else {
           const width = thisReg.width || regDefs.wordSize
+          byteLanes(width - 1, 0).forEach(b => { lanes.add(b) })
           this.IOs[regName] = { direction: 'output', width, isSigned: thisReg.isSigned }
           this.addRegister({
-            d: width < regDefs.wordSize ? new Expr(`regs.DATA_WR[${width - 1}:0]`) : 'regs.DATA_WR',
+            d: new Expr(this.strobedWrite(width - 1, 0, (h, l) => slice(regName, h, l, width))),
             clk: 'clk',
             reset: 'rst_b',
             q: regName,
@@ -254,9 +271,11 @@ always_ff @( posedge clk or negedge rst_b )
             resetVal: thisReg.reset ?? 0n
           })
         }
-        // High for one cycle, the first cycle the register shows the new value
+        // High for one cycle, the first cycle the register shows the new value, after a write
+        // with a strobe set in a byte lane the register stores
+        const strobed = [...lanes].sort((a, b) => a - b).map(b => `regs.WSTRB[${b}]`).join(' || ')
         this.IOs[`${regName}_we`] = { direction: 'output', width: 1 }
-        this.addRegister({ d: `${regName}_wr_hit`, clk: 'clk', reset: 'rst_b', q: `${regName}_we` })
+        this.addRegister({ d: new Expr(`${regName}_wr_hit && (${strobed})`), clk: 'clk', reset: 'rst_b', q: `${regName}_we` })
       } else if (isWindow) {
         windows.push(this.addWindow(regName, baseAddr, thisReg))
       }
@@ -282,26 +301,43 @@ always_ff @( posedge clk or negedge rst_b )
   }
 
   /**
-   * One output `<R>_field<i>` per field, each a flop that loads its bit range of `regs.DATA_WR`
-   * on a write to the register while any `WSTRB` bit is set.
+   * One output `<R>_field<i>` per field, each a flop that loads its bit range of `regs.DATA_WR` on
+   * a write to the register. Only the field's bytes whose `WSTRB` bit is set change
+   * ({@link strobedWrite}).
    */
-  private addFieldRegisters (regName: string, fields: Record<string, Field>, wstrb: string): void {
+  private addFieldRegisters (regName: string, fields: Record<string, Field>): void {
     Object.values(fields).forEach((field, index) => {
       const fieldSigName = `${regName}_field${index}`
+      const [hi, lo] = field.bitRange
       this.IOs[fieldSigName] = {
         direction: 'output',
-        width: field.bitRange[0] - field.bitRange[1] + 1,
+        width: hi - lo + 1,
         isSigned: field.isSigned
       }
       this.addRegister({
-        d: new Expr(`regs.DATA_WR[${field.bitRange[0]}:${field.bitRange[1]}]`),
+        d: new Expr(this.strobedWrite(hi, lo, (h, l) => slice(fieldSigName, h, l, hi - lo + 1))),
         clk: 'clk',
         reset: 'rst_b',
         q: fieldSigName,
-        en: `${regName}_wr_hit && ${wstrb}`, // added && ${wstrb}
+        en: `${regName}_wr_hit`,
         resetVal: field.reset || 0n
       })
     })
+  }
+
+  /**
+   * The value that bits `[hi:lo]` of a register take on a write to it, one byte lane at a time:
+   * `regs.DATA_WR` in each lane whose `WSTRB` bit is set, and `keep(h, l)` in the others. `h` and
+   * `l` count from bit `lo`, so for a signal that holds bits `[hi:lo]` at its bits `[hi-lo:0]`,
+   * `keep` is its slice `[h:l]`.
+   */
+  private strobedWrite (hi: number, lo: number, keep: (h: number, l: number) => string): string {
+    const lanes = byteLanes(hi, lo).map(lane => {
+      const laneLo = Math.max(lo, lane * 8)
+      const laneHi = Math.min(hi, lane * 8 + 7)
+      return `regs.WSTRB[${lane}] ? ${slice('regs.DATA_WR', laneHi, laneLo, this.regDefs.wordSize)} : ${keep(laneHi - lo, laneLo - lo)}`
+    }).reverse()
+    return lanes.length === 1 ? lanes[0] : `{${lanes.map(l => `(${l})`).join(', ')}}`
   }
 
   /**
@@ -335,7 +371,7 @@ always_ff @( posedge clk or negedge rst_b )
       request.push(
         { sig: 'WE', value: `${regName}_wr_hit`, width: 1, held: false },
         { sig: 'DATA_WR', value: 'regs.DATA_WR', width: wordSize, held: true },
-        { sig: 'WSTRB', value: 'regs.WSTRB', width: addrWidth / 8, held: true })
+        { sig: 'WSTRB', value: 'regs.WSTRB', width: wordSize / 8, held: true })
     }
     let issue = hit
     for (const { sig, value, width, held } of request) {

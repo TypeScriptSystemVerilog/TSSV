@@ -46,9 +46,9 @@ never uses. The rules below then apply to the signals the bus has. The SV interf
   wait states keeps it high. A synchronous SRAM with a one-cycle read can tie it high.
 - **`DATA_RD`.** After a read, it is valid in every cycle `READY` is high, and holds until the
   next request. After a write it is undefined.
-- **`WSTRB`** has one bit per byte of `DATA_WR`: bit `i` enables `DATA_WR[8*i+7:8*i]`. Its
-  width is `ADDR_WIDTH / 8` today instead of `DATA_WIDTH / 8`
-  ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81)).
+- **`WSTRB`** has one bit per byte of `DATA_WR`, so it is `DATA_WIDTH / 8` bits wide, as in AXI
+  and APB4 (`PSTRB`). Bit `i` enables `DATA_WR[8*i+7:8*i]`. A write changes only the bytes whose
+  bit is set; the slave keeps the others.
 
 In the diagrams, the arrow marks the `clk` edge that captures the request, and the span on
 `ready` marks the wait states the slave inserts.

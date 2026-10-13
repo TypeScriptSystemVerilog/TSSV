@@ -5,11 +5,3 @@
 
 // TSSV emits the Memory interface's definition into each block's file, ahead of the module.
 lint_off -rule DECLFILENAME -file "*/RegisterBlock_read/regblock_read*.sv" -match "*IFACE name: 'memory_*"
-
-// TSSV#81: a register without fields computes a strobed `<R>_d` and then ignores it
-lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'SCRATCH_d'"
-lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'NARROW_d'"
-lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'HI_d'"
-lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read32.sv" -match "*'FAR_d'"
-lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'CSR_d'"
-lint_off -rule UNUSEDSIGNAL -file "*/RegisterBlock_read/regblock_read64.sv" -match "*'HI_d'"

@@ -9,8 +9,7 @@ This guide covers defining a block by hand or from YAML, what the generated modu
 and the RALF output. Signatures are in [`doc/reference/Registers.md`](../reference/Registers.md).
 The FIR module is a worked example that uses a block: [FIR tutorial, Part 4](../tutorials/fir.md#part-4--parameterized-register-block-via-repeatedregister-yaml).
 
-> **Read "Current limitations" before relying on RO, WO, RAM or ROM registers, or on write
-> strobes.** The generated logic has gaps that the earlier docs didn't mention. The
+> **Read "Current limitations" before relying on RO, WO, RAM or ROM registers.** The generated logic has gaps that the earlier docs didn't mention. The
 > register-type table below describes what the code emits today, not what the type names
 > suggest.
 
@@ -73,7 +72,7 @@ Each register entry has these fields:
 | `isSigned` | Declares the register's port `signed` |
 | `fields` | Named bit fields, `{ bitRange: [msb, lsb], reset?, description?, isSigned? }`; used by `RW` and in RALF |
 | `size` | `RAM`/`ROM` only: the window size in words |
-| `updatePriority` | `RWU` only: `'hw'` (default) or `'sw'`, which update wins when both happen in one cycle |
+| `updatePriority` | `RWU` only: `'hw'` (default) or `'sw'`, which update wins when both happen in one cycle. With `'sw'`, software wins only the bytes it strobes (§3) |
 | `description` | Free text; appears in the YAML-generated JSDoc, not in the SV or RALF |
 
 [`RegAddr`](../reference/Registers.md#regaddr) hands out consecutive addresses if you'd rather
@@ -149,16 +148,22 @@ type creates.
 
 | Type | Ports created | Write | Read-back | RALF access |
 |---|---|---|---|---|
-| `RW`, no fields | output `<R>` [W] | Flop loads all of `regs.DATA_WR` on `<R>_wr_hit`; `WSTRB` isn't applied (§5) | `<R>` | `rw` |
-| `RW`, with fields | output `<R>_field<i>` per field, numbered in declaration order | Each field's flop loads `regs.DATA_WR[msb:lsb]` on `<R>_wr_hit` when any `WSTRB` bit is set; reset from the field | Each field at its `bitRange`, other bits 0. A reversed range, a bit past the word or two overlapping fields throws | `rw` |
-| `RWU` | output `<R>` [W]; inputs `<R>_hw_update`, `<R>_hw_update_val` [W] | Software write on `<R>_wr_hit`, hardware update on `<R>_hw_update`; `updatePriority` picks the winner when both are high | `<R>` | `rw` |
+| `RW`, no fields | output `<R>` [W] | Flop loads the strobed bytes of `regs.DATA_WR` on `<R>_wr_hit` | `<R>` | `rw` |
+| `RW`, with fields | output `<R>_field<i>` per field, numbered in declaration order | Each field's flop loads the strobed bytes of `regs.DATA_WR[msb:lsb]` on `<R>_wr_hit`; reset from the field | Each field at its `bitRange`, other bits 0. A reversed range, a bit past the word or two overlapping fields throws | `rw` |
+| `RWU` | output `<R>` [W]; inputs `<R>_hw_update`, `<R>_hw_update_val` [W] | Software write of the strobed bytes on `<R>_wr_hit`, hardware update of the whole register on `<R>_hw_update`. When both are high, `updatePriority: 'hw'` gives the whole register to the hardware update; `'sw'` gives the strobed bytes to the software write and the others to the hardware update | `<R>` | `rw` |
 | `RO`, no fields | input `<R>` [W] | None | `<R>` | `ro` |
 | `RO`, with fields | input `<R>_field<i>` per field, numbered in declaration order | None | Each field at its `bitRange`, other bits 0, with the same checks as `RW` | `ro` |
 | `RO`, `constant: true` | None | None | `reset`, or each field's `reset` at its `bitRange`; 0 where none is given | `ro` |
-| `WO`, no fields | outputs `<R>` [W], `<R>_we` | `<R>` loads `regs.DATA_WR` on `<R>_wr_hit`, and resets to `reset`. `<R>_we` is high for one cycle, the first cycle `<R>` shows the new value | None: reads 0 | `wo` |
-| `WO`, with fields | outputs `<R>_field<i>` per field, numbered in declaration order; `<R>_we` | Each field's flop loads `regs.DATA_WR[msb:lsb]` on `<R>_wr_hit` when any `WSTRB` bit is set, as for `RW`; reset from the field. One `<R>_we` for the whole register, timed as above | None: reads 0. The field ranges get the same checks as `RW` | `wo` |
+| `WO`, no fields | outputs `<R>` [W], `<R>_we` | `<R>` loads the strobed bytes of `regs.DATA_WR` on `<R>_wr_hit`, and resets to `reset`. `<R>_we` is high for one cycle, the first cycle `<R>` shows the new value, after a write with a strobe set in one of `<R>`'s bytes | None: reads 0 | `wo` |
+| `WO`, with fields | outputs `<R>_field<i>` per field, numbered in declaration order; `<R>_we` | Each field's flop loads the strobed bytes of `regs.DATA_WR[msb:lsb]` on `<R>_wr_hit`, as for `RW`; reset from the field. One `<R>_we` for the whole register, timed as above, after a write with a strobe set in a byte that any field covers | None: reads 0. The field ranges get the same checks as `RW` | `wo` |
 | `RAM` | `Memory` port `<R>`, `bidi`, `outward` (below) | Sent to the memory on `<R>`; completes when the memory's `READY` comes back | The memory's `DATA_RD` | `rw` |
 | `ROM` | `Memory` port `<R>`, `rd_only`, `outward` (below) | Dropped, and completes at once: a `rd_only` port has no `WE` | The memory's `DATA_RD` | `ro` |
+
+**Write strobes.** `WSTRB` has one bit per byte of `regs.DATA_WR`, and bit `i` enables
+`DATA_WR[8*i+7:8*i]`. A write to an `RW`, `WO` or `RWU` register changes only the bytes whose
+strobe is set; the others keep their value. The rule is per byte, not per field: a field that
+spans two bytes can take one byte from a write and keep the other. A write with no strobe set in
+the register's bytes changes nothing, and doesn't pulse a `WO`'s `<R>_we`.
 
 `RWU` is for status registers that hardware updates and software can also write (for example
 to clear them). `ts/test/test_RWU.ts` generates one block of each priority.
@@ -187,7 +192,7 @@ The block sends each access in the window to `<R>` as one `Memory` request:
 |---|---|
 | `ADDR` | `regs.ADDR - address`: the byte offset inside the window. A slave that stores words uses `ADDR / (wordSize/8)` as the word index |
 | `RE`, `WE` | One cycle high for each read or write of the window |
-| `DATA_WR`, `WSTRB` | `regs.DATA_WR` and `regs.WSTRB` of the write. `WSTRB` is passed unchanged ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81) sizes it) |
+| `DATA_WR`, `WSTRB` | `regs.DATA_WR` and `regs.WSTRB` of the write, unchanged. The memory writes only the strobed bytes |
 | `DATA_RD` | Returned on `regs.DATA_RD` after a read of the window |
 | `READY` | The access completes when it is high. `regs.READY` is low from the cycle after the request until then |
 
@@ -342,12 +347,8 @@ from outside, give the parent a port of the same interface type and bind `regs` 
 ## 5. Current limitations
 
 These are properties of the code on `main`. Check them before you depend on a block. Each one
-links to the bug that tracks it: [#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81) (write strobes) and
-[#86](https://github.com/TypeScriptSystemVerilog/TSSV/issues/86) (`TL_UL`).
+links to the bug that tracks it.
 
-- **`WSTRB` is only partly applied.** A field register's enable treats `WSTRB` as one bit (any
-  strobe set). A register without fields ignores it. The strobe signals are sized from
-  `busAddressWidth`, not from the data width. ([#81](https://github.com/TypeScriptSystemVerilog/TSSV/issues/81))
 - **`TL_UL` in YAML doesn't work** ([#86](https://github.com/TypeScriptSystemVerilog/TSSV/issues/86)). The generated file imports `TL_UL` from
   `tssv/lib/interfaces/AMBA/TL_UL`, which doesn't exist (the class is in
   `ts/src/interfaces/TileLink.ts`), and `RegisterBlock` accepts only `Memory` and `APB4`. For an APB block, generate with `Memory` and pass an `APB4` instance in

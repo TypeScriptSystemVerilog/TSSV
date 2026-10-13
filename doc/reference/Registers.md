@@ -184,7 +184,7 @@ writeRALF(): string;
 | <a id="width"></a> `width?` | \| `2` \| `1` \| `3` \| `4` \| `8` \| `16` \| `32` \| `64` \| `5` \| `6` \| `10` \| `7` \| `12` \| `11` \| `14` \| `9` \| `13` \| `15` \| `17` \| `18` \| `19` \| `20` \| `21` \| `22` \| `23` \| `24` \| `25` \| `30` \| `36` \| `26` \| `27` \| `28` \| `29` \| `31` \| `33` \| `34` \| `35` \| `37` \| `38` \| `39` \| `40` \| `41` \| `42` \| `43` \| `44` \| `45` \| `46` \| `47` \| `48` \| `49` \| `50` \| `51` \| `52` \| `53` \| `54` \| `55` \| `56` \| `57` \| `58` \| `59` \| `60` \| `61` \| `62` \| `63` | - |
 | <a id="issigned-1"></a> `isSigned?` | `boolean` | - |
 | <a id="fields"></a> `fields?` | `Record`\<`string`, [`Field`](#field)\> | - |
-| <a id="updatepriority"></a> `updatePriority?` | `"hw"` \| `"sw"` | RWU only: which update source wins when both assert in the same cycle. Default 'hw'. |
+| <a id="updatepriority"></a> `updatePriority?` | `"hw"` \| `"sw"` | RWU only: which update source wins when both assert in the same cycle. Default 'hw'. With 'hw', the hardware update sets the whole register. With 'sw', the software write sets the bytes whose `WSTRB` bit is set, and the hardware update sets the others. |
 | <a id="constant"></a> `constant?` | `boolean` | RO only: no input port; the register reads its `reset`, or each field's `reset`. |
 | <a id="registerrequest"></a> `registerRequest?` | `boolean` | RAM/ROM only: drive the window's request from flops. Default true. |
 | <a id="registerresponse"></a> `registerResponse?` | `boolean` | RAM/ROM only: return the window's response through flops. Default true. |
