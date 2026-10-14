@@ -1,6 +1,7 @@
 /** @module Base */
 import { readFileSync } from 'fs'
 import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
+import { type BodyStatement, bodyStatements, identifiers, loopVariables, resetBranches, targetName } from './AlwaysBody.js'
 import { runVerible } from '../tools/formatters/verible.js'
 
 /**
@@ -669,7 +670,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }
 
   /**
-     * add a DFF register(can be multi-bit) to the d input
+     * add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
+     * (SV guide SEQ-6), and `reset` must be the same kind (`isReset`) as every other reset in the
+     * module (RST-2).
      * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
      * written as `'0`, or as a literal sized to q
      * @returns return the q output signal
@@ -714,11 +717,17 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     const d = io.d.toString()
     const clkSig = this.findSignal(io.clk, true, this.addRegister, true)
     if (!clkSig.isClock) throw Error(`${io.clk.toString()} is not a clock signal`)
+    // The type says resetVal is a bigint; this catches a signal passed from JavaScript, or cast
+    const resetVal: unknown = io.resetVal
+    if (resetVal !== undefined && typeof resetVal !== 'bigint') {
+      throw Error(`addRegister(${qName.toString()}): resetVal must be a bigint constant (SEQ-6: reset values must be constants)`)
+    }
     let resetSensitivity = ''
     let resetCondition = '#NONE#'
     if (io.reset) {
       const rstSig = this.findSignal(io.reset, true, this.addRegister, true)
       if (!rstSig.isReset) throw Error(`${io.reset.toString()} is not a reset signal`)
+      this.useResetKind(`addRegister(${qName.toString()})`, io.reset.toString(), rstSig.isReset)
       switch (rstSig.isReset) {
         case 'highasync' :
           resetSensitivity = ` or posedge ${io.reset.toString()}`
@@ -926,6 +935,20 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return io.out
   }
 
+  /**
+   * Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
+   * <reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
+   * The builder rejects a body that breaks these rules of the SV guide:
+   * - COMB-2: a local declared with an initializer must be `automatic`.
+   * - SEQ-1: `=` only for the block's own locals; every other assignment uses `<=`.
+   * - SEQ-6: in the reset branch (`if (!rst_n)`, or `if (rst)` for an active-high reset), no
+   *   assignment reads one of the module's signals or ports. Constants, parameters and enum
+   *   values are fine.
+   * - RST-2: `reset` must be the same kind (`isReset`) as every other reset in the module.
+   * @param io the block's clock, its reset if it has one, and the signals it assigns, which
+   * become `logic`
+   * @param body the block's statements, usually `begin : <name> ... end`
+   */
   addSequentialAlways (
     io: {
       clk: string | Sig
@@ -950,10 +973,35 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
     const clkSig = this.findSignal(io.clk, true, this.addRegister, true)
     if (!clkSig.isClock) throw Error(`${io.clk.toString()} is not a clock signal`)
+    const where = `addSequentialAlways(${io.outputs.join(', ')})`
+    const statements = bodyStatements(body)
+    this.checkStaticLocals(where, statements)
+    // SEQ-1: = only for the block's own locals
+    const locals = new Set([...statements.flatMap((st) => st.kind === 'declaration' ? st.names : []), ...loopVariables(body)])
+    for (const st of statements) {
+      if (st.kind === 'blocking' && !locals.has(targetName(st.target))) {
+        throw Error(`${where}: blocking assignment to ${st.target} (SEQ-1: use <= for every variable visible outside the block, and = only for its automatic locals)`)
+      }
+    }
     let resetSensitivity = ''
     if (io.reset) {
       const rstSig = this.findSignal(io.reset, true, this.addRegister, true)
       if (!rstSig.isReset) throw Error(`${io.reset.toString()} is not a reset signal`)
+      this.useResetKind(where, io.reset.toString(), rstSig.isReset)
+      // SEQ-6: the reset branch assigns constants, not the module's signals
+      const activeLow = rstSig.isReset === 'lowasync' || rstSig.isReset === 'lowsync'
+      for (const branch of resetBranches(body, io.reset.toString(), activeLow)) {
+        for (const st of bodyStatements(branch)) {
+          if (st.kind !== 'blocking' && st.kind !== 'nonblocking') continue
+          const signal = identifiers(st.rhs).find((id) => {
+            const sig = this.IOs[id] ?? this.signals[id]
+            return sig !== undefined && sig.type !== 'const logic'
+          })
+          if (signal !== undefined) {
+            throw Error(`${where}: ${st.target} resets to ${signal}, a signal (SEQ-6: reset values must be constants)`)
+          }
+        }
+      }
       switch (rstSig.isReset) {
         case 'highasync' :
           resetSensitivity = `or posedge ${io.reset.toString()}`
@@ -979,6 +1027,15 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
   }
 
+  /**
+   * Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
+   * The builder rejects a body that breaks these rules of the SV guide:
+   * - COMB-2: a local declared with an initializer must be `automatic`.
+   * - COMB-3: no nonblocking assignments. `<=` as a comparison, as in `if (a <= b)`, is fine.
+   * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
+   * list instead of `always_comb`
+   * @param body the block's statements, usually `begin : <name> ... end`
+   */
   addCombAlways (
     io: {
       inputs?: Array<string | Sig>
@@ -998,6 +1055,14 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
           break
         default:
           throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`)
+      }
+    }
+    const where = `addCombAlways(${io.outputs.join(', ')})`
+    const statements = bodyStatements(body)
+    this.checkStaticLocals(where, statements)
+    for (const st of statements) {
+      if (st.kind === 'nonblocking') {
+        throw Error(`${where}: nonblocking assignment to ${st.target} (COMB-3: use blocking assignments, =, in combinational logic)`)
       }
     }
     let sensitivityList: string | null = null
@@ -1023,6 +1088,13 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
   }
 
+  /**
+   * Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5). The builder
+   * rejects a local declared with an initializer that isn't `automatic` (SV guide COMB-2).
+   * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
+   * list instead of `always_latch`
+   * @param body the block's statements, usually `begin : <name> ... end`
+   */
   addLatchAlways (
     io: {
       inputs?: Array<string | Sig>
@@ -1044,6 +1116,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
           throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`)
       }
     }
+    this.checkStaticLocals(`addLatchAlways(${io.outputs.join(', ')})`, bodyStatements(body))
     let sensitivityList: string | null = null
     if (io.inputs) {
       for (const input of io.inputs) {
@@ -1065,6 +1138,23 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       this.body += 'always_latch\n'
       this.body += body
     }
+  }
+
+  // COMB-2: a local declared with an initializer is static unless it's automatic
+  protected checkStaticLocals (where: string, statements: BodyStatement[]): void {
+    for (const st of statements) {
+      if (st.kind === 'declaration' && st.initialized && !st.automatic) {
+        throw Error(`${where}: ${st.names.join(', ')} is declared with an initializer but isn't automatic, so it's static: the initializer runs once, and the value carries over (COMB-2: declare it automatic, or assign it instead)`)
+      }
+    }
+  }
+
+  // RST-2: every register and sequential block in a module uses the same kind of reset
+  protected useResetKind (where: string, reset: string, kind: string): void {
+    if (this.resetKind !== undefined && this.resetKind.kind !== kind) {
+      throw Error(`${where}: reset ${reset} is ${kind}, but ${this.name} already uses ${this.resetKind.reset}, which is ${this.resetKind.kind} (RST-2: use one reset kind per module)`)
+    }
+    this.resetKind ??= { reset, kind }
   }
 
   protected addOperation (
@@ -1777,6 +1867,8 @@ ${waiverOn}`
   protected body: string
   // set by waiveWidthWarnings(): the issue that removes this module's WIDTH waiver
   protected widthWaiverIssue?: string
+  // the reset kind this module's registers use, from its first register or sequential block (RST-2)
+  protected resetKind?: { reset: string, kind: string }
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
   protected static printedInterfaces: Record<string, boolean> = {}
