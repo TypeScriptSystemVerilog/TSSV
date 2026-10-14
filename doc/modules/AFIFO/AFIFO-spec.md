@@ -1,263 +1,379 @@
 # Module Specification: `AFIFO`
 
-> **File:** `ts/src/modules/AFIFO/AFIFO.ts`
+> **Source:** `ts/src/modules/AFIFO/`
 > **Status:** Draft
-> **Depends on new submodules:** `GrayPointer`, `CDCSynchronizer`, `DualClockRAM`
 
 ---
 
 ## Overview
 
-`AFIFO` is a dual-clock **asynchronous First-In First-Out** queue. Data is enqueued in
-the `wr_clk` domain and dequeued in the `rd_clk` domain, with no assumed phase or
-frequency relationship between the two clocks.
+Dual-clock (asynchronous) **First-In First-Out** queue. Words are pushed in the `wr_clk` domain and popped in the `rd_clk` domain, with no assumed relationship between the two clocks' frequencies or phases. It is `SFIFO` with its clock split in two. It has the same show-ahead read, the same push/pop ports and status outputs, and the same optional almost-full/almost-empty thresholds. It's the clock-domain crossing for tssv-noc's asynchronous `NoCEdge`.
 
-Correct clock-domain crossing (CDC) is achieved with **Gray-coded pointers**: the write
-and read pointers are converted to Gray code before
-being synchronized into the opposite domain through a two-flop synchronizer. Gray coding
-ensures that as the pointers increment, only one bit at a time changes. This makes
-metastable sampling of a multi-bit pointer safe — any bit caught mid-transition resolves
-to either the old or the new pointer value, never a corrupt intermediate.
+The data crosses through a `TwoClockRegFile`, written on `wr_clk` and read on `rd_clk`. Only the pointers cross through synchronizers. Each pointer is Gray-coded, so one bit changes per push or pop, and a synchronizer that samples it mid-change resolves to the old value or the new one, never to a third. Each side sees the other's pointer a few cycles late, which makes the status conservative: `full` can stay asserted after a pop has freed a word, and `empty` can stay asserted after a push. Neither side ever sees more space or more data than the FIFO has.
 
-Because each domain only ever sees a *synchronized* (and therefore delayed) copy of the
-other domain's pointer, the status flags are **conservative**: `wr_full` may assert while
-the FIFO is not yet physically full, and `rd_empty` may assert while data is in flight.
-It never reports the FIFO as having *more* space or data than actually exists, so it is
-always safe to act on. Clocks are positive-edge sensitive; resets are active-low async.
+The storage is flops, not a memory macro, so the same RTL serves ASIC flows and AMD FPGA prototyping. That limits `depth` to a power of two from 4 to 32. A design that needs more buffering puts an `SFIFO` behind the `AFIFO`.
 
-The implementation of this AFIFO is inspired by [bsg_async_fifo](https://github.com/bespoke-silicon-group/basejump_stl/blob/master/bsg_async/bsg_async_fifo.sv).
+The pointer scheme is Cummings' ("Simulation and Synthesis Techniques for Asynchronous FIFO Design", SNUG 2002), as in BaseJump STL's [bsg_async_fifo](https://github.com/bespoke-silicon-group/basejump_stl/blob/master/bsg_async/bsg_async_fifo.sv), which inspired this module.
 
 ---
 
 ## Parameters
 
+Defined in `AFIFO_Parameters extends TSSVParameters`.
+
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto | Instance name |
-| `dataWidth` | `IntRange<1,256>` | — | Data word width (bits) |
-| `log2depth` | `bigint` | — | log2(FIFO depth); FIFO holds `2**log2depth` words (power-of-2 only) |
-| `InclAlmostDepth` | `'InclAlmostDepth' \| 'none'` | `'none'` | Enable `wr_almost_full` / `rd_almost_empty` outputs |
-| `almost_empty_depth` | `bigint` | `1` | Occupancy at/below which `rd_almost_empty` asserts |
-| `almost_full_depth` | `bigint` | `depth - 1` | Occupancy at/above which `wr_almost_full` asserts |
-| `syncStages` | `bigint` | `2` | Number of flops in each CDC synchronizer (≥2) |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, in the order below: `AFIFO_<dataWidth>_<depth>_<syncStages>_<inclAlmostFull>_<inclAlmostEmpty>`, plus `_<fpgaRamStyle>` when it's set. For example `AFIFO_514_8_2_false_false` |
+| `dataWidth` | `bigint` (≥ 1) | — | Word width in bits. There is no upper limit, so NoC flits of 514 or 1026 bits fit |
+| `depth` | `bigint` (4, 8, 16 or 32) | — | Number of words. A power of two; see [Implementation Notes](#implementation-notes) for why. [Throughput and depth](#throughput-and-depth) covers choosing it |
+| `syncStages?` | `bigint` (≥ 2) | `2n` | Flops in each pointer synchronizer. Each extra stage lowers the chance that a metastable value escapes the synchronizer, and adds a cycle of latency in each direction |
+| `inclAlmostFull?` | `boolean` | `false` | Adds the `almost_full_depth` input and `almost_full` output, in the write domain |
+| `inclAlmostEmpty?` | `boolean` | `false` | Adds the `almost_empty_depth` input and `almost_empty` output, in the read domain |
+| `fpgaRamStyle?` | `'distributed' \| 'block'` | unset | Passed to the `TwoClockRegFile`: how Vivado implements the storage. Unset lets Vivado choose. ASIC flows ignore it. See `TwoClockRegFile`'s [Synthesis mapping](../TwoClockRegFile/TwoClockRegFile-spec.md#synthesis-mapping) |
 
-> **Depth is a power of two.** The Cummings full/empty scheme used by the FIFO relies on `log2depth+1`-bit
-> pointers wrapping cleanly, so `depth = 2**log2depth` exactly. Non-power-of-2 depths are
-> not supported.
+Invalid values throw an `Error` that names the module, the parameter and the value: `dataWidth < 1`, a `depth` other than 4, 8, 16 or 32, `syncStages < 2`, or an `fpgaRamStyle` string that isn't listed above. TypeScript catches the last one at compile time, but JavaScript callers don't get that check.
+
+`ptrWidth` below is `log2(depth) + 1`: 3 bits for depth 4, 6 bits for depth 32. It's the width of `SFIFO`'s `curr_depth` at the same depth.
 
 ---
 
 ## IO Ports
 
-### Always present
+Every port belongs to one clock domain. The data and status ports have `SFIFO`'s names (with `simultPushPop = true`). Each domain has its own clock, reset and fill count, so those carry a `wr_` or `rd_` prefix.
 
-| Port | Direction | Width | Description |
-|---|---|---|---|
-| `wr_clk` | input | 1 | write domain clock (posedge) |
-| `wr_rst_n` | input | 1 | write domain active-low async reset |
-| `wr_en` | input | 1 | write enable (level sensitive); write occurs when `wr_en && !wr_full` |
-| `wr_data_in` | input | `dataWidth` | write data |
-| `wr_full` | output | 1 | write domain full indicator (conservative) |
-| `wr_curr_depth` | output | `log2depth+1` | write domain occupancy estimate (conservative — never under-reports fill) |
-| `rd_clk` | input | 1 | read domain clock (posedge) |
-| `rd_rst_n` | input | 1 | read domain active-low async reset |
-| `rd_en` | input | 1 | read enable (level sensitive); read occurs when `rd_en && !rd_empty` |
-| `rd_data_out` | output | `dataWidth` | read data (valid one `rd_clk` after an accepted read) |
-| `rd_empty` | output | 1 | read domain empty indicator (conservative) |
-| `rd_curr_depth` | output | `log2depth+1` | read domain occupancy estimate (conservative — never over-reports fill) |
+### Write domain (`wr_clk`)
 
-### Additional ports when `InclAlmostDepth = 'InclAlmostDepth'`
+| Port | Direction | Width | Clock/Reset | Description |
+|---|---|---|---|---|
+| `wr_clk` | `input` | 1 | `isClock: 'posedge'` | Write clock |
+| `wr_rst_n` | `input` | 1 | `isReset: 'lowasync'` | Write-domain reset, active low. See [Reset behavior](#reset-behavior) |
+| `push_en` | `input` | 1 | — | Push enable: on the next `wr_clk` edge, `push_data` is pushed unless `full` is asserted |
+| `push_data` | `input` | `dataWidth` | — | Push data |
+| `full` | `output` | 1 | — | Asserted when `wr_curr_depth` is `depth` |
+| `wr_curr_depth` | `output` | `ptrWidth` | — | Fill count as the write domain sees it, 0 to `depth`. It can over-report, never under-report |
 
-| Port | Direction | Width | Description |
-|---|---|---|---|
-| `wr_almost_full` | output | 1 | asserts when write-domain occupancy ≥ `almost_full_depth` |
-| `rd_almost_empty` | output | 1 | asserts when read-domain occupancy ≤ `almost_empty_depth` |
+### Read domain (`rd_clk`)
 
----
+| Port | Direction | Width | Clock/Reset | Description |
+|---|---|---|---|---|
+| `rd_clk` | `input` | 1 | `isClock: 'posedge'` | Read clock |
+| `rd_rst_n` | `input` | 1 | `isReset: 'lowasync'` | Read-domain reset, active low |
+| `pop_en` | `input` | 1 | — | Pop enable: on the next `rd_clk` edge, the head is discarded unless `empty` is asserted |
+| `pop_data` | `output` | `dataWidth` | — | Head of the queue, valid whenever `empty` is deasserted |
+| `empty` | `output` | 1 | — | Asserted when `rd_curr_depth` is 0 |
+| `rd_curr_depth` | `output` | `ptrWidth` | — | Fill count as the read domain sees it, 0 to `depth`. It can under-report, never over-report |
 
-## Architecture
+### `inclAlmostFull = true` (write domain)
 
-The AFIFO comprises three cooperating modules:
+| Port | Direction | Width | Clock/Reset | Description |
+|---|---|---|---|---|
+| `almost_full_depth` | `input` | `ptrWidth` | — | Fill count at which `almost_full` asserts |
+| `almost_full` | `output` | 1 | — | Asserted when `wr_curr_depth >= almost_full_depth` |
 
-```
-                         AFIFO (top)
-   ┌──────────────────────────────────────────────────────────────┐
-   │  wr domain                              rd domain            │
-   │  ┌────────────────┐                      ┌────────────────┐  │
-   │  │  GrayPointer   │  wr_gray ──sync──▶   │  GrayPointer   │  │
-   │  │  (write ptr)   │  ◀──sync── rd_gray   │  (read ptr)    │  │
-   │  └───────┬────────┘                      └───────┬────────┘  │
-   │   wr_bin_ptr[log2depth-1:0]        rd_bin_ptr[log2depth-1:0] │
-   │          │ (write addr)              (read addr) │           │
-   │          ▼                                       ▼           │
-   │  ┌────────────────────  DualClockRAM  ─────────────────────┐ │
-   │  │  wr_clk: w_addr=wr_addr, w_data=wr_data_in, w_en=inc_wr │ │
-   │  │  rd_clk: r_addr=rd_addr, r_data=rd_data_out             │ │
-   │  └─────────────────────────────────────────────────────────┘ │
-   └──────────────────────────────────────────────────────────────┘
-```
+### `inclAlmostEmpty = true` (read domain)
 
-> **Why not `SRAM`?** TSSV's `SRAM` (even in `1r_1w` mode) is single-clock — both ports
-> share one `clk` in a single `always_ff`, plus same-address read/write collision logic
-> that drives `'hx`. An async FIFO needs the write port on `wr_clk` and the read port on
-> `rd_clk` with no cross-clock collision handling, so a dedicated dual-clock RAM is used
-> instead. (Alternatives considered: adding a dual-clock mode to `SRAM`, or inlining the
-> array in `AFIFO`; a standalone reusable module was chosen.)
-
-### CDCSynchronizer
-
-Source: `ts/src/modules/CDCSynchronizer/`
-
-Generic N-bit, `syncStages`-deep flop synchronizer for moving a **Gray-coded** value into
-a destination clock domain. Reusable beyond this FIFO.
-
-| Param | Type | Description |
-|---|---|---|
-| `width` | `bigint` | bus width |
-| `stages` | `bigint` (default `2`) | number of destination-domain flops (≥2) |
-
-| Port | Direction | Width | Notes |
-|---|---|---|---|
-| `clk` | input | 1 | destination clock (posedge) |
-| `rst_n` | input | 1 | destination async reset (lowasync) |
-| `d` | input | `width` | source-domain value (assumed Gray-coded / single-bit-change) |
-| `q` | output | `width` | value registered `stages` deep into the destination domain |
-
-Implementation: a chain of `stages` registers on `clk`/`rst_n` via `addRegister`, `d → q0 → q1 → … → q`.
-
-### GrayPointer
-
-Source: `ts/src/modules/GrayPointer/`
-
-Owns one pointer for one domain and exposes it (Gray-coded) to the other domain.
-
-| Param | Type | Description |
-|---|---|---|
-| `log2depth` | `bigint` | pointer counts over `[0, 2**(log2depth+1))` — `log2depth+1` bits |
-| `syncStages` | `bigint` (default `2`) | forwarded to the far-domain `CDCSynchronizer` |
-
-| Port | Direction | Width | Notes |
-|---|---|---|---|
-| `clk` | input | 1 | this pointer's domain clock |
-| `rst_n` | input | 1 | this pointer's async reset |
-| `inc` | input | 1 | advance the binary counter this cycle |
-| `far_clk` | input | 1 | opposite domain clock (for the synchronizer) |
-| `far_rst_n` | input | 1 | opposite domain reset |
-| `bin_ptr` | output | `log2depth+1` | binary pointer in this domain (low `log2depth` bits address SRAM) |
-| `gray_ptr` | output | `log2depth+1` | registered Gray pointer in this domain |
-| `gray_ptr_far` | output | `log2depth+1` | this Gray pointer synchronized into the far domain |
-
-Internal logic:
-- `bin_next = bin_ptr + inc` (binary counter, `log2depth+1` bits, wraps naturally).
-- `gray_ptr` register loads `bin_next ^ (bin_next >> 1)` on each `clk` (bin→Gray, registered).
-- `bin_ptr` register loads `bin_next`.
-- Instantiates `CDCSynchronizer` on `far_clk`/`far_rst_n` with `d = gray_ptr`, `q = gray_ptr_far`.
-
-### DualClockRAM
-
-Source: `ts/src/modules/DualClockRAM/`
-
-Simple dual-port RAM with **independent write and read clocks** — one write port, one read
-port, no cross-clock collision handling (the FIFO's Gray pointers guarantee reader and
-writer never touch the same location simultaneously). Reusable beyond this FIFO.
-
-| Param | Type | Description |
-|---|---|---|
-| `dataWidth` | `IntRange<1,256>` | word width |
-| `depth` | `bigint` | number of words (power-of-2 for FIFO use) |
-
-| Port | Direction | Width | Notes |
-|---|---|---|---|
-| `w_clk` | input | 1 | write clock (posedge) |
-| `w_en` | input | 1 | write enable |
-| `w_addr` | input | `log2(depth)` | write address |
-| `w_data` | input | `dataWidth` | write data |
-| `r_clk` | input | 1 | read clock (posedge) |
-| `r_en` | input | 1 | read enable |
-| `r_addr` | input | `log2(depth)` | read address |
-| `r_data` | output | `dataWidth` | registered read data (1 `r_clk` latency) |
-
-Implementation: one `logic [dataWidth-1:0] mem [depth]` array, a write `always_ff @(posedge w_clk)`
-and a read `always_ff @(posedge r_clk)`. No same-address `'hx` logic.
-
-### `AFIFO` (top)
-
-1. **Write pointer** — `GrayPointer` on `wr_clk`, `inc = wr_en && !wr_full`, far domain = read.
-2. **Read pointer** — `GrayPointer` on `rd_clk`, `inc = rd_en && !rd_empty`, far domain = write.
-3. **Storage** — `DualClockRAM`:
-   - write port: `w_addr = wr_bin_ptr[log2depth-1:0]`, `w_data = wr_data_in`, `w_en = inc_wr`, `w_clk = wr_clk`.
-   - read port: `r_addr = rd_bin_ptr[log2depth-1:0]`, `r_data = rd_data_out`, `r_en = inc_rd`, `r_clk = rd_clk`.
-4. **Empty (read domain):** `rd_empty = (rd_gray_ptr == wr_gray_ptr_synced_to_rd)`.
-5. **Full (write domain):** `wr_full = (wr_gray_ptr == {~rd_gray_synced_to_wr[MSB:MSB-1], rd_gray_synced_to_wr[MSB-2:0]})`
-   — i.e. equal to the synchronized read Gray pointer with its top two bits inverted (Cummings test).
-6. **Occupancy:** in each domain, convert the local binary pointer and the far pointer
-   (Gray→binary via prefix-XOR `bin[i] = ^(gray >> i)`) and take the binary difference,
-   masked to `log2depth+1` bits, to drive `wr_curr_depth` / `rd_curr_depth`.
-7. **Almost flags** (when enabled): threshold comparisons on the respective occupancy value.
-
-### Gray ↔ binary primitives
-
-- **bin → Gray:** `assign gray = bin ^ (bin >> 1);` (single XOR level).
-- **Gray → binary:** prefix XOR, emitted per bit: `assign bin[i] = ^(gray[W-1:i]);`
-  (logarithmic-depth XOR tree; used only where a binary value is needed, i.e. occupancy).
+| Port | Direction | Width | Clock/Reset | Description |
+|---|---|---|---|---|
+| `almost_empty_depth` | `input` | `ptrWidth` | — | Fill count at or below which `almost_empty` asserts |
+| `almost_empty` | `output` | 1 | — | Asserted when `rd_curr_depth <= almost_empty_depth` |
 
 ---
 
-## Reset behavior
+## Functional Description
 
-Each domain resets independently through its own async-low reset:
+The FIFO is **show-ahead** (first-word fall-through), like `SFIFO`. `pop_data` presents the head of the queue whenever `empty` is deasserted. No read is needed to see the head: a *pop* discards it and advances to the next entry. So the read side is a valid/ready source, with `!empty` as valid and `pop_en` as ready. The write side is a valid/ready sink, with `push_en` as valid and `!full` as ready.
 
-- On `wr_rst_n`: `wr_bin_ptr`, `wr_gray_ptr` → 0.
-- On `rd_rst_n`: `rd_bin_ptr`, `rd_gray_ptr` → 0.
-- CDC synchronizer flops reset to 0 in their destination domain.
-- After both resets: `rd_empty` asserts, `wr_full` deasserts, both occupancy counts = 0.
+Each domain has its own pointer, and its own view of the fill count:
 
-> **Reset caveat:** the two resets should each be released
-> synchronously to their own clock, and both pointers must be reset before either domain
-> begins operating. Releasing one domain's reset while the other is still held is safe (the
-> running domain simply sees the far pointer as 0) but no traffic should be issued until
-> both are released.
+| Domain | Its pointer | Sees the other domain's pointer | Status outputs |
+|---|---|---|---|
+| Write | Advanced by each push | `syncStages` `wr_clk` edges late | `full`, `wr_curr_depth`, `almost_full` |
+| Read | Advanced by each pop | `syncStages` `rd_clk` edges late, plus one edge to load the head | `empty`, `rd_curr_depth`, `almost_empty` |
+
+A crossing takes one edge longer if the synchronizer's first flop misses the change: the change can arrive too close to that edge, or the flop can go metastable and resolve to the old value. Each status output changes only on its own domain's clock edge.
+
+### Write domain
+
+1. **Push:** on a rising edge of `wr_clk` with `push_en` high and `full` low, `push_data` is written to the storage and the write pointer advances.
+2. `wr_curr_depth` is the number of pushes minus the number of pops the write domain has seen. A pop reaches it `syncStages` `wr_clk` edges after the pop edge. So `wr_curr_depth` is never less than the true fill count.
+3. `full` asserts when `wr_curr_depth` is `depth`. It asserts on the edge of the push that fills the FIFO, and deasserts on the edge where a pop reaches the write domain.
+4. A push while `full` is asserted is ignored. There's no overflow protection, so the caller has to check `full`. A valid/ready producer holds its word until `full` deasserts.
+
+### Read domain
+
+1. **Pop:** on a rising edge of `rd_clk` with `pop_en` high and `empty` low, the head is discarded and the read pointer advances. In the following cycle `pop_data` presents the next entry, or `empty` asserts if the read domain hasn't seen another push yet.
+2. **Push-to-head latency:** a word pushed into an empty FIFO appears on `pop_data` on the (`syncStages` + 1)th `rd_clk` edge after the push edge, the same edge on which `empty` deasserts. That's `syncStages` edges for the write pointer to cross and one to load the word. A `rd_clk` edge at the same instant as the push edge doesn't count.
+3. **Back-to-back pops:** once the read domain has seen more than one entry, a pop presents the next one in the following cycle, so the read side can pop on every `rd_clk` edge.
+4. `rd_curr_depth` is the number of pushes the read domain has seen minus the number of pops. While `empty` is asserted it's 0, even in the cycle after a push has crossed, before the head is loaded. So `rd_curr_depth` is never more than the true fill count.
+5. `empty` asserts when `rd_curr_depth` is 0. `pop_data` and `empty` always update on the same edge, so `!empty` is a sufficient qualifier for `pop_data`.
+6. A pop while `empty` is asserted is ignored. `pop_data` is undefined while `empty` is asserted.
+
+See [Internal Architecture](#internal-architecture) for how show-ahead is built on `TwoClockRegFile`'s registered read.
+
+### Throughput and depth
+
+Each side can transfer a word on every edge of its own clock, but the FIFO can only sustain that if `depth` covers a word's round trip. A word holds its place in the storage from its push until the write domain sees its pop. With both sides always ready and both clocks at the same frequency, that's about 2 × `syncStages` + 2 cycles. When the clocks differ, the slower one sets the rate.
+
+Fraction of the slower clock's rate that the FIFO sustains, with both sides always ready:
+
+| `syncStages` | `depth` | Same frequency | One clock 1.3× the other | One clock 3× the other |
+|---|---|---|---|---|
+| 2 | 4 | 0.57 to 0.67 | 0.70 to 0.75 | 1 |
+| 2 | 8 | 1 | 1 | 1 |
+| 3 | 4 | 0.44 to 0.5 | 0.56 to 0.57 | 0.67 to 0.8 |
+| 3 | 8 | 0.89 to 1 | 1 | 1 |
+
+The ranges depend on the clocks' phase and on which clock is faster. These figures come from a cycle model of this design. The testbench checks the `depth = 8` row at a near-equal clock pair (see [Test Plan](#test-plan)).
+
+Depth 4 is correct at any clock ratio. It only costs throughput.
+
+### Almost-full / almost-empty
+
+`almost_full` and `almost_empty` are early warnings with run-time programmable thresholds, as in `SFIFO`. They are enabled independently by `inclAlmostFull` and `inclAlmostEmpty`. Each one lives in its own domain:
+
+| Flag | Domain | Asserted when |
+|---|---|---|
+| `almost_full` | write | `wr_curr_depth >= almost_full_depth` |
+| `almost_empty` | read | `rd_curr_depth <= almost_empty_depth` |
+
+1. Each flag is a combinational compare of its domain's fill count against the threshold input, so it changes on the same edge as that domain's `full` or `empty`. No extra latency is added.
+2. The threshold inputs are intended to be static configuration (tied off, or driven from a register). Each belongs to its flag's domain: drive `almost_full_depth` from `wr_clk` logic and `almost_empty_depth` from `rd_clk` logic. If a threshold changes, the flag follows combinationally in the same cycle.
+3. **Using `almost_full` for back-pressure:** if a producer takes *N* `wr_clk` cycles to stop pushing after it sees a flag, set `almost_full_depth = depth - N`. Then the pushes still in flight fit in the remaining space and none are dropped. This holds across the crossing because `wr_curr_depth` never under-reports.
+4. **Using `almost_empty` for bursts:** a consumer that needs a burst of *M* entries can wait for `!almost_empty` with `almost_empty_depth = M - 1`. The read domain has then seen at least *M* entries, so they can be popped on *M* consecutive `rd_clk` edges.
+5. **Threshold boundary values:**
+
+   | Setting | Result |
+   |---|---|
+   | `almost_full_depth = depth` | `almost_full` is identical to `full` |
+   | `almost_full_depth = 0` | `almost_full` is always asserted |
+   | `almost_full_depth > depth` | `almost_full` never asserts |
+   | `almost_empty_depth = 0` | `almost_empty` is identical to `empty` |
+   | `almost_empty_depth >= depth` | `almost_empty` is always asserted |
+
+### Reset behavior
+
+Each domain has its own active-low asynchronous reset:
+
+- `wr_rst_n` resets the write pointer and the synchronizer that brings the read pointer into the write domain.
+- `rd_rst_n` resets the read pointer, `empty`, and the synchronizer that brings the write pointer into the read domain.
+
+The storage and `pop_data` have no reset. After both resets, `empty` asserts, `full` deasserts and both fill counts are 0. `almost_empty` asserts and `almost_full` deasserts, unless `almost_full_depth = 0`. `pop_data` is undefined until the first push reaches the read side.
+
+The two resets have to be used together:
+
+1. **Assert both, overlapping.** Resetting one side while the other side's pointer is nonzero corrupts the FIFO. Each side would see a pointer value the other no longer holds, so words can be lost or repeated.
+2. **Release each one synchronously to its own clock.** The `AFIFO` has no reset synchronizer. That's the caller's job (RST-4 in `doc/rtl-style/sv-style/sv-coding-style.md`).
+3. **Don't push or pop until both resets have been released.**
+
+### Edge cases
+
+- **A push while `full` is asserted:** ignored, with no overflow protection. The caller has to check `full`.
+- **A pop while `empty` is asserted:** ignored, with no pointer or count change. `pop_data` remains undefined.
+- **A push and a pop at once:** they're in different domains, so `SFIFO`'s same-cycle cases don't arise. A push into a FIFO whose last entry is being popped reaches the read side with the push-to-head latency above.
+
+---
+
+## Timing
+
+Both diagrams draw `rd_clk` at half `wr_clk`'s frequency, with every `rd_clk` edge at the same instant as a `wr_clk` edge, so that they fit on one grid. In practice the clocks are unrelated. At a shared edge, each side's synchronizer captures the other side's pointer from before the edge, as it would in a simulation with aligned clocks. `syncStages = 2` in both.
+
+### Fill, cross and drain
+
+`depth = 4`, consumer always ready (`pop_en` held high). The producer offers `A` to `E` back to back and holds each word until it's accepted. `A` to `D` fill the FIFO. `E` waits while `full` is asserted.
+
+- `A` appears on `pop_data` three `rd_clk` edges after its push. Two edges are for the write pointer to cross, and one is to load `A`.
+- `full` deasserts two `wr_clk` edges after the pop of `A`, when that pop reaches the write domain. `E` takes the freed word, which fills the FIFO again until the pop of `B` arrives.
+- `empty` asserts for a cycle after `D` is popped, because `E`'s push hasn't reached the read side yet.
+
+<!-- wavedrom AFIFO-timing-fill-drain.svg
+{
+  "signal": [
+    {"name": "wr_clk",        "wave": "p......................."},
+    {"name": "push_en",       "wave": "01...........0.........."},
+    {"name": "push_data",     "wave": "x34567.......x..........", "data": ["A", "B", "C", "D", "E"], "node": ".A......................"},
+    {"name": "full",          "wave": "0....1......010.........", "node": "............D..........."},
+    {"name": "wr_curr_depth", "wave": "=.====......===.=.=...=.", "data": ["0", "1", "2", "3", "4", "3", "4", "3", "2", "1", "0"]},
+    {},
+    {"name": "rd_clk",        "wave": "p...........", "period": 2},
+    {"name": "pop_en",        "wave": "1...........", "period": 2},
+    {"name": "pop_data",      "wave": "x...3456x7x.", "period": 2, "data": ["A", "B", "C", "D", "E"], "node": "....BC......"},
+    {"name": "empty",         "wave": "1...0...101.", "period": 2},
+    {"name": "rd_curr_depth", "wave": "=...=======.", "period": 2, "data": ["0", "4", "3", "2", "1", "0", "1", "0"]}
+  ],
+  "edge": ["A~>B cross + load", "C~>D pop of A crosses"],
+  "head": {"text": "AFIFO: fill, cross and drain (depth = 4, syncStages = 2)"}
+}
+-->
+![AFIFO timing: Fill, cross and drain](AFIFO-timing-fill-drain.svg)
+
+### Almost-full / almost-empty thresholds
+
+`depth = 4`, `inclAlmostFull = true`, `inclAlmostEmpty = true`, `almost_full_depth = 3`, `almost_empty_depth = 1`. Four pushes, which the consumer pops as they appear. Each flag follows its own domain's count. `almost_full` asserts with the third push, a cycle before `full`, and stays asserted until the pop of `B` reaches the write domain. `almost_empty` deasserts when the read side sees all four entries, and asserts again when it's down to one.
+
+<!-- wavedrom AFIFO-timing-almost-flags.svg
+{
+  "signal": [
+    {"name": "wr_clk",             "wave": "p..................."},
+    {"name": "push_en",            "wave": "01...0.............."},
+    {"name": "almost_full_depth",  "wave": "=...................", "data": ["3"]},
+    {"name": "wr_curr_depth",      "wave": "=.====......=.=.=.=.", "data": ["0", "1", "2", "3", "4", "3", "2", "1", "0"]},
+    {"name": "almost_full",        "wave": "0...1.........0....."},
+    {"name": "full",               "wave": "0....1......0......."},
+    {},
+    {"name": "rd_clk",             "wave": "p.........", "period": 2},
+    {"name": "pop_en",             "wave": "1.........", "period": 2},
+    {"name": "almost_empty_depth", "wave": "=.........", "period": 2, "data": ["1"]},
+    {"name": "rd_curr_depth",      "wave": "=...=====.", "period": 2, "data": ["0", "4", "3", "2", "1", "0"]},
+    {"name": "empty",              "wave": "1...0...1.", "period": 2},
+    {"name": "almost_empty",       "wave": "1...0..1..", "period": 2}
+  ],
+  "head": {"text": "AFIFO thresholds: almost_full_depth = 3, almost_empty_depth = 1"}
+}
+-->
+![AFIFO timing: Almost-full / almost-empty thresholds](AFIFO-timing-almost-flags.svg)
+
+_Push-to-head latency: **`syncStages` + 1 `rd_clk` edges**. Pop-to-space latency: **`syncStages` `wr_clk` edges**. Each is one edge longer if the first synchronizer flop misses the change. Pop-to-next-head latency: **1 `rd_clk` edge**, once the next entry has crossed._
+
+---
+
+## Internal Architecture
+
+The `AFIFO` has three kinds of submodule:
+
+- **Storage:** a `TwoClockRegFile` of `depth` words.
+  - Port A, the write port, is on `wr_clk`. `a_we` is `push_fire`, `a_addr` is the write pointer's low `log2(depth)` bits, and `a_data_in` is `push_data`.
+  - Port B, the read port, is on `rd_clk`. `b_re` is `head_load`, `b_addr` is the low bits of `rd_ptr_nxt`, and `b_data_out` drives `pop_data` directly. So `pop_data` comes straight from a `rd_clk` flop, with no mux.
+- **Pointers:** two `GrayPointer`s, one per domain. Each holds a `ptrWidth`-bit binary pointer and a registered Gray copy of it. It passes the Gray copy to the other domain through a `CDCSynchronizer`.
+- **Synchronizers:** each `CDCSynchronizer` is a chain of `syncStages` flops on the destination clock, reset by the destination domain's reset. Its input comes straight from the source domain's Gray pointer register, with no logic in between. Every flop in the chain carries `(* ASYNC_REG = "TRUE" *)`, so Vivado places the chain's flops next to each other and doesn't merge them into a shift-register LUT.
+
+### Write side
+
+- `push_fire = push_en && !full`. It writes the storage and advances `wr_ptr_q`.
+- `wr_curr_depth = wr_ptr_q - rd_ptr_wsync`, modulo 2^`ptrWidth`. `rd_ptr_wsync` is the synchronized read pointer, converted from Gray to binary.
+- `full` compares Gray pointers directly: `wr_gray_q` equals `rd_gray_wsync` with its top two bits inverted. That's the same condition as `wr_curr_depth == depth`, with no subtractor in the path to `push_fire`.
+- `full` and `wr_curr_depth` are combinational functions of `wr_clk` flops, so they change only on a `wr_clk` edge.
+
+### Read side (show-ahead)
+
+`TwoClockRegFile`'s read is registered, so the head is loaded into `b_data_out` ahead of time, the way `SFIFO` prefetches over `SRAM`. Unlike `SFIFO`, there's no bypass: a pushed word can only reach the read side through the storage.
+
+- `rd_ptr_q` is the head's address. `pop_fire = pop_en && !empty`, and `rd_ptr_nxt = rd_ptr_q + pop_fire`.
+- `head_vld_nxt` means the word at `rd_ptr_nxt` has crossed: `rd_ptr_nxt` differs from the synchronized write pointer. The compare is in Gray code, so no Gray-to-binary conversion is in its path.
+- `head_load = head_vld_nxt && (pop_fire || empty)` loads a new head when the current one is popped or when there isn't one. While it's low, `b_data_out` holds the head.
+- `empty` is a flop. It loads `!head_vld_nxt` on every `rd_clk` edge, and resets to 1.
+- `rd_curr_depth = empty ? 0 : wr_ptr_rsync - rd_ptr_q`, modulo 2^`ptrWidth`.
+
+A valid/ready consumer therefore sees both `empty` and `pop_data` straight from `rd_clk` flops.
+
+### Storage access rules
+
+The pointers keep `TwoClockRegFile`'s [Access rules](../TwoClockRegFile/TwoClockRegFile-spec.md#access-rules):
+
+1. **Write, then read:** the read side loads word *w* only after the synchronized write pointer has passed *w*. The write pointer advanced on the edge that wrote *w*.
+2. **Read, then overwrite:** the write side writes word *w* only while `full` is low, which means the synchronized read pointer has passed *w*'s previous occupant. The read pointer passes a word when it's popped, which comes after the edge that loaded the word into `pop_data`.
+
+### Key signals
+
+| Signal | Domain | Width | Description |
+|---|---|---|---|
+| `push_fire` | write | 1 | Push accepted this cycle |
+| `wr_ptr_q` | write | `ptrWidth` | Binary write pointer. Its low `log2(depth)` bits address the storage |
+| `wr_gray_q` | write | `ptrWidth` | Registered Gray copy of `wr_ptr_q`, the only write-domain signal that crosses |
+| `rd_gray_wsync` | write | `ptrWidth` | `rd_gray_q` after `syncStages` `wr_clk` flops |
+| `rd_ptr_wsync` | write | `ptrWidth` | `rd_gray_wsync` in binary, for `wr_curr_depth` |
+| `pop_fire` | read | 1 | Pop accepted this cycle |
+| `rd_ptr_q` | read | `ptrWidth` | Binary read pointer: the head's address |
+| `rd_ptr_nxt` | read | `ptrWidth` | `rd_ptr_q + pop_fire`: the head's address after this edge |
+| `rd_gray_q` | read | `ptrWidth` | Registered Gray copy of `rd_ptr_q`, the only read-domain signal that crosses |
+| `wr_gray_rsync` | read | `ptrWidth` | `wr_gray_q` after `syncStages` `rd_clk` flops |
+| `wr_ptr_rsync` | read | `ptrWidth` | `wr_gray_rsync` in binary, for `rd_curr_depth` |
+| `head_vld_nxt` | read | 1 | The word at `rd_ptr_nxt` has crossed |
+| `head_load` | read | 1 | Load the head into `pop_data`: the storage's `b_re` |
 
 ---
 
 ## Dependencies
 
-| Import | Source |
-|---|---|
-| `Module`, `TSSVParameters`, `IntRange`, `Expr` | `tssv/lib/core/TSSV` |
-| `GrayPointer` | `tssv/lib/modules/GrayPointer` |
-| `CDCSynchronizer` | `tssv/lib/modules/CDCSynchronizer` |
-| `DualClockRAM` | `tssv/lib/modules/DualClockRAM` |
+| Import | Source | Purpose |
+|---|---|---|
+| `Module`, `TSSVParameters`, `Expr` | `tssv/lib/core/TSSV` | Base class, parameter type and expressions |
+| `TwoClockRegFile` | `tssv/lib/modules/TwoClockRegFile` | Storage |
+| `GrayPointer` | `tssv/lib/modules/GrayPointer` | One pointer per domain, with its synchronizer into the other domain |
+| `CDCSynchronizer` | `tssv/lib/modules/CDCSynchronizer` | The synchronizer inside each `GrayPointer` |
 
 ---
 
 ## Test Plan
 
-Tests instantiate each module and write emitted SV to `sv-examples/`; where a testbench is
-useful, drive independent `wr_clk`/`rd_clk` at different frequencies.
+**Test script:** `ts/test/modules/test_AFIFO.ts`.
+- It generates every combination of `inclAlmostFull` and `inclAlmostEmpty` (at `depth = 4`), and checks each one's ports against the IO tables above.
+- It checks that AFIFOs differing in any parameter get different module names, that depths 4, 8, 16 and 32 generate, and that `dataWidth = 1026n` generates.
+- It checks that every flop in each synchronizer carries `ASYNC_REG`.
+- It checks that each invalid parameter in [Parameters](#parameters) throws: `depth` 2, 6 and 64, `dataWidth` 0, `syncStages` 1, and an unlisted `fpgaRamStyle`.
+- It emits each submodule in its own file (#46), so every generated file lints clean under `-Wall` with no `DECLFILENAME` waiver.
+- Finally, it generates the testbench configurations below. `runAllTests.sh` runs it.
 
-| Test case | Config | Notes |
+**Testbench:** `verilatorTB/tb_AFIFO.sv`, built once per configuration. It takes its DUT name from the configuration list that `test_AFIFO.ts` writes, as `tb_SFIFO.sv` does, so no module name is typed by hand.
+- **Reference model:** a queue checks every popped word, and every `rd_clk` cycle while not empty it checks `pop_data`.
+- **Status checks**, at every edge of each domain's clock:
+  - `full == (wr_curr_depth == depth)` and `empty == (rd_curr_depth == 0)`.
+  - `rd_curr_depth` ≤ true fill count ≤ `wr_curr_depth`. The true fill count is the pushes minus the pops so far.
+  - Each almost flag matches its own domain's count and threshold.
+- **Clock pairs:** every test runs at three pairs. `wr_clk` 10 ns with `rd_clk` 31 ns is a fast writer. `wr_clk` 31 ns with `rd_clk` 10 ns is a fast reader. `wr_clk` 10 ns with `rd_clk` 11 ns is near-equal, and its phase drifts. A 0.3 ns offset keeps the two clocks' edges from ever coinciding, except in the diagram replay.
+
+**Output:** `sv-examples/AFIFO/<module>/` and `sv-examples/AFIFO/tb/`
+
+| Configuration | `dataWidth` | `depth` | `syncStages` | Almost flags |
+|---|---|---|---|---|
+| `d4_flags` | 8 | 4 | 2 | both |
+| `d8` | 8 | 8 | 2 | none |
+| `d16_s3_flags` | 8 | 16 | 3 | both |
+| `d32` | 8 | 32 | 2 | none |
+| `d4_flags_w1026` | 1026 | 4 | 2 | both |
+
+| Test case | Configurations | Notes |
 |---|---|---|
-| Gray monotonicity | `GrayPointer, log2depth=3` | Each `inc` changes exactly one Gray bit |
-| Sync latency | `CDCSynchronizer, width=4, stages=2` | Output lags input by `stages` dest-clock edges |
-| Dual-clock RAM | `DualClockRAM, dataWidth=8, depth=8` | Write on `w_clk`, read back on independent `r_clk` |
-| Fill to full | `AFIFO, log2depth=2` | Enqueue until `wr_full`; verify count = depth |
-| Drain to empty | `AFIFO, log2depth=2` | Dequeue until `rd_empty`; verify count = 0 |
-| Async R/W, fast writer | `AFIFO, log2depth=3`, `wr_clk` 3× `rd_clk` | `wr_full` throttles; no data loss/duplication |
-| Async R/W, fast reader | `AFIFO, log2depth=3`, `rd_clk` 3× `wr_clk` | `rd_empty` throttles; no under-run |
-| Almost thresholds | `InclAlmostDepth, almost_full_depth=6, almost_empty_depth=2` | flags assert at thresholds |
+| Show-ahead | all | Push one word into an empty FIFO. It is on `pop_data` when `empty` deasserts, within `syncStages + 2` `rd_clk` edges of the push, with no pop |
+| Fill to full | all | Read side idle. Push until `full`: `wr_curr_depth` is `depth`, and one more push is ignored. Once the pushes have crossed, `rd_curr_depth` is `depth` |
+| Drain to empty | all | Write side idle. Pop `depth` words in order until `empty`, and one more pop is ignored. Once the pops have crossed, `wr_curr_depth` is 0 |
+| Fast writer / fast reader | all | Free-running traffic at each clock pair. `full` throttles a fast writer and `empty` a fast reader. Every word arrives once, in order |
+| Valid/ready | all | The producer holds each word on `push_data` with `push_en` high until it's accepted. The consumer drives `pop_en` randomly and takes `pop_data` when `!empty && pop_en`. No word is lost or repeated, at each clock pair |
+| Throughput | `d8` | Both sides always ready, at the near-equal pair: once the first word arrives, the read side pops on every `rd_clk` edge (see [Throughput and depth](#throughput-and-depth)) |
+| Almost-full / almost-empty thresholds | with almost flags | `almost_full_depth = depth - 2`, `almost_empty_depth = 2`, fill then drain |
+| Threshold boundaries | with almost flags | `almost_full_depth = depth` tracks `full`. `almost_empty_depth = 0` tracks `empty` |
+| Reset | all | Both resets are asserted together in the middle of traffic, then released one after the other. The FIFO comes back empty with both counts at 0, and traffic resumes |
+| Timing diagrams | `d4_flags`, `d4_flags_w1026` | Each diagram in [Timing](#timing) replays cycle for cycle, with `rd_clk` at half `wr_clk`'s frequency and edges aligned, as drawn. `test_AFIFO.ts` builds the vectors from the diagrams' WaveDrom JSON, as `test_SFIFO.ts` does, so a diagram change is tested without editing the testbench |
+| Random | all | 3000 `rd_clk` cycles of random pushes and pops at each clock pair, in fill-biased, drain-biased and balanced phases. Each threshold changes every 50 cycles of its own domain's clock |
+
+**FPGA mapping:** a Vivado synthesis run of a generated `AFIFO` with `fpgaRamStyle: 'distributed'` maps the storage to LUTRAM, and every synchronizer flop keeps `ASYNC_REG` in the netlist. The PR records the Vivado version and target part. This is a manual check.
+
+### Simulation
+
+```bash
+make -C verilatorTB afifo_sim    # generates the SV, then builds and runs each configuration
+# waveform per configuration and clock pair: verilatorTB/obj_dir/afifo_<config>/tb_AFIFO_<config>.fst
+```
+
+The target also gets its own step in `.github/workflows/test.yml`.
 
 ---
 
-## Deviations from `bsg_async_fifo`
+## Implementation Notes
 
-- **Pointer scheme:** uses the Cummings `log2depth+1`-bit dual-pointer full/empty test
-  rather than BaseJump's `lg_size_p`-bit pre-increment (`w_ptr_p1`) scheme. This yields
-  exact per-domain occupancy for the `*_curr_depth` outputs at the cost of requiring
-  power-of-2 depth.
-- **Reset:** active-low **async** (`lowasync`), matching TSSV/`SFIFO` convention, rather
-  than BaseJump's default synchronous reset.
-- **Storage:** uses a new `DualClockRAM` (independent `w_clk`/`r_clk`) in place of
-  `bsg_mem_1r1w`. TSSV's existing `SRAM` is single-clock and cannot serve as async storage.
-- **Data gating:** BaseJump's optional `and_data_with_valid_p` output gate is not ported
-  (out of scope; can be added later if needed).
+- **Show-ahead only.** #67 asked for a registered read as the default, with show-ahead as an option. `SFIFO` went show-ahead only in #77, and the `AFIFO` follows it. Show-ahead doesn't delay the first word. In the draft's registered mode, `rd_empty` deasserts as soon as the write pointer has crossed, but the data arrives on the edge after the read, the same edge on which show-ahead presents it. Show-ahead's cost is the `empty` flop and the `head_load` logic. A consumer that wants the data registered on a pop can register `pop_data` itself.
+- **Names follow `SFIFO`, not the `add_AFIFO` draft.**
+  - Ports: `push_en`, `push_data` and `full` replace `wr_en`, `wr_data_in` and `wr_full`. `pop_en`, `pop_data` and `empty` replace `rd_en`, `rd_data_out` and `rd_empty`.
+  - Parameters: `depth` replaces `log2depth`. `inclAlmostFull` and `inclAlmostEmpty`, with run-time threshold inputs, replace `InclAlmostDepth` and the `almost_full_depth` / `almost_empty_depth` parameters.
+  - That settles #67's items 1 and 2. The testbench takes its DUT names from the generated configurations, and no threshold parameter can be dropped on the way to `super()`.
+- **Power-of-two depth.** A pointer with one more bit than the address wraps cleanly only when `depth` is a power of two: its Gray code then changes one bit at a time through the wrap, and the full test (top two bits inverted) holds. Depth stops at 32 because flop storage gets expensive beyond that (`TwoClockRegFile`'s limit).
+- **No bypass.** `SFIFO` sends a push into an empty FIFO straight to `pop_data`. Here a word can only reach the read domain through the storage, after the write pointer has crossed.
+- **Storage is `TwoClockRegFile` (#121), not `DualClockRAM`.** The `add_AFIFO` branch's `DualClockRAM` assumed a dual-clock memory macro, which ASIC libraries generally don't have, so this branch doesn't land it.
+- **`GrayPointer` and `CDCSynchronizer` need their own specs.** MOD-1 gives every module a spec at `doc/modules/<Module>/<Module>-spec.md`. This spec only describes how the `AFIFO` uses them.
+- **SYN-3.** The data crosses through the storage without a synchronizer. That's the exception `TwoClockRegFile`'s spec describes, and the [Storage access rules](#storage-access-rules) above are what make it safe. Every control signal that crosses goes through a `CDCSynchronizer`.
+- **Timing constraints.** The crossings need constraints that the RTL can't express yet. The Gray pointers' bits must arrive within one destination-clock period of each other (Vivado's `set_bus_skew`). The path from the storage to `pop_data` must be shorter than the pointer's trip through the synchronizer (`set_max_delay -datapath_only`). The timing-intent epic (#96) is where TSSV will carry them, and #106 moves the `AFIFO` onto it. Until then, the integrator writes them.
+- **Compared with `bsg_async_fifo`:**
+  - The pointer scheme is the same: `log2(depth) + 1`-bit Gray pointers and the same full test.
+  - The resets differ. Each domain has an active-low asynchronous reset (MOD-4), where `bsg_async_fifo` uses a synchronous reset on each side.
+  - The storage is `TwoClockRegFile` instead of `bsg_mem_1r1w`.
+  - `bsg_async_fifo`'s `and_data_with_valid_p` option, which zeroes the read data while empty, isn't ported.
+- **Future:** #106 moves the `AFIFO` onto the timing-intent epic's CDC primitives and annotations, and keeps the ports and behavior above.
