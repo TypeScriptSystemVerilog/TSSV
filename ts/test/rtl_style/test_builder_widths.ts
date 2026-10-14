@@ -40,6 +40,7 @@ interface Case {
   // Exact result for one input vector, or null to skip a vector the builder leaves undefined.
   // A case without ref is linted only.
   ref?: (v: Values) => Values | null
+  // The module has clk and an active-low asynchronous rst_n; it's simulated held in reset
   clocked?: boolean
   // Why the case's module may leave input bits unused: lint runs with -Wno-UNUSEDSIGNAL for it
   unused?: string
@@ -269,15 +270,18 @@ cases.push({
   ref: () => ({ y: -5n })
 })
 
-// ---- addRegister: reset values (lint only) ---------------------------------------------------
+// ---- addRegister: reset values -------------------------------------------------------------
+// A clocked case is simulated held in its asynchronous reset, so q is the reset value.
 
-for (const [tag, d, resetVal] of [['u4_5', u(4), 5n], ['s4_m3', s(4), -3n], ['u40_0', u(40), undefined]] as const) {
+for (const [tag, d, resetVal] of [['u4_5', u(4), 5n], ['s4_m3', s(4), -3n], ['s4_m8', s(4), -8n], ['u40_0', u(40), undefined],
+  ['u64_big', u(64), 0x11223344556677n], ['s40_m', s(40), -0x123456789n]] as const) {
   cases.push({
     name: `register_reset_${tag}`,
     inputs: { d },
     outputs: { q: d },
     clocked: true,
-    build: (m) => { m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_n', resetVal, q: 'q' }) }
+    build: (m) => { m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_n', resetVal, q: 'q' }) },
+    ref: () => ({ q: resetVal ?? 0n })
   })
 }
 

@@ -107,7 +107,7 @@ this.addRegister({
   d:        nextTap,      // string | Sig | Expr  — D input
   clk:      'clk',        // string | Sig  — must have isClock metadata
   reset?:   'rst_b',      // string | Sig  — must have isReset metadata; determines polarity/sync
-  resetVal?: 0n,          // bigint  — value on reset (default 0)
+  resetVal?: 0n,          // bigint  — value on reset (default 0); emitted as '0, or sized to q
   en?:      'en',         // string | Sig | Expr  — clock enable
   q?:       thisTap       // string | Sig  — output signal (auto-named if omitted)
 })

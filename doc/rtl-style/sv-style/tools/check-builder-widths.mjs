@@ -7,7 +7,8 @@
 // mismatched widths, with test vectors from a reference model in exact integer arithmetic. Here,
 // each case's module must lint clean under -Wall with the module-wide `lint_off WIDTH` that
 // Module.writeSystemVerilog wraps it in removed (#147 removes it from the emitted SV), and every
-// vector must give the reference result in simulation. A clocked case is linted only. A case
+// vector must give the reference result in simulation. A clocked case is simulated held in reset,
+// so its outputs must be the reset values. A case
 // whose result is narrower than its input leaves input bits unused on purpose; it records why,
 // and is linted without UNUSEDSIGNAL.
 //
@@ -74,16 +75,20 @@ try {
       return ports.map((p) => { const s = `[${hi}:${hi - p.width + 1}]`; hi -= p.width; return [p.name, s] })
     }
     const conns = [
+      ...(c.clocked ? ['.clk(1\'b0)', `.rst_n(rst_n_${i})`] : []),
       ...slice(c.inputs).map(([n, s]) => `.${n}(in_${i}${s})`),
       ...slice(c.outputs).map(([n, s]) => `.${n}(out_${i}${s})`)
     ]
     tb.push(`  // ${c.name}`)
+    // A clocked case's reset starts high, and falls before its vectors: a negedge of rst_n
+    if (c.clocked) tb.push(`  logic rst_n_${i} = 1'b1;`)
     if (inW > 0) tb.push(`  logic [${inW - 1}:0] vin_${i} [${c.vectors.length}];`, `  logic [${inW - 1}:0] in_${i};`)
     tb.push(`  logic [${outW - 1}:0] vexp_${i} [${c.vectors.length}];`, `  wire  [${outW - 1}:0] out_${i};`)
     tb.push(`  ${c.top} u_${i} (${conns.join(', ')});`)
     run.push(`    errors["${c.name}"] = 0;`)
     if (inW > 0) run.push(`    $readmemh("${join(dir, `${c.name}.vin`)}", vin_${i});`)
     run.push(`    $readmemh("${join(dir, `${c.name}.vexp`)}", vexp_${i});`)
+    if (c.clocked) run.push(`    rst_n_${i} = 1'b0;`)
     run.push(`    for (int k = 0; k < ${c.vectors.length}; k++) begin`)
     if (inW > 0) run.push(`      in_${i} = vin_${i}[k];`)
     run.push('      #1;')

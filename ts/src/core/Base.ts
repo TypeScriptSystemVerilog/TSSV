@@ -670,7 +670,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * add a DFF register(can be multi-bit) to the d input
-     * @param io the input/output of the register
+     * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
+     * written as `'0`, or as a literal sized to q
      * @returns return the q output signal
      */
   addRegister (io: {
@@ -1666,8 +1667,14 @@ ${caseAssignments}
             Object.keys(regs).forEach((key) => {
               const reg = regs[key]
               // console.log(reg)
+              // '0 for zero; otherwise a literal sized to the register (WIDTH-1). An unsized
+              // literal is a 32-bit integer, so a wider value gets a WIDTH warning.
               const resetVal = reg.resetVal ?? 0n
-              const resetLiteral = resetVal < 0n ? `-'d${-resetVal}` : `'d${resetVal}`
+              const qSig = this.findSignal(key, false)
+              const sign = qSig?.isSigned === true ? 's' : ''
+              const resetLiteral = resetVal === 0n
+                ? "'0"
+                : `${resetVal < 0n ? '-' : ''}${qSig?.width ?? 1}'${sign}d${resetVal < 0n ? -resetVal : resetVal}`
               resetAssignments.push(`           ${key} <= ${resetLiteral};`)
             })
             resetString =
