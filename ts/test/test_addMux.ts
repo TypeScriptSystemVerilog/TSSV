@@ -57,6 +57,7 @@ const mux_tb = markTestbench(new Module(
   {},
   tbBody
 ))
+mux_tb.waiveWidthWarnings('#148')
 mux_tb.addSignal('a', { width: 4, isSigned: false })
 mux_tb.addSignal('b', { width: 4, isSigned: false })
 mux_tb.addSignal('c', { width: 4, isSigned: false })

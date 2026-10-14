@@ -55,6 +55,7 @@ const assign_tb = markTestbench(new Module(
   {},
   tbBody
 ))
+assign_tb.waiveWidthWarnings('#148')
 assign_tb.addSignal('in', { width: 8 })
 assign_tb.addSignal('val', { width: 6 })
 assign_tb.addAssign({ in: new Expr('in'), out: 'val' })
@@ -220,6 +221,7 @@ const assignM_tb = markTestbench(new Module(
   {},
   tbBodyM
 ))
+assignM_tb.waiveWidthWarnings('#148')
 assignM_tb.addSignal('a', { width: 8 })
 assignM_tb.addSignal('b', { width: 8 })
 assignM_tb.addSignal('c', { width: 8 })

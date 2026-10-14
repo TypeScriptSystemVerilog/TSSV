@@ -193,6 +193,7 @@ const roundRS_tb = markTestbench(new Module(
   {},
   tbBodyRS
 ))
+roundRS_tb.waiveWidthWarnings('#148')
 roundRS_tb.addSignal('in', { width: 5 })
 roundRS_tb.addSignal('rounded', { width: 8 })
 roundRS_tb.addSignal('shift', { width: 4 })
@@ -498,6 +499,7 @@ const roundE_tb = markTestbench(new Module(
   {},
   tbBodyE
 ))
+roundE_tb.waiveWidthWarnings('#148')
 roundE_tb.addSignal('in', { width: 8, isSigned: true })
 roundE_tb.addSignal('rounded', { width: 9, isSigned: true })
 roundE_tb.addSignal('shift', { width: 4 })

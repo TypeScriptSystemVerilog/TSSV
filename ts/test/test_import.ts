@@ -61,6 +61,7 @@ const import_tb = markTestbench(new Module(
   {},
   tbBody
 ))
+import_tb.waiveWidthWarnings('#148')
 import_tb.addSignal('a', { width: 8 })
 import_tb.addSignal('b', { width: 9 })
 import_tb.addSignal('out', { width: 10 })

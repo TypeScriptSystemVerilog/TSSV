@@ -119,6 +119,8 @@ export class IpXactComponent extends Module {
       xmlDataPath: params.xmlDataPath,
       svFilePath: params.svFilePath
     })
+    // keeps the module-wide WIDTH waiver until #154 fixes IpXactComponent's width warnings
+    this.waiveWidthWarnings('#154')
     const xmlData = fs.readFileSync(params.xmlDataPath, 'utf-8')
     const interfaceData = this.createDictionary(xmlData)
     const paramData = this.parseParameters(xmlData)
