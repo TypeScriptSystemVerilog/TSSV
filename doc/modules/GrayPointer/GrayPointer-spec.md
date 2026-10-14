@@ -144,6 +144,38 @@ All of the module's logic is in `ts/src/modules/GrayPointer/GrayPointer.ts`, plu
 
 ---
 
+## Assertions
+
+These checks run in `tb_GrayPointer.sv`. `tb_AFIFO.sv` also runs them on both of the `AFIFO`'s instances, `u_wr_ptr` and `u_rd_ptr`, through hierarchical references. They're SVA in the subset that Verilator 5.052 is known to run correctly (#97), and each is named by its SVA label, so a failure names it. When #100 provides inline checkers, #106 decides which of them move into the generated RTL, behind `TSSV_CDC_ASSERT`.
+
+### Own domain
+
+Each is clocked on `clk` and disabled while `rst_n` is low.
+
+| Label | Property | Fails when |
+|---|---|---|
+| `a_gray_one_bit` | `$countones(gray_q ^ $past(gray_q)) <= 1` | `gray_q` changes more than one bit in a cycle, so a synchronizer could catch a value that never existed. This is the check #96's acceptance criteria break with a skipped Gray code |
+| `a_gray_match` | `gray_q == (bin_ptr ^ (bin_ptr >> 1))` | The Gray copy is out of step with the pointer |
+| `a_hold` | `!inc \|=> $stable(bin_ptr)` | The pointer moves without `inc` |
+| `a_step` | `inc \|=> bin_ptr == $past(bin_ptr) + 1'b1` | The pointer doesn't advance by exactly one, modulo 2^`width` |
+
+A reset that asserts mid-run changes `gray_q` by several bits at once. `a_gray_one_bit` is disabled while `rst_n` is low, so it doesn't fire on that, and after the release `$past(gray_q)` is the reset value, 0.
+
+### Far domain
+
+`far_bin_ptr` is checked by the testbench's exact far-domain check (see [Test Plan](#test-plan)), not by an assertion: the check needs `bin_ptr`'s history across both clocks.
+
+### Coverage
+
+Each cover counts its hits in its action block. At the end of a configuration's run, the testbench fails if any cover listed for that configuration has no hits. Verilator evaluates covers only in a build with `--coverage-user`, and without it they compile and silently never run (#97).
+
+| Label | Clock | Property | Configurations | Shows the test reached |
+|---|---|---|---|---|
+| `c_wrap` | `clk` | `inc && bin_ptr == '1` | all | A wrap from 2^`width` − 1 to 0 |
+| `c_far_skip` | `far_clk` | (`far_bin_ptr` − `$past(far_bin_ptr)`) mod 2^`width` > 1 | `width` ≥ 2 | `far_bin_ptr` skipping values, as it does when `clk` is faster |
+
+---
+
 ## Dependencies
 
 | Import | Source | Purpose |
@@ -163,7 +195,7 @@ All of the module's logic is in `ts/src/modules/GrayPointer/GrayPointer.ts`, plu
 - `runAllTests.sh` runs it.
 
 **Testbench:** `verilatorTB/tb_GrayPointer.sv`, built once per configuration.
-- **Own domain**, after every `clk` edge: `bin_ptr` has advanced by the `inc` sampled at that edge, modulo 2^`width`. `gray_q`, read through a hierarchical reference, is the Gray code of `bin_ptr`, and differs from its previous value in at most one bit.
+- **Own domain:** the checks in [Assertions](#assertions) run in every test, and every cover must be hit in each configuration it applies to.
 - **Far domain**, after every `far_clk` edge: `far_bin_ptr` equals `bin_ptr` as it was just before the `far_clk` edge `syncStages − 1` edges earlier. A simulated flop never goes metastable, so this is exact.
 - **Clock pairs:** every test runs at three pairs. `clk` 10 ns with `far_clk` 31 ns, `clk` 31 ns with `far_clk` 10 ns, and `clk` 10 ns with `far_clk` 11 ns. A 0.3 ns offset keeps the edges from ever coinciding, except in the diagram replay.
 
@@ -190,7 +222,7 @@ make -C verilatorTB graypointer_sim    # generates the SV, then builds and runs 
 # waveform per configuration: verilatorTB/obj_dir/graypointer_<config>/tb_GrayPointer_<config>.fst
 ```
 
-The target also gets its own step in `.github/workflows/test.yml`.
+The target builds with `--coverage-user`, so the covers run. It also gets its own step in `.github/workflows/test.yml`.
 
 ---
 

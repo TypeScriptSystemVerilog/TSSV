@@ -115,6 +115,22 @@ All of the module's logic is in `ts/src/modules/CDCSynchronizer/CDCSynchronizer.
 
 ---
 
+## Assertions
+
+These checks run in `tb_CDCSynchronizer.sv` (see [Test Plan](#test-plan)). They're SVA in the subset that Verilator 5.052 is known to run correctly (#97), and each is named by its SVA label, so a failure names it. When #100 provides inline checkers, #106 decides which of them move into the generated RTL, behind `TSSV_CDC_ASSERT`.
+
+| Label | Clock; disabled while | Property | Fails when |
+|---|---|---|---|
+| `a_latency` | `clk`; `rst_n` is low, and for the first `stages` edges after it rises | `q == $past(d, stages)` | The chain has the wrong length, or a stage is wired to the wrong one |
+
+**The input rules can't be checked here.** The module has no source clock. Sampled on `clk`, a fast source can legitimately change several bits of `d` between two edges, for example when a Gray counter advances twice, so a one-bit check on `clk` would fail on correct designs. The one-bit check belongs in the module that owns the source flop: `GrayPointer`'s `a_gray_one_bit`. This is also why #96 has each CDC primitive own its source register and take both clocks.
+
+**Not checkable in simulation:**
+- **Metastability.** A simulated flop never goes metastable, so a change never takes the extra edge. A simulation-only option could model it: on each `clk` edge, `sync_0` loads either `d` or the value `d` had at the previous `clk` edge, chosen at random. That delays a change by at most one edge and never invents a value. Holding each changed bit at random instead can invent one: with a faster source, `d` can change two bits between edges, and mixing old and new bits gives a value `d` never held. In a cycle model of the `AFIFO`, every `AFIFO` check holds with this option, and its latency bounds are reached exactly. The option needs simulation-only code in the RTL, so it waits for #100; it isn't part of #67.
+- **Rules 1 and 3** of [What the input may be](#what-the-input-may-be): driving `d` straight from a flop is structural, and the bits' skew is a timing constraint (see [Implementation Notes](#implementation-notes)).
+
+---
+
 ## Dependencies
 
 | Import | Source | Purpose |
@@ -134,7 +150,7 @@ All of the module's logic is in `ts/src/modules/CDCSynchronizer/CDCSynchronizer.
 
 **Testbench:** `verilatorTB/tb_CDCSynchronizer.sv`, built once per configuration.
 - `d` comes from a flop on `src_clk`, which loads a random value on random edges.
-- After every `clk` edge, `q` must equal `d` as it was just before the `clk` edge `stages - 1` edges earlier. A simulated flop never goes metastable, so this is exact.
+- The checks in [Assertions](#assertions) run in every test. `a_latency` checks `q` on every `clk` edge, and it's exact, since a simulated flop never goes metastable.
 - The test runs at three clock pairs: `src_clk` 10 ns with `clk` 31 ns, `src_clk` 31 ns with `clk` 10 ns, and `src_clk` 10 ns with `clk` 11 ns. A 0.3 ns offset keeps the edges from ever coinciding, except in the diagram replay.
 
 **Output:** `sv-examples/CDCSynchronizer/<module>/` and `sv-examples/CDCSynchronizer/tb/`

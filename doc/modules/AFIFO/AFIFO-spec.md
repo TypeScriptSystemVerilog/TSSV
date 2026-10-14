@@ -245,7 +245,7 @@ The `AFIFO` has three kinds of submodule:
 - **Storage:** a `TwoClockRegFile` of `depth` words.
   - Port A, the write port, is on `wr_clk`. `a_we` is `push_fire`, `a_addr` is the write pointer's low `log2(depth)` bits, and `a_data_in` is `push_data`.
   - Port B, the read port, is on `rd_clk`. `b_re` is `head_load`, `b_addr` is the low bits of `rd_ptr_nxt`, and `b_data_out` drives `pop_data` directly. So `pop_data` comes straight from a `rd_clk` flop, with no mux.
-- **Pointers:** two `GrayPointer`s, one per domain, each `ptrWidth` bits wide. Each one counts its domain's pushes or pops, and gives the count in binary in both domains. Inside, it crosses in Gray code through a `CDCSynchronizer`: a chain of `syncStages` flops on the destination clock, each with `(* ASYNC_REG = "TRUE" *)`. The Gray code doesn't appear in the `AFIFO`; see [`GrayPointer`'s spec](../GrayPointer/GrayPointer-spec.md#use-in-the-afifo) for how the two instances connect.
+- **Pointers:** two `GrayPointer`s, `u_wr_ptr` and `u_rd_ptr`, one per domain, each `ptrWidth` bits wide. Each one counts its domain's pushes or pops, and gives the count in binary in both domains. Inside, it crosses in Gray code through a `CDCSynchronizer`: a chain of `syncStages` flops on the destination clock, each with `(* ASYNC_REG = "TRUE" *)`. The Gray code doesn't appear in the `AFIFO`; see [`GrayPointer`'s spec](../GrayPointer/GrayPointer-spec.md#use-in-the-afifo) for how the two instances connect.
 
 ### Write side
 
@@ -289,6 +289,89 @@ The pointers keep `TwoClockRegFile`'s [Access rules](../TwoClockRegFile/TwoClock
 
 ---
 
+## Assertions
+
+These checks run in `tb_AFIFO.sv` on every test (see [Test Plan](#test-plan)). They reach internal signals through hierarchical references, such as `dut.wr_ptr_q` and `dut.u_wr_ptr.gray_q`. They're SVA in the subset that Verilator 5.052 is known to run correctly (#97), and each is named by its SVA label, so a failure names it.
+
+When #100 provides inline checkers, #106 moves the per-domain checks into the generated RTL, behind `TSSV_CDC_ASSERT`. The cross-domain checks and the caller rules stay in the testbench, because they read both domains' signals directly. That's safe only in simulation, where no flop goes metastable.
+
+`tb_AFIFO.sv` also runs `GrayPointer`'s own-domain [Assertions](../GrayPointer/GrayPointer-spec.md#assertions) on `u_wr_ptr` and `u_rd_ptr`, including `a_gray_one_bit`.
+
+### Write domain
+
+Each is clocked on `wr_clk` and disabled while `wr_rst_n` is low.
+
+| Label | Property | Fails when |
+|---|---|---|
+| `a_wr_cnt_max` | `wr_curr_depth <= depth` | The write side's count overflows |
+| `a_full_cnt` | `full == (wr_curr_depth == depth)` | `full` and the count disagree |
+| `a_wr_cnt_step` | `wr_curr_depth <= $past(wr_curr_depth) + $past(push_fire)` | The count rises without a push, or by more than one |
+
+### Read domain
+
+Each is clocked on `rd_clk` and disabled while `rd_rst_n` is low.
+
+| Label | Property | Fails when |
+|---|---|---|
+| `a_rd_cnt_max` | `rd_curr_depth <= depth` | The read side's count overflows |
+| `a_empty_cnt` | `empty == (rd_curr_depth == 0)` | `empty` and the count disagree |
+| `a_head_hold` | `!empty && !pop_en \|=> !empty && $stable(pop_data)` | The head changes or disappears without a pop. This is the main check of the show-ahead logic |
+| `a_rd_cnt_step` | `$past(rd_curr_depth) <= rd_curr_depth + $past(pop_fire)` | The count falls without a pop, or by more than one |
+
+### Across domains (simulation only)
+
+`true_cnt` is `wr_ptr_q - rd_ptr_q`, modulo 2^`ptrWidth`: the fill count from both domains' actual pointers, which no part of the RTL can see. Each check is disabled while either reset is low. A concurrent assertion samples every value just before its clock edge, so at an edge the two clocks share, both pointers are from before it, and `true_cnt` is consistent.
+
+| Label | Clock | Property | Fails when |
+|---|---|---|---|
+| `a_wr_conservative` | `wr_clk` | `true_cnt <= wr_curr_depth` | The write side under-reports, so it could overflow the storage |
+| `a_rd_conservative` | `rd_clk` | `rd_curr_depth <= true_cnt` | The read side over-reports, so it could pop a word that isn't there |
+| `a_true_cnt_max` | `wr_clk` | `true_cnt <= depth` | The FIFO holds more words than it has |
+| `a_no_overwrite` | `wr_clk` | `push_fire \|-> true_cnt < depth` | A push overwrites a word that hasn't been popped, breaking `TwoClockRegFile`'s rule 2 |
+| `a_rd_latency` | `rd_clk` | `empty && true_cnt != 0 \|-> ##[1:syncStages+2] !empty` | A pushed word doesn't reach `pop_data` in time: a stuck pointer, or a synchronizer of the wrong length |
+| `a_wr_latency` | `wr_clk` | `full && true_cnt < depth \|-> ##[1:syncStages+1] !full` | A pop doesn't free its word in time |
+
+In simulation the worst cases are `syncStages + 1` read edges and `syncStages` write edges. Each bound allows one edge more, for the edge a real synchronizer's first flop can miss. A cycle model of the design reaches both bounds exactly when that miss is modeled (see `CDCSynchronizer`'s [Assertions](../CDCSynchronizer/CDCSynchronizer-spec.md#assertions)).
+
+The data itself, every word once and in order, is checked by the testbench's reference model, not by an assertion.
+
+### Caller rules
+
+These check the testbench's own driving against [Reset behavior](#reset-behavior)'s rule 3. Each reads the other domain's reset, so they're simulation-only too. #96's port contracts are where they'd move.
+
+| Label | Clock; disabled while | Property | Fails when |
+|---|---|---|---|
+| `a_no_push_in_reset` | `wr_clk`; `wr_rst_n` is low | `!rd_rst_n \|-> !push_en` | A push while the read side is in reset |
+| `a_no_pop_in_reset` | `rd_clk`; `rd_rst_n` is low | `!wr_rst_n \|-> !pop_en` | A pop while the write side is in reset |
+
+**Deliberately not asserted:**
+- **`push_en && full` and `pop_en && empty`.** They're normal valid/ready back-pressure, and the spec defines both as ignored.
+- **`push_data` held stable while a push waits.** That's a property of the producer's interface, not of the `AFIFO`, which also allows a producer that drops words.
+- **Unknown (X) values.** Verilator simulates two values, so `$isunknown` never fires there.
+
+### Coverage
+
+Each cover counts its hits in its action block. At the end of a configuration's run, the testbench fails if any cover listed for that configuration has no hits. Verilator evaluates covers only in a build with `--coverage-user` (#97).
+
+| Label | Clock | Property | Configurations | Shows the test reached |
+|---|---|---|---|---|
+| `c_full` | `wr_clk` | `$rose(full)` | all | A full FIFO |
+| `c_rd_sees_full` | `rd_clk` | `rd_curr_depth == depth` | all | The read side seeing every word |
+| `c_held_push` | `wr_clk` | `push_en && full ##1 push_en && !full` | all | A push held while full, then accepted |
+| `c_back_to_back` | `rd_clk` | `pop_fire ##1 pop_fire` | all | Pops on consecutive edges |
+| `c_empty_gap` | `rd_clk` | `$rose(empty) && true_cnt != 0` | all | The empty cycle after the last crossed word is popped while more are crossing |
+| `c_ptr_wrap` | `wr_clk` | `$changed(wr_ptr_q[ptrWidth-1])` | all | The storage address wrapping |
+| `c_almost_full` | `wr_clk` | `$rose(almost_full)`, and separately `$fell(almost_full)` | with almost flags | `almost_full` asserting and deasserting |
+| `c_almost_empty` | `rd_clk` | `$rose(almost_empty)`, and separately `$fell(almost_empty)` | with almost flags | `almost_empty` asserting and deasserting |
+
+### Not checkable in simulation
+
+- **Metastability:** a simulated crossing never takes its extra edge. `CDCSynchronizer`'s [Assertions](../CDCSynchronizer/CDCSynchronizer-spec.md#assertions) describe a simulation-only option that would model it, which isn't part of #67.
+- **The pointers' bus skew, and the delay of the storage-to-`pop_data` path:** static timing (#108).
+- **Each synchronizer's input coming straight from a flop:** a structural check, part of #96's backlog.
+
+---
+
 ## Dependencies
 
 | Import | Source | Purpose |
@@ -312,10 +395,8 @@ The pointers keep `TwoClockRegFile`'s [Access rules](../TwoClockRegFile/TwoClock
 
 **Testbench:** `verilatorTB/tb_AFIFO.sv`, built once per configuration. It takes its DUT name from the configuration list that `test_AFIFO.ts` writes, as `tb_SFIFO.sv` does, so no module name is typed by hand.
 - **Reference model:** a queue checks every popped word, and every `rd_clk` cycle while not empty it checks `pop_data`.
-- **Status checks**, at every edge of each domain's clock:
-  - `full == (wr_curr_depth == depth)` and `empty == (rd_curr_depth == 0)`.
-  - `rd_curr_depth` ≤ true fill count ≤ `wr_curr_depth`. The true fill count is the pushes minus the pops so far.
-  - Each almost flag matches its own domain's count and threshold.
+- **Assertions:** every check in [Assertions](#assertions) runs in every test, including `GrayPointer`'s on both instances, and every cover must be hit in each configuration it applies to.
+- **Almost flags:** each one matches its own domain's count and threshold, at every edge of its clock.
 - **Clock pairs:** every test runs at three pairs. `wr_clk` 10 ns with `rd_clk` 31 ns is a fast writer. `wr_clk` 31 ns with `rd_clk` 10 ns is a fast reader. `wr_clk` 10 ns with `rd_clk` 11 ns is near-equal, and its phase drifts. A 0.3 ns offset keeps the two clocks' edges from ever coinciding, except in the diagram replay.
 
 **Output:** `sv-examples/AFIFO/<module>/` and `sv-examples/AFIFO/tb/`
@@ -338,7 +419,7 @@ The pointers keep `TwoClockRegFile`'s [Access rules](../TwoClockRegFile/TwoClock
 | Throughput | `d8` | Both sides always ready, at the near-equal pair: once the first word arrives, the read side pops on every `rd_clk` edge (see [Throughput and depth](#throughput-and-depth)) |
 | Almost-full / almost-empty thresholds | with almost flags | `almost_full_depth = depth - 2`, `almost_empty_depth = 2`, fill then drain |
 | Threshold boundaries | with almost flags | `almost_full_depth = depth` tracks `full`. `almost_empty_depth = 0` tracks `empty` |
-| Reset | all | Both resets are asserted together in the middle of traffic, then released one after the other. The FIFO comes back empty with both counts at 0, and traffic resumes |
+| Reset | all | With words in the FIFO, the producer and consumer go idle, both resets are asserted together, then released one after the other. The FIFO comes back empty with both counts at 0, and traffic resumes. The caller-rule assertions check that no push or pop happens while either reset is asserted |
 | Timing diagrams | `d4_flags`, `d4_flags_w1026` | Each diagram in [Timing](#timing) replays cycle for cycle, with `rd_clk` at half `wr_clk`'s frequency and edges aligned, as drawn. `test_AFIFO.ts` builds the vectors from the diagrams' WaveDrom JSON, as `test_SFIFO.ts` does, so a diagram change is tested without editing the testbench |
 | Random | all | 3000 `rd_clk` cycles of random pushes and pops at each clock pair, in fill-biased, drain-biased and balanced phases. Each threshold changes every 50 cycles of its own domain's clock |
 
@@ -351,7 +432,7 @@ make -C verilatorTB afifo_sim    # generates the SV, then builds and runs each c
 # waveform per configuration and clock pair: verilatorTB/obj_dir/afifo_<config>/tb_AFIFO_<config>.fst
 ```
 
-The target also gets its own step in `.github/workflows/test.yml`.
+The target builds with `--coverage-user`, so the covers run. It also gets its own step in `.github/workflows/test.yml`.
 
 ---
 
