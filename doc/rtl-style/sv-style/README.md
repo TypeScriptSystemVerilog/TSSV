@@ -29,7 +29,7 @@ doc/rtl-style/sv-style/
     check-rules.mjs             rule coverage, simulation examples, doc/file consistency
     check-width-examples.mjs    width examples: lint and exact arithmetic at 5 widths
     check-builder-examples.mjs  builder checks for both guides, and the SV they generate
-    check-builder-widths.mjs    the expression builders' SV: lint without the WIDTH waiver, exact arithmetic
+    check-builder-widths.mjs    the expression builders' SV: -Wall lint and exact arithmetic
     sv-scans.mjs                text checks on generated SV (SYN-1, LINT-3)
     check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/, against the baseline
 doc/rtl-style/tools/
@@ -46,9 +46,8 @@ The builder checks write their SV to `sv-examples/rtl_style/`, which git ignores
 `addConstSignal`, `addSubmodule`'s width extension and constant bindings, and `addRegister`'s
 reset values. `ts/test/rtl_style/test_builder_widths.ts` builds each one at signed, unsigned and
 mismatched widths, including widths over 32 bits, with test vectors from a reference model in
-exact integer arithmetic. Each module must lint clean under `-Wall` without the module-wide
-`lint_off WIDTH` that `Module.writeSystemVerilog` still adds, and every vector must give the
-reference result in simulation. It works in a temporary directory and writes nothing to
+exact integer arithmetic. Each module must lint clean under `-Wall`, with no lint waiver, and
+every vector must give the reference result in simulation. It works in a temporary directory and writes nothing to
 `sv-examples/`.
 
 ## How a rule is verified
@@ -71,11 +70,10 @@ Other fields:
 - `docVerbatim` maps an example label in the guide (`"Do"`, `"Don't"`, `"Also fine"`) to the
   file that must contain that example verbatim. This keeps a simulated example and the guide
   from drifting apart.
-- `known` lists violations that the framework itself currently emits. They're reported as
-  `KNOWN` and don't fail the run. Each one names the issue that tracks its fix (currently
-  [#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59)); remove it from `rules.json` when the fix lands.
-  `check-generated-sv.mjs` doesn't read `known`: the same findings are in its baseline, and
-  the fix removes them from both.
+- `known` lists violations that the framework itself emits. They're reported as `KNOWN` and
+  don't fail the run. Each one names the issue that tracks its fix; remove it from `rules.json`
+  when the fix lands. There are none today. `check-generated-sv.mjs` doesn't read `known`: it
+  has its own baseline.
 
 ## Adding or changing a rule
 
@@ -108,11 +106,10 @@ finding and how many times it occurs. A finding is its rule and message, with no
 so an edit elsewhere in the file doesn't change it:
 
 ```json
-"sv-examples/LZC/LZC_64/LZC_64.sv": {
-  "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
-  "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1,
-  "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
-  "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+"sv-examples/Core/test1/testMem1.sv": {
+  "LINT-1 DECLFILENAME: Filename 'testMem1' does not match MODULE name: 'testMem_8_32'": 1,
+  "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[5]": 1,
+  "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
 }
 ```
 
@@ -135,6 +132,10 @@ npm run check:generated-sv -- --update-baseline
 It prints each entry it added or removed. Commit the baseline with the fix. Its diff should
 only remove entries or lower their counts; an entry it adds is a new finding. A #59 subtask is
 done for a file when the baseline has no entries left for it.
+
+A module that still calls `waiveWidthWarnings()` keeps a module-wide `lint_off WIDTH`, so its
+file has a `LINT-3 waiver "lint_off WIDTH" covers the whole module` entry. The #59 subtask that
+fixes the module's width warnings removes the call, and the entry with it.
 
 **Linting through the top.** Each emission is linted through its top module, with the files it
 depends on. A test script writes a Verilator filelist, `<top>.f`, for an emission that can't be

@@ -344,7 +344,12 @@ instantiates as one string.
    - the `always_ff` blocks built from `addRegister` (§6);
    - the submodule instances, in the order they were added.
 
-The module is wrapped in `/* verilator lint_off WIDTH */` … `/* verilator lint_on WIDTH */`.
+A module that called `waiveWidthWarnings(issue)` is wrapped in `/* verilator lint_off WIDTH */`
+… `/* verilator lint_on WIDTH */`, after a `// TODO(#59)` comment naming that issue. The waiver
+hides every Verilator `WIDTH*` warning in the module. It's temporary: it's for the modules and
+test scripts that #59 hasn't yet brought in line with the SV guide's width rules, each one listed
+in the generated-SV baseline, and #59's close-out removes `waiveWidthWarnings()`. Every other
+module is emitted without a waiver, so Verilator reports its width warnings.
 
 ### One definition per name
 

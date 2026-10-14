@@ -266,6 +266,7 @@ base constructor
 | `bindingRules.output` | `public` | `string`[] | `undefined` | - |
 | `bindingRules.inout` | `public` | `string`[] | `undefined` | - |
 | <a id="body"></a> `body` | `protected` | `string` | `undefined` | - |
+| <a id="widthwaiverissue"></a> `widthWaiverIssue?` | `protected` | `string` | `undefined` | - |
 | <a id="registerblocks"></a> `registerBlocks` | `protected` | `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, \{ `d`: `string`; `resetVal?`: `bigint`; \}\>\>\>\> | `{}` | - |
 | <a id="printedinterfaces"></a> `printedInterfaces` | `static` | `Record`\<`string`, `boolean`\> | `{}` | - |
 | <a id="verilogparams"></a> `verilogParams` | `protected` | `Record`\<`string`, `boolean`\> | `undefined` | - |
@@ -864,6 +865,30 @@ that benefit from automatic indent stripping.
 ###### Returns
 
 `void`
+
+##### waiveWidthWarnings()
+
+```ts
+waiveWidthWarnings(issue): this;
+```
+
+Wrap this module's SV in a module-wide `lint_off WIDTH`, which hides every Verilator `WIDTH*`
+warning in it. Temporary: it's for a module that #59 hasn't yet brought in line with the SV
+guide's width rules (section 5), and #59's close-out removes it. A module-wide waiver breaks
+LINT-3, so the generated-SV baseline (`doc/rtl-style/sv-style/generated-baseline.json`)
+lists every module that calls this.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `issue` | `string` | the issue that fixes this module's width warnings, such as `'#150'`; the waiver's justification comment names it |
+
+###### Returns
+
+`this`
+
+this module
 
 ##### debug()
 
