@@ -218,3 +218,173 @@ check('PARAM-3', 'widths computed in TypeScript appear as numbers in the SV', ()
   m.addRegister({ d: 'ptr_nxt', clk: 'clk', reset: 'rst_n', q: 'ptr_q' })
   expect(emit(m).includes('output logic [3:0] ptr_q'), 'ptr_q is not 4 bits wide')
 })
+
+// COMB-3: addCombAlways rejects a nonblocking assignment, and accepts <= as a comparison.
+check('COMB-3', 'addCombAlways rejects a nonblocking assignment', () => {
+  const m = arbiter('comb3_dont')
+  expectThrows(() => {
+    m.addCombAlways({ outputs: ['grant'] }, `
+  begin : arb
+    grant = '0;
+    if (req[0]) grant <= 2'b01;
+  end
+`)
+  }, /COMB-3/)
+})
+
+check('COMB-3', 'addCombAlways accepts <= as a comparison', () => {
+  const m = new Module({ name: 'comb3_do' }, {
+    a: { direction: 'input', width: 4 },
+    b: { direction: 'input', width: 4 },
+    le: { direction: 'output' },
+    min: { direction: 'output', width: 4 }
+  })
+  m.addCombAlways({ outputs: ['le', 'min'] }, `
+  begin : compare
+    le = a <= b;
+    if (a <= b) min = a;
+    else        min = b;
+  end
+`)
+  expect(emit(m).includes('le = a <= b;'), 'comparison not emitted')
+})
+
+// COMB-2: an always-block builder rejects a local that is initialized but static.
+const firstSet = (name: string): Module => new Module({ name }, {
+  rdy: { direction: 'input', width: 4 },
+  sel: { direction: 'output', width: 2 },
+  valid: { direction: 'output' }
+})
+const firstSetBody = (local: string): string => `
+  begin : first_set
+    ${local} logic [1:0] idx   = 2'd0;
+    ${local} logic       found = 1'b0;
+    for (int i = 0; i < 4; i++) begin
+      if (!found && rdy[i]) begin
+        idx   = 2'(i);
+        found = 1'b1;
+      end
+    end
+    sel   = idx;
+    valid = found;
+  end
+`
+
+check('COMB-2', 'addCombAlways rejects an initialized local that is not automatic', () => {
+  expectThrows(() => { firstSet('comb2_dont').addCombAlways({ outputs: ['sel', 'valid'] }, firstSetBody('')) }, /COMB-2/)
+})
+
+check('COMB-2', 'addCombAlways accepts an initialized automatic local', () => {
+  const m = firstSet('comb2_do')
+  m.addCombAlways({ outputs: ['sel', 'valid'] }, firstSetBody('automatic'))
+  expect(emit(m).includes('automatic logic [1:0] idx'), 'automatic local not emitted')
+})
+
+check('COMB-2', 'addSequentialAlways and addLatchAlways reject an initialized static local too', () => {
+  const m = new Module({ name: 'comb2_seq_latch' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    en: { direction: 'input' },
+    d: { direction: 'input' },
+    q: { direction: 'output' },
+    l: { direction: 'output' }
+  })
+  expectThrows(() => { m.addSequentialAlways({ clk: 'clk', outputs: ['q'] }, 'begin : q_reg\n  logic t = 1\'b0;\n  q <= d;\nend\n') }, /COMB-2/)
+  expectThrows(() => { m.addLatchAlways({ outputs: ['l'] }, 'begin : l_latch\n  logic t = 1\'b0;\n  if (en) l = d;\nend\n') }, /COMB-2/)
+})
+
+// SEQ-1: addSequentialAlways rejects = to anything but the block's own locals.
+const seqModule = (name: string): Module => new Module({ name }, {
+  clk: { direction: 'input', isClock: 'posedge' },
+  rst_n: { direction: 'input', isReset: 'lowasync' },
+  a: { direction: 'input', width: 4 },
+  b: { direction: 'input', width: 4 },
+  cfg: { direction: 'input', width: 5 },
+  sum_q: { direction: 'output', width: 5 }
+})
+
+check('SEQ-1', 'addSequentialAlways rejects a blocking assignment to a register', () => {
+  expectThrows(() => {
+    seqModule('seq1_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+  begin : sum_reg
+    if (!rst_n) sum_q = '0;
+    else        sum_q = 5'(a) + 5'(b);
+  end
+`)
+  }, /SEQ-1/)
+})
+
+check('SEQ-1', 'addSequentialAlways accepts = to an automatic local, and <= to the register', () => {
+  const m = seqModule('seq1_do')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+  begin : sum_reg
+    automatic logic [4:0] sum;
+    sum = 5'(a) + 5'(b);
+    if (!rst_n) sum_q <= '0;
+    else        sum_q <= sum ^ cfg;
+  end
+`)
+  expect(emit(m).includes('sum_q <= sum ^ cfg;'), 'block not emitted')
+})
+
+// SEQ-6: reset values are constants.
+check('SEQ-6', 'addSequentialAlways rejects a reset to a signal', () => {
+  expectThrows(() => {
+    seqModule('seq6_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+  begin : sum_reg
+    if (!rst_n) begin
+      sum_q <= cfg;
+    end else begin
+      sum_q <= 5'(a) + 5'(b);
+    end
+  end
+`)
+  }, /SEQ-6/)
+})
+
+check('SEQ-6', 'addSequentialAlways accepts a constant reset value', () => {
+  const m = seqModule('seq6_do')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+  begin : sum_reg
+    if (!rst_n) sum_q <= 5'd16;
+    else        sum_q <= (5'(a) + 5'(b)) ^ cfg;
+  end
+`)
+  expect(emit(m).includes("sum_q <= 5'd16;"), 'reset value not emitted')
+})
+
+check('SEQ-6', 'addRegister rejects a reset value that is not a bigint', () => {
+  const m = counter('seq6_reg', 'lowasync', 'rst_n')
+  m.addSignal('base', { width: 8 })
+  const resetVal = 'base' as unknown as bigint
+  expectThrows(() => m.addRegister({ d: 'base', clk: 'clk', reset: 'rst_n', resetVal }), /SEQ-6/)
+})
+
+// RST-2: one reset kind per module.
+check('RST-2', 'a module rejects a second reset kind', () => {
+  const m = new Module({ name: 'rst2_dont' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_n: { direction: 'input', isReset: 'lowasync' },
+    srst: { direction: 'input', isReset: 'highsync' },
+    a: { direction: 'input' },
+    b: { direction: 'input' },
+    y: { direction: 'output', width: 2 }
+  })
+  m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
+  expectThrows(() => m.addRegister({ d: 'b', clk: 'clk', reset: 'srst' }), /RST-2/)
+  expectThrows(() => { m.addSequentialAlways({ clk: 'clk', reset: 'srst', outputs: ['y'] }, 'begin : y_reg\n  if (srst) y <= \'0;\n  else y <= {a, b};\nend\n') }, /RST-2/)
+})
+
+check('RST-2', 'a module accepts two resets of the same kind', () => {
+  const m = new Module({ name: 'rst2_do' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_a_n: { direction: 'input', isReset: 'lowasync' },
+    rst_b_n: { direction: 'input', isReset: 'lowasync' },
+    a: { direction: 'input' },
+    b: { direction: 'input' },
+    y: { direction: 'output', width: 2 }
+  })
+  m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_a_n' })
+  m.addRegister({ d: 'b', clk: 'clk', reset: 'rst_b_n' })
+  m.addAssign({ in: new Expr('{a_q, b_q}'), out: 'y' })
+  expect((emit(m).match(/always_ff/g) ?? []).length === 2, 'expected two always_ff blocks')
+})
