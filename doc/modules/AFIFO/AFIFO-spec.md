@@ -23,9 +23,9 @@ Defined in `AFIFO_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, in the order below: `AFIFO_<dataWidth>_<depth>_<syncStages>_<inclAlmostFull>_<inclAlmostEmpty>`, plus `_<fpgaRamStyle>` when it's set. For example `AFIFO_514_8_2_false_false` |
-| `dataWidth` | `bigint` (≥ 1) | — | Word width in bits. There is no upper limit, so NoC flits of 514 or 1026 bits fit |
-| `depth` | `bigint` (4, 8, 16 or 32) | — | Number of words. A power of two; see [Implementation Notes](#implementation-notes) for why. [Throughput and depth](#throughput-and-depth) covers choosing it |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `AFIFO_514_8_2_false_false` |
+| `dataWidth` | `bigint` (≥ 1) | — | Word width in bits. There is no upper limit. |
+| `depth` | `bigint` (4, 8, 16 or 32) | — | Number of words. A power of two; see [Implementation Notes](#implementation-notes) for why. [Throughput and depth](#throughput-and-depth) covers choosing it. |
 | `syncStages?` | `bigint` (≥ 2) | `2n` | Flops in each pointer synchronizer. Each extra stage lowers the chance that a metastable value escapes the synchronizer, and adds a cycle of latency in each direction |
 | `inclAlmostFull?` | `boolean` | `false` | Adds the `almost_full_depth` input and `almost_full` output, in the write domain |
 | `inclAlmostEmpty?` | `boolean` | `false` | Adds the `almost_empty_depth` input and `almost_empty` output, in the read domain |
