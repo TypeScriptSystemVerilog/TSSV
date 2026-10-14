@@ -131,7 +131,7 @@ All of the module's logic is in `ts/src/modules/GrayPointer/GrayPointer.ts`, plu
 - **Counter:** `bin_ptr_nxt = bin_ptr + inc`, `width` bits, so it wraps. `bin_ptr` is a flop that loads `bin_ptr_nxt` on every `clk` edge, built with `addRegister` (BUILD-3).
 - **Gray copy:** `gray_q` is a flop that loads `bin_ptr_nxt ^ (bin_ptr_nxt >> 1)` on the same edge. So `gray_q` is always the Gray code of `bin_ptr`, and it's a flop, not logic. The synchronizer's input has to come straight from a flop (`CDCSynchronizer`'s rule 1).
 - **Crossing:** `u_sync`, a `CDCSynchronizer` with `width` bits and `stages = syncStages`. It's clocked by `far_clk` and reset by `far_rst_n`. `d` is `gray_q`, and `q` is `gray_far`.
-- **Back to binary:** `far_bin_ptr` bit *i* is the XOR of `gray_far` bits *i* and up: `far_bin_ptr[i] = ^gray_far[width-1:i]`. The per-bit assigns are generated in TypeScript (BUILD-6).
+- **Back to binary:** `far_bin_ptr` bit *i* is the XOR of `gray_far` bits *i* and up: `far_bin_ptr[i] = ^gray_far[width-1:i]`. TypeScript generates the bits as one concatenation (BUILD-6). A 1-bit pointer is its own Gray code, so then `far_bin_ptr` is `gray_far`.
 - **Module names:** neither `GrayPointer` nor its `CDCSynchronizer` is given an explicit name, so TSSV derives one from the parameters. The `AFIFO`'s two pointers have the same parameters, so they share one `GrayPointer` module, and one `CDCSynchronizer`.
 
 ### Key signals
