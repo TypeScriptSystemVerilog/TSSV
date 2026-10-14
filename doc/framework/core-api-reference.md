@@ -144,7 +144,7 @@ All arithmetic methods accept `string | Sig | bigint` for operands and auto-comp
 
 ```typescript
 const prod = this.addMultiplier({ a: tapSig, b: coeffSig })
-// → assign prod_tapxcoeff = tap * coeff;
+// → assign prod_tapxcoeff = 16'(tap) * 16'(coeff);   (8-bit tap and coeff)
 // output width = width(a) + width(b)
 ```
 
@@ -152,7 +152,7 @@ const prod = this.addMultiplier({ a: tapSig, b: coeffSig })
 
 ```typescript
 const sum = this.addAdder({ a: sigA, b: sigB })
-// → assign sum_... = a + b;
+// → assign sum_... = 9'(a) + 9'(b);   (8-bit a and b)
 // output width = max(width(a), width(b)) + 1
 ```
 
@@ -164,7 +164,12 @@ const diff = this.addSubtractor({ a: sigA, b: sigB })
 // output width = max(width(a), width(b)) + 1
 ```
 
-All three accept an optional `result` field to name the output signal explicitly.
+All three accept an optional `result` field to name the output signal explicitly. The operation
+is computed at the result's width, with each operand cast to it; a narrower `result` keeps the
+low bits, and logs a warning. If either operand is signed, or a negative literal, the result is
+signed, and an unsigned signal is converted with `$signed({1'b0, x})`. For a sum or difference
+that adds a bit, so the auto-sized result counts that operand one bit wider. Literals are
+written at the result's width.
 
 ---
 
@@ -179,15 +184,19 @@ this.addSignal('rounded', { width: sumWidth - rShift + 1, isSigned: true })
 this.addRound({ in: 'sum', out: 'rounded', rShift: 7 })
 ```
 
-`rShift` may be a number (constant), string, or `Sig` (variable shift).
+`rShift` may be a number (constant, from 0 to `in`'s width minus 1), string, or `Sig` (variable
+shift, unsigned, with values in the same range). Every mode but `'rm'` adds a bias before the
+shift; the sum is a signal named `<out>_biased`, one bit wider than `in`, so it can't overflow.
+`out` needs `in`'s width minus `rShift`, plus one bit, to hold every result; a narrower `out`
+keeps the low bits.
 
 | `roundMode` | Behavior |
 |---|---|
 | `'rp'` (default) | Round toward positive infinity (round-half-up) |
-| `'rm'` | Round toward negative infinity (truncate) |
+| `'rm'` | Round toward negative infinity (floor) |
 | `'rz'` | Round toward zero |
-| `'rn'` | Round to nearest even |
-| `'rna'` | Round away from zero |
+| `'rn'` | Round half to even |
+| `'rna'` | Round half away from zero |
 
 ---
 
@@ -205,8 +214,10 @@ this.addSaturate({ in: 'rounded', out: 'saturated' })
 | `satMode` | Behavior |
 |---|---|
 | `'simple'` (default) | Clamp to `[-(2^(W-1)), 2^(W-1)-1]` (signed) or `[0, 2^W-1]` (unsigned) |
-| `'balanced'` | Symmetric: signed min is `-(2^(W-1)-1)` |
-| `'none'` | Wrap rather than clamp (no saturation logic) |
+| `'balanced'` | Symmetric: signed min is `-(2^(W-1)-1)`, even when `in` is as wide as `out` |
+| `'none'` | No clamp: unsigned keeps the low `W` bits; signed out of range keeps its sign and the low `W-1` bits |
+
+An `out` wider than `in` gets `in` extended.
 
 ---
 
@@ -225,6 +236,9 @@ this.addMux({
 })
 // → unique case(sel) 0: mux_out=sig0; 1: mux_out=sig1; ... endcase
 ```
+
+`in` needs at least two entries. A signal input narrower than `out` is extended to it with the
+input's signedness; one wider than `out` is an error. An `Expr` input is used as given.
 
 ---
 

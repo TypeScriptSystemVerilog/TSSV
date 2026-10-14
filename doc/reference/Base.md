@@ -526,17 +526,18 @@ the minimum bit width needed to represent the value
 addRound(io, roundMode?): Sig;
 ```
 
-add a rounding operation to scale down and reduce the bit width of a signal
+add a rounding operation to scale down and reduce the bit width of a signal: `out` is
+`in / 2^rShift`, rounded as `roundMode` says.
 
 ###### Parameters
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); `rShift`: `string` \| `number` \| [`Sig`](#sig); \} | `undefined` | the input/output signals of the round operation the rShift signal determines the number of LSBs to round away. The rShift signal can be either a liternal constant or a variable shift. When using a variable shift, care should be taken to minimize the number of bits to minimize the impact on the timing path of the resulting logic. |
+| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); `rShift`: `string` \| `number` \| [`Sig`](#sig); \} | `undefined` | the input/output signals of the round operation. `in` and `out` must have the same signedness. `rShift` determines the number of LSBs to round away. It can be either a literal constant, from 0 to `in`'s width minus 1, or a variable shift: an unsigned signal whose value stays in that range. When using a variable shift, care should be taken to minimize the number of bits to minimize the impact on the timing path of the resulting logic. Every mode but `rm` adds a bias before the shift. The sum is a signal named `<out>_biased`, one bit wider than `in`, so it can't overflow. A result that doesn't fit `out` keeps its low bits: `out` needs `in`'s width minus `rShift`, plus one bit, to hold every result. |
 | `io.in` | `string` \| [`Sig`](#sig) | `undefined` | - |
 | `io.out` | `string` \| [`Sig`](#sig) | `undefined` | - |
 | `io.rShift` | `string` \| `number` \| [`Sig`](#sig) | `undefined` | - |
-| `roundMode` | `"rp"` \| `"rm"` \| `"rz"` \| `"rn"` \| `"rna"` | `'rp'` | determines the type of rounding to apply |
+| `roundMode` | `"rp"` \| `"rm"` \| `"rz"` \| `"rn"` \| `"rna"` | `'rp'` | determines the type of rounding to apply: `rp` rounds half up (towards +∞), `rm` rounds down, `rz` rounds towards zero, `rn` rounds half to even, and `rna` rounds half away from zero |
 
 ###### Returns
 
@@ -556,10 +557,10 @@ add a Saturate operation to limit the bit width of a signal without overflow
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); \} | `undefined` | the input and output signals of the saturation operation |
+| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); \} | `undefined` | the input and output signals of the saturation operation. They must have the same signedness. An `out` at least as wide as `in` gets `in` extended, except that `balanced` still clamps a signed `in` of the same width. |
 | `io.in` | `string` \| [`Sig`](#sig) | `undefined` | - |
 | `io.out` | `string` \| [`Sig`](#sig) | `undefined` | - |
-| `satMode` | `"balanced"` \| `"none"` \| `"simple"` | `'simple'` | determines the behavior of the saturation |
+| `satMode` | `"balanced"` \| `"none"` \| `"simple"` | `'simple'` | determines the behavior of the saturation. `simple` clamps `in` to `out`'s range. `balanced` clamps a signed `in` to a range symmetric about zero, from `-(2^(n-1) - 1)` to `2^(n-1) - 1` for an `n`-bit `out`; for an unsigned `in` it's `simple`. `none` doesn't clamp: an unsigned `in` keeps its low bits, and a signed `in` out of range keeps its sign and its low `n - 1` bits. |
 
 ###### Returns
 
@@ -648,15 +649,19 @@ protected addOperation(op, io): Sig;
 addMultiplier(io): Sig;
 ```
 
+adds an arithmetic multiplier to the generated SystemVerilog module
+
 ###### Parameters
 
-| Parameter | Type |
-| ------ | ------ |
-| `io` | [`OperationIO`](#operationio) |
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the multiplier. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the product is signed, and an unsigned signal is converted with `$signed({1'b0, x})`. Without `result`, the product is a new signal as wide as both operands together, which holds every product. With `result`, the product is computed at `result`'s width; a narrower `result` keeps the low bits, and logs a warning. |
 
 ###### Returns
 
 [`Sig`](#sig)
+
+the product result
 
 ##### addAdder()
 
@@ -670,7 +675,7 @@ adds an arithmetic adder to the generated SystemVerilog module
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the adder |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the adder. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the sum is signed, and an unsigned signal is converted with `$signed({1'b0, x})`, which adds a bit. Without `result`, the sum is a new signal one bit wider than the wider operand, which holds every sum. With `result`, the sum is computed at `result`'s width; a narrower `result` keeps the low bits, and logs a warning. |
 
 ###### Returns
 
@@ -684,13 +689,13 @@ the sum result
 addSubtractor(io): Sig;
 ```
 
-adds an arithemetic subtractor to the generated SystemVerilog module
+adds an arithmetic subtractor to the generated SystemVerilog module
 
 ###### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the subtractor |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the subtractor: `a - b`. The widths and signedness follow [Module.addAdder](#addadder). |
 
 ###### Returns
 
@@ -716,7 +721,7 @@ add a constant literal signal to the generated SystemVerilog module
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
 | `name` | `string` \| `undefined` | `undefined` | signal name |
-| `value` | `bigint` | `undefined` | signal literal value |
+| `value` | `bigint` | `undefined` | signal literal value. It's declared with a sized literal at the signal's width. |
 | `isSigned` | `boolean` | `false` | whether the signal is signed or not |
 | `width` | `number` \| `undefined` | `undefined` | bit width of the resulting signal |
 
@@ -786,7 +791,7 @@ add a multiplexer to the TSSV module
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `io` | \{ `in`: (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[]; `sel`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `out`: `string` \| [`Sig`](#sig); `default?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); \} | The input/output signals connected to the multiplexer |
+| `io` | \{ `in`: (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[]; `sel`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `out`: `string` \| [`Sig`](#sig); `default?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); \} | The input/output signals connected to the multiplexer. `in` needs at least two entries, and `sel` picks one; a `sel` signal wider than it needs is sliced to its low bits. A signal input narrower than `out` is extended to it, with the input's signedness; one wider than `out` is an error. An `Expr` input is used as given. A `sel` value past the last input gives `default`, or all X. |
 | `io.in` | (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[] | - |
 | `io.sel` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
 | `io.out` | `string` \| [`Sig`](#sig) | - |
