@@ -8,11 +8,11 @@ TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesiz
 
 ```
 ts/src/core/          Framework base classes: Module, Sig, Expr, Interface, Registers
-ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRAM, SFIFO, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory)
+ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRAM, SFIFO, AFIFO, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory, ...)
 ts/src/interfaces/    Signal-bundle definitions — AMBA 2–5 (100+ specs), TileLink, Memory
 ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_convert
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
-ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), lint wrappers and filelists, the testbench marker
+ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), lint wrappers and filelists, one-module-per-file emission, two-clock WaveDrom replay vectors, the testbench marker
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
@@ -175,13 +175,13 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | Core framework (`Base.ts`, `Registers.ts`) | Complete | `Module` base class with the full builder API |
 | AMBA 2–5 interfaces | Complete | 100+ files across AHB, APB, ATB, AXI, AXI4, ACE, CHI, CXS, LPI, GFB, LTI, P/Q-Channel |
 | TileLink + Memory interfaces | Complete | |
-| Built-in modules | Complete | FIR, SRAM, SFIFO, TwoClockRegFile, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
+| Built-in modules | Complete | FIR, SRAM, SFIFO, AFIFO, TwoClockRegFile, GrayPointer, CDCSynchronizer, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
 | CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`) |
 | API reference (`doc/reference/`) | Core only | Markdown generated from the core's JSDoc by `npm run docs`; CI fails a PR whose reference is stale. Modules, interfaces and tools aren't covered yet |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
-| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `regblock_read_sim`, `apb_to_memory_sim`). Runs on PRs and on pushes to `main` |
+| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `apb_to_memory_sim`). Runs on PRs and on pushes to `main` |
 
 ## Common Tasks — Where to Start
 
