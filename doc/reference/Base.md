@@ -485,7 +485,7 @@ add a DFF register(can be multi-bit) to the d input
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `io` | \{ `d`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `resetVal?`: `bigint`; `en?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `q?`: `string` \| [`Sig`](#sig); \} | the input/output of the register |
+| `io` | \{ `d`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `resetVal?`: `bigint`; `en?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `q?`: `string` \| [`Sig`](#sig); \} | the input/output of the register. With a reset, q resets to `resetVal` (default 0), written as `'0`, or as a literal sized to q |
 | `io.d` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
 | `io.clk` | `string` \| [`Sig`](#sig) | - |
 | `io.reset?` | `string` \| [`Sig`](#sig) | - |
