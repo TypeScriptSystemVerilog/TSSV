@@ -98,6 +98,8 @@ _Latency: **`stages` `clk` edges**, or one more if the first flop misses the cha
 
 ## Internal Architecture
 
+![CDCSynchronizer block diagram: a source-domain flop drives d into a chain of stages flops on clk, starting at sync_0, each with ASYNC_REG; q is the last stage](CDCSynchronizer-blocks.drawio.svg)
+
 All of the module's logic is in `ts/src/modules/CDCSynchronizer/CDCSynchronizer.ts`. It has no submodules.
 
 - **Chain:** `stages` signals, `sync_0` to `sync_<stages-1>`, each `width` bits and each built with `addRegister` on `clk` and `rst_n` (BUILD-3). `sync_0` samples `d`, and each later stage samples the one before it.

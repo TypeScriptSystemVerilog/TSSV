@@ -238,6 +238,8 @@ _Push-to-head latency: **`syncStages` + 1 `rd_clk` edges**. Pop-to-space latency
 
 ## Internal Architecture
 
+![AFIFO block diagram: write control in the wr_clk domain and read control in the rd_clk domain; two GrayPointers and the TwoClockRegFile straddle the clock-domain boundary](AFIFO-blocks.drawio.svg)
+
 The `AFIFO` has three kinds of submodule:
 
 - **Storage:** a `TwoClockRegFile` of `depth` words.

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" content="&lt;mxfile host=&quot;TSSV&quot; type=&quot;device&quot;&gt;
+  &lt;diagram id=&quot;cdcsynchronizer-blocks&quot; name=&quot;CDCSynchronizer blocks&quot;&gt;
+    &lt;mxGraphModel dx=&quot;960&quot; dy=&quot;300&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;960&quot; pageHeight=&quot;300&quot; background=&quot;#FFFFFF&quot; math=&quot;0&quot; shadow=&quot;0&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;c2&quot; value=&quot;CDCSynchronizer: a chain of stages flops&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=18;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;13&quot; width=&quot;418&quot; height=&quot;26&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c3&quot; value=&quot;Every stage is clocked by clk, reset by rst_n, and declared with (* ASYNC_REG = &amp;amp;quot;TRUE&amp;amp;quot; *). Thick border: flop.&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=13;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;40&quot; width=&quot;780&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c4&quot; value=&quot;&quot; style=&quot;rounded=1;arcSize=2;html=1;fillColor=#EEF4FF;strokeColor=#D0D7DE;strokeWidth=1.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;76&quot; width=&quot;190&quot; height=&quot;190&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c5&quot; value=&quot;&quot; style=&quot;rounded=1;arcSize=2;html=1;fillColor=#EEFBF1;strokeColor=#D0D7DE;strokeWidth=1.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;210&quot; y=&quot;76&quot; width=&quot;730&quot; height=&quot;190&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c6&quot; value=&quot;source domain&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=15;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;32&quot; y=&quot;82&quot; width=&quot;122&quot; height=&quot;23&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c7&quot; value=&quot;destination domain&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=15;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;763&quot; y=&quot;82&quot; width=&quot;165&quot; height=&quot;23&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c8&quot; value=&quot;clk · rst_n&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;838&quot; y=&quot;105&quot; width=&quot;90&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c9&quot; value=&quot;&amp;lt;font style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;source flop&amp;lt;/font&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;outside the module&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8C959F;strokeWidth=1.4;dashed=1;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;34&quot; y=&quot;140&quot; width=&quot;150&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c10&quot; value=&quot;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#1F2328&amp;quot;&amp;gt;sync_0&amp;lt;/font&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;can go metastable&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;256&quot; y=&quot;140&quot; width=&quot;150&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c11&quot; value=&quot;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#1F2328&amp;quot;&amp;gt;sync_1&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;450&quot; y=&quot;140&quot; width=&quot;120&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c12&quot; value=&quot;…&quot; style=&quot;text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=15;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;606&quot; y=&quot;158&quot; width=&quot;19&quot; height=&quot;23&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c13&quot; value=&quot;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#1F2328&amp;quot;&amp;gt;sync_&amp;amp;lt;stages-1&amp;amp;gt;&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;660&quot; y=&quot;140&quot; width=&quot;150&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c14&quot; value=&quot;&quot; style=&quot;endArrow=none;html=1;rounded=0;strokeColor=#8C959F;strokeWidth=1.6;dashed=1;dashPattern=8 5;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;210&quot; y=&quot;76&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;210&quot; y=&quot;266&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c15&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#0969DA;strokeWidth=2.4;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c9&quot; target=&quot;c10&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c16&quot; value=&quot;d&quot; style=&quot;text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#0969DA;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;224&quot; y=&quot;149&quot; width=&quot;17&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c17&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#0969DA;strokeWidth=2.4;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c10&quot; target=&quot;c11&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c18&quot; value=&quot;&quot; style=&quot;endArrow=none;endFill=1;html=1;rounded=0;strokeColor=#0969DA;strokeWidth=2.4;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c11&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;598&quot; y=&quot;170&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c19&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#0969DA;strokeWidth=2.4;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; target=&quot;c13&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;632&quot; y=&quot;170&quot; as=&quot;sourcePoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c20&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#0969DA;strokeWidth=2.4;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c13&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;910&quot; y=&quot;170&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c21&quot; value=&quot;q&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#0969DA;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;873&quot; y=&quot;149&quot; width=&quot;17&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c22&quot; value=&quot;assign q = sync_&amp;amp;lt;stages-1&amp;amp;gt;&quot; style=&quot;text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=13;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;444&quot; y=&quot;220&quot; width=&quot;192&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;" width="960" height="300" viewBox="0 0 960 300" role="img">
+<title>CDCSynchronizer block diagram</title>
+<desc>A flop in the source domain, outside the module, drives d. Inside, a chain of stages flops on clk, sync_0 to sync_&lt;stages-1&gt;, each with ASYNC_REG. q is the last stage.</desc>
+<defs>
+  <style>
+    :root {
+      --bg:#ffffff; --surface:#f6f8fa; --sub:#fff8e5; --reg:#ffffff; --border:#d0d7de; --strong:#57606a;
+      --wrdom:#eef4ff; --rddom:#eefbf1; --text:#1f2328; --dim:#59636e;
+      --data:#0969da; --ptr:#bc4c00; --ctl:#6e7781; --mute:#8c959f;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0d1117; --surface:#161b22; --sub:#2b2111; --reg:#0d1117; --border:#30363d; --strong:#8b949e;
+        --wrdom:#121d33; --rddom:#0f2418; --text:#e6edf3; --dim:#8b949e;
+        --data:#58a6ff; --ptr:#f0883e; --ctl:#8b949e; --mute:#6e7681;
+      }
+    }
+    .bg     { fill:var(--bg); }
+    .wrdom  { fill:var(--wrdom); stroke:var(--border); stroke-width:1.2; }
+    .rddom  { fill:var(--rddom); stroke:var(--border); stroke-width:1.2; }
+    .box    { fill:var(--surface); stroke:var(--border); stroke-width:1.4; }
+    .sub    { fill:var(--sub); stroke:var(--border); stroke-width:2.6; }
+    .reg    { fill:var(--reg); stroke:var(--strong); stroke-width:2.2; }
+    .ghost  { fill:var(--bg); stroke:var(--mute); stroke-width:1.4; stroke-dasharray:5 4; }
+    .bound  { fill:none; stroke:var(--mute); stroke-width:1.6; stroke-dasharray:8 5; }
+    .h      { fill:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; }
+    .title  { fill:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:18px; font-weight:700; }
+    .d      { fill:var(--dim); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:13px; }
+    .m      { fill:var(--text); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; }
+    .md     { fill:var(--dim); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .ldata  { fill:var(--data); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .lptr   { fill:var(--ptr); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .lctl   { fill:var(--ctl); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .data   { fill:none; stroke:var(--data); stroke-width:2.4; }
+    .ptr    { fill:none; stroke:var(--ptr); stroke-width:1.8; }
+    .ctl    { fill:none; stroke:var(--ctl); stroke-width:1.4; }
+    .opt    { stroke-dasharray:6 4; }
+    .ah-data { fill:var(--data); }
+    .ah-ptr  { fill:var(--ptr); }
+    .ah-ctl  { fill:var(--ctl); }
+  </style>
+  <marker id="a-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-data" d="M0,0 L10,5 L0,10 Z"/></marker>
+  <marker id="a-ptr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ptr" d="M0,0 L10,5 L0,10 Z"/></marker>
+  <marker id="a-ctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ctl" d="M0,0 L10,5 L0,10 Z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="300"/>
+<text class="title" x="24" y="34" text-anchor="start">CDCSynchronizer: a chain of stages flops</text>
+<text class="d" x="24" y="56" text-anchor="start">Every stage is clocked by clk, reset by rst_n, and declared with (* ASYNC_REG = &quot;TRUE&quot; *). Thick border: flop.</text>
+<rect class="wrdom" x="20" y="76" width="190" height="190" rx="6"/>
+<rect class="rddom" x="210" y="76" width="730" height="190" rx="6"/>
+<text class="h" x="36" y="100" text-anchor="start">source domain</text>
+<text class="h" x="924" y="100" text-anchor="end">destination domain</text>
+<text class="md" x="924" y="120" text-anchor="end">clk · rst_n</text>
+<rect class="ghost" x="34" y="140" width="150" height="60" rx="8"/>
+<text class="d" x="109" y="165" text-anchor="middle">source flop</text>
+<text class="d" x="109" y="185" text-anchor="middle">outside the module</text>
+<rect class="reg" x="256" y="140" width="150" height="60" rx="8"/>
+<text class="m" x="331" y="165" text-anchor="middle">sync_0</text>
+<text class="d" x="331" y="185" text-anchor="middle">can go metastable</text>
+<rect class="reg" x="450" y="140" width="120" height="60" rx="8"/>
+<text class="m" x="510" y="175" text-anchor="middle">sync_1</text>
+<text class="h" x="615" y="176" text-anchor="middle">…</text>
+<rect class="reg" x="660" y="140" width="150" height="60" rx="8"/>
+<text class="m" x="735" y="175" text-anchor="middle">sync_&lt;stages-1&gt;</text>
+<path class="bound" d="M210,76 L210,266"/>
+<path class="data" d="M184,170 L256,170" marker-end="url(#a-data)"/>
+<text class="ldata" x="232" y="164" text-anchor="middle">d</text>
+<path class="data" d="M406,170 L450,170" marker-end="url(#a-data)"/>
+<path class="data" d="M570,170 L598,170"/>
+<path class="data" d="M632,170 L660,170" marker-end="url(#a-data)"/>
+<path class="data" d="M810,170 L910,170" marker-end="url(#a-data)"/>
+<text class="ldata" x="886" y="164" text-anchor="end">q</text>
+<text class="d" x="540" y="236" text-anchor="middle">assign q = sync_&lt;stages-1&gt;</text>
+</svg>

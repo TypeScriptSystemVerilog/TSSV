@@ -124,6 +124,8 @@ _Latency: **`syncStages` `far_clk` edges** from the `clk` edge that changes `bin
 
 ## Internal Architecture
 
+![GrayPointer block diagram: bin_ptr + inc feeds the bin_ptr flop and, through a Gray conversion, the gray_q flop; only gray_q crosses, through a CDCSynchronizer, and a Gray-to-binary conversion gives far_bin_ptr](GrayPointer-blocks.drawio.svg)
+
 All of the module's logic is in `ts/src/modules/GrayPointer/GrayPointer.ts`, plus one `CDCSynchronizer` submodule.
 
 - **Counter:** `bin_ptr_nxt = bin_ptr + inc`, `width` bits, so it wraps. `bin_ptr` is a flop that loads `bin_ptr_nxt` on every `clk` edge, built with `addRegister` (BUILD-3).
