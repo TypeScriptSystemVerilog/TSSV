@@ -1393,6 +1393,21 @@ ${caseAssignments}
   }
 
   /**
+   * Wrap this module's SV in a module-wide `lint_off WIDTH`, which hides every Verilator `WIDTH*`
+   * warning in it. Temporary: it's for a module that #59 hasn't yet brought in line with the SV
+   * guide's width rules (section 5), and #59's close-out removes it. A module-wide waiver breaks
+   * LINT-3, so the generated-SV baseline (`doc/rtl-style/sv-style/generated-baseline.json`)
+   * lists every module that calls this.
+   * @param issue the issue that fixes this module's width warnings, such as `'#150'`; the waiver's
+   * justification comment names it
+   * @returns this module
+   */
+  waiveWidthWarnings (issue: string): this {
+    this.widthWaiverIssue = issue
+    return this
+  }
+
+  /**
      * print some debug information to the console
      */
   debug (): void {
@@ -1727,22 +1742,30 @@ ${bindingsArray.join(',\n')}
       return s.endsWith('\n') ? s : s + '\n'
     }
 
+    // A module that called waiveWidthWarnings() is wrapped in a WIDTH waiver, with its reason
+    const waiverOff = this.widthWaiverIssue === undefined
+      ? ''
+      : `// TODO(#59): module-wide WIDTH waiver until ${this.widthWaiverIssue} fixes this module's width warnings
+/* verilator lint_off WIDTH */
+`
+    const waiverOn = this.widthWaiverIssue === undefined ? '' : '/* verilator lint_on WIDTH */\n'
+
     const verilog: string =
-`${opt(interfacesString)}${opt(subModulesString)}/* verilator lint_off WIDTH */
-module ${this.name} ${paramsString}
+`${opt(interfacesString)}${opt(subModulesString)}${waiverOff}module ${this.name} ${paramsString}
    (
 ${IOString}
    );
 ${opt(this.formatParametersAsVerilogComment(this.params))}${opt(signalString)}
 ${opt(this.body)}${opt(generatedBody)}
 endmodule
-/* verilator lint_on WIDTH */
-`
+${waiverOn}`
 
     return verilog
   }
 
   protected body: string
+  // set by waiveWidthWarnings(): the issue that removes this module's WIDTH waiver
+  protected widthWaiverIssue?: string
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
   protected static printedInterfaces: Record<string, boolean> = {}
