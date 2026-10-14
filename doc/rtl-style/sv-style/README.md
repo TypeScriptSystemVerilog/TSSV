@@ -29,15 +29,27 @@ doc/rtl-style/sv-style/
     check-rules.mjs             rule coverage, simulation examples, doc/file consistency
     check-width-examples.mjs    width examples: lint and exact arithmetic at 5 widths
     check-builder-examples.mjs  builder checks for both guides, and the SV they generate
+    check-builder-widths.mjs    the expression builders' SV: lint without the WIDTH waiver, exact arithmetic
     sv-scans.mjs                text checks on generated SV (SYN-1, LINT-3)
     check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/, against the baseline
 doc/rtl-style/tools/
   check-rtl-style.mjs   runs every check of both guides
   verilator.mjs         shared helpers: Verilator pin, lint, simulate
-ts/test/rtl_style/      the builder checks and the testbench-marker test (TypeScript has to live under ts/)
+ts/test/rtl_style/      the builder checks, the builder width cases and the testbench-marker test
+                        (TypeScript has to live under ts/)
 ```
 
 The builder checks write their SV to `sv-examples/rtl_style/`, which git ignores.
+
+`check-builder-widths.mjs` checks the builders in `ts/src/core/Base.ts` that emit expressions:
+`addAdder`, `addSubtractor`, `addMultiplier`, `addRound`, `addSaturate`, `addMux`,
+`addConstSignal`, `addSubmodule`'s width extension and constant bindings, and `addRegister`'s
+reset values. `ts/test/rtl_style/test_builder_widths.ts` builds each one at signed, unsigned and
+mismatched widths, including widths over 32 bits, with test vectors from a reference model in
+exact integer arithmetic. Each module must lint clean under `-Wall` without the module-wide
+`lint_off WIDTH` that `Module.writeSystemVerilog` still adds, and every vector must give the
+reference result in simulation. It works in a temporary directory and writes nothing to
+`sv-examples/`.
 
 ## How a rule is verified
 

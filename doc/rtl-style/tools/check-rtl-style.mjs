@@ -10,6 +10,7 @@ const CHECKS = [
   ['SV guide: every rule covered; sim examples pass', 'sv-style/tools/check-rules.mjs'],
   ['SV guide: width examples lint and match exact arithmetic', 'sv-style/tools/check-width-examples.mjs'],
   ['Both guides: builder checks and generated SV', 'sv-style/tools/check-builder-examples.mjs'],
+  ['SV guide: expression builders lint without the WIDTH waiver and match exact arithmetic', 'sv-style/tools/check-builder-widths.mjs'],
   ['TSSV guide: every rule covered; IDs apart from the SV guide; repo scans', 'tssv-style/tools/check-rules.mjs'],
   ['TSSV guide: ts examples type-check, run and lint as annotated', 'tssv-style/tools/check-ts-examples.mjs']
 ]
