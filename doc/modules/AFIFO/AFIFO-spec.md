@@ -161,7 +161,7 @@ The storage and `pop_data` have no reset. After both resets, `empty` asserts, `f
 
 The two resets have to be used together:
 
-1. **Assert both, overlapping.** Resetting one side while the other side's pointer is nonzero corrupts the FIFO. Each side would see a pointer value the other no longer holds, so words can be lost or repeated.
+1. **Assert both, overlapping.** Resetting one side while the other side's pointer is nonzero corrupts the FIFO. Each side would see a pointer value the other no longer holds, so words can be lost or repeated. An asynchronous reset also changes several bits of a Gray pointer at once, which its synchronizer can catch halfway (see [`GrayPointer`'s Reset behavior](../GrayPointer/GrayPointer-spec.md#reset-behavior)). So from the moment either reset asserts until both are released, every output on both sides is meaningless.
 2. **Release each one synchronously to its own clock.** The `AFIFO` has no reset synchronizer. That's the caller's job (RST-4 in `doc/rtl-style/sv-style/sv-coding-style.md`).
 3. **Don't push or pop until both resets have been released.**
 
@@ -243,14 +243,13 @@ The `AFIFO` has three kinds of submodule:
 - **Storage:** a `TwoClockRegFile` of `depth` words.
   - Port A, the write port, is on `wr_clk`. `a_we` is `push_fire`, `a_addr` is the write pointer's low `log2(depth)` bits, and `a_data_in` is `push_data`.
   - Port B, the read port, is on `rd_clk`. `b_re` is `head_load`, `b_addr` is the low bits of `rd_ptr_nxt`, and `b_data_out` drives `pop_data` directly. So `pop_data` comes straight from a `rd_clk` flop, with no mux.
-- **Pointers:** two `GrayPointer`s, one per domain. Each holds a `ptrWidth`-bit binary pointer and a registered Gray copy of it. It passes the Gray copy to the other domain through a `CDCSynchronizer`.
-- **Synchronizers:** each `CDCSynchronizer` is a chain of `syncStages` flops on the destination clock, reset by the destination domain's reset. Its input comes straight from the source domain's Gray pointer register, with no logic in between. Every flop in the chain carries `(* ASYNC_REG = "TRUE" *)`, so Vivado places the chain's flops next to each other and doesn't merge them into a shift-register LUT.
+- **Pointers:** two `GrayPointer`s, one per domain, each `ptrWidth` bits wide. Each one counts its domain's pushes or pops, and gives the count in binary in both domains. Inside, it crosses in Gray code through a `CDCSynchronizer`: a chain of `syncStages` flops on the destination clock, each with `(* ASYNC_REG = "TRUE" *)`. The Gray code doesn't appear in the `AFIFO`; see [`GrayPointer`'s spec](../GrayPointer/GrayPointer-spec.md#use-in-the-afifo) for how the two instances connect.
 
 ### Write side
 
 - `push_fire = push_en && !full`. It writes the storage and advances `wr_ptr_q`.
-- `wr_curr_depth = wr_ptr_q - rd_ptr_wsync`, modulo 2^`ptrWidth`. `rd_ptr_wsync` is the synchronized read pointer, converted from Gray to binary.
-- `full` compares Gray pointers directly: `wr_gray_q` equals `rd_gray_wsync` with its top two bits inverted. That's the same condition as `wr_curr_depth == depth`, with no subtractor in the path to `push_fire`.
+- `wr_curr_depth = wr_ptr_q - rd_ptr_wsync`, modulo 2^`ptrWidth`. `rd_ptr_wsync` is the read pointer as the write domain sees it.
+- `full` asserts when `wr_ptr_q` equals `rd_ptr_wsync` with its top bit inverted: the pointers are exactly `depth` apart. That's the same condition as `wr_curr_depth == depth`, with no subtractor in the path to `push_fire`.
 - `full` and `wr_curr_depth` are combinational functions of `wr_clk` flops, so they change only on a `wr_clk` edge.
 
 ### Read side (show-ahead)
@@ -258,7 +257,7 @@ The `AFIFO` has three kinds of submodule:
 `TwoClockRegFile`'s read is registered, so the head is loaded into `b_data_out` ahead of time, the way `SFIFO` prefetches over `SRAM`. Unlike `SFIFO`, there's no bypass: a pushed word can only reach the read side through the storage.
 
 - `rd_ptr_q` is the head's address. `pop_fire = pop_en && !empty`, and `rd_ptr_nxt = rd_ptr_q + pop_fire`.
-- `head_vld_nxt` means the word at `rd_ptr_nxt` has crossed: `rd_ptr_nxt` differs from the synchronized write pointer. The compare is in Gray code, so no Gray-to-binary conversion is in its path.
+- `head_vld_nxt` means the word at `rd_ptr_nxt` has crossed: `rd_ptr_nxt != wr_ptr_rsync`, where `wr_ptr_rsync` is the write pointer as the read domain sees it.
 - `head_load = head_vld_nxt && (pop_fire || empty)` loads a new head when the current one is popped or when there isn't one. While it's low, `b_data_out` holds the head.
 - `empty` is a flop. It loads `!head_vld_nxt` on every `rd_clk` edge, and resets to 1.
 - `rd_curr_depth = empty ? 0 : wr_ptr_rsync - rd_ptr_q`, modulo 2^`ptrWidth`.
@@ -277,16 +276,12 @@ The pointers keep `TwoClockRegFile`'s [Access rules](../TwoClockRegFile/TwoClock
 | Signal | Domain | Width | Description |
 |---|---|---|---|
 | `push_fire` | write | 1 | Push accepted this cycle |
-| `wr_ptr_q` | write | `ptrWidth` | Binary write pointer. Its low `log2(depth)` bits address the storage |
-| `wr_gray_q` | write | `ptrWidth` | Registered Gray copy of `wr_ptr_q`, the only write-domain signal that crosses |
-| `rd_gray_wsync` | write | `ptrWidth` | `rd_gray_q` after `syncStages` `wr_clk` flops |
-| `rd_ptr_wsync` | write | `ptrWidth` | `rd_gray_wsync` in binary, for `wr_curr_depth` |
+| `wr_ptr_q` | write | `ptrWidth` | Write pointer: the write `GrayPointer`'s `bin_ptr`. Its low `log2(depth)` bits address the storage |
+| `rd_ptr_wsync` | write | `ptrWidth` | Read pointer as the write domain sees it: the read `GrayPointer`'s `far_bin_ptr` |
 | `pop_fire` | read | 1 | Pop accepted this cycle |
-| `rd_ptr_q` | read | `ptrWidth` | Binary read pointer: the head's address |
+| `rd_ptr_q` | read | `ptrWidth` | Read pointer, the head's address: the read `GrayPointer`'s `bin_ptr` |
 | `rd_ptr_nxt` | read | `ptrWidth` | `rd_ptr_q + pop_fire`: the head's address after this edge |
-| `rd_gray_q` | read | `ptrWidth` | Registered Gray copy of `rd_ptr_q`, the only read-domain signal that crosses |
-| `wr_gray_rsync` | read | `ptrWidth` | `wr_gray_q` after `syncStages` `rd_clk` flops |
-| `wr_ptr_rsync` | read | `ptrWidth` | `wr_gray_rsync` in binary, for `rd_curr_depth` |
+| `wr_ptr_rsync` | read | `ptrWidth` | Write pointer as the read domain sees it: the write `GrayPointer`'s `far_bin_ptr` |
 | `head_vld_nxt` | read | 1 | The word at `rd_ptr_nxt` has crossed |
 | `head_load` | read | 1 | Load the head into `pop_data`: the storage's `b_re` |
 
@@ -365,14 +360,14 @@ The target also gets its own step in `.github/workflows/test.yml`.
   - Ports: `push_en`, `push_data` and `full` replace `wr_en`, `wr_data_in` and `wr_full`. `pop_en`, `pop_data` and `empty` replace `rd_en`, `rd_data_out` and `rd_empty`.
   - Parameters: `depth` replaces `log2depth`. `inclAlmostFull` and `inclAlmostEmpty`, with run-time threshold inputs, replace `InclAlmostDepth` and the `almost_full_depth` / `almost_empty_depth` parameters.
   - That settles #67's items 1 and 2. The testbench takes its DUT names from the generated configurations, and no threshold parameter can be dropped on the way to `super()`.
-- **Power-of-two depth.** A pointer with one more bit than the address wraps cleanly only when `depth` is a power of two: its Gray code then changes one bit at a time through the wrap, and the full test (top two bits inverted) holds. Depth stops at 32 because flop storage gets expensive beyond that (`TwoClockRegFile`'s limit).
+- **Power-of-two depth.** A pointer with one more bit than the address wraps cleanly only when `depth` is a power of two: its Gray code then changes one bit at a time through the wrap, and the full test holds (pointers equal apart from the top bit are exactly `depth` apart). Depth stops at 32 because flop storage gets expensive beyond that (`TwoClockRegFile`'s limit).
 - **No bypass.** `SFIFO` sends a push into an empty FIFO straight to `pop_data`. Here a word can only reach the read domain through the storage, after the write pointer has crossed.
 - **Storage is `TwoClockRegFile` (#121), not `DualClockRAM`.** The `add_AFIFO` branch's `DualClockRAM` assumed a dual-clock memory macro, which ASIC libraries generally don't have, so this branch doesn't land it.
-- **`GrayPointer` and `CDCSynchronizer` need their own specs.** MOD-1 gives every module a spec at `doc/modules/<Module>/<Module>-spec.md`. This spec only describes how the `AFIFO` uses them.
+- **The helpers have their own specs** (MOD-1): [`GrayPointer`](../GrayPointer/GrayPointer-spec.md) and [`CDCSynchronizer`](../CDCSynchronizer/CDCSynchronizer-spec.md). This spec only describes how the `AFIFO` uses them.
 - **SYN-3.** The data crosses through the storage without a synchronizer. That's the exception `TwoClockRegFile`'s spec describes, and the [Storage access rules](#storage-access-rules) above are what make it safe. Every control signal that crosses goes through a `CDCSynchronizer`.
-- **Timing constraints.** The crossings need constraints that the RTL can't express yet. The Gray pointers' bits must arrive within one destination-clock period of each other (Vivado's `set_bus_skew`). The path from the storage to `pop_data` must be shorter than the pointer's trip through the synchronizer (`set_max_delay -datapath_only`). The timing-intent epic (#96) is where TSSV will carry them, and #106 moves the `AFIFO` onto it. Until then, the integrator writes them.
+- **Timing constraints.** The crossings need constraints that the RTL can't express yet. Each Gray pointer's bits must reach the synchronizer within one source-clock period of each other (Vivado's `set_bus_skew`; see [`GrayPointer`'s Implementation Notes](../GrayPointer/GrayPointer-spec.md#implementation-notes)). The path from the storage to `pop_data` must be shorter than the pointer's trip through the synchronizer (`set_max_delay -datapath_only`). The timing-intent epic (#96) is where TSSV will carry them, and #106 moves the `AFIFO` onto it. Until then, the integrator writes them.
 - **Compared with `bsg_async_fifo`:**
-  - The pointer scheme is the same: `log2(depth) + 1`-bit Gray pointers and the same full test.
+  - The pointer scheme is the same: `log2(depth) + 1`-bit pointers that cross in Gray code. The full test is the same condition. `bsg_async_fifo` compares the Gray pointers with the top two bits inverted, and the `AFIFO` compares the binary pointers with the top bit inverted.
   - The resets differ. Each domain has an active-low asynchronous reset (MOD-4), where `bsg_async_fifo` uses a synchronous reset on each side.
   - The storage is `TwoClockRegFile` instead of `bsg_mem_1r1w`.
   - `bsg_async_fifo`'s `and_data_with_valid_p` option, which zeroes the read data while empty, isn't ported.
