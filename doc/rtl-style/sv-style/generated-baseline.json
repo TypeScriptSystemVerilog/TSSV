@@ -4,6 +4,246 @@
     "sv-examples/AXI4XBar/": "Rocket Chip's generator writes this SV, not TSSV's builders, so the SV guide doesn't apply to it. test_AXI4XBar also needs Docker, so runAllTests.sh skips it (scripts/test-skips.sh)."
   },
   "findings": {
+    "sv-examples/AFIFO/AFIFO_1026_32_2_false_false/AFIFO_1026_32_2_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_32_2_false_false/CDCSynchronizer_6_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_32_2_false_false/GrayPointer_6_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_32_2_false_false/TwoClockRegFile_1026_32.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_4_2_true_true/AFIFO_1026_4_2_true_true.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_4_2_true_true/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_4_2_true_true/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_1026_4_2_true_true/TwoClockRegFile_1026_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_2_false_false/AFIFO_8_16_2_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_2_false_false/CDCSynchronizer_5_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_2_false_false/GrayPointer_5_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_2_false_false/TwoClockRegFile_8_16.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_false_false/AFIFO_8_16_3_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_false_false/CDCSynchronizer_5_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_false_false/GrayPointer_5_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_false_false/TwoClockRegFile_8_16.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_true_true/AFIFO_8_16_3_true_true.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_true_true/CDCSynchronizer_5_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_true_true/GrayPointer_5_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_16_3_true_true/TwoClockRegFile_8_16.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_2_false_false/AFIFO_8_32_2_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_2_false_false/CDCSynchronizer_6_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_2_false_false/GrayPointer_6_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_2_false_false/TwoClockRegFile_8_32.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_3_false_false/AFIFO_8_32_3_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_3_false_false/CDCSynchronizer_6_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_3_false_false/GrayPointer_6_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_32_3_false_false/TwoClockRegFile_8_32.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false/AFIFO_8_4_2_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false/TwoClockRegFile_8_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false_distributed/AFIFO_8_4_2_false_false_distributed.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false_distributed/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false_distributed/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_false_distributed/TwoClockRegFile_8_4_distributed.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_true/AFIFO_8_4_2_false_true.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_true/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_true/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_false_true/TwoClockRegFile_8_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_false/AFIFO_8_4_2_true_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_false/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_false/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_false/TwoClockRegFile_8_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_true/AFIFO_8_4_2_true_true.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_true/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_true/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_2_true_true/TwoClockRegFile_8_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_3_false_false/AFIFO_8_4_3_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_3_false_false/CDCSynchronizer_3_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_3_false_false/GrayPointer_3_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_4_3_false_false/TwoClockRegFile_8_4.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_2_false_false/AFIFO_8_8_2_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_2_false_false/CDCSynchronizer_4_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_2_false_false/GrayPointer_4_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_2_false_false/TwoClockRegFile_8_8.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_3_false_false/AFIFO_8_8_3_false_false.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_3_false_false/CDCSynchronizer_4_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_3_false_false/GrayPointer_4_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/AFIFO/AFIFO_8_8_3_false_false/TwoClockRegFile_8_8.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
     "sv-examples/APB_to_Memory/apb_regblock.sv": {
       "LINT-1 DECLFILENAME: Filename 'apb_regblock' does not match IFACE name: 'APB4_32_32'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
@@ -24,6 +264,22 @@
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 1,
       "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 1,
       "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'mem'": 1
+    },
+    "sv-examples/CDCSynchronizer/CDCSynchronizer_1_2/CDCSynchronizer_1_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/CDCSynchronizer/CDCSynchronizer_1_3/CDCSynchronizer_1_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/CDCSynchronizer/CDCSynchronizer_8_2/CDCSynchronizer_8_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/CDCSynchronizer/CDCSynchronizer_8_3/CDCSynchronizer_8_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/Core/Registers/tb_testRegBlock.sv": {
       "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock' does not match MODULE name: 'ram_32x32'": 1,
@@ -707,6 +963,38 @@
       "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 3,
       "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 3
+    },
+    "sv-examples/GrayPointer/GrayPointer_1_2/CDCSynchronizer_1_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_1_2/GrayPointer_1_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_3_2/CDCSynchronizer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_3_2/GrayPointer_3_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_4_3/CDCSynchronizer_4_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_4_3/GrayPointer_4_3.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_6_2/CDCSynchronizer_6_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
+    },
+    "sv-examples/GrayPointer/GrayPointer_6_2/GrayPointer_6_2.sv": {
+      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
+      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
     },
     "sv-examples/IpXactComponent/apbComponent/apbComponentExample.sv": {
       "LINT-1 EOFNEWLINE: Missing newline at end of file (POSIX 3.206).": 1,
