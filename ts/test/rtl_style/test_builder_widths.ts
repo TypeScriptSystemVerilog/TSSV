@@ -8,7 +8,8 @@
 //                                                             test vectors to <dir>/cases.json
 //
 // doc/rtl-style/sv-style/tools/check-builder-widths.mjs runs the second form. It lints each
-// module under -Wall without the module-wide WIDTH waiver, and simulates every vector.
+// module under -Wall with the common waivers file and without the module-wide WIDTH waiver, and
+// simulates every vector.
 
 import { Module, Expr, type IOSignals } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'

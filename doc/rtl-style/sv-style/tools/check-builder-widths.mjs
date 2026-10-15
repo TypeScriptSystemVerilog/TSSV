@@ -5,12 +5,12 @@
 //
 // ts/test/rtl_style/test_builder_widths.ts builds each case: one builder at signed, unsigned and
 // mismatched widths, with test vectors from a reference model in exact integer arithmetic. Here,
-// each case's module must lint clean under -Wall with the module-wide `lint_off WIDTH` that
-// Module.writeSystemVerilog wraps it in removed (#147 removes it from the emitted SV), and every
-// vector must give the reference result in simulation. A clocked case is simulated held in reset,
-// so its outputs must be the reset values. A case
-// whose result is narrower than its input leaves input bits unused on purpose; it records why,
-// and is linted without UNUSEDSIGNAL.
+// each case's module must lint clean under -Wall with only the common waivers file, which lint()
+// passes (../common_waivers.vlt): the module-wide `lint_off WIDTH` that Module.writeSystemVerilog
+// wraps it in is removed (#147 removes it from the emitted SV). Every vector must give the
+// reference result in simulation. A clocked case is simulated held in reset, so its outputs must
+// be the reset values. A case whose result is narrower than its input leaves input bits unused on
+// purpose; it records why, and is linted without UNUSEDSIGNAL.
 //
 // Run from the repo root. Exits 0 if every case passes, 1 otherwise.
 
@@ -42,7 +42,7 @@ try {
   }
   const cases = JSON.parse(readFileSync(join(dir, 'cases.json'), 'utf8'))
 
-  // Lint each case without the waiver. Each file also holds a submodule's definition where the
+  // Lint each case with the common waivers and without the WIDTH waiver. Each file also holds a submodule's definition where the
   // case has one, so DECLFILENAME (one module per file, named after it) is off: it's about how the
   // test lays out its files, not about the builder.
   const lintDir = join(dir, 'lint')
@@ -56,7 +56,7 @@ try {
     const warnings = out.split('\n').filter((l) => l.startsWith('%Warning')).map((l) => l.replace(`${file}:`, ''))
     if (errors.length > 0 || warnings.length > 0) {
       lintFailed.add(c.name)
-      fail(`${c.name}: lint without the WIDTH waiver\n    ${[...errors, ...warnings].join('\n    ')}`)
+      fail(`${c.name}: lint with the common waivers, without the WIDTH waiver\n    ${[...errors, ...warnings].join('\n    ')}`)
     }
   }
 
