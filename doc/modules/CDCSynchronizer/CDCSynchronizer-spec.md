@@ -11,6 +11,8 @@ A multi-flop synchronizer: a chain of flops on the destination clock that brings
 
 It's safe only for an input that changes one bit at a time: a single-bit level, or a Gray-coded counter. A multi-bit value that can change several bits at once needs a handshake or an `AFIFO` instead (see [What the input may be](#what-the-input-may-be)). `GrayPointer` uses it to carry the `AFIFO`'s pointers across.
 
+The module knows only its destination clock: not the source clock, and not how `d` is encoded. So the module that instantiates it owns the crossing: its input rules, its timing constraints and the assertion that checks them (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)). `CDCSynchronizer` itself owns only the chain, `ASYNC_REG` on every stage, and `a_latency`.
+
 ---
 
 ## Parameters
@@ -20,7 +22,7 @@ Defined in `CDCSynchronizer_Parameters extends TSSVParameters`.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `CDCSynchronizer_3_2` |
-| `width` | `bigint` (≥ 1) | — | Width of the synchronized signal, in bits. **For widths ≥1, care must be taken to guarantee that only one bit changes per clock cycle (e.g. by using Gray coding).** |
+| `width` | `bigint` (≥ 1) | — | Width of the synchronized signal, in bits. **For `width > 1`, `d` must change at most one bit at a time** (for example, Gray code). The instantiating module guarantees this and constrains the crossing (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)). `q` then shows only values `d` held, but it can skip values when `d` changes faster than `clk` |
 | `stages?` | `bigint` (≥ 2) | `2n` | Flops in the chain. Each extra stage lowers the chance that a metastable value reaches `q`, and adds a cycle of latency |
 
 Invalid values throw an `Error` that names the module, the parameter and the value: `width < 1` or `stages < 2`.
@@ -45,17 +47,34 @@ Every port is in the destination domain except `d`, which comes from the source 
 ### Operation
 
 1. On each rising edge of `clk`, the first flop samples `d`, and each later flop samples the one before it. `q` is the last flop.
-2. **Latency:** a change on `d` reaches `q` on the `stages`th `clk` edge after it. It's one edge later if the first flop misses the change: the change can arrive too close to the edge, or the flop can go metastable and resolve to the old value. A `clk` edge at the same instant as the change doesn't count.
+2. **Latency:** a change on `d` reaches `q` on the `stages`th `clk` edge after the change reaches `sync_0`'s input. It's one edge later if the first flop misses the change: the change can arrive too close to the edge, or the flop can go metastable and resolve to the old value. A `clk` edge at the same instant as the change doesn't count. The delay from the source flop to `sync_0` comes before that, and the instantiating module bounds it (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)).
 3. A change that the first flop catches mid-transition can leave it metastable for part of a cycle. It resolves to the old value or the new one, never to anything else, and the later flops pass on whichever it chose.
 
 ### What the input may be
 
-The module can't check its input, so these are the caller's rules:
+The module can't check its input or constrain the path to it, so these rules belong to the instantiating module (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)):
 
 1. **Straight from a flop.** `d` must be driven directly by a flop in the source domain, with no logic in between. Combinational logic can glitch, and the first flop can capture a glitch as if it were a real value.
 2. **One bit at a time.** For `width > 1`, `d` must never change more than one bit at once, which a Gray-coded counter guarantees. Otherwise the first flop can catch some bits old and some new, and `q` can show a value `d` never held.
-3. **Bounded skew.** For `width > 1`, the bits of `d` must reach the first flop within one source-clock period of each other. Then the bits that changed on two different source edges are never in flight at once, so rule 2 still holds at the destination. The RTL can't enforce this; it needs a timing constraint (see [Implementation Notes](#implementation-notes)).
-4. **Long enough.** A value held for less than about one `clk` period can be missed altogether. A single-cycle pulse from a faster domain needs a pulse or handshake synchronizer, which this module isn't.
+3. **Bounded skew.** For `width > 1`, the bits of `d` must reach the first flop within a skew budget of each other: the shortest interval between changes of `d`, minus `sync_0`'s setup and hold times and the clock jitter. Then the bits that changed at two different times are never in flight at once, so rule 2 still holds at the destination. The RTL can't enforce this; it needs a timing constraint (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)).
+4. **Long enough.** A change that lands in `sync_0`'s setup/hold window can resolve to the old value, so a value can be missed altogether. To be seen for certain, a value must be held for longer than one `clk` period plus the skew, `sync_0`'s setup and hold times, and the jitter: in practice at least 1.5 `clk` periods. Only an instantiating module that needs every value to reach `q` has to meet this; a Gray-coded counter that may skip values doesn't. A single-cycle pulse from a faster domain needs a pulse or handshake synchronizer, which this module isn't.
+
+### Responsibilities of the instantiating module
+
+`CDCSynchronizer` knows only its destination clock. It doesn't know the source clock or how `d` is encoded, so it can't state the timing constraints on the path from the source flop to `sync_0`, and it can't check its own input rules. The module that instantiates it knows both, so it owns them. In #67 that's `GrayPointer`, whose spec states each item for its crossing ([Timing constraints](../GrayPointer/GrayPointer-spec.md#timing-constraints) and [Assertions](../GrayPointer/GrayPointer-spec.md#assertions)).
+
+The instantiating module:
+
+1. **Drives `d` straight from a flop in the source domain** (rule 1).
+2. **Guarantees the input class:** for `width > 1`, at most one bit of `d` changes at a time (rule 2).
+3. **States the static timing constraints** on the path from its source flop to `sync_0`:
+   - **`set_bus_skew`:** at most the shortest interval between changes of `d`, minus `sync_0`'s setup and hold times and the clock jitter (rule 3).
+   - **`set_max_delay -datapath_only`:** a bound that supports the latency the instantiating module promises. Latency here is counted from `sync_0`'s input (Operation, item 2).
+   - **No `set_clock_groups -asynchronous` or `set_false_path`** may cover these paths. Vivado gives those precedence over `set_max_delay`, so they would silently drop it.
+4. **Embeds the assertion that checks rule 2**, clocked on the source clock. It can't be clocked on `clk` (see [Assertions](#assertions)).
+5. **Handles the reset rule** in [Reset behavior](#reset-behavior), second paragraph.
+
+`CDCSynchronizer` itself owns only the chain's structure, `ASYNC_REG` on every stage, and `a_latency`.
 
 ### Reset behavior
 
@@ -123,11 +142,11 @@ These checks run in `tb_CDCSynchronizer.sv` (see [Test Plan](#test-plan)). They'
 |---|---|---|---|
 | `a_latency` | `clk`; `rst_n` is low, and for the first `stages` edges after it rises | `q == $past(d, stages)` | The chain has the wrong length, or a stage is wired to the wrong one |
 
-**The input rules can't be checked here.** The module has no source clock. Sampled on `clk`, a fast source can legitimately change several bits of `d` between two edges, for example when a Gray counter advances twice, so a one-bit check on `clk` would fail on correct designs. The one-bit check belongs in the module that owns the source flop: `GrayPointer`'s `a_gray_one_bit`. This is also why #96 has each CDC primitive own its source register and take both clocks.
+**The input rules can't be checked here.** The module has no source clock. Sampled on `clk`, a fast source can legitimately change several bits of `d` between two edges, for example when a Gray counter advances twice, so a one-bit check on `clk` would fail on correct designs. So the instantiating module embeds this check, clocked on the source clock: in #67, `GrayPointer`'s `a_gray_one_bit`. This is also why #96 has each CDC primitive own its source register and take both clocks.
 
 **Not checkable in simulation:**
 - **Metastability.** A simulated flop never goes metastable, so a change never takes the extra edge. A simulation-only option could model it: on each `clk` edge, `sync_0` loads either `d` or the value `d` had at the previous `clk` edge, chosen at random. That delays a change by at most one edge and never invents a value. Holding each changed bit at random instead can invent one: with a faster source, `d` can change two bits between edges, and mixing old and new bits gives a value `d` never held. In a cycle model of the `AFIFO`, every `AFIFO` check holds with this option, and its latency bounds are reached exactly. The option needs simulation-only code in the RTL, so it waits for #100; it isn't part of #67.
-- **Rules 1 and 3** of [What the input may be](#what-the-input-may-be): driving `d` straight from a flop is structural, and the bits' skew is a timing constraint (see [Implementation Notes](#implementation-notes)).
+- **Rules 1 and 3** of [What the input may be](#what-the-input-may-be): driving `d` straight from a flop is structural, and the bits' skew is a timing constraint (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)).
 
 ---
 
@@ -183,7 +202,7 @@ The target also gets its own step in `.github/workflows/test.yml`.
 
 ## Implementation Notes
 
-- **Timing constraint.** Rule 3 of [What the input may be](#what-the-input-may-be) needs a constraint on the path from the source flop to `sync_0`: the bits' skew must stay under one source-clock period (Vivado's `set_bus_skew`). The same path also shouldn't be timed as a normal single-clock path. The RTL can't carry either constraint yet. The timing-intent epic (#96) is where TSSV will, and until then the integrator writes them.
+- **Timing constraints.** The path from the source flop to `sync_0` needs a bus-skew bound (rule 3) and a max-delay bound (the latency), and must not be covered by an asynchronous clock group or a false path. The instantiating module's spec states them, because only it knows the source clock and the encoding (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module); for #67, `GrayPointer`'s [Timing constraints](../GrayPointer/GrayPointer-spec.md#timing-constraints)). #96 is how TSSV will eventually emit them.
 - **Changes from the `add_AFIFO` draft:**
   - `width` is a `bigint` with no upper limit, instead of `IntRange<1, 256>`.
   - Invalid parameters throw instead of logging.

@@ -59,7 +59,7 @@ Invalid values throw an `Error` that names the module, the parameter and the val
 
 ### Far domain
 
-1. **Latency:** a value that `bin_ptr` takes at a `clk` edge reaches `far_bin_ptr` on the `syncStages`th `far_clk` edge after it. It's one edge later if the synchronizer's first flop misses the change: the change can arrive too close to the edge, or the flop can go metastable and resolve to the old value. A `far_clk` edge at the same instant as the `clk` edge doesn't count.
+1. **Latency:** a value that `bin_ptr` takes at a `clk` edge reaches `far_bin_ptr` on the `syncStages`th `far_clk` edge after it. This assumes `gray_q` reaches the synchronizer within one `far_clk` period ([Timing constraints](#timing-constraints), item 2). It's one edge later if the synchronizer's first flop misses the change: the change can arrive too close to the edge, or the flop can go metastable and resolve to the old value. A `far_clk` edge at the same instant as the `clk` edge doesn't count.
 2. **Only real values, in order:** every value `far_bin_ptr` shows is a value `bin_ptr` held, and the values appear in the order `bin_ptr` took them. So `far_bin_ptr` never moves backwards.
 3. **Values can be skipped:** if `bin_ptr` advances more than once between two samples, `far_bin_ptr` jumps straight to the later value. That happens whenever `clk` is faster than `far_clk` and `inc` is high on consecutive edges.
 4. **Wraps aren't counted:** `far_bin_ptr` is exact modulo 2^`width`. A caller that measures the distance between two pointers has to keep it below 2^`width`. The `AFIFO` keeps it at or below `depth`, which is 2^(`width` − 1).
@@ -82,7 +82,7 @@ Every output is used in both instances, so neither leaves a port unconnected (MO
 
 The two resets have to be used together:
 
-1. **Assert both together.** When `rst_n` asserts, `gray_q` jumps to 0 at once, which can change several bits together. A synchronizer that samples that jump can show a value `bin_ptr` never held. So from the moment either reset asserts until both are released, the far side must ignore `far_bin_ptr`.
+1. **Assert both together.** When either reset asserts, the other has to assert by the next edge of its own clock. Releasing them one after the other is fine. When `rst_n` asserts, `gray_q` jumps to 0 at once, which can change several bits together. A synchronizer that samples that jump can show a value `bin_ptr` never held. So from the moment either reset asserts until both are released, the far side must ignore `far_bin_ptr`. `a_rst_together_own` and `a_rst_together_far` check this rule ([Assertions](#assertions)).
 2. **Release each one synchronously to its own clock.** The module has no reset synchronizer. That's the caller's job (RST-4).
 
 The `AFIFO` follows both rules: its own reset rules cover them.
@@ -90,7 +90,7 @@ The `AFIFO` follows both rules: its own reset rules cover them.
 ### Edge cases
 
 - **`width = 1`:** the pointer toggles. Gray code and binary are the same.
-- **`inc` high on every edge:** the pointer counts every cycle. Its Gray code still changes one bit per edge, so the crossing stays safe at any clock ratio.
+- **`inc` high on every edge:** the pointer counts every cycle. Its Gray code still changes one bit per edge, so the crossing stays safe at any clock ratio, given the bus-skew bound in [Timing constraints](#timing-constraints).
 
 ---
 
@@ -118,7 +118,7 @@ The diagram draws `far_clk` at half `clk`'s frequency, with every `far_clk` edge
 -->
 ![GrayPointer timing](GrayPointer-timing.svg)
 
-_Latency: **`syncStages` `far_clk` edges** from the `clk` edge that changes `bin_ptr`, or one more if the first synchronizer flop misses the change._
+_Latency: **`syncStages` `far_clk` edges** from the `clk` edge that changes `bin_ptr`, or one more if the first synchronizer flop misses the change, given the max-delay bound in [Timing constraints](#timing-constraints)._
 
 ---
 
@@ -144,26 +144,63 @@ All of the module's logic is in `ts/src/modules/GrayPointer/GrayPointer.ts`, plu
 
 ---
 
+## Timing constraints
+
+`GrayPointer` knows both clocks and the encoding, so it owns the constraints on its crossing. That crossing is the path from each flop that drives `u_sync`'s input (`gray_q`) to its `u_sync/sync_0` flop (`CDCSynchronizer`'s [Responsibilities of the instantiating module](../CDCSynchronizer/CDCSynchronizer-spec.md#responsibilities-of-the-instantiating-module)). The RTL can't carry the constraints yet. #96 is how TSSV will emit them, and until then the integrator applies them, with the paths and values below.
+
+1. **`set_bus_skew` ≤ T<sub>clk</sub> − (t<sub>setup</sub> + t<sub>hold</sub> + t<sub>jitter</sub>)**, with the setup and hold times of the `sync_0` flops and the jitter of the two clocks.
+   - The budget is the `clk` period because `inc` can be high on every edge, so `gray_q` can change once per `clk` period: that's the shortest interval between changes.
+   - The skew includes differences in when `far_clk` reaches the `sync_0` flops, not only the data paths.
+   - This is the only constraint the one-value-at-a-time argument needs ([Implementation Notes](#implementation-notes)), and it holds at any clock ratio.
+2. **`set_max_delay -datapath_only` ≤ T<sub>far_clk</sub>.**
+   - The latency in [Far domain](#far-domain), item 1, and in [Timing](#timing) (`syncStages` `far_clk` edges, or one more) holds only if `gray_q` reaches `sync_0` within one `far_clk` period. A longer route adds edges.
+   - The `AFIFO`'s `a_rd_latency` and `a_wr_latency` depend on this bound. Simulation can't catch a violation, because its path delays are zero.
+3. **No `set_clock_groups -asynchronous` or `set_false_path` between `clk` and `far_clk` on these paths.** Vivado gives those precedence over `set_max_delay`, so it would silently drop item 2.
+4. **`syncStages` and MTBF.**
+   - `gray_q` can change at up to f<sub>clk</sub>, and a synchronizer's MTBF falls in proportion to the rate its input changes, as well as to f<sub>far_clk</sub>. So choose `syncStages` for the MTBF the design needs at the real f<sub>clk</sub> and f<sub>far_clk</sub>, not at the average rate of `inc`.
+   - On UltraScale+ parts, Vivado's `report_synchronizer_mtbf` reports it for chains marked `ASYNC_REG`.
+
+**Selecting the paths:** the end points are the `sync_0` flops of `u_sync`. Select their start points through the fan-in of those flops' inputs, not by name. Synthesis can merge `gray_q`'s top bit with `bin_ptr`'s, since the two are always equal, and #67's Vivado run did.
+
+**No clock-ratio assertion is needed.** Given item 1, every value `far_bin_ptr` shows is one `bin_ptr` held, at any clock ratio. Items 1 and 2 are checked by static timing against the real clocks, not in simulation.
+
+---
+
 ## Assertions
 
-These checks run in `tb_GrayPointer.sv`. `tb_AFIFO.sv` also runs them on both of the `AFIFO`'s instances, `u_wr_ptr` and `u_rd_ptr`, through hierarchical references. They're SVA in the subset that Verilator 5.052 is known to run correctly (#97), and each is named by its SVA label, so a failure names it. When #100 provides inline checkers, #106 decides which of them move into the generated RTL, behind `TSSV_CDC_ASSERT`.
+`GrayPointer` owns its crossing, so it embeds the crossing's checks in its generated RTL, behind `TSSV_CDC_ASSERT`. They are `a_gray_one_bit`, `a_gray_match`, `a_rst_together_own` and `a_rst_together_far`.
+- `a_gray_one_bit` checks `CDCSynchronizer`'s input rule 2 on the source clock. The crossing's correctness depends on it.
+- #106 builds the embedding mechanism, on #100's inline checkers. It decides how they're embedded, not whether.
+- Until then, these checks run in `tb_GrayPointer.sv`, together with `a_hold` and `a_step`. Those two stay in the testbench, because they check the counter's arithmetic, not the crossing.
+- `tb_AFIFO.sv` runs every check here on both of the `AFIFO`'s instances, `u_wr_ptr` and `u_rd_ptr`, through hierarchical references. The shared module `verilatorTB/GrayPointer_checks.sv` holds them.
+
+All of them are SVA in the subset that Verilator 5.052 is known to run correctly (#97). Each is named by its SVA label, so a failure names it.
 
 ### Own domain
 
 Each is clocked on `clk` and disabled while `rst_n` is low.
 
-| Label | Property | Fails when |
-|---|---|---|
-| `a_gray_one_bit` | `$countones(gray_q ^ $past(gray_q)) <= 1` | `gray_q` changes more than one bit in a cycle, so a synchronizer could catch a value that never existed. This is the check #96's acceptance criteria break with a skipped Gray code |
-| `a_gray_match` | `gray_q == (bin_ptr ^ (bin_ptr >> 1))` | The Gray copy is out of step with the pointer |
-| `a_hold` | `!inc \|=> $stable(bin_ptr)` | The pointer moves without `inc` |
-| `a_step` | `inc \|=> bin_ptr == $past(bin_ptr) + 1'b1` | The pointer doesn't advance by exactly one, modulo 2^`width` |
+| Label | Embedded | Property | Fails when |
+|---|---|---|---|
+| `a_gray_one_bit` | yes | `$countones(gray_q ^ $past(gray_q)) <= 1` | `gray_q` changes more than one bit in a cycle, so a synchronizer could catch a value that never existed. This is the check #96's acceptance criteria break with a skipped Gray code |
+| `a_gray_match` | yes | `gray_q == (bin_ptr ^ (bin_ptr >> 1))` | The Gray copy is out of step with the pointer |
+| `a_hold` | no | `!inc \|=> $stable(bin_ptr)` | The pointer moves without `inc` |
+| `a_step` | no | `inc \|=> bin_ptr == $past(bin_ptr) + 1'b1` | The pointer doesn't advance by exactly one, modulo 2^`width` |
 
-A reset that asserts mid-run changes `gray_q` by several bits at once. `a_gray_one_bit` is disabled while `rst_n` is low, so it doesn't fire on that, and after the release `$past(gray_q)` is the reset value, 0.
+A reset that asserts mid-run changes `gray_q` by several bits at once: the one case where that's correct. `a_gray_one_bit` is disabled while `rst_n` is low, so it doesn't fire on that, and after the release `$past(gray_q)` is the reset value, 0. The reset rule that makes the jump safe is checked by `a_rst_together_own` and `a_rst_together_far` (below).
+
+### Both resets
+
+These read both domains' resets, so they're simulation-only, as everything behind `TSSV_CDC_ASSERT` is. Neither is disabled by a reset. When either reset asserts, the other has to be asserted by the next edge of its own clock. Releasing them one after the other is fine.
+
+| Label | Embedded | Clock | Property | Fails when |
+|---|---|---|---|---|
+| `a_rst_together_far` | yes | `far_clk` | `$fell(rst_n) \|-> !far_rst_n` | `rst_n` asserts and `far_rst_n` isn't asserted by the next `far_clk` edge |
+| `a_rst_together_own` | yes | `clk` | `$fell(far_rst_n) \|-> !rst_n` | `far_rst_n` asserts and `rst_n` isn't asserted by the next `clk` edge |
 
 ### Far domain
 
-`far_bin_ptr` is checked by the testbench's exact far-domain check (see [Test Plan](#test-plan)), not by an assertion: the check needs `bin_ptr`'s history across both clocks.
+Nothing is embedded in the far domain. This is a decision, not a gap. The exact check of `far_bin_ptr` stays in the testbench (see [Test Plan](#test-plan)), because it needs `bin_ptr`'s history in both domains. What makes every far value correct is checked elsewhere: `a_gray_one_bit` on the source clock, and the bus-skew bound in [Timing constraints](#timing-constraints) by static timing.
 
 ### Coverage
 
@@ -229,8 +266,8 @@ The target builds with `--coverage-user`, so the covers run. It also gets its ow
 ## Implementation Notes
 
 - **Binary outputs only.** The `add_AFIFO` draft also put out the Gray pointer, in both domains. The `AFIFO` compares pointers in binary instead, so the Gray code stays inside this module. Each output is then used by both of the `AFIFO`'s instances, and the comparisons need no Gray code. Converting back costs an XOR tree of at most `width` − 1 levels in the far domain, which is small at the `AFIFO`'s widths (6 bits at most).
-- **Why Gray code is enough.** One bit changes per `clk` edge, and the bits arrive within one `clk` period of each other (see below). So at any instant at most one bit is in flight at the synchronizer, and a sample is either the old value or the new one.
-- **Timing constraint.** That argument needs the skew between `gray_q`'s bits, on their way to the synchronizer, to stay under one `clk` period (Vivado's `set_bus_skew`). The RTL can't carry the constraint yet. The timing-intent epic (#96) is where TSSV will, and until then the integrator writes it.
+- **Why Gray code is enough.** One bit changes per `clk` edge, and the bus-skew bound in [Timing constraints](#timing-constraints) keeps the bits' arrival times at the synchronizer within a `clk` period, less setup, hold and jitter. So at any instant at most one bit is in flight at the synchronizer, and a sample is either the old value or the new one.
+- **Timing constraints.** This spec states them ([Timing constraints](#timing-constraints)), because `GrayPointer` is the module that knows both clocks and the encoding. #96 is how TSSV will emit them; until then the integrator applies them.
 - **Changes from the `add_AFIFO` draft:**
   - `width` replaces `log2depth`, so the module isn't tied to a FIFO's depth. The `AFIFO` passes `log2(depth) + 1`.
   - `bin_ptr` and `far_bin_ptr` replace `bin_ptr`, `gray_ptr` and `gray_ptr_far`.
