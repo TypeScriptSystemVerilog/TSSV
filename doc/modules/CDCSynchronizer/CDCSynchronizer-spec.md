@@ -20,7 +20,7 @@ Defined in `CDCSynchronizer_Parameters extends TSSVParameters`.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `CDCSynchronizer_3_2` |
-| `width` | `bigint` (≥ 1) | — | Width of the synchronized signal, in bits |
+| `width` | `bigint` (≥ 1) | — | Width of the synchronized signal, in bits. **For widths ≥1, care must be taken to guarantee that only one bit changes per clock cycle (e.g. by using Gray coding).** |
 | `stages?` | `bigint` (≥ 2) | `2n` | Flops in the chain. Each extra stage lowers the chance that a metastable value reaches `q`, and adds a cycle of latency |
 
 Invalid values throw an `Error` that names the module, the parameter and the value: `width < 1` or `stages < 2`.
