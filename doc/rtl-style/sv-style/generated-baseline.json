@@ -116,36 +116,6 @@
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
     },
-    "sv-examples/Core/addSubmodule/subA_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addSubmodule/subI_tb.sv": {
-      "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_WR'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'WE'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'WSTRB'": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1
-    },
-    "sv-examples/Core/addSubmodule/subU_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addSubmodule/sub_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
     "sv-examples/Core/import/import_tb.sv": {
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
