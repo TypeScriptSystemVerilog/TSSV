@@ -44,7 +44,7 @@ end
     sel <= 2'd1;
     assert(out == 4'd6) else $fatal("Assertion failed: out should be 6 at time %0t", $time);
 end
-default: sel <= 4'd0;
+default: sel <= 2'd0;
 endcase
 end
 `
@@ -57,7 +57,6 @@ const mux_tb = markTestbench(new Module(
   {},
   tbBody
 ))
-mux_tb.waiveWidthWarnings('#148')
 mux_tb.addSignal('a', { width: 4, isSigned: false })
 mux_tb.addSignal('b', { width: 4, isSigned: false })
 mux_tb.addSignal('c', { width: 4, isSigned: false })
@@ -68,13 +67,7 @@ mux_tb.addSignal('out', { width: 4, isSigned: false })
 mux_tb.addMux({ in: sigs, sel: 'sel', out: 'out' })
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${mux_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMux/mux_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/mux_tb.sv', mux_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -104,38 +97,38 @@ h <= -16'd30;
 
 case(count)
 'd0: begin
-    sel <= 4'd0;
-    assert(out == 16'd40) else $fatal("Assertion failed: out should be 40 at time %0t", $time);
+    sel <= 3'd0;
+    assert(out == 16'sd40) else $fatal("Assertion failed: out should be 40 at time %0t", $time);
 end
 'd1: begin
-    sel <= 4'd1;
-    assert(out == 16'd30) else $fatal("Assertion failed: out should be 30 at time %0t", $time);
+    sel <= 3'd1;
+    assert(out == 16'sd30) else $fatal("Assertion failed: out should be 30 at time %0t", $time);
 end
 'd2: begin
-    sel <= 4'd2;
-    assert(out == 16'd20) else $fatal("Assertion failed: out should be 20 at time %0t", $time);
+    sel <= 3'd2;
+    assert(out == 16'sd20) else $fatal("Assertion failed: out should be 20 at time %0t", $time);
 end
 'd3: begin
-    sel <= 4'd3;
-    assert(out == 16'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+    sel <= 3'd3;
+    assert(out == 16'sd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
 end
 'd4: begin 
-    sel <= 4'd4;
-    assert(out == 16'd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
+    sel <= 3'd4;
+    assert(out == 16'sd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
 end
 'd5: begin 
-    sel <= 4'd5;
-    assert(out == -16'd10) else $fatal("Assertion failed: out should be -10 at time %0t", $time);
+    sel <= 3'd5;
+    assert(out == -16'sd10) else $fatal("Assertion failed: out should be -10 at time %0t", $time);
 end
 'd6: begin 
-    sel <= 4'd6;
-    assert(out == -16'd20) else $fatal("Assertion failed: out should be -20 at time %0t", $time);
+    sel <= 3'd6;
+    assert(out == -16'sd20) else $fatal("Assertion failed: out should be -20 at time %0t", $time);
 end
 'd7: begin 
-    sel <= 4'd7;
-    assert(out == -16'd30) else $fatal("Assertion failed: out should be -30 at time %0t", $time);
+    sel <= 3'd7;
+    assert(out == -16'sd30) else $fatal("Assertion failed: out should be -30 at time %0t", $time);
 end
-default: sel <= 4'd0;
+default: sel <= 3'd0;
 endcase
 end
 `
@@ -158,18 +151,12 @@ muxS_tb.addSignal('f', { width: 16, isSigned: true })
 muxS_tb.addSignal('g', { width: 16, isSigned: true })
 muxS_tb.addSignal('h', { width: 16, isSigned: true })
 const sigsS: string[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-muxS_tb.addSignal('sel', { width: 4, isSigned: false })
+muxS_tb.addSignal('sel', { width: 3, isSigned: false })
 muxS_tb.addSignal('out', { width: 16, isSigned: true })
 muxS_tb.addMux({ in: sigsS, sel: 'sel', out: 'out' })
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${muxS_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMux/muxS_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/muxS_tb.sv', muxS_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -196,23 +183,23 @@ d <= 5'd0;
 case(count)
 'd0: begin
     sel <= 2'b00;
-    assert(out == 5'd5) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
+    assert(out == 5'sd5) else $fatal("Assertion failed: out should be 5 at time %0t", $time);
 end
 'd1: begin
     sel <= 2'b01;
-    assert(out == 5'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+    assert(out == 5'sd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
 end
 'd2: begin
     sel <= 2'b10;
-    assert(out == 5'd15) else $fatal("Assertion failed: out should be 15 at time %0t", $time);
+    assert(out == 5'sd15) else $fatal("Assertion failed: out should be 15 at time %0t", $time);
 end
 'd3: begin
     sel <= 2'b11;
-    assert(out == 5'd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
+    assert(out == 5'sd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
 end
 'd4: begin 
     sel <= 2'b01;
-    assert(out == 5'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+    assert(out == 5'sd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
 end
 default: sel <= 2'd0;
 endcase
@@ -242,13 +229,7 @@ muxE_tb.addSignal('out', { width: 5, isSigned: true })
 muxE_tb.addMux({ in: expressions, sel: new Expr('~sel'), out: 'out' })
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${muxE_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMux/muxE_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/muxE_tb.sv', muxE_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -276,27 +257,27 @@ e <= 5'd10;
 case(count)
 'd0: begin
     sel <= 3'd0;
-    assert(out == -5'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+    assert(out == -5'sd10) else $fatal("Assertion failed: out should be -10 at time %0t", $time);
 end
 'd1: begin
     sel <= 3'd1;
-    assert(out == -5'd5) else $fatal("Assertion failed: out should be -5 at time %0t", $time);
+    assert(out == -5'sd5) else $fatal("Assertion failed: out should be -5 at time %0t", $time);
 end
 'd2: begin
     sel <= 3'd2;
-    assert(out == 5'd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
+    assert(out == 5'sd0) else $fatal("Assertion failed: out should be 0 at time %0t", $time);
 end
 'd3: begin
     sel <= 3'd3;
-    assert(out == 5'd5) else $fatal("Assertion failed: out should be 5 at time %0t", $time);
+    assert(out == 5'sd5) else $fatal("Assertion failed: out should be 5 at time %0t", $time);
 end
 'd4: begin 
     sel <= 3'd4;
-    assert(out == 5'd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
+    assert(out == 5'sd10) else $fatal("Assertion failed: out should be 10 at time %0t", $time);
 end
 'd5: begin
     sel <= 3'd5;
-    assert(out == 5'd11) else $fatal("Assertion failed: out should be 11 at time %0t", $time);
+    assert(out == 5'sd11) else $fatal("Assertion failed: out should be 11 at time %0t", $time);
 end
 default: sel <= 3'd0;
 endcase
@@ -304,7 +285,7 @@ end
 `
 
 const muxD_tb = markTestbench(new Module(
-  { name: 'muxE_tb' },
+  { name: 'muxD_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
@@ -324,13 +305,7 @@ muxD_tb.addSignal('out', { width: 5, isSigned: true })
 muxD_tb.addMux({ in: sigsD, sel: 'sel', out: 'out', default: new Expr('5\'d11') })
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${muxD_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMux/muxD_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMux/muxD_tb.sv', muxD_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
