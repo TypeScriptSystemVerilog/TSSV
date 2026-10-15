@@ -157,43 +157,6 @@
       "LINT-1 UNDRIVEN: Signal is not driven: 'clk'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1
     },
-    "sv-examples/Core/test1/test1.sv": {
-      "LINT-1 DECLFILENAME: Filename 'test1' does not match IFACE name: 'TL_UL_4_32_2_8_8'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_address'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_corrupt'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_data'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_mask'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_opcode'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_param'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_ready'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_size'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_source'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'a_valid'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_corrupt'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_data'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_denied'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_opcode'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_param'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_ready'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_sink'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_size'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_source'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'd_valid'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'sum_d3'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'sum_d4'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'sum_d5'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" has no justification comment": 1
-    },
-    "sv-examples/Core/test1/testAddrDecode1.sv": {
-      "LINT-1 DECLFILENAME: Filename 'testAddrDecode1' does not match MODULE name: 'testAddrDecode_5_16_32_2882400000'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/test1/testMem1.sv": {
-      "LINT-1 DECLFILENAME: Filename 'testMem1' does not match MODULE name: 'testMem_8_32'": 1,
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[5]": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
     "sv-examples/Core/verible/missing_binary_fallback.sv": {
       "LINT-1 DECLFILENAME: Filename 'missing_binary_fallback' does not match MODULE name: 'sample'": 1
     },
