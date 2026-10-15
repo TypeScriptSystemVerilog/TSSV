@@ -1129,19 +1129,22 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       this.signals[result] = { type: 'logic', isSigned: signed, width }
     }
 
-    // Compute at the result's width: each operand cast to it (WIDTH-3), which keeps the low bits
-    // of a narrower result, and each literal written at it with the operation's signedness (WIDTH-1).
+    // Plain `a op b`, with no operand cast to the result's width (WIDTH-3). In a signed
+    // operation an unsigned signal is `$signed({1'b0, x})` (WIDTH-4). A literal is written at the
+    // width the operation computes at, so it's never extended or truncated, with the operation's
+    // signedness (WIDTH-1); a negative one is the negation of a signed literal that holds its
+    // magnitude. A result narrower than the natural width gets one outer cast, which keeps its low
+    // bits (WIDTH-2).
+    const signal = (x: Operand): [string, number] => (signed && !x.signed) ? [`$signed({1'b0, ${x.expr}})`, x.width + 1] : [x.expr, x.width]
+    const litWidth = (v: bigint): number => v < 0n ? this.bitWidth(-v, true) : Math.max(1, this.bitWidth(v, signed))
+    const exprWidth = Math.max(width, ...[a, b].map((x) => x.literal === undefined ? signal(x)[1] : litWidth(x.literal)))
     const term = (x: Operand): string => {
-      if (x.literal !== undefined) {
-        const mask = (1n << BigInt(width)) - 1n
-        let v = x.literal & mask
-        if (signed && v > (mask >> 1n)) v -= mask + 1n
-        return `${v < 0n ? '-' : ''}${width}'${signed ? 's' : ''}d${v < 0n ? -v : v}`
-      }
-      const [expr, exprWidth] = (signed && !x.signed) ? [`$signed({1'b0, ${x.expr}})`, x.width + 1] : [x.expr, x.width]
-      return exprWidth === width ? expr : `${width}'(${expr})`
+      if (x.literal === undefined) return signal(x)[0]
+      const v = x.literal
+      return `${v < 0n ? '-' : ''}${exprWidth}'${signed ? 's' : ''}d${v < 0n ? -v : v}`
     }
-    this.body += `   assign ${result.toString()} = ${term(a)} ${op} ${term(b)};\n`
+    const expr = `${term(a)} ${op} ${term(b)}`
+    this.body += `   assign ${result.toString()} = ${width < naturalWidth ? `${width}'(${expr})` : expr};\n`
     if (typeof result === 'string') {
       return new Sig(result)
     }
@@ -1152,10 +1155,11 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * adds an arithmetic multiplier to the generated SystemVerilog module
      * @param io the input/output interface of the multiplier. `a` and `b` are signals or bigint
      * literals. If either is signed, or a negative literal, the product is signed, and an
-     * unsigned signal is converted with `$signed({1'b0, x})`. Without `result`, the product is a
-     * new signal as wide as both operands together, which holds every product. With `result`,
-     * the product is computed at `result`'s width; a narrower `result` keeps the low bits, and
-     * logs a warning.
+     * unsigned signal is converted with `$signed({1'b0, x})`. The product is written plain,
+     * `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both
+     * operands together, which holds every product. With `result`, it's computed at `result`'s
+     * width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and
+     * logs a warning. A literal is written at the width the product is computed at.
      * @returns the product result
      */
   addMultiplier (io: OperationIO): Sig {
@@ -1166,10 +1170,11 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * adds an arithmetic adder to the generated SystemVerilog module
      * @param io the input/output interface of the adder. `a` and `b` are signals or bigint
      * literals. If either is signed, or a negative literal, the sum is signed, and an unsigned
-     * signal is converted with `$signed({1'b0, x})`, which adds a bit. Without `result`, the sum
-     * is a new signal one bit wider than the wider operand, which holds every sum. With
-     * `result`, the sum is computed at `result`'s width; a narrower `result` keeps the low bits,
-     * and logs a warning.
+     * signal is converted with `$signed({1'b0, x})`, which adds a bit. The sum is written plain,
+     * `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the
+     * wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a
+     * narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a
+     * warning. A literal is written at the width the sum is computed at.
      * @returns the sum result
      */
   addAdder (io: OperationIO): Sig {

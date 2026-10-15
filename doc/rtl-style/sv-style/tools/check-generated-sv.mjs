@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Check the SV the test scripts generate (`npm run check:generated-sv`, after `bash runAllTests.sh`):
-// `verilator --lint-only -Wall` (LINT-1) and the scans in sv-scans.mjs (SYN-1, LINT-3) on
+// `verilator --lint-only -Wall` with the common waivers file (LINT-1, through lint() in
+// ../../tools/verilator.mjs) and the scans in sv-scans.mjs (SYN-1, LINT-3) on
 // everything under sv-examples/, against a per-file baseline of the findings it has today,
 // ../generated-baseline.json. The SV guide's #59 work removes them file by file.
 //

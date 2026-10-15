@@ -55,6 +55,8 @@
   "WIDTH-6": { "checks": ["width"] },
   "WIDTH-7": { "checks": ["width"] },
   "WIDTH-8": { "movedTo": "PARAM-3" },
+  "WIDTH-9": { "checks": ["width"] },
+  "WIDTH-10": { "checks": ["width"] },
   "NAME-1": { "movedTo": "IDENT-1" },
   "NAME-2": { "movedTo": "BUILD-6" },
   "NAME-3": { "movedTo": "BUILD-1" },

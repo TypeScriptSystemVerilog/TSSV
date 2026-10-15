@@ -25,7 +25,8 @@ Before you open a PR that touches generated RTL:
 - [ ] Every local variable in an always block is `automatic` or uninitialized (COMB-2)
 - [ ] `=` only in comb blocks; in sequential blocks, `<=` for registers and `=` only for block-local `automatic` temporaries (COMB-3, SEQ-1)
 - [ ] Each signal is driven from exactly one place (COMB-5)
-- [ ] Carries and signs survive: full-width intermediates, mixed signedness converted, `>>>` only on signed values (WIDTH-2 to WIDTH-6)
+- [ ] Every literal has a width, `+ - *` are written plain, and a deliberate wrap has one outer cast (WIDTH-1 to WIDTH-3)
+- [ ] Carries and signs survive: full-width intermediates, mixed signedness converted, `>>>` only on signed values, compares of one width and signedness (WIDTH-4 to WIDTH-6, WIDTH-9, WIDTH-10)
 - [ ] `verilator --lint-only -Wall` on the pinned Verilator (5.052) is clean for the generated `.sv` (LINT-1)
 
 ## 1. Combinational logic (`addCombAlways`)
@@ -547,40 +548,67 @@ is clean. Until #59 brings them in line, a few TSSV modules and test scripts sti
 `waiveWidthWarnings()`, which wraps the module in `/* verilator lint_off WIDTH */` and hides
 Verilator's `WIDTH*` warnings in it.
 
+Every lint run passes the common waivers file, [`common_waivers.vlt`](common_waivers.vlt)
+(section 8). It waives `WIDTHEXPAND` on the operands of `+` and `-`, which lets arithmetic be
+written plain (WIDTH-3), and nothing else: compares (with one gap, in WIDTH-10), port
+connections and every `WIDTHTRUNC` are still reported. Lint doesn't catch a dropped carry
+(WIDTH-2), a change of signedness (WIDTH-9) or a compare of mixed signedness (WIDTH-10) either.
+
 **WIDTH-1: Literals.**
-- (MUST) Use `'0` for all-zeros at any width [`u_is_zero`].
-- (MUST) Use concatenation and replication to represent all ones of a given width [`u_ones`]
+- (MUST) Give every literal an explicit width: `1'b1`, `4'd9`, `3'sd3` [`u_inc`, `u_mul_lit`,
+  `s_sub_lit`]. Never write an unsized `'d3` or `'sd3`, or a bare decimal: both are 32-bit
+  integers, which widen the expression and go wrong for values over 32 bits.
+- (MUST) Use `'0` for all-zeros at any width [`u_is_zero`]. `'x` and `'z` fills are fine too.
+- (MUST) Use replication for all ones of a given width [`u_ones`]. Never use `'1`: it means
+  all ones, though it looks like the decimal 1.
 - (MUST) Use only sized literals in concatenations and replications: `{a[W-2:0], 1'b0}`.
 - (MUST) Cast integer parameters to the width they're used at [`u_lim`, `u_at_lim`].
-- (MUST) In signed expressions, use signed literals (`'sd3`), never `'d3` [`s_sub_lit`,
-  `s_is_neg`]. An unsigned literal makes the whole expression unsigned, so `sa < 'd0` is
+- (MUST) In signed expressions, use signed literals (`3'sd3`), never `3'd3` [`s_sub_lit`,
+  `s_is_neg`]. An unsigned literal makes the whole expression unsigned, so `sa < 1'd0` is
   always false.
-- (MUST) Use based literals (`'d1`, `'sd3`) instead of bare decimals [`u_inc`, `u_mul_lit`,
-  `u_onehot`]. They state intent and signedness.
-- (MUST) Never use `'1` which represents 'all ones' even though it appears to be the bare
-  decimal equivalent to `'d1`.
-- (SHOULD) Specify the width of literals/constants even if they are less than 32 bits.
+- (MUST) Write a negative literal at the width its expression computes at: `-19'sd5`, not
+  `-4'sd5`. The literal is extended before it's negated, so a narrower one raises
+  `WIDTHEXPAND` on the negation, which the common waivers don't cover. Where that width is a
+  parameter, negate the expression instead [`s_mul_lit`]. Verilator flags a value too large
+  for its width, except in a negative signed literal: `-4'sd9` is silent.
 
-**WIDTH-2 (MUST): Let the target hold the result's natural growth; make exceptions obvious.**
-Addition grows by one bit and multiply by the sum of its operand widths. Ensure that the target
-is wide enough to hold that result [`u_add_full`, `s_add_full`, `u_mul_full`, `s_mul_full`, `u_mul_narrow`].
-If/when the intent is for the target to be wider or narrower than the result, make it obvious
-via a width cast [`u_add_wrap`, `u_mul_lo`, `s_add_wrap`]. A left shift has no natural growth.
-For a lossless shift, cast the operand to the target width first [`u_shl_full`, `s_sla_full`].
+**WIDTH-2 (MUST): Let the target hold the result's natural growth; mark a deliberate wrap
+with one outer cast.** Addition and subtraction grow by one bit, and multiplication by the
+sum of its operand widths. Make the target wide enough to hold that result [`u_add_full`,
+`s_add_full`, `u_mul_full`, `s_mul_full`, `u_mul_narrow`]. When the target keeps fewer bits on
+purpose, including a single dropped carry, cast the whole operation to the target's width:
+`assign s8 = 8'(a8 + b8);` [`u_add_wrap`, `u_inc`, `s_add_wrap`, `s_sub_lit`, `u_mul_lo`].
+Only the cast marks it: an unmarked dropped carry, `c8 = a8 + b8`, lints clean, so review
+checks it.
 
-**WIDTH-3 (MUST): Cast a narrower operand to the common width.** `W'(x)` extends with `x`'s
-own signedness: zero for unsigned, sign for signed [`u_add_narrow`, `s_add_narrow`, `u_zext`,
-`s_sext`]. Never add or remove signedness around an extension: `W'($unsigned(sc))`
-zero-extends a negative value (wrong), and lint is clean.
+**WIDTH-3 (MUST): Write add, subtract and multiply plain; don't cast operands to match
+widths.** An operation is as wide as its target or its widest operand, and a narrower operand
+is extended with its own signedness, so `a + c` needs no cast [`u_add_narrow`, `s_add_narrow`,
+`u_mul_narrow`]. The common waivers cover the `WIDTHEXPAND` that `+` and `-` raise for it, and
+Verilator doesn't check the operand widths of `*`. An operand cast changes no bit of the
+result, and it reads wrong: `16'(tap) * 16'(coeff)` looks like a 16 × 16 multiplier, where
+`tap * coeff` says what it does. An unsigned operand of a signed operation still needs
+`$signed({1'b0, x})` (WIDTH-4).
+
+Elsewhere, such as in an assignment, a compare (WIDTH-10) or a mux input, extend a narrower
+value with a cast [`u_zext`, `s_sext`]. `W'(x)` extends with `x`'s own signedness: zero for
+unsigned, sign for signed. Never add or remove signedness around an extension:
+`W'($unsigned(sc))` zero-extends a negative value (wrong), and lint is clean.
 
 **WIDTH-4 (MUST): Convert unsigned to signed with `$signed({1'b0, x})`.** Note the width growth
 by one bit [`s_add_mixed`, `s_mul_mixed`, `s_from_u`]. Never use `$signed(x)`: it turns a large
 unsigned value negative. Never mix the two signednesses without converting first: `sa * b` is
 computed unsigned, and lint is clean.
 
-**WIDTH-5 (MUST): Use `>>` for unsigned values and `>>>` for signed.** `>>>` is an arithmetic
-shift only when its operand is signed [`s_sra_fix`, `s_sra_var`, `u_shr_fix`, `u_shr_var`].
-Bad: `sa >> S` and `$unsigned(sa) >>> sh` both lint clean and drop the sign.
+**WIDTH-5 (MUST): Shift unsigned values with `>>` and signed ones with `>>>`, from an operand
+wide enough for the result.** `>>>` is an arithmetic shift only when its operand is signed
+[`s_sra_fix`, `s_sra_var`, `u_shr_fix`, `u_shr_var`]. Bad: `sa >> S` and `$unsigned(sa) >>> sh`
+both lint clean and drop the sign. A shift has no natural growth: its result is as wide as its
+operand's context. Use a cast, a concatenation or both so the result holds every bit it needs
+and is extended correctly. For a lossless left shift, cast the operand to the target width
+first [`u_shl_full`, `s_sla_full`], or concatenate the zeros [`u_shl_cat`]. Shift a literal
+at the result's width: `W'(1'b1) << sh`, or for -1, all ones made signed [`u_onehot`, `u_mask`,
+`s_neg_pow`].
 
 **WIDTH-6 (MUST): Name an intermediate that needs more bits than the result.** An operation is
 only as wide as its context: the target, or its widest operand. In `(a + b) >> 1`, the sum is
@@ -594,6 +622,20 @@ Slice a signal [`u_trunc`]. Cast an expression, which can't be sliced [`u_trunc_
 slice is always unsigned; cast a signed value to keep it signed [`s_trunc`].
 
 **WIDTH-8** *(moved)*: now PARAM-3 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
+
+**WIDTH-9 (MUST): Give a result the signedness of its operation; make any change explicit.**
+A signed operation goes to a signed target, and an unsigned one to an unsigned target
+[`s_add_full`, `u_add_full`]. Change signedness only with `$signed(...)` or `$unsigned(...)`
+[`u_sa_bits`, `s_from_u`]. Verilator doesn't check this: `u8 = sa8` and `s9 = a8 + b8` both
+lint clean, so review checks it.
+
+**WIDTH-10 (MUST): Compare operands of equal width and the same signedness.** A compare has no
+target to widen it, so size both operands to one width and give them one signedness
+[`u_at_lim`, `s_is_neg`, `s_lt_mixed`, `u_sum_gt`]. `WIDTHEXPAND` enforces the width, with one
+gap: when an operand is itself a `+` or `-`, Verilator reports the mismatch on that operation,
+as `Operator ADD expects`, and the common waivers hide it. Name the sum, or cast it to the
+compare's width (WIDTH-6). Verilator doesn't check signedness: `sa < a` compares unsigned and
+lints clean, so review checks it.
 
 ## 6. Naming and structure
 
@@ -633,9 +675,10 @@ memories** instead of ad-hoc arrays, so that inferred memory behavior stays cons
 ## 8. Lint and verification
 
 **LINT-1 (MUST): The generated output must lint clean.**
-Every module's generated `.sv` must pass `verilator --lint-only -Wall` with zero warnings
-on the pinned Verilator version, currently 5.052, built from source per `README.md`. Newer Verilator releases catch bugs that
-older ones accept (COMB-2 is one), so lint on the pin, not on a distro package.
+Every module's generated `.sv` must pass `verilator --lint-only -Wall` with zero warnings,
+given the common waivers file (below), on the pinned Verilator version, currently 5.052, built
+from source per `README.md`. Newer Verilator releases catch bugs that older ones accept (COMB-2
+is one), so lint on the pin, not on a distro package.
 
 **LINT-2** *(moved)*: now TEST-1 in the [TSSV guide](../tssv-style/tssv-coding-style.md).
 
@@ -654,6 +697,19 @@ logic [31:0] cfg_word;
 assign cfg_word = cfg_in;
 assign mode     = cfg_word[3:0];
 ```
+
+**Waiver files.** Two kinds of Verilator configuration file hold waivers outside the source:
+
+- **The common waivers file**, [`common_waivers.vlt`](common_waivers.vlt). Every lint run passes
+  it: `scripts/lint-sv.sh`, `lint()` in `doc/rtl-style/tools/verilator.mjs` (which
+  `check-generated-sv.mjs` and this guide's checks use), `lint-style-examples.mjs`, and the
+  lint steps in `verilatorTB/Makefile`. It holds only the two waivers WIDTH-3 relies on:
+  `WIDTHEXPAND` on the operands of `+` and of `-`, matched by message text, so compares (with
+  the gap WIDTH-10 describes), port connections and every `WIDTHTRUNC` are still reported. A
+  change to it is reviewed like a change to this guide.
+- **A design-specific waivers file**, passed only when linting that design, such as
+  `verilatorTB/regblock_read_waivers.vlt`. Each waiver in it is as narrow as it can be and says
+  why, as LINT-3 asks of an in-source waiver. Never add a design's waiver to the common file.
 
 ## Maintaining this document
 

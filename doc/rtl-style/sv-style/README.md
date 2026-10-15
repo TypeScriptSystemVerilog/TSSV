@@ -20,6 +20,7 @@ way the guide says it does.
 doc/rtl-style/sv-style/
   sv-coding-style.md    the rules, with their short Do/Don't examples inline
   rules.json            how each rule is verified; every rule ID in the guide needs an entry
+  common_waivers.vlt    the lint waivers every Verilator lint run passes (the guide's section 8)
   generated-baseline.json   the findings the test scripts' SV has today, per file
   sv/
     seq/                simulation examples for SEQ-2 and SEQ-5, with their testbenches
@@ -29,7 +30,7 @@ doc/rtl-style/sv-style/
     check-rules.mjs             rule coverage, simulation examples, doc/file consistency
     check-width-examples.mjs    width examples: lint and exact arithmetic at 5 widths
     check-builder-examples.mjs  builder checks for both guides, and the SV they generate
-    check-builder-widths.mjs    the expression builders' SV: -Wall lint and exact arithmetic
+    check-builder-widths.mjs    the expression builders' SV: lint with only the common waivers, exact arithmetic
     sv-scans.mjs                text checks on generated SV (SYN-1, LINT-3)
     check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/, against the baseline
 doc/rtl-style/tools/
@@ -46,9 +47,9 @@ The builder checks write their SV to `sv-examples/rtl_style/`, which git ignores
 `addConstSignal`, `addSubmodule`'s width extension and constant bindings, and `addRegister`'s
 reset values. `ts/test/rtl_style/test_builder_widths.ts` builds each one at signed, unsigned and
 mismatched widths, including widths over 32 bits, with test vectors from a reference model in
-exact integer arithmetic. Each module must lint clean under `-Wall`, with no lint waiver, and
-every vector must give the reference result in simulation. It works in a temporary directory and writes nothing to
-`sv-examples/`.
+exact integer arithmetic. Each module must lint clean under `-Wall` with only the common waivers
+file, `common_waivers.vlt`, and every vector must give the reference result in simulation. It
+works in a temporary directory and writes nothing to `sv-examples/`.
 
 ## How a rule is verified
 

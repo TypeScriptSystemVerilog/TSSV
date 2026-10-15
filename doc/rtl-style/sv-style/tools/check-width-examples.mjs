@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Check doc/rtl-style/sv/width/width_examples.sv, the examples for section 5 (WIDTH-*).
 //
-// At each parameter set below, the examples must lint clean under -Wall, and every output
-// must match exact integer arithmetic for 3000 random and edge-case input vectors.
+// At each parameter set below, the examples must lint clean under -Wall with the common waivers
+// file (lint() passes it), and every output must match exact integer arithmetic for 3000 random
+// and edge-case input vectors.
 // Exits 0 if everything passes, 1 otherwise.
 
 import { readFileSync } from 'node:fs'
@@ -52,24 +53,27 @@ const REF = {
   s_sra_var: (v) => v.sa >> v.sh,
   s_sla_full: (v, p) => v.sa << BigInt(p.S),
   s_neg_pow: (v) => -(1n << v.sh),
+  u_shl_cat: (v, p) => v.a << BigInt(p.S),
   u_zext: (v) => v.c,
   s_sext: (v) => v.sc,
   s_from_u: (v) => v.a,
   u_lim: (v, p) => BigInt(p.LIM),
   u_ones: () => -1n,
+  u_sa_bits: (v) => v.sa,
   u_trunc: (v) => v.a,
   u_trunc_sum: (v) => v.a + v.b,
   s_trunc: (v) => v.sa,
   u_is_zero: (v, p) => BigInt(v.a === 0n),
   u_at_lim: (v, p) => BigInt(v.a === BigInt(p.LIM) % (1n << BigInt(p.W))),
   u_sum_gt: (v) => BigInt(v.a + v.b > v.c),
-  s_is_neg: (v) => BigInt(v.sa < 0n)
+  s_is_neg: (v) => BigInt(v.sa < 0n),
+  s_lt_mixed: (v) => BigInt(v.sa < v.a)
 }
 // u_onehot, u_mask and s_neg_pow aren't here: for a non-power-of-2 W, a $clog2(W)-bit sh can
 // reach W, and those shifts then shift out, which the SV rules define.
 const EXACT = new Set(['u_add_full', 'u_add_narrow', 'u_avg', 's_add_full', 's_add_narrow', 's_add_mixed',
   'u_mul_full', 'u_mul_narrow', 'u_mul_lit', 's_mul_full', 's_mul_lit', 's_mul_mixed', 'u_shl_full',
-  'u_shr_fix', 'u_shr_var', 's_sra_fix', 's_sra_var', 's_sla_full', 'u_zext', 's_sext', 's_from_u'])
+  'u_shr_fix', 'u_shr_var', 's_sra_fix', 's_sra_var', 's_sla_full', 'u_shl_cat', 'u_zext', 's_sext', 's_from_u'])
 const INPUTS = new Set(['a', 'b', 'c', 'sa', 'sb', 'sc', 'sh'])
 
 // Port widths and signedness, read from the example's own declarations.

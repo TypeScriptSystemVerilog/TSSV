@@ -144,7 +144,7 @@ All arithmetic methods accept `string | Sig | bigint` for operands and auto-comp
 
 ```typescript
 const prod = this.addMultiplier({ a: tapSig, b: coeffSig })
-// → assign prod_tapxcoeff = 16'(tap) * 16'(coeff);   (8-bit tap and coeff)
+// → assign prod_tapxcoeff = tap * coeff;
 // output width = width(a) + width(b)
 ```
 
@@ -152,7 +152,7 @@ const prod = this.addMultiplier({ a: tapSig, b: coeffSig })
 
 ```typescript
 const sum = this.addAdder({ a: sigA, b: sigB })
-// → assign sum_... = 9'(a) + 9'(b);   (8-bit a and b)
+// → assign sum_... = a + b;
 // output width = max(width(a), width(b)) + 1
 ```
 
@@ -165,11 +165,13 @@ const diff = this.addSubtractor({ a: sigA, b: sigB })
 ```
 
 All three accept an optional `result` field to name the output signal explicitly. The operation
-is computed at the result's width, with each operand cast to it; a narrower `result` keeps the
-low bits, and logs a warning. If either operand is signed, or a negative literal, the result is
-signed, and an unsigned signal is converted with `$signed({1'b0, x})`. For a sum or difference
-that adds a bit, so the auto-sized result counts that operand one bit wider. Literals are
-written at the result's width.
+is written plain, with no operand casts (SV guide WIDTH-3), and is computed at the result's
+width. A `result` narrower than the natural width gets one outer cast, `8'(a + b)`, which keeps
+the low bits (WIDTH-2), and logs a warning. If either operand is signed, or a negative literal,
+the result is signed, and an unsigned signal is converted with `$signed({1'b0, x})` (WIDTH-4).
+In a sum or difference, that conversion adds a bit, so the auto-sized result counts that
+operand one bit wider. A literal is written at the width the operation is computed at, so it's
+never extended or truncated: with an 8-bit `a`, `a + 9'd5`, or `a + -9'sd5` if `a` is signed.
 
 ---
 
