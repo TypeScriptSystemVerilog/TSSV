@@ -249,6 +249,20 @@ check('COMB-3', 'addCombAlways accepts <= as a comparison', () => {
   expect(emit(m).includes('le = a <= b;'), 'comparison not emitted')
 })
 
+check('COMB-3', 'addCombAlways rejects a nonblocking assignment under a case label in parentheses', () => {
+  const m = arbiter('comb3_case_dont')
+  expectThrows(() => {
+    m.addCombAlways({ outputs: ['grant'] }, `
+  begin : arb
+    unique case (req)
+      (2'b01), (2'b11): grant <= 2'b01;
+      default:          grant = req;
+    endcase
+  end
+`)
+  }, /COMB-3/)
+})
+
 // COMB-2: an always-block builder rejects a local that is initialized but static.
 const firstSet = (name: string): Module => new Module({ name }, {
   rdy: { direction: 'input', width: 4 },
@@ -326,6 +340,20 @@ check('SEQ-1', 'addSequentialAlways accepts = to an automatic local, and <= to t
   expect(emit(m).includes('sum_q <= sum ^ cfg;'), 'block not emitted')
 })
 
+check('SEQ-1', 'addSequentialAlways accepts = to a concatenation of automatic locals', () => {
+  const m = seqModule('seq1_concat_do')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+  begin : sum_reg
+    automatic logic       carry;
+    automatic logic [3:0] low;
+    {carry, low} = 5'(a) + 5'(b);
+    if (!rst_n) sum_q <= '0;
+    else        sum_q <= {carry, low} ^ cfg;
+  end
+`)
+  expect(flat(emit(m)).includes('{carry, low} = 5\'(a) + 5\'(b);'), 'block not emitted')
+})
+
 // SEQ-6: reset values are constants.
 check('SEQ-6', 'addSequentialAlways rejects a reset to a signal', () => {
   expectThrows(() => {
@@ -336,6 +364,17 @@ check('SEQ-6', 'addSequentialAlways rejects a reset to a signal', () => {
     end else begin
       sum_q <= 5'(a) + 5'(b);
     end
+  end
+`)
+  }, /SEQ-6/)
+})
+
+check('SEQ-6', 'addSequentialAlways rejects a reset to a signal in the else branch of if (rst_n)', () => {
+  expectThrows(() => {
+    seqModule('seq6_else_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+  begin : sum_reg
+    if (rst_n) sum_q <= 5'(a) + 5'(b);
+    else       sum_q <= cfg;
   end
 `)
   }, /SEQ-6/)
