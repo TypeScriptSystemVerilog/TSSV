@@ -94,22 +94,6 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1
     },
-    "sv-examples/Core/multiFileEmission/dut.sv": {
-      "LINT-1 DECLFILENAME: Filename 'dut' does not match IFACE name: 'memory_bidi_32_32'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'ADDR'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'DATA_RD'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'DATA_WR'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'RE'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'READY'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'WE'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'WSTRB'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1
-    },
-    "sv-examples/Core/multiFileEmission/tb.sv": {
-      "LINT-1 DECLFILENAME: Filename 'tb' does not match MODULE name: 'agent'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'clk'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1
-    },
     "sv-examples/FIR/myFIR3/myFIR3.sv": {
       "LINT-1 DECLFILENAME: Filename 'myFIR3' does not match IFACE name: 'AXI4Stream_32_4_0_4'": 1,
       "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
