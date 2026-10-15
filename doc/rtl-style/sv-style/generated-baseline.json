@@ -379,32 +379,6 @@
       "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
     },
-    "sv-examples/Core/addSubtractor/subSU_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addSubtractor/subS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addSubtractor/subUS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addSubtractor/sub_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
     "sv-examples/Core/import/import_tb.sv": {
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,

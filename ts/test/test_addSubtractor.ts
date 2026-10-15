@@ -68,13 +68,7 @@ sub_tb.addSignal('b', { width: 4, isSigned: false })
 sub_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${sub_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubtractor/sub_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addSubtractor/sub_tb.sv', sub_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -97,27 +91,27 @@ const tbBodyS =
   'd0: begin
       a <= 4'b0001;
       b <= 8'b0001;
-      assert(diff_axb == 9'd0) else $display("Assertion failed: diff_axb should be 0 at time %0t", $time);
+      assert(diff_axb == 9'sd0) else $display("Assertion failed: diff_axb should be 0 at time %0t", $time);
   end
   'd1: begin
       a <= 4'd6;
       b <= -8'd20;
-      assert(diff_axb == 9'd26) else $display("Assertion failed: diff_axb should be 26 at time %0t", $time);
+      assert(diff_axb == 9'sd26) else $display("Assertion failed: diff_axb should be 26 at time %0t", $time);
   end
   'd2: begin
       a <= 4'd4;
       b <= 8'd45;
-      assert(diff_axb == -9'd41) else $display("Assertion failed: diff_axb should be -41 at time %0t", $time);
+      assert(diff_axb == -9'sd41) else $display("Assertion failed: diff_axb should be -41 at time %0t", $time);
   end
   'd3: begin
       a <= -4'd8;
       b <= -8'd128;
-      assert(diff_axb == 9'd120) else $display("Assertion failed: diff_axb should be 120 at time %0t", $time);
+      assert(diff_axb == 9'sd120) else $display("Assertion failed: diff_axb should be 120 at time %0t", $time);
   end
   'd4: begin 
       a <= 4'd5;
       b <= 8'd15;
-      assert(diff_axb == -9'd10) else $display("Assertion failed: diff_axb should be -10 at time %0t", $time);
+      assert(diff_axb == -9'sd10) else $display("Assertion failed: diff_axb should be -10 at time %0t", $time);
   end
   default: begin
       a <= 4'd0;
@@ -141,13 +135,7 @@ subS_tb.addSignal('b', { width: 8, isSigned: true })
 subS_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${subS_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubtractor/subS_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addSubtractor/subS_tb.sv', subS_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -170,30 +158,30 @@ const tbBodyUS =
   'd0: begin
       a <= 8'b0001;
       b <= 8'b0001;
-      assert(diff_axb == 9'd0) else $display("Assertion failed: diff_axb should be 0 at time %0t", $time);
+      assert(diff_axb == 10'sd0) else $display("Assertion failed: diff_axb should be 0 at time %0t", $time);
   end
   'd1: begin
       a <= 8'd6;
       b <= -8'd20;
-      assert(diff_axb == 9'd26) else $display("Assertion failed: diff_axb should be 26 at time %0t", $time);
+      assert(diff_axb == 10'sd26) else $display("Assertion failed: diff_axb should be 26 at time %0t", $time);
   end
   'd2: begin
       a <= 8'd4;
       b <= 8'd45;
-      assert(diff_axb == -9'd41) else $display("Assertion failed: diff_axb should be -41 at time %0t", $time);
+      assert(diff_axb == -10'sd41) else $display("Assertion failed: diff_axb should be -41 at time %0t", $time);
   end
   'd3: begin
       a <= 8'd8;
       b <= -8'd128;
-      assert(diff_axb == 9'd136) else $display("Assertion failed: diff_axb should be 136 at time %0t", $time);
+      assert(diff_axb == 10'sd136) else $display("Assertion failed: diff_axb should be 136 at time %0t", $time);
   end
   'd4: begin 
       a <= -8'd5;
       b <= 8'd15;
-      assert(diff_axb == -9'd20) else $display("Assertion failed: diff_axb should be -20 at time %0t", $time);
+      assert(diff_axb == -10'sd20) else $display("Assertion failed: diff_axb should be -20 at time %0t", $time);
   end
   default: begin
-      a <= 4'd0;
+      a <= 8'd0;
       b <= 8'd0;
   end
   endcase
@@ -209,19 +197,12 @@ const subUS_tb = markTestbench(new Module(
   {},
   tbBodyUS
 ))
-subUS_tb.waiveWidthWarnings('#148')
 subUS_tb.addSignal('a', { width: 8, isSigned: false })
 subUS_tb.addSignal('b', { width: 8, isSigned: true })
 subUS_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${subUS_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubtractor/subUS_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addSubtractor/subUS_tb.sv', subUS_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -244,30 +225,30 @@ const tbBodySU =
   'd0: begin
       a <= -8'b0001;
       b <= 8'b0001;
-      assert(diff_axb == -9'd2) else $display("Assertion failed: diff_axb should be -2 at time %0t", $time);
+      assert(diff_axb == -10'sd2) else $display("Assertion failed: diff_axb should be -2 at time %0t", $time);
   end
   'd1: begin
       a <= -8'd6;
       b <= 8'd20;
-      assert(diff_axb == -9'd26) else $display("Assertion failed: diff_axb should be -26 at time %0t", $time);
+      assert(diff_axb == -10'sd26) else $display("Assertion failed: diff_axb should be -26 at time %0t", $time);
   end
   'd2: begin
       a <= -8'd4;
       b <= 8'd45;
-      assert(diff_axb == -9'd49) else $display("Assertion failed: diff_axb should be -49 at time %0t", $time);
+      assert(diff_axb == -10'sd49) else $display("Assertion failed: diff_axb should be -49 at time %0t", $time);
   end
   'd3: begin
       a <= 8'd8;
       b <= 8'd128;
-      assert(diff_axb == -9'd120) else $display("Assertion failed: diff_axb should be -120 at time %0t", $time);
+      assert(diff_axb == -10'sd120) else $display("Assertion failed: diff_axb should be -120 at time %0t", $time);
   end
   'd4: begin 
       a <= -8'd5;
       b <= 8'd15;
-      assert(diff_axb == -9'd20) else $display("Assertion failed: diff_axb should be -20 at time %0t", $time);
+      assert(diff_axb == -10'sd20) else $display("Assertion failed: diff_axb should be -20 at time %0t", $time);
   end
   default: begin
-      a <= 4'd0;
+      a <= 8'd0;
       b <= 8'd0;
   end
   endcase
@@ -283,19 +264,12 @@ const subSU_tb = markTestbench(new Module(
   {},
   tbBodySU
 ))
-subSU_tb.waiveWidthWarnings('#148')
 subSU_tb.addSignal('a', { width: 8, isSigned: true })
 subSU_tb.addSignal('b', { width: 8, isSigned: false })
 subSU_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${subSU_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubtractor/subSU_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addSubtractor/subSU_tb.sv', subSU_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
