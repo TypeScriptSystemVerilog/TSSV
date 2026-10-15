@@ -38,6 +38,8 @@ export function emitSplit (top: Module, dir: string, generator: string): string[
     }
     // exclude what earlier files define; `defined` collects what this one defines
     const sv = m.writeSystemVerilog({ exclude: new Set(defined), defined })
+    // a module imported with addSystemVerilogSubmodule() returns its file as is, and records nothing
+    defined.add(m.name)
     writeFileSync(`${dir}/${m.name}.sv`, sv)
     files.push(`${m.name}.sv`)
   }

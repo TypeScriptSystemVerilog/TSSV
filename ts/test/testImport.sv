@@ -1,5 +1,4 @@
 
-/* verilator lint_off WIDTH */        
 module testImport
   #(
    parameter aWidth = 8,
@@ -17,7 +16,6 @@ module testImport
 
 
 endmodule
-/* verilator lint_on WIDTH */        
 
    
        
