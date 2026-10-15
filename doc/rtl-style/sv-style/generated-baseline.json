@@ -382,12 +382,6 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PSLVERR'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rst_b'": 1
-    },
-    "sv-examples/test_RWU/status_block_hw_priority.sv": {
-      "LINT-1 DECLFILENAME: Filename 'status_block_hw_priority' does not match IFACE name: 'memory_bidi_32_32'": 1
-    },
-    "sv-examples/test_RWU/status_block_sw_priority.sv": {
-      "LINT-1 DECLFILENAME: Filename 'status_block_sw_priority' does not match IFACE name: 'memory_bidi_32_32'": 1
     }
   }
 }

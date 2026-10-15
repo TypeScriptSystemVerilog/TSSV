@@ -4,6 +4,9 @@
 // interface port's interface and brings every signal of it, and every plain port, out to a port
 // of its own.
 import { type Interface, type Module } from 'tssv/lib/core/TSSV'
+import { writeFileSync } from 'fs'
+import { writeSplit } from './emitSplit.js'
+import { writeLintFilelist } from './lintFilelist.js'
 
 interface PortInfo { direction: string, width?: number, isSigned?: boolean }
 
@@ -52,4 +55,17 @@ ${body.join('\n')}
   );
 endmodule
 `
+}
+
+/**
+ * Writes `module` one definition per file, as writeSplit() does (DECLFILENAME), its lint wrapper
+ * to `<dir>/<module>_lint_top.sv`, and the filelist `<dir>/<module>_lint_top.f` that lints them.
+ * Returns the files that define the module, relative to `dir` and `module`'s last, for another
+ * filelist that instantiates it.
+ */
+export function writeLintWrapped (module: Module, dir: string, generator: string): string[] {
+  const design = writeSplit(module, dir)
+  writeFileSync(`${dir}/${module.name}_lint_top.sv`, lintWrapper(module, generator))
+  writeLintFilelist(dir, `${module.name}_lint_top`, [...design, `${module.name}_lint_top.sv`], generator)
+  return design
 }
