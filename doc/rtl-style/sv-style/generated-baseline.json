@@ -97,26 +97,6 @@
     "sv-examples/Core/addAlways/comb_seq_test.sv": {
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'en'": 1
     },
-    "sv-examples/Core/addAssign/assignAdd_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addAssign/assignM_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addAssign/assign_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
     "sv-examples/Core/addBody/test_empty.sv": {
       "LINT-1 UNDRIVEN: Signal is not driven: 'b'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'a'": 1

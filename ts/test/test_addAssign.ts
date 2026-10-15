@@ -21,23 +21,23 @@ count <= count + 1'b1;
 case(count)
 'd0: begin
     in <= 8'b00111111;
-    assert(val == 6'b111111) else $display("Assertion failed: val should be 63 at time %0t", $time);
+    assert(val == 6'b111111) else $display("Assertion failed: val should be 63 for in = %0d at time %0t", in, $time);
 end
 'd1: begin
     in <= 8'b11000000;
-    assert(val == 6'b000000) else $display("Assertion failed: val should be 0 at time %0t", $time);
+    assert(val == 6'b000000) else $display("Assertion failed: val should be 0 for in = %0d at time %0t", in, $time);
 end
 'd2: begin
     in <= 8'd50;
-    assert(val == 6'd50) else $display("Assertion failed: val should be 50 at time %0t", $time);
+    assert(val == 6'd50) else $display("Assertion failed: val should be 50 for in = %0d at time %0t", in, $time);
 end
 'd3: begin
     in <= 8'd255;
-    assert(val == 6'd63) else $display("Assertion failed: val should be 63 at time %0t", $time);
+    assert(val == 6'd63) else $display("Assertion failed: val should be 63 for in = %0d at time %0t", in, $time);
 end
 'd4: begin 
     in <= 8'b10000001;
-    assert(val == 6'b000001) else $display("Assertion failed: val should be 1 at time %0t", $time);
+    assert(val == 6'b000001) else $display("Assertion failed: val should be 1 for in = %0d at time %0t", in, $time);
 end
 default: begin
     in <= 8'b0;
@@ -55,19 +55,12 @@ const assign_tb = markTestbench(new Module(
   {},
   tbBody
 ))
-assign_tb.waiveWidthWarnings('#148')
 assign_tb.addSignal('in', { width: 8 })
 assign_tb.addSignal('val', { width: 6 })
-assign_tb.addAssign({ in: new Expr('in'), out: 'val' })
+assign_tb.addAssign({ in: new Expr('in[5:0]'), out: 'val' })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${assign_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addAssign/assign_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addAssign/assign_tb.sv', assign_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -135,13 +128,7 @@ assignAdd_tb.addSignal('val', { width: 5 })
 assignAdd_tb.addAssign({ in: new Expr('a + b'), out: 'val' })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${assignAdd_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addAssign/assignAdd_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addAssign/assignAdd_tb.sv', assignAdd_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -167,7 +154,7 @@ case(count)
     c <= 8'd1;
     d <= 8'd1;
     e <= 8'd1;
-    assert(val == 16'd1) else $display("Assertion failed: val should be 1 at time %0t", $time);
+    assert(val == 16'sd1) else $display("Assertion failed: val should be 1 at time %0t", $time);
 end
 'd1: begin
     a <= 8'd5;
@@ -175,7 +162,7 @@ end
     c <= 8'd3;
     d <= 8'd2;
     e <= 8'd1;
-    assert(val == 16'd3) else $display("Assertion failed: val should be 3 at time %0t", $time);
+    assert(val == 16'sd8) else $display("Assertion failed: val should be 8 at time %0t", $time);
 end
 'd2: begin
     a <= 8'd10;
@@ -183,7 +170,7 @@ end
     c <= 8'd10;
     d <= 8'd10;
     e <= 8'd10;
-    assert(val == 16'd10) else $display("Assertion failed: val should be 10 at time %0t", $time);
+    assert(val == 16'sd10) else $display("Assertion failed: val should be 10 at time %0t", $time);
 end
 'd3: begin
     a <= 8'd79;
@@ -191,7 +178,7 @@ end
     c <= 8'd28;
     d <= 8'd43;
     e <= 8'd14;
-    assert(val == 16'd168) else $display("Assertion failed: val should be 168 at time %0t", $time);
+    assert(val == 16'sd168) else $display("Assertion failed: val should be 168 at time %0t", $time);
 end
 'd4: begin 
     a <= 8'd255;
@@ -199,7 +186,7 @@ end
     c <= 8'd255;
     d <= 8'd255;
     e <= 8'd255;
-    assert(val == -16'd255) else $display("Assertion failed: val should be 255 at time %0t", $time);
+    assert(val == 16'sd255) else $display("Assertion failed: val should be 255 at time %0t", $time);
 end
 default: begin
     a <= 8'd0;
@@ -221,23 +208,16 @@ const assignM_tb = markTestbench(new Module(
   {},
   tbBodyM
 ))
-assignM_tb.waiveWidthWarnings('#148')
 assignM_tb.addSignal('a', { width: 8 })
 assignM_tb.addSignal('b', { width: 8 })
 assignM_tb.addSignal('c', { width: 8 })
 assignM_tb.addSignal('d', { width: 8 })
 assignM_tb.addSignal('e', { width: 8 })
 assignM_tb.addSignal('val', { width: 16, isSigned: true })
-assignM_tb.addAssign({ in: new Expr('a + b - ((c / d) * e)'), out: 'val' })
+assignM_tb.addAssign({ in: new Expr("$signed(a + b - 16'(c / d) * e)"), out: 'val' })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${assignM_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addAssign/assignM_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addAssign/assignM_tb.sv', assignM_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
