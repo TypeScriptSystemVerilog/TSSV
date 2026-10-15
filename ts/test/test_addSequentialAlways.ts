@@ -37,7 +37,7 @@ logic [15:0] count_n;
     end
     'd4: begin 
         assert(count == 4'd11) else $display("Assertion failed: count should be 11 at time %0t", $time);
-        assert(doubleCount == 5'd24) else $display("Assertion failed: doubleCount should be 0 at time %0t", $time);
+        assert(doubleCount == 5'd24) else $display("Assertion failed: doubleCount should be 24 at time %0t", $time);
     end
     endcase
     end
@@ -71,13 +71,7 @@ const outArr: string[] = ['count', 'doubleCount']
 seq_tb.addSequentialAlways({ clk: 'clk', reset: 'rst_b', outputs: outArr }, body)
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${seq_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSequentialAlways/seq_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addSequentialAlways/seq_tb.sv', seq_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }

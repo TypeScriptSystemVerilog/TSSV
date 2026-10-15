@@ -116,12 +116,6 @@
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
     },
-    "sv-examples/Core/addSequentialAlways/seq_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
     "sv-examples/Core/addSubmodule/subA_tb.sv": {
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
