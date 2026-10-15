@@ -317,18 +317,13 @@
     "sv-examples/shift/shift_5_right_3_unsigned/shift_5_right_3_unsigned.sv": {
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[2:0]": 1
     },
-    "sv-examples/test_APB_Registers_output/tb_apb_reg_block.sv": {
-      "LINT-1 DECLFILENAME: Filename 'tb_apb_reg_block' does not match IFACE name: 'APB4_32_32'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'STATUS'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'PCLKEN'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'CTRL'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'DATA'": 1,
+    "sv-examples/test_APB_Registers_output/APB4_32_32.sv": {
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PPROT'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRDATA'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PREADY'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRESETn'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PSLVERR'": 1,
+      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRESETn'": 1
+    },
+    "sv-examples/test_APB_Registers_output/APB_to_Memory.sv": {
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rst_b'": 1
     }
