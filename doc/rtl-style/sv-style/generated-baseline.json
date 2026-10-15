@@ -15,12 +15,6 @@
     },
     "sv-examples/APB_to_Memory/memory_models.sv": {
       "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_addr'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_data'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 1,
       "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'mem'": 1
     },
     "sv-examples/Core/Registers/tb_testRegBlock.sv": {
@@ -250,51 +244,6 @@
     },
     "sv-examples/ROM/ROM_32_big_split2two/ROM_32_big_split2two.sv": {
       "LINT-1 DECLFILENAME: Filename 'ROM_32_big_split2two' does not match MODULE name: 'ROM_32_big_split2two_lower'": 1
-    },
-    "sv-examples/RegisterBlock_read/memory_models.sv": {
-      "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 3,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 3,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_addr'": 3,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_data'": 2,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 2,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 3,
-      "LINT-1 UNUSEDSIGNAL: Function variable is not used: 'we'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'writes'": 1
-    },
-    "sv-examples/RegisterBlock_read/regblock_read32.sv": {
-      "LINT-1 DECLFILENAME: Filename 'regblock_read32' does not match IFACE name: 'memory_bidi_32_32'": 1
-    },
-    "sv-examples/RegisterBlock_read/regblock_read64.sv": {
-      "LINT-1 DECLFILENAME: Filename 'regblock_read64' does not match IFACE name: 'memory_bidi_64_32'": 1
-    },
-    "sv-examples/RegisterBlock_types/memory_models.sv": {
-      "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_master_bidi_32_32'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'busy'": 4,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'count'": 4,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_addr'": 4,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_data'": 2,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_strb'": 2,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'p_we'": 4,
-      "LINT-1 UNUSEDSIGNAL: Function variable is not used: 'we'": 2,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'writes'": 2
-    },
-    "sv-examples/RegisterBlock_types/regblock_types32.sv": {
-      "LINT-1 DECLFILENAME: Filename 'regblock_types32' does not match IFACE name: 'memory_bidi_32_32'": 1
-    },
-    "sv-examples/RegisterBlock_types/regblock_types64.sv": {
-      "LINT-1 DECLFILENAME: Filename 'regblock_types64' does not match IFACE name: 'memory_bidi_64_32'": 1
-    },
-    "sv-examples/RegisterBlock_types/tb_regblock_types32.sv": {
-      "LINT-1 BLKSEQ: Blocking assignment '=' in sequential logic process": 2,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'CMD_we_count'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'GO_we_count'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'clk'": 1
-    },
-    "sv-examples/RegisterBlock_types/tb_regblock_types64.sv": {
-      "LINT-1 BLKSEQ: Blocking assignment '=' in sequential logic process": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'CMD_we_count'": 1,
-      "LINT-1 PROCASSINIT: Procedural assignment to declaration with initial value: 'clk'": 1
     },
     "sv-examples/SFIFO/SFIFO_1026_4_true_true_true/SFIFO_1026_4_true_true_true.sv": {
       "LINT-1 DECLFILENAME: Filename 'SFIFO_1026_4_true_true_true' does not match MODULE name: 'SFIFO_1026_4_true_true_true_sram'": 1,

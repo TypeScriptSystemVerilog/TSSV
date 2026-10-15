@@ -2,6 +2,3 @@
 // Lint waivers for the RegisterBlock read-path regression blocks (ts/test/test_RegisterBlock_read.ts),
 // used by `make regblock_read_sim`. Every waiver names one signal, and the open bug that owns it.
 // The read path itself (TSSV#79, TSSV#116) needs none. Delete a line when its bug is fixed.
-
-// TSSV emits the Memory interface's definition into each block's file, ahead of the module.
-lint_off -rule DECLFILENAME -file "*/RegisterBlock_read/regblock_read*.sv" -match "*IFACE name: 'memory_*"

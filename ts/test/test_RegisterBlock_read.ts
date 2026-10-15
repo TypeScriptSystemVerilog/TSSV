@@ -3,21 +3,22 @@
 //   register with no `registers` entry (default RW), a narrow RW, an RWU, a RAM and a ROM whose
 //   windows are smaller than their alignment, and registers at 0x100 and above
 // - regblock_read64.sv: a 64-bit block whose RAM window is sized in 8-byte words
+// - memory_<type>_<data width>_32.sv: each Memory interface the blocks have as a port
 // - <block>_lint_top.sv for each: a wrapper that drives the block's bus from ports, so the
 //   block can be linted with `verilator --lint-only -Wall`. A module with an interface port
 //   can't be the top on its own: nothing would drive the interface
-// - memory_models.sv: slave models for the RAM and ROM windows
-// - a lint filelist (.f) for each lint top, and one that lints memory_models.sv through the
-//   testbench that uses it, for `npm run lint:sv`
+// - memory_slave_<type>_<data width>_32.sv: a slave model for each kind of RAM and ROM window
+// - a lint filelist (.f) for each lint top, and one, tb_RegisterBlock_read.f, that lints the
+//   models through the testbench that uses them, for `npm run lint:sv`
 //
 // `make -C verilatorTB regblock_read_sim` runs this, lints both blocks and simulates
-// verilatorTB/tb_RegisterBlock_read.sv against them.
+// verilatorTB/tb_RegisterBlock_read.sv against them, building it from tb_RegisterBlock_read.f.
 import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { mkdirSync, writeFileSync } from 'fs'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
-import { lintWrapper } from 'tssv/test/models/lintWrapper'
-import { memorySlaveModel } from 'tssv/test/models/MemoryModels'
+import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
+import { memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
 
 const OUT_DIR = 'sv-examples/RegisterBlock_read'
 const GENERATOR = 'ts/test/test_RegisterBlock_read.ts'
@@ -69,19 +70,20 @@ const block64 = new RegisterBlock({ name: 'regblock_read64', busAddressWidth: 32
 }, new Memory())
 
 mkdirSync(OUT_DIR, { recursive: true })
+const design = new Set<string>()
 for (const block of [block32, block64]) {
-  writeFileSync(`${OUT_DIR}/${block.name}.sv`, block.writeSystemVerilog())
-  writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, GENERATOR))
-  writeLintFilelist(OUT_DIR, `${block.name}_lint_top`, [`${block.name}.sv`, `${block.name}_lint_top.sv`], GENERATOR)
+  for (const file of writeLintWrapped(block, OUT_DIR, GENERATOR)) design.add(file)
   console.log(`wrote ${OUT_DIR}/${block.name}.sv and ${block.name}_lint_top.sv`)
 }
-// Slave models for the RAM and ROM windows (TSSV#80)
-writeFileSync(`${OUT_DIR}/memory_models.sv`, [
-  memorySlaveModel({ type: 'bidi', dataWidth: 32 }),
-  memorySlaveModel({ type: 'rd_only', dataWidth: 32 }),
-  memorySlaveModel({ type: 'bidi', dataWidth: 64 })
-].join('\n'))
-console.log(`wrote ${OUT_DIR}/memory_models.sv`)
+// Slave models for the RAM and ROM windows (TSSV#80), each in a file named after it
+const models: MemoryModelOptions[] = [
+  { type: 'bidi', dataWidth: 32 },
+  { type: 'rd_only', dataWidth: 32 },
+  { type: 'bidi', dataWidth: 64 }
+]
+for (const opts of models) writeFileSync(`${OUT_DIR}/${memorySlaveName(opts)}.sv`, memorySlaveModel(opts))
+console.log(`wrote ${OUT_DIR}/${models.map(o => memorySlaveName(o)).join('.sv, ')}.sv`)
+// verilatorTB/Makefile's regblock_read_sim builds the testbench from this filelist too
 writeLintFilelist(OUT_DIR, 'tb_RegisterBlock_read', [
-  '../../verilatorTB/tb_RegisterBlock_read.sv', 'regblock_read32.sv', 'regblock_read64.sv', 'memory_models.sv'
+  '../../verilatorTB/tb_RegisterBlock_read.sv', ...design, ...models.map(o => `${memorySlaveName(o)}.sv`)
 ], GENERATOR)
