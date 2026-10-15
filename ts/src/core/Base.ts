@@ -1,7 +1,7 @@
 /** @module Base */
 import { readFileSync } from 'fs'
 import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
-import { type BodyStatement, bodyStatements, identifiers, loopVariables, resetBranches, targetName } from './AlwaysBody.js'
+import { type AlwaysBody, type AlwaysReset, readAlwaysBody } from './AlwaysBody.js'
 import { runVerible } from '../tools/formatters/verible.js'
 
 /**
@@ -938,12 +938,14 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   /**
    * Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
    * <reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
-   * The builder rejects a body that breaks these rules of the SV guide:
+   * The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
+   * on a body that breaks these rules of the SV guide:
    * - COMB-2: a local declared with an initializer must be `automatic`.
    * - SEQ-1: `=` only for the block's own locals; every other assignment uses `<=`.
-   * - SEQ-6: in the reset branch (`if (!rst_n)`, or `if (rst)` for an active-high reset), no
-   *   assignment reads one of the module's signals or ports. Constants, parameters and enum
-   *   values are fine.
+   * - SEQ-6: in a reset branch, no assignment reads one of the module's signals or ports.
+   *   Constants, parameters and enum values are fine. A reset branch is the `if` branch of
+   *   `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of `if (rst)`
+   *   or `if (!rst)`.
    * - RST-2: `reset` must be the same kind (`isReset`) as every other reset in the module.
    * @param io the block's clock, its reset if it has one, and the signals it assigns, which
    * become `logic`
@@ -974,34 +976,14 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     const clkSig = this.findSignal(io.clk, true, this.addRegister, true)
     if (!clkSig.isClock) throw Error(`${io.clk.toString()} is not a clock signal`)
     const where = `addSequentialAlways(${io.outputs.join(', ')})`
-    const statements = bodyStatements(body)
-    this.checkStaticLocals(where, statements)
-    // SEQ-1: = only for the block's own locals
-    const locals = new Set([...statements.flatMap((st) => st.kind === 'declaration' ? st.names : []), ...loopVariables(body)])
-    for (const st of statements) {
-      if (st.kind === 'blocking' && !locals.has(targetName(st.target))) {
-        throw Error(`${where}: blocking assignment to ${st.target} (SEQ-1: use <= for every variable visible outside the block, and = only for its automatic locals)`)
-      }
-    }
     let resetSensitivity = ''
+    let reset: AlwaysReset | undefined
+    let resetKind = ''
     if (io.reset) {
       const rstSig = this.findSignal(io.reset, true, this.addRegister, true)
       if (!rstSig.isReset) throw Error(`${io.reset.toString()} is not a reset signal`)
-      this.useResetKind(where, io.reset.toString(), rstSig.isReset)
-      // SEQ-6: the reset branch assigns constants, not the module's signals
-      const activeLow = rstSig.isReset === 'lowasync' || rstSig.isReset === 'lowsync'
-      for (const branch of resetBranches(body, io.reset.toString(), activeLow)) {
-        for (const st of bodyStatements(branch)) {
-          if (st.kind !== 'blocking' && st.kind !== 'nonblocking') continue
-          const signal = identifiers(st.rhs).find((id) => {
-            const sig = this.IOs[id] ?? this.signals[id]
-            return sig !== undefined && sig.type !== 'const logic'
-          })
-          if (signal !== undefined) {
-            throw Error(`${where}: ${st.target} resets to ${signal}, a signal (SEQ-6: reset values must be constants)`)
-          }
-        }
-      }
+      resetKind = rstSig.isReset
+      reset = { name: io.reset.toString(), activeLow: rstSig.isReset === 'lowasync' || rstSig.isReset === 'lowsync' }
       switch (rstSig.isReset) {
         case 'highasync' :
           resetSensitivity = `or posedge ${io.reset.toString()}`
@@ -1013,23 +995,42 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       }
     }
     const sensitivityList = `@( ${clkSig.isClock} ${io.clk.toString()} ${resetSensitivity} )`
-    if (body.includes('always_ff')) {
+    const header = body.includes('always_ff') ? '' : `always_ff ${sensitivityList}\n`
+    const block = readAlwaysBody(where, header, body, reset)
+    this.checkStaticLocals(where, block)
+    // SEQ-1: = only for the block's own locals
+    for (const write of block.writes) {
+      if (write.kind === 'blocking' && write.names.some((name) => !block.locals.has(name))) {
+        throw Error(`${where}: blocking assignment to ${write.target} (SEQ-1: use <= for every variable visible outside the block, and = only for its automatic locals)`)
+      }
+    }
+    if (reset !== undefined) {
+      this.useResetKind(where, reset.name, resetKind)
+      // SEQ-6: the reset branch assigns constants, not the module's signals
+      for (const write of block.resetWrites) {
+        const signal = write.reads.find((id) => {
+          const sig = this.IOs[id] ?? this.signals[id]
+          return sig !== undefined && sig.type !== 'const logic'
+        })
+        if (signal !== undefined) {
+          throw Error(`${where}: ${write.target} resets to ${signal}, a signal (SEQ-6: reset values must be constants)`)
+        }
+      }
+    }
+    if (header === '') {
       const clkSenseMatch = body.replace(/\s+/g, ' ').includes(`${clkSig.isClock} ${io.clk.toString()}`)
       const resetSenseMatch = (resetSensitivity === '') || body.replace(/\s+/g, ' ').includes(resetSensitivity)
-      if (clkSenseMatch && resetSenseMatch) {
-        this.body += body
-      } else {
+      if (!clkSenseMatch || !resetSenseMatch) {
         throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
       }
-    } else {
-      this.body += `always_ff ${sensitivityList}\n`
-      this.body += body
     }
+    this.body += header + body
   }
 
   /**
    * Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
-   * The builder rejects a body that breaks these rules of the SV guide:
+   * The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
+   * on a body that breaks these rules of the SV guide:
    * - COMB-2: a local declared with an initializer must be `automatic`.
    * - COMB-3: no nonblocking assignments. `<=` as a comparison, as in `if (a <= b)`, is fine.
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
@@ -1057,14 +1058,6 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
           throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`)
       }
     }
-    const where = `addCombAlways(${io.outputs.join(', ')})`
-    const statements = bodyStatements(body)
-    this.checkStaticLocals(where, statements)
-    for (const st of statements) {
-      if (st.kind === 'nonblocking') {
-        throw Error(`${where}: nonblocking assignment to ${st.target} (COMB-3: use blocking assignments, =, in combinational logic)`)
-      }
-    }
     let sensitivityList: string | null = null
     if (io.inputs) {
       for (const input of io.inputs) {
@@ -1072,25 +1065,24 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       }
       sensitivityList = `@( ${io.inputs.join(' or ')} )`
     }
-    if (body.includes('always')) {
-      const SenseMatch = body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)
-      if (SenseMatch) {
-        this.body += body
-      } else {
-        throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
-      }
-    } else if (sensitivityList) {
-      this.body += `always ${sensitivityList}\n`
-      this.body += body
-    } else {
-      this.body += 'always_comb\n'
-      this.body += body
+    const header = body.includes('always') ? '' : sensitivityList ? `always ${sensitivityList}\n` : 'always_comb\n'
+    const where = `addCombAlways(${io.outputs.join(', ')})`
+    const block = readAlwaysBody(where, header, body)
+    this.checkStaticLocals(where, block)
+    const nonblocking = block.writes.find((write) => write.kind === 'nonblocking')
+    if (nonblocking !== undefined) {
+      throw Error(`${where}: nonblocking assignment to ${nonblocking.target} (COMB-3: use blocking assignments, =, in combinational logic)`)
     }
+    if (header === '' && !body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)) {
+      throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
+    }
+    this.body += header + body
   }
 
   /**
    * Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5). The builder
-   * rejects a local declared with an initializer that isn't `automatic` (SV guide COMB-2).
+   * parses the block with `verible-verilog-syntax`. It throws on a syntax error, and on a local
+   * declared with an initializer that isn't `automatic` (SV guide COMB-2).
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_latch`
    * @param body the block's statements, usually `begin : <name> ... end`
@@ -1116,7 +1108,6 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
           throw Error(`${output.toString()} is unsupported signal type ${thisSig.type}`)
       }
     }
-    this.checkStaticLocals(`addLatchAlways(${io.outputs.join(', ')})`, bodyStatements(body))
     let sensitivityList: string | null = null
     if (io.inputs) {
       for (const input of io.inputs) {
@@ -1124,28 +1115,20 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       }
       sensitivityList = `@( ${io.inputs.join(' or ')} )`
     }
-    if (body.includes('always')) {
-      const SenseMatch = body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)
-      if (SenseMatch) {
-        this.body += body
-      } else {
-        throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
-      }
-    } else if (sensitivityList) {
-      this.body += `always ${sensitivityList}\n`
-      this.body += body
-    } else {
-      this.body += 'always_latch\n'
-      this.body += body
+    const header = body.includes('always') ? '' : sensitivityList ? `always ${sensitivityList}\n` : 'always_latch\n'
+    const where = `addLatchAlways(${io.outputs.join(', ')})`
+    this.checkStaticLocals(where, readAlwaysBody(where, header, body))
+    if (header === '' && !body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)) {
+      throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
     }
+    this.body += header + body
   }
 
   // COMB-2: a local declared with an initializer is static unless it's automatic
-  protected checkStaticLocals (where: string, statements: BodyStatement[]): void {
-    for (const st of statements) {
-      if (st.kind === 'declaration' && st.initialized && !st.automatic) {
-        throw Error(`${where}: ${st.names.join(', ')} is declared with an initializer but isn't automatic, so it's static: the initializer runs once, and the value carries over (COMB-2: declare it automatic, or assign it instead)`)
-      }
+  protected checkStaticLocals (where: string, block: AlwaysBody): void {
+    const decl = block.initialized.find((d) => !d.automatic)
+    if (decl !== undefined) {
+      throw Error(`${where}: ${decl.names.join(', ')} is declared with an initializer but isn't automatic, so it's static: the initializer runs once, and the value carries over (COMB-2: declare it automatic, or assign it instead)`)
     }
   }
 

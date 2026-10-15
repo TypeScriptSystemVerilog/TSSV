@@ -1,154 +1,121 @@
-// Statement-level reading of the SV body passed to addCombAlways, addSequentialAlways and
-// addLatchAlways, for the SV-guide rules those builders enforce (COMB-2, COMB-3, SEQ-1, SEQ-6).
-// It isn't a parser: it finds the simple statements in a body (assignments and declarations),
-// with the control flow around them (if, case, for, begin/end, labels) stripped off.
+// Reads the always blocks that addCombAlways, addSequentialAlways and addLatchAlways emit, for
+// the SV-guide rules those builders enforce (COMB-2, COMB-3, SEQ-1, SEQ-6). verible-verilog-syntax
+// parses the block, and the rules read its syntax tree.
+import { type CSTNode, child, findAll, identifier, kids, parseSyntax, sourceText } from './VeribleSyntax.js'
 
-/** One simple statement of an always block body. */
-export type BodyStatement =
-  | { kind: 'declaration', text: string, automatic: boolean, initialized: boolean, names: string[] }
-  | { kind: 'blocking' | 'nonblocking', text: string, target: string, rhs: string }
-  | { kind: 'other', text: string }
-
-// sv with its comments and string literals replaced by spaces, so offsets are unchanged
-export function blankCommentsAndStrings (sv: string): string {
-  return sv.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g, (m) => m.replace(/[^\n]/g, ' '))
+/** An assignment in an always block. */
+export interface Write {
+  /** `<=`, or blocking: `=`, `+=`, `++`, and the assignments in a `for` loop header */
+  kind: 'blocking' | 'nonblocking'
+  /** the target as written, such as `q[3:0]` or `{a, b}` */
+  target: string
+  /** the variables the target names: `q` for `q[3:0]` or `q.f`, `a` and `b` for `{a, b}` */
+  names: string[]
+  /** the identifiers the assignment reads; for `+=` and `++`, the target's too */
+  reads: string[]
 }
 
-// Index of the bracket that closes the one at `open`, or -1
-function closing (text: string, open: number): number {
-  const pairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' }
-  const stack: string[] = []
-  for (let i = open; i < text.length; i++) {
-    const c = text[i] ?? ''
-    if (c in pairs) stack.push(pairs[c] ?? '')
-    else if (c === stack[stack.length - 1]) {
-      stack.pop()
-      if (stack.length === 0) return i
-    }
-  }
-  return -1
+/** What an always block declares and assigns. */
+export interface AlwaysBody {
+  /** every assignment in the block */
+  writes: Write[]
+  /** the assignments in the block's reset branches, when a reset is given */
+  resetWrites: Write[]
+  /** the variables the block declares, in its body or in a `for` loop header */
+  locals: Set<string>
+  /** each declaration with an initializer: the names it initializes, and whether it's `automatic` */
+  initialized: Array<{ names: string[], automatic: boolean }>
 }
 
-// The text split at each ';' that isn't inside brackets
-function splitStatements (text: string): string[] {
-  const out: string[] = []
-  let depth = 0
-  let start = 0
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (c === '(' || c === '[' || c === '{') depth++
-    else if (c === ')' || c === ']' || c === '}') depth--
-    else if (c === ';' && depth === 0) {
-      out.push(text.slice(start, i))
-      start = i + 1
+/** The reset of an always_ff block: its name, and whether it's active low. */
+export interface AlwaysReset {
+  name: string
+  activeLow: boolean
+}
+
+const defined = (s: string | undefined): s is string => s !== undefined
+
+// The variable a reference starts from: `q` for `q[3:0]` or `q.f`
+const rootName = (ref: CSTNode): string | undefined => identifier(child(ref, 'kLocalRoot'))
+
+// The variables an assignment target names. A select's index is read, not assigned, so the
+// search stops at each reference.
+function targetNames (node: CSTNode): string[] {
+  if (node.tag === 'kReference') return [rootName(node)].filter(defined)
+  return kids(node).flatMap(targetNames)
+}
+
+// Every assignment under `node`. Each kLPValue is an assignment's target, and its parent is the
+// assignment: kNetVariableAssignment, kNonblockingAssignmentStatement, kAssignModifyStatement,
+// kIncrementDecrementExpression, or kForInitialization.
+function writes (src: Buffer, node: CSTNode, out: Write[] = []): Write[] {
+  for (const c of kids(node)) {
+    if (c.tag !== 'kLPValue') {
+      writes(src, c, out)
+      continue
     }
+    const modifies = node.tag === 'kAssignModifyStatement' || node.tag === 'kIncrementDecrementExpression'
+    const read = kids(node).filter((k) => k !== c || modifies)
+    out.push({
+      kind: node.tag === 'kNonblockingAssignmentStatement' ? 'nonblocking' : 'blocking',
+      target: sourceText(src, c),
+      names: targetNames(c),
+      reads: read.flatMap((k) => findAll(k, 'kReference')).map(rootName).filter(defined)
+    })
   }
-  out.push(text.slice(start))
   return out
 }
 
-const KEYWORD_PREFIX = /^\s*(?:begin(?:\s*:\s*\w+)?|end(?:\s*:\s*\w+)?|endcase|else|fork|join(?:_any|_none)?|always_ff|always_comb|always_latch|always|unique0|unique|priority)\b/
-const CONTROL_PREFIX = /^\s*(?:if|for|foreach|while|repeat|case|casez|casex|@)\s*(?=\()/
-// A case label: items without an assignment, a comparison, a select or a ternary in them
-const CASE_LABEL = /^\s*(?:default|[^=<>?;[\]():]+?)\s*:(?!:)/
+// A condition without spaces or parentheses: `!rst_n` for `( !(rst_n) )`
+const bare = (text: string): string => text.replace(/[\s()]/g, '')
 
-// The statement with its leading control flow removed
-function core (statement: string): string {
-  let s = statement
-  // Strip one prefix at a time, keywords first, so `begin : name` isn't read as a case label
-  for (;;) {
-    const keyword = KEYWORD_PREFIX.exec(s)
-    if (keyword !== null) {
-      s = s.slice(keyword[0].length)
-      continue
-    }
-    const control = CONTROL_PREFIX.exec(s)
-    if (control !== null) {
-      const close = closing(s, control[0].length)
-      if (close < 0) return s.trim()
-      s = s.slice(close + 1)
-      continue
-    }
-    const label = /^\s*@\s*\*/.exec(s) ?? CASE_LABEL.exec(s)
-    if (label !== null) {
-      s = s.slice(label[0].length)
-      continue
-    }
-    return s.trim()
+// The branches a reset selects: the if branch of `if (!rst_n)`, and the else branch of
+// `if (rst_n)`, for an active-low reset
+function resetBranches (src: Buffer, node: CSTNode, reset: AlwaysReset): CSTNode[] {
+  const r = reset.name
+  const low = [`!${r}`, `~${r}`, ...["1'b0", "1'd0", "'0", '0'].map((v) => `${r}==${v}`)]
+  const high = [r, ...["1'b1", "1'd1", '1'].map((v) => `${r}==${v}`)]
+  const [active, inactive] = reset.activeLow ? [low, high] : [high, low]
+  const branches: Array<CSTNode | undefined> = []
+  for (const statement of findAll(node, 'kConditionalStatement')) {
+    const ifClause = child(statement, 'kIfClause')
+    const condition = bare(sourceText(src, child(child(ifClause, 'kIfHeader'), 'kParenGroup')))
+    if (active.includes(condition)) branches.push(child(ifClause, 'kIfBody'))
+    else if (inactive.includes(condition)) branches.push(child(child(statement, 'kElseClause'), 'kElseBody'))
   }
-}
-
-const LVALUE = String.raw`(?:\{[^}]*\}|[A-Za-z_][\w$]*(?:\s*\.\s*[A-Za-z_][\w$]*)*(?:\s*\[[^\]]*\])*)`
-const NONBLOCKING = new RegExp(String.raw`^(${LVALUE})\s*<=(?!=)\s*([\s\S]*)$`)
-const BLOCKING = new RegExp(String.raw`^(${LVALUE})\s*(?:=|\+=|-=|\*=|\/=|%=|&=|\|=|\^=|<<=|>>=|<<<=|>>>=)(?!=)\s*([\s\S]*)$`)
-const INCREMENT = new RegExp(String.raw`^(?:(${LVALUE})\s*(?:\+\+|--)|(?:\+\+|--)\s*(${LVALUE}))$`)
-const DECLARATION = /^(automatic\s+|static\s+)?(?:const\s+)?(?:var\s+)?(?:logic|bit|reg|int|integer|byte|shortint|longint|time)\b([\s\S]*)$/
-
-/** The simple statements in an always block body, in order. */
-export function bodyStatements (body: string): BodyStatement[] {
-  return splitStatements(blankCommentsAndStrings(body)).map(core).filter((s) => s !== '').map((text): BodyStatement => {
-    const decl = DECLARATION.exec(text)
-    if (decl !== null) {
-      // the declared names follow the type, its signedness and its packed dimensions
-      const rest = (decl[2] ?? '').replace(/^\s*(?:signed|unsigned)?\s*(?:\[[^\]]*\]\s*)*/, '')
-      const names = rest.split(',').map((d) => /^\s*([A-Za-z_][\w$]*)/.exec(d)?.[1]).filter((n): n is string => n !== undefined)
-      return { kind: 'declaration', text, automatic: decl[1]?.trim() === 'automatic', initialized: /[^=!<>]=(?!=)/.test(rest), names }
-    }
-    const nba = NONBLOCKING.exec(text)
-    if (nba !== null) return { kind: 'nonblocking', text, target: nba[1] ?? '', rhs: nba[2] ?? '' }
-    const ba = BLOCKING.exec(text)
-    if (ba !== null) return { kind: 'blocking', text, target: ba[1] ?? '', rhs: ba[2] ?? '' }
-    const inc = INCREMENT.exec(text)
-    if (inc !== null) return { kind: 'blocking', text, target: inc[1] ?? inc[2] ?? '', rhs: '' }
-    return { kind: 'other', text }
-  })
-}
-
-/** The variable an assignment target names: `q` for `q[3:0]` or `q.f`. */
-export function targetName (target: string): string {
-  return /^[A-Za-z_][\w$]*/.exec(target.trim())?.[0] ?? target.trim()
-}
-
-/** The names of the loop variables a body declares in `for (int i = ...)` headers. */
-export function loopVariables (body: string): string[] {
-  return [...blankCommentsAndStrings(body).matchAll(/\bfor\s*\(\s*(?:automatic\s+)?(?:int|integer|genvar|byte|shortint|longint|(?:bit|logic)(?:\s+(?:signed|unsigned))?(?:\s*\[[^\]]*\])*)\s+([A-Za-z_][\w$]*)/g)]
-    .map((m) => m[1] ?? '')
-}
-
-/** The identifiers an expression reads: not keywords, system tasks, or the base of a literal. */
-export function identifiers (expr: string): string[] {
-  return [...expr.matchAll(/(?<![\w'$])[A-Za-z_][\w$]*/g)].map((m) => m[0])
+  return branches.filter((b): b is CSTNode => b !== undefined)
 }
 
 /**
- * The text of the branch a reset condition selects in an always_ff body: the `begin ... end`
- * block, or the single statement, after `if (<condition>)`, where the condition is the reset
- * being active. `activeLow` says how the reset is written: `!rst_n` or `rst`.
+ * Read an always block from its syntax tree.
+ * @param where the builder call, for error messages
+ * @param header the header the builder writes, such as `always_comb\n`, or '' if the body has its own
+ * @param body the body passed to the builder
+ * @param reset the reset of an always_ff block, to find its reset branches
+ * @returns the block's assignments and declarations
  */
-export function resetBranches (body: string, reset: string, activeLow: boolean): string[] {
-  const text = blankCommentsAndStrings(body)
-  const r = reset.replace(/[.$]/g, (c) => `\\${c}`)
-  const cond = activeLow
-    ? String.raw`(?:[!~]\s*${r}|${r}\s*==\s*(?:1'b0|1'd0|'0|0))`
-    : String.raw`(?:${r}|${r}\s*==\s*(?:1'b1|1'd1|1))`
-  const branches: string[] = []
-  for (const m of text.matchAll(new RegExp(String.raw`\bif\s*\(\s*\(?\s*${cond}\s*\)?\s*\)`, 'g'))) {
-    const after = (m.index ?? 0) + m[0].length
-    const rest = text.slice(after)
-    const begin = /^\s*begin\b/.exec(rest)
-    if (begin === null) {
-      branches.push(splitStatements(rest)[0] ?? '')
-      continue
-    }
-    // to the end that closes this begin
-    let depth = 0
-    for (const k of rest.matchAll(/\b(begin|end)\b/g)) {
-      depth += k[1] === 'begin' ? 1 : -1
-      if (depth === 0) {
-        branches.push(rest.slice(0, k.index))
-        break
-      }
-    }
+export function readAlwaysBody (where: string, header: string, body: string, reset?: AlwaysReset): AlwaysBody {
+  // the block in a module of its own, so that it parses
+  const src = `module tssv_always_check;\n${header}${body}\nendmodule\n`
+  const { tree, errors } = parseSyntax(src)
+  const error = errors[0]
+  if (error !== undefined) {
+    // Verible's lines count from 0, and the body starts after the module line and the header
+    const line = error.line - header.split('\n').length + 1
+    throw Error(`${where}: SystemVerilog syntax error at line ${line}, column ${error.column + 1} of the body, near '${error.text}'`)
   }
-  return branches
+  const bytes = Buffer.from(src)
+  const blocks = findAll(tree, 'kAlwaysStatement')
+  const declarations = blocks.flatMap((b) => findAll(b, 'kDataDeclaration'))
+  // a `for` header that declares its loop variable, `for (int i = 0; ...)`, names it directly
+  const loopVariables = blocks.flatMap((b) => findAll(b, 'kForInitialization')).map((f) => identifier(f))
+  return {
+    writes: blocks.flatMap((b) => writes(bytes, b)),
+    resetWrites: reset === undefined ? [] : blocks.flatMap((b) => resetBranches(bytes, b, reset)).flatMap((b) => writes(bytes, b)),
+    locals: new Set([...declarations.flatMap((d) => findAll(d, 'kRegisterVariable')).map(identifier), ...loopVariables].filter(defined)),
+    initialized: declarations.map((d) => ({
+      names: findAll(d, 'kRegisterVariable').filter((v) => child(v, 'kTrailingAssign') !== undefined).map(identifier).filter(defined),
+      automatic: kids(child(d, 'kQualifierList')).some((q) => q.tag === 'automatic')
+    })).filter((d) => d.names.length > 0)
+  }
 }
