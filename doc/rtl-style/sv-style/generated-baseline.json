@@ -185,42 +185,6 @@
       "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
     },
-    "sv-examples/Core/addSaturate/saturateBS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addSaturate/saturateB_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addSaturate/saturateNS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addSaturate/saturateN_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addSaturate/saturateS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
-    "sv-examples/Core/addSaturate/saturate_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1
-    },
     "sv-examples/Core/addSequentialAlways/seq_tb.sv": {
       "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
