@@ -107,7 +107,7 @@ this.addRegister({
   d:        nextTap,      // string | Sig | Expr  — D input
   clk:      'clk',        // string | Sig  — must have isClock metadata
   reset?:   'rst_b',      // string | Sig  — must have isReset metadata; determines polarity/sync
-  resetVal?: 0n,          // bigint  — value on reset (default 0)
+  resetVal?: 0n,          // bigint  — value on reset (default 0); emitted as '0, or sized to q
   en?:      'en',         // string | Sig | Expr  — clock enable
   q?:       thisTap       // string | Sig  — output signal (auto-named if omitted)
 })
@@ -164,7 +164,16 @@ const diff = this.addSubtractor({ a: sigA, b: sigB })
 // output width = max(width(a), width(b)) + 1
 ```
 
-All three accept an optional `result` field to name the output signal explicitly.
+All three accept an optional `result` field to name the output signal explicitly. The operation
+is written plain, with no operand casts (SV guide WIDTH-3), and is computed at the result's
+width. A `result` narrower than the natural width gets one outer cast, `8'(a + b)`, which keeps
+the low bits (WIDTH-2), and logs a warning. If either operand is signed, or a negative literal,
+the result is signed, and an unsigned signal is converted with `$signed({1'b0, x})` (WIDTH-4).
+In a sum or difference, that conversion adds a bit, so the auto-sized result counts that
+operand one bit wider. A literal is written at its own width, with a sign bit in a signed
+operation: `a + 3'd5`, or `a + 4'sd5` if `a` is signed (WIDTH-1). A negative literal is the
+negation of a signed literal that holds its magnitude and a sign bit: `a + -8n` gives
+`a + -5'sd8`.
 
 ---
 
@@ -179,15 +188,19 @@ this.addSignal('rounded', { width: sumWidth - rShift + 1, isSigned: true })
 this.addRound({ in: 'sum', out: 'rounded', rShift: 7 })
 ```
 
-`rShift` may be a number (constant), string, or `Sig` (variable shift).
+`rShift` may be a number (constant, from 0 to `in`'s width minus 1), string, or `Sig` (variable
+shift, unsigned, with values in the same range). Every mode but `'rm'` adds a bias before the
+shift; the sum is a signal named `<out>_biased`, one bit wider than `in`, so it can't overflow.
+`out` needs `in`'s width minus `rShift`, plus one bit, to hold every result; a narrower `out`
+keeps the low bits.
 
 | `roundMode` | Behavior |
 |---|---|
 | `'rp'` (default) | Round toward positive infinity (round-half-up) |
-| `'rm'` | Round toward negative infinity (truncate) |
+| `'rm'` | Round toward negative infinity (floor) |
 | `'rz'` | Round toward zero |
-| `'rn'` | Round to nearest even |
-| `'rna'` | Round away from zero |
+| `'rn'` | Round half to even |
+| `'rna'` | Round half away from zero |
 
 ---
 
@@ -205,8 +218,10 @@ this.addSaturate({ in: 'rounded', out: 'saturated' })
 | `satMode` | Behavior |
 |---|---|
 | `'simple'` (default) | Clamp to `[-(2^(W-1)), 2^(W-1)-1]` (signed) or `[0, 2^W-1]` (unsigned) |
-| `'balanced'` | Symmetric: signed min is `-(2^(W-1)-1)` |
-| `'none'` | Wrap rather than clamp (no saturation logic) |
+| `'balanced'` | Symmetric: signed min is `-(2^(W-1)-1)`, even when `in` is as wide as `out` |
+| `'none'` | No clamp: unsigned keeps the low `W` bits; signed out of range keeps its sign and the low `W-1` bits |
+
+An `out` wider than `in` gets `in` extended.
 
 ---
 
@@ -225,6 +240,9 @@ this.addMux({
 })
 // → unique case(sel) 0: mux_out=sig0; 1: mux_out=sig1; ... endcase
 ```
+
+`in` needs at least two entries. A signal input narrower than `out` is extended to it with the
+input's signedness; one wider than `out` is an error. An `Expr` input is used as given.
 
 ---
 

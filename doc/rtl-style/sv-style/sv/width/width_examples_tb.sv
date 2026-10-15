@@ -38,11 +38,13 @@ module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter 
   logic signed [W-1:0] s_sra_var;
   logic signed [W+S-1:0] s_sla_full;
   logic signed [W-1:0] s_neg_pow;
+  logic [W+S-1:0] u_shl_cat;
   logic [W-1:0] u_zext;
   logic signed [W-1:0] s_sext;
   logic signed [W:0] s_from_u;
   logic [W-1:0] u_lim;
   logic [W-1:0] u_ones;
+  logic [W-1:0] u_sa_bits;
   logic [N-1:0] u_trunc;
   logic [N-1:0] u_trunc_sum;
   logic signed [N-1:0] s_trunc;
@@ -50,6 +52,7 @@ module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter 
   logic [0:0] u_at_lim;
   logic [0:0] u_sum_gt;
   logic [0:0] s_is_neg;
+  logic [0:0] s_lt_mixed;
   width_examples #(.W(W), .N(N), .S(S), .F(F), .LIM(LIM)) dut (.*);
   // 0: random, 1: zero, 2: all ones, 3: only top bit set
   function automatic logic [95:0] pick(input logic [1:0] k, input logic [95:0] r, input int w);
@@ -110,11 +113,13 @@ module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter 
       $write(" s_sra_var=%h", s_sra_var);
       $write(" s_sla_full=%h", s_sla_full);
       $write(" s_neg_pow=%h", s_neg_pow);
+      $write(" u_shl_cat=%h", u_shl_cat);
       $write(" u_zext=%h", u_zext);
       $write(" s_sext=%h", s_sext);
       $write(" s_from_u=%h", s_from_u);
       $write(" u_lim=%h", u_lim);
       $write(" u_ones=%h", u_ones);
+      $write(" u_sa_bits=%h", u_sa_bits);
       $write(" u_trunc=%h", u_trunc);
       $write(" u_trunc_sum=%h", u_trunc_sum);
       $write(" s_trunc=%h", s_trunc);
@@ -122,6 +127,7 @@ module width_examples_tb #(parameter int W = 16, parameter int N = 6, parameter 
       $write(" u_at_lim=%h", u_at_lim);
       $write(" u_sum_gt=%h", u_sum_gt);
       $write(" s_is_neg=%h", s_is_neg);
+      $write(" s_lt_mixed=%h", s_lt_mixed);
       $write("\n");
     end
     $finish;

@@ -67,7 +67,7 @@ Total registers = `numTaps`.
 2. `data_in` feeds into a shift-register delay chain of `numTaps` flip-flops (`tap_0` … `tap_N-1`), all gated by the internal `en` signal (derived from the AXI handshake).
 3. Each `tap_i` is multiplied by `coeff_i` (output of the corresponding `coefficientsWidth`-bit coefficient register). Products are sign-extended to `sumWidth = inWidth + bitWidth(coeffSum)` bits.
 4. All products are summed and registered into `sum`.
-5. `sum` is right-shifted by `rShift` with convergent rounding into `rounded`.
+5. `sum` is right-shifted by `rShift`, rounding half up (`addRound`'s `rp` mode), into `rounded`.
 6. `rounded` is clamped to `[-2^(outWidth-1), 2^(outWidth-1)-1]` into `saturated`, then registered to `data_out`.
 7. `data_out` is sign-extended and driven on `m_axis.TDATA`; `m_axis.TVALID` is driven by `valid_pipe_1`.
 

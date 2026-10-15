@@ -4,6 +4,10 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// The common lint waivers that every Verilator lint run passes (SV guide, section 8).
+export const COMMON_WAIVERS = fileURLToPath(new URL('../sv-style/common_waivers.vlt', import.meta.url))
 
 // Exit unless the Verilator on PATH is the version pinned in README.md. Returns the pin.
 export function requirePinnedVerilator () {
@@ -27,9 +31,10 @@ export function requirePinnedVerilator () {
   return pin
 }
 
-// Lint with -Wall. Returns the sorted, de-duplicated warning codes, any hard errors and the raw output.
+// Lint with -Wall and the common waivers. Returns the sorted, de-duplicated warning codes, any hard
+// errors and the raw output.
 export function lint (files, flags = []) {
-  const run = spawnSync('verilator', ['--lint-only', '-Wall', '-Wno-fatal', ...flags, ...files], { encoding: 'utf8' })
+  const run = spawnSync('verilator', ['--lint-only', '-Wall', '-Wno-fatal', COMMON_WAIVERS, ...flags, ...files], { encoding: 'utf8' })
   const out = run.stdout + run.stderr
   const warnings = [...new Set([...out.matchAll(/%Warning-([A-Z0-9_]+)/g)].map((m) => m[1]))].sort()
   const errors = out.split('\n').filter((l) => l.startsWith('%Error') && !l.includes('Exiting due to'))

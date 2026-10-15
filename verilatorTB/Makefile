@@ -1,6 +1,9 @@
 TOP_MODULE?=Vtb_lpFIR
 VERILOG_FILE?= ../sv-examples/FIR/myFIR3/tb_lpFIR.sv
 
+# Every --lint-only run below passes the common waivers file first (SV guide, section 8).
+COMMON_WAIVERS = ../doc/rtl-style/sv-style/common_waivers.vlt
+
 
 run: obj_dir/$(TOP_MODULE)
 	obj_dir/$(TOP_MODULE)
@@ -32,7 +35,7 @@ REGBLOCK_DIR = ../sv-examples/RegisterBlock_read
 regblock_read_sim: tsc
 	cd ..; node out/test/test_RegisterBlock_read.js
 	set -e; for b in regblock_read32 regblock_read64; do \
-	  verilator --lint-only -Wall --top-module $${b}_lint_top regblock_read_waivers.vlt \
+	  verilator --lint-only -Wall --top-module $${b}_lint_top $(COMMON_WAIVERS) regblock_read_waivers.vlt \
 	    $(REGBLOCK_DIR)/$$b.sv $(REGBLOCK_DIR)/$${b}_lint_top.sv; \
 	  echo "lint -Wall clean: $$b"; \
 	done
@@ -52,7 +55,7 @@ regblock_types_sim: tsc
 	cd ..; node out/test/test_RegisterBlock_types.js
 	mkdir -p obj_dir
 	set -e; for b in regblock_types32 regblock_types64; do \
-	  verilator --lint-only -Wall --top-module $${b}_lint_top regblock_types_waivers.vlt \
+	  verilator --lint-only -Wall --top-module $${b}_lint_top $(COMMON_WAIVERS) regblock_types_waivers.vlt \
 	    $(TYPES_DIR)/$$b.sv $(TYPES_DIR)/$${b}_lint_top.sv; \
 	  echo "lint -Wall clean: $$b"; \
 	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/$$b -o Vtb_$$b --top-module tb_$$b \
@@ -68,7 +71,7 @@ APB_DIR = ../sv-examples/APB_to_Memory
 
 apb_to_memory_sim: tsc
 	cd ..; node out/test/test_APB_to_Memory.js
-	verilator --lint-only -Wall --top-module apb_regblock_lint_top apb_to_memory_waivers.vlt \
+	verilator --lint-only -Wall --top-module apb_regblock_lint_top $(COMMON_WAIVERS) apb_to_memory_waivers.vlt \
 	  $(APB_DIR)/apb_regblock.sv $(APB_DIR)/apb_regblock_lint_top.sv
 	@echo "lint -Wall clean: apb_regblock"
 	mkdir -p obj_dir
@@ -87,7 +90,7 @@ TCRF_DIR = ../sv-examples/TwoClockRegFile
 twoclockregfile_sim: tsc
 	cd ..; node out/test/modules/test_TwoClockRegFile.js
 	set -e; for f in $(TCRF_DIR)/TwoClockRegFile_*/*.sv; do \
-	  verilator --lint-only -Wall $$f; \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) $$f; \
 	  echo "lint -Wall clean: $$f"; \
 	done
 	mkdir -p obj_dir

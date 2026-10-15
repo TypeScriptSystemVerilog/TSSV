@@ -670,7 +670,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * add a DFF register(can be multi-bit) to the d input
-     * @param io the input/output of the register
+     * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
+     * written as `'0`, or as a literal sized to q
      * @returns return the q output signal
      */
   addRegister (io: {
@@ -770,12 +771,19 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }
 
   /**
-     * add a rounding operation to scale down and reduce the bit width of a signal
-     * @param io the input/output signals of the round operation the rShift signal determines
-     * the number of LSBs to round away.  The rShift signal can be either a liternal constant or a variable
-     * shift.  When using a variable shift,  care should be taken to minimize the number of bits to
-     * minimize the impact on the timing path of the resulting logic.
-     * @param roundMode determines the type of rounding to apply
+     * add a rounding operation to scale down and reduce the bit width of a signal: `out` is
+     * `in / 2^rShift`, rounded as `roundMode` says.
+     * @param io the input/output signals of the round operation. `in` and `out` must have the same
+     * signedness. `rShift` determines the number of LSBs to round away. It can be either a literal
+     * constant, from 0 to `in`'s width minus 1, or a variable shift: an unsigned signal whose value
+     * stays in that range. When using a variable shift, care should be taken to minimize the
+     * number of bits to minimize the impact on the timing path of the resulting logic.
+     * Every mode but `rm` adds a bias before the shift. The sum is a signal named `<out>_biased`,
+     * one bit wider than `in`, so it can't overflow. A result that doesn't fit `out` keeps its
+     * low bits: `out` needs `in`'s width minus `rShift`, plus one bit, to hold every result.
+     * @param roundMode determines the type of rounding to apply: `rp` rounds half up (towards
+     * +∞), `rm` rounds down, `rz` rounds towards zero, `rn` rounds half to even, and `rna`
+     * rounds half away from zero
      * @returns the signal of the rounded result
      */
   addRound (io: {
@@ -785,24 +793,73 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }, roundMode: 'rp' | 'rm' | 'rz' | 'rn' | 'rna' = 'rp'): Sig {
     const inSig = this.findSignal(io.in, true, this.addRound, true)
     const outSig = this.findSignal(io.out, true, this.addRound, true)
-    const rShiftString = io.rShift.toString()
-    if (typeof io.rShift !== 'number') {
+    if (inSig.isSigned !== outSig.isSigned) throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`)
+    if (!['rp', 'rm', 'rz', 'rn', 'rna'].includes(roundMode)) throw Error('roundMode not found')
+    const inName = io.in.toString()
+    const outName = io.out.toString()
+    const inWidth = Number(inSig.width ?? 1)
+    const outWidth = Number(outSig.width ?? 1)
+    const signed = inSig.isSigned === true
+    const shr = signed ? '>>>' : '>>' // WIDTH-5
+    const shl = signed ? '<<<' : '<<'
+    // The result, cast to out's width where it differs (WIDTH-3, WIDTH-7)
+    const toOut = (expr: string, exprWidth: number): string => exprWidth === outWidth ? expr : `${outWidth}'(${expr})`
+
+    let shift: string
+    let shiftWidth = 0
+    if (typeof io.rShift === 'number') {
+      if (!Number.isInteger(io.rShift) || io.rShift < 0 || io.rShift >= inWidth) {
+        throw Error(`addRound: rShift ${io.rShift} must be an integer from 0 to ${inWidth - 1}`)
+      }
+      if (io.rShift === 0) {
+        this.body += `   assign ${outName} = ${toOut(inName, inWidth)};\n`
+        return typeof io.out === 'string' ? new Sig(io.out) : io.out
+      }
+      shift = `${io.rShift}`
+    } else {
       const rShiftSig = this.findSignal(io.rShift, true, this.addRound, true)
       if (rShiftSig.isSigned) throw Error(`right shift signal ${io.rShift.toString()} must be unsigned`)
+      shift = io.rShift.toString()
+      shiftWidth = Number(rShiftSig.width ?? 1)
     }
-    if (inSig.isSigned !== outSig.isSigned) throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`)
-    if (roundMode === 'rp') { // roundUp
-      this.body += `   assign ${io.out.toString()} = (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`
-    } else if (roundMode === 'rm') { // roundDown
-      this.body += `   assign ${io.out.toString()} = ${io.in.toString()} >>> ${rShiftString};\n`
-    } else if (roundMode === 'rz') { // roundToZero
-      this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >= 0) ? (${io.in.toString()} >>> ${rShiftString}) : (${io.in.toString()} + (${inSig.width || 1}'sd1<<<(${rShiftString}-1)))>>>${rShiftString};\n`
-    } else if (roundMode === 'rn') { // roundToNearestEven
-      this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >>> ${rShiftString}) + (((${io.in.toString()} >>> (${rShiftString} - 1)) & 1) & ((${io.in.toString()} >>> ${rShiftString}) & 1));\n`
-    } else if (roundMode === 'rna') { // roundAwayFromZero
-      this.body += `   assign ${io.out.toString()} = (${io.in.toString()} >>> ${rShiftString}) + ((${io.in.toString()}[0] ^ ${io.in.toString()}[${rShiftString}]) ? 1 : 0);\n`
+
+    if (roundMode === 'rm' || (roundMode === 'rz' && !signed)) {
+      // round down: the shift alone
+      this.body += `   assign ${outName} = ${toOut(`${inName} ${shr} ${shift}`, inWidth)};\n`
     } else {
-      throw Error('roundMode not found')
+      // Add a bias, then shift. The sum gets one more bit than in, so it can't overflow, and
+      // a named signal (WIDTH-6). With 2^s the weight of the shifted-out bits, half = 2^(s-1):
+      //   rp:  half                         round half up
+      //   rz:  in < 0 ? 2^s - 1 : 0         round towards zero
+      //   rna: in < 0 ? half - 1 : half     round half away from zero
+      //   rn:  in[s] ? half : half - 1      round half to even
+      const w = inWidth + 1
+      const lit = (v: bigint | number): string => `${w}'${signed ? 's' : ''}d${v}`
+      const negative = `${inName}[${inWidth - 1}]`
+      let ones: string // 2^s - 1
+      let half: string
+      let halfLess1: string
+      if (shiftWidth === 0) {
+        const s = BigInt(shift)
+        ones = lit((1n << s) - 1n)
+        half = lit(1n << (s - 1n))
+        halfLess1 = lit((1n << (s - 1n)) - 1n)
+      } else {
+        // For a variable s, from 2^s; half and half - 1 are both 0 when s is 0
+        const pow = `(${lit(1)} ${shl} ${shift})`
+        ones = `(${pow} - ${lit(1)})`
+        half = `(${pow} ${shr} 1)`
+        halfLess1 = `(${ones} ${shr} 1)`
+      }
+      const bias = {
+        rp: half,
+        rz: `${negative} ? ${ones} : ${lit(0)}`,
+        rna: signed ? `${negative} ? ${halfLess1} : ${half}` : half,
+        rn: `${inName}[${shift}] ? ${half} : ${halfLess1}`
+      }[roundMode]
+      const biased = this.addSignal(`${outName.replace(/\W/g, '_')}_biased`, { width: w, isSigned: signed })
+      this.body += `   assign ${biased.toString()} = ${w}'(${inName}) + (${bias});\n`
+      this.body += `   assign ${outName} = ${toOut(`${biased.toString()} ${shr} ${shift}`, w)};\n`
     }
     if (typeof io.out === 'string') {
       return new Sig(io.out)
@@ -812,57 +869,57 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * add a Saturate operation to limit the bit width of a signal without overflow
-     * @param io the input and output signals of the saturation operation
-     * @param satMode determines the behavior of the saturation
+     * @param io the input and output signals of the saturation operation. They must have the same
+     * signedness. An `out` at least as wide as `in` gets `in` extended, except that `balanced`
+     * still clamps a signed `in` of the same width.
+     * @param satMode determines the behavior of the saturation. `simple` clamps `in` to `out`'s
+     * range. `balanced` clamps a signed `in` to a range symmetric about zero, from
+     * `-(2^(n-1) - 1)` to `2^(n-1) - 1` for an `n`-bit `out`; for an unsigned `in` it's `simple`.
+     * `none` doesn't clamp: an unsigned `in` keeps its low bits, and a signed `in` out of range
+     * keeps its sign and its low `n - 1` bits.
      * @returns signal of the result of the saturation
      */
   addSaturate (io: {
     in: string | Sig
     out: string | Sig
   }, satMode: 'simple' | 'balanced' | 'none' = 'simple'): Sig {
-    // if (satMode === 'balanced') throw Error(`FIXME: ${satMode} not implemented yet`) // still have to add balanced
     const inSig = this.findSignal(io.in, true, this.addSaturate, true)
     const outSig = this.findSignal(io.out, true, this.addSaturate, true)
     if (inSig.isSigned !== outSig.isSigned) throw Error(`sign mode must match ${io.in.toString()}, ${io.out.toString()}`)
+    const inName = io.in.toString()
+    const outName = io.out.toString()
+    const inWidth = Number(inSig.width ?? 1)
+    const outWidth = Number(outSig.width ?? 1)
+    // in at out's width: extended (WIDTH-3) or truncated (WIDTH-7)
+    const fit = inWidth === outWidth ? inName : `${outWidth}'(${inName})`
+    let expr: string
     if (inSig.isSigned) {
-      const sat = 1 << ((outSig.width || 1) - 1)
-      const maxSatStringIn = `${inSig.width}'sd${sat - 1}`
-      const minSatStringIn = `$signed(-${inSig.width}'d${sat})`
-      const maxSatString = `${outSig.width}'sd${sat - 1}`
-      const minSatString = `-${outSig.width}'d${sat}`
-      if (satMode === 'simple') {
-        this.body +=
-`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
-                       ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString} : ${io.in.toString()});
-`
-      } else if (satMode === 'none') {
-        this.body +=
-`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? 
-                       {1'b0,(${io.in.toString()}[${outSig.width}-2:0])} : 
-                       ((${io.in.toString()} < ${minSatStringIn}) ? 
-                       {1'b1,(${io.in.toString()}[${outSig.width}-2:0])} : 
-                       ${io.in.toString()}[${outSig.width}-1:0]);
-`
-      } else if (satMode === 'balanced') {
-        this.body +=
-`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} :
-                      ((${io.in.toString()} < ${minSatStringIn}) ? ${minSatString}+1 : ${io.in.toString()});
-`
+      const lit = (v: bigint, w: number): string => `${v < 0n ? '-' : ''}${w}'sd${v < 0n ? -v : v}`
+      const max = (1n << BigInt(outWidth - 1)) - 1n
+      const min = (satMode === 'balanced') ? -max : -max - 1n
+      // in can pass max or min only if it's wider than out, or, for balanced, as wide
+      const canPassMax = inWidth > outWidth
+      const canPassMin = inWidth > outWidth || (satMode === 'balanced' && inWidth === outWidth)
+      const aboveMax = `${inName} > ${lit(max, inWidth)}`
+      const belowMin = `${inName} < ${lit(min, inWidth)}`
+      if (satMode === 'none') {
+        // keep the sign, and wrap the rest
+        const low = outWidth > 1 ? `, ${inName}[${outWidth - 2}:0]` : ''
+        expr = canPassMax ? `(${aboveMax}) ? $signed({1'b0${low}}) : (${belowMin}) ? $signed({1'b1${low}}) : ${fit}` : fit
+      } else {
+        expr = `${canPassMax ? `(${aboveMax}) ? ${lit(max, outWidth)} : ` : ''}${canPassMin ? `(${belowMin}) ? ${lit(min, outWidth)} : ` : ''}${fit}`
       }
     } else {
-      const sat = (1 << ((outSig.width || 1))) - 1
-      const maxSatStringIn = `${outSig.width}'d${sat}`
-      const maxSatString = `${outSig.width}'d${sat}`
-      if (satMode === 'simple' || satMode === 'balanced') {
-        this.body +=
-`   assign ${io.out.toString()} = (${io.in.toString()} > ${maxSatStringIn}) ? ${maxSatString} : (${io.in.toString()});
-`
+      const max = (1n << BigInt(outWidth)) - 1n
+      if (inWidth <= outWidth) {
+        expr = fit
       } else if (satMode === 'none') {
-        this.body +=
-`   assign ${io.out.toString()} = ${io.in.toString()}[${outSig.width}:0];
-`
+        expr = `${inName}[${outWidth - 1}:0]`
+      } else {
+        expr = `(${inName} > ${inWidth}'d${max}) ? ${outWidth}'d${max} : ${fit}`
       }
     }
+    this.body += `   assign ${outName} = ${expr};\n`
     if (typeof io.out === 'string') {
       return new Sig(io.out)
     }
@@ -1035,90 +1092,88 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
         autoWidth: (a: number, b: number) => { return Math.max(a, b) }
       }
     }
-    let aOperand: string | Sig | undefined
-    let bOperand: string | Sig | undefined
-    let aAuto = io.a
-    let bAuto = io.b
-    let aWidth = 0
-    let bWidth = 0
-    let aSigned = false
-    let bSigned = false
-    let aLiteral = false
-    if (typeof io.a !== 'bigint') {
-      const aSig = this.findSignal(io.a, true, this.addOperation, true)
-      aOperand = io.a
-      aWidth = Number(aSig.width)
-      aSigned = aSig.isSigned || false
-      // if (aSigned) {
-      //   aOperand = `$signed(${aOperand.toString()})`
-      // }
-    } else {
-      aWidth = this.bitWidth(io.a)
-      aSigned = (io.a < 0)
-      aOperand = (aSigned) ? `-${aWidth}'d${Math.abs(Number(io.a))}` : `${aWidth + 1}'d${io.a}`
-      aAuto = aOperand.replace('-', 'm').replace("'", '')
-      aLiteral = true
-    }
-    if (typeof io.b !== 'bigint') {
-      const bSig = this.findSignal(io.b, true, this.addOperation, true)
-      bOperand = io.b
-      bWidth = Number(bSig.width)
-      bSigned = bSig.isSigned || false
-      if (typeof io.a !== 'bigint') {
-        if (bSigned !== aSigned) {
-          if (aSigned) {
-            bOperand = `{1'b0,${bOperand.toString()}}`
-          } else {
-            aOperand = `{1'b0,${aOperand.toString()}}`
-          }
-          aOperand = `$signed(${aOperand.toString()})`
-          bOperand = `$signed(${bOperand.toString()})`
-        }
+    // An operand is a signal or a literal. `auto` is its part of an auto-sized result's name.
+    interface Operand { expr: string, literal?: bigint, width: number, signed: boolean, auto: string }
+    const operand = (x: string | Sig | bigint): Operand => {
+      if (typeof x === 'bigint') {
+        const width = Math.max(1, this.bitWidth(x))
+        // The names of auto-sized results come from how literals used to be written; keep them.
+        const auto = (x < 0n ? `-${width}'d${-x}` : `${width + 1}'d${x}`).replace('-', 'm').replace("'", '')
+        return { expr: '', literal: x, width, signed: x < 0n, auto }
       }
-    } else {
-      bWidth = this.bitWidth(io.b)
-      bSigned = (io.b < 0)
-      bOperand = (bSigned) ? `-${bWidth}'d${Math.abs(Number(io.b))}` : `${bWidth + 1}'d${io.b}`
-      bAuto = bOperand.replace('-', 'm').replace("'", '')
-      if (aSigned) {
-        bOperand = `$signed(${bOperand})`
-      }
+      const sig = this.findSignal(x, true, this.addOperation, true)
+      return { expr: x.toString(), width: Number(sig.width ?? 1), signed: sig.isSigned === true, auto: x.toString() }
     }
-    if (aLiteral) {
-      aOperand = `$signed(${aOperand.toString()})`
-    }
-    let result: string | Sig = '#NONE#'
+    const a = operand(io.a)
+    const b = operand(io.b)
+    const signed = a.signed || b.signed
+    // In a signed operation an unsigned operand gains a zero sign bit (WIDTH-4), so a sum or
+    // difference needs one more bit. A product doesn't: the unsigned operand is never negative.
+    const signedWidth = (x: Operand): number => (signed && !x.signed && op !== BinaryOp.MULTIPLY) ? x.width + 1 : x.width
+    const naturalWidth = nameMap[op].autoWidth(signedWidth(a), signedWidth(b))
+
+    let result: string | Sig
+    let width: number
     if (io.result !== undefined) {
       const resultSig = this.findSignal(io.result, true, this.addOperation, true)
       if (resultSig.isSigned === undefined) {
-        resultSig.isSigned = (aSigned || bSigned)
+        resultSig.isSigned = signed
       }
-      if ((aSigned || bSigned) && (!(resultSig.isSigned))) throw Error(`${io.result.toString()} must be signed`)
-      console.log()
-      if ((resultSig.width || 0) < nameMap[op].autoWidth(aWidth, bWidth)) console.warn(`${io.result.toString()} truncated output`)
+      if (signed && (!(resultSig.isSigned))) throw Error(`${io.result.toString()} must be signed`)
+      width = Number(resultSig.width ?? 1)
+      if (width < naturalWidth) console.warn(`${io.result.toString()} truncated output`)
       result = io.result
     } else {
-      result = `${nameMap[op].name}_${aAuto.toString()}x${bAuto.toString()}`
-      this.signals[result] = {
-        type: 'logic',
-        isSigned: (aSigned || bSigned),
-        width: nameMap[op].autoWidth(aWidth, bWidth)
-      }
+      result = `${nameMap[op].name}_${a.auto}x${b.auto}`
+      width = naturalWidth
+      this.signals[result] = { type: 'logic', isSigned: signed, width }
     }
-    this.body += `   assign ${result.toString()} = ${aOperand.toString()} ${op} ${bOperand.toString()};\n`
+
+    // Plain `a op b`, with no operand cast to the result's width (WIDTH-3). In a signed
+    // operation an unsigned signal is `$signed({1'b0, x})` (WIDTH-4). A literal is written at its
+    // own width, with the operation's signedness and so, in a signed operation, a sign bit
+    // (WIDTH-1). A negative literal is the negation of a signed literal that holds its magnitude
+    // and a sign bit: -8 is `-5'sd8`. A result narrower than the natural width gets one outer
+    // cast, which keeps its low bits (WIDTH-2).
+    const term = (x: Operand): string => {
+      if (x.literal === undefined) return (signed && !x.signed) ? `$signed({1'b0, ${x.expr}})` : x.expr
+      const v = x.literal < 0n ? -x.literal : x.literal
+      return `${x.literal < 0n ? '-' : ''}${Math.max(1, this.bitWidth(v, signed))}'${signed ? 's' : ''}d${v}`
+    }
+    const expr = `${term(a)} ${op} ${term(b)}`
+    this.body += `   assign ${result.toString()} = ${width < naturalWidth ? `${width}'(${expr})` : expr};\n`
     if (typeof result === 'string') {
       return new Sig(result)
     }
     return result
   }
 
+  /**
+     * adds an arithmetic multiplier to the generated SystemVerilog module
+     * @param io the input/output interface of the multiplier. `a` and `b` are signals or bigint
+     * literals. If either is signed, or a negative literal, the product is signed, and an
+     * unsigned signal is converted with `$signed({1'b0, x})`. The product is written plain,
+     * `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both
+     * operands together, which holds every product. With `result`, it's computed at `result`'s
+     * width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and
+     * logs a warning. A literal is written at its own width, with a sign bit in a signed product.
+     * A negative literal is negated: `a * -8n` gives `a * -5'sd8`.
+     * @returns the product result
+     */
   addMultiplier (io: OperationIO): Sig {
     return this.addOperation(BinaryOp.MULTIPLY, io)
   }
 
   /**
      * adds an arithmetic adder to the generated SystemVerilog module
-     * @param io the input/output interface of the adder
+     * @param io the input/output interface of the adder. `a` and `b` are signals or bigint
+     * literals. If either is signed, or a negative literal, the sum is signed, and an unsigned
+     * signal is converted with `$signed({1'b0, x})`, which adds a bit. The sum is written plain,
+     * `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the
+     * wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a
+     * narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a
+     * warning. A literal is written at its own width, with a sign bit in a signed sum. A negative
+     * literal is negated: `a + -8n` gives `a + -5'sd8`.
      * @returns the sum result
      */
   addAdder (io: OperationIO): Sig {
@@ -1126,8 +1181,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }
 
   /**
-     * adds an arithemetic subtractor to the generated SystemVerilog module
-     * @param io the input/output interface of the subtractor
+     * adds an arithmetic subtractor to the generated SystemVerilog module
+     * @param io the input/output interface of the subtractor: `a - b`. The widths and signedness
+     * follow {@link Module.addAdder}.
      * @returns the difference result
      */
   addSubtractor (io: OperationIO): Sig {
@@ -1137,7 +1193,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   /**
      * add a constant literal signal to the generated SystemVerilog module
      * @param name signal name
-     * @param value signal literal value
+     * @param value signal literal value. It's declared with a sized literal at the signal's width.
      * @param isSigned whether the signal is signed or not
      * @param width bit width of the resulting signal
      * @returns
@@ -1192,11 +1248,16 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * add a multiplexer to the TSSV module
-     * @param io The input/output signals connected to the multiplexer
+     * @param io The input/output signals connected to the multiplexer. `in` needs at least two
+     * entries, and `sel` picks one; a `sel` signal wider than it needs is sliced to its low bits.
+     * A signal input narrower than `out` is extended to it, with the input's signedness; one wider
+     * than `out` is an error. An `Expr` input is used as given. A `sel` value past the last input
+     * gives `default`, or all X.
      * @returns signal of the multiplexer output
      */
   addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig, default?: string | Sig | Expr }): Sig {
-    const selWidth = Math.ceil(Math.log2(io.in.length)) // remove -1
+    if (io.in.length < 2) throw Error(`addMux: ${io.out.toString()} needs at least 2 inputs, got ${io.in.length}`)
+    const selWidth = Math.ceil(Math.log2(io.in.length))
     let selString = io.sel.toString()
     if ((typeof io.sel === 'string') || (io.sel.type === 'Sig')) {
       const selSig = this.findSignal(io.sel, true, this.addMux, true)
@@ -1221,10 +1282,21 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     if (io.default) {
       defaultString = io.default.toString()
     }
+    const outWidth = Number(outSig.width ?? 1)
     let caseAssignments = ''
     let selIndex = 0
     for (const input of io.in) {
-      const rhExpr = `${input.toString()}`
+      let rhExpr = `${input.toString()}`
+      // A signal input narrower than out is extended to it (WIDTH-3); a wider one is an error.
+      // An Expr input's width isn't known, so it's used as given.
+      if ((typeof input === 'string') || (input.type === 'Sig')) {
+        const inSig = this.findSignal(input, false)
+        const inWidth = Number(inSig?.width ?? 1)
+        if (inSig !== undefined && inWidth > outWidth) {
+          throw Error(`addMux: input ${input.toString()} is ${inWidth} bits, wider than ${io.out.toString()} (${outWidth} bits)`)
+        }
+        if (inSig !== undefined && inWidth < outWidth) rhExpr = `${outWidth}'(${rhExpr})`
+      }
       caseAssignments += `      ${selWidth}'d${selIndex}: ${io.out.toString()} = ${rhExpr};\n`
       selIndex++
     }
@@ -1558,7 +1630,14 @@ ${caseAssignments}
           arrayString = ` [0:${(thisSignal.isArray || 0n) - 1n}]`
         }
         if (thisSignal.type === 'const logic') {
-          valueString = ` = ${(thisSignal.value || 0n).toString()}`
+          // a sized literal (WIDTH-1): a bare decimal is a 32-bit integer, and wider values go wrong
+          const value = thisSignal.value ?? 0n
+          if (typeof value === 'bigint') {
+            const magnitude = value < 0n ? -value : value
+            valueString = ` = ${value < 0n ? '-' : ''}${thisSignal.width ?? 1}'${thisSignal.isSigned ? 's' : ''}d${magnitude}`
+          } else {
+            valueString = ` = ${value.toString()}`
+          }
         }
         signalArray.push(`${attributePrefix(`${this.name}.${key}`, thisSignal.attributes)}${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
       }
@@ -1577,8 +1656,14 @@ ${caseAssignments}
             Object.keys(regs).forEach((key) => {
               const reg = regs[key]
               // console.log(reg)
+              // '0 for zero; otherwise a literal sized to the register (WIDTH-1). An unsized
+              // literal is a 32-bit integer, so a wider value gets a WIDTH warning.
               const resetVal = reg.resetVal ?? 0n
-              const resetLiteral = resetVal < 0n ? `-'d${-resetVal}` : `'d${resetVal}`
+              const qSig = this.findSignal(key, false)
+              const sign = qSig?.isSigned === true ? 's' : ''
+              const resetLiteral = resetVal === 0n
+                ? "'0"
+                : `${resetVal < 0n ? '-' : ''}${qSig?.width ?? 1}'${sign}d${resetVal < 0n ? -resetVal : resetVal}`
               resetAssignments.push(`           ${key} <= ${resetLiteral};`)
             })
             resetString =

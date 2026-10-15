@@ -11,9 +11,14 @@
 # scripts, from the TSSV guide's examples, and lints each one against what the example expects:
 # a "Don't" example is meant to fail.
 #
+# Every lint passes the common waivers file, doc/rtl-style/sv-style/common_waivers.vlt (SV guide,
+# section 8).
+#
 # Prints Verilator's output for each failure. Exits 0 if all pass, 1 if any fail.
 
 cd "$(dirname "$0")/.." || exit 1
+
+COMMON_WAIVERS=doc/rtl-style/sv-style/common_waivers.vlt
 
 if ! command -v verilator &>/dev/null; then
   echo "ERROR: verilator not found on PATH"
@@ -28,7 +33,7 @@ declare -A grouped
 lint() {
   local label=$1 out
   shift
-  if out=$(verilator --lint-only "$@" 2>&1); then
+  if out=$(verilator --lint-only "$COMMON_WAIVERS" "$@" 2>&1); then
     echo "PASS: $label"
     ((passed++))
   else

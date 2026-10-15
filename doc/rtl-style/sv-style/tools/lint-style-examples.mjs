@@ -11,13 +11,15 @@
 //   logic tmp;                          (... or a module-scope declaration, ending in ';')
 //   -->
 //
-// The block is wrapped in a module with those ports and declarations, then linted.
+// The block is wrapped in a module with those ports and declarations, then linted with the common
+// waivers file (section 8).
 // Exits 0 if every example behaves as annotated, 1 otherwise.
 
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { COMMON_WAIVERS } from '../../tools/verilator.mjs'
 
 const DOC = 'doc/rtl-style/sv-style/sv-coding-style.md'
 
@@ -96,7 +98,7 @@ try {
     ].join('\n')
     const file = join(dir, `${name}.sv`)
     writeFileSync(file, src)
-    const run = spawnSync('verilator', ['--lint-only', '-Wall', '-Wno-fatal', file], { encoding: 'utf8' })
+    const run = spawnSync('verilator', ['--lint-only', '-Wall', '-Wno-fatal', COMMON_WAIVERS, file], { encoding: 'utf8' })
     const out = run.stdout + run.stderr
     const warnings = [...new Set([...out.matchAll(/%Warning-([A-Z0-9_]+)/g)].map((m) => m[1]))].sort()
     const hardErrors = out.split('\n').filter((l) => l.startsWith('%Error') && !l.includes('Exiting due to'))
