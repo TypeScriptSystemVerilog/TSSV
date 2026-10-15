@@ -17,7 +17,6 @@ export class addAlways extends Module {
     this.IOs = {
       clk: { direction: 'input', type: 'wire', isClock: 'posedge' },
       rst_b: { direction: 'input', type: 'wire', isReset: 'lowasync' },
-      en: { direction: 'input', type: 'wire' },
       data_in: { direction: 'input', type: 'wire', width: this.params.data_Width },
       data_out: { direction: 'output', type: 'wire', width: this.params.data_Width },
       data_out2: { direction: 'output', type: 'wire', width: this.params.data_Width },
