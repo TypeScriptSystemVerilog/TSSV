@@ -1,8 +1,10 @@
 `verilator_config
 // Common lint waivers, passed by every Verilator lint run in this repo. They waive WIDTHEXPAND
-// on the operands of + and - and nothing else (SV guide, section 5): compares, port connections
-// and every WIDTHTRUNC are still reported. A change here is reviewed like a change to the guide.
+// on the operands of + and -, and on the operand of a unary minus, such as a negated literal
+// (-5'sd8), and nothing else (SV guide, section 5): compares, port connections and every
+// WIDTHTRUNC are still reported. A change here is reviewed like a change to the guide.
 // Design-specific waivers go in their own files, passed only for that design (SV guide, section 8).
 
 lint_off -rule WIDTHEXPAND -file "*" -match "*Operator ADD expects*"
 lint_off -rule WIDTHEXPAND -file "*" -match "*Operator SUB expects*"
+lint_off -rule WIDTHEXPAND -file "*" -match "*Operator NEGATE expects*"

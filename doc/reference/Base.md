@@ -655,7 +655,7 @@ adds an arithmetic multiplier to the generated SystemVerilog module
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the multiplier. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the product is signed, and an unsigned signal is converted with `$signed({1'b0, x})`. The product is written plain, `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both operands together, which holds every product. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and logs a warning. A literal is written at the width the product is computed at. |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the multiplier. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the product is signed, and an unsigned signal is converted with `$signed({1'b0, x})`. The product is written plain, `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both operands together, which holds every product. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and logs a warning. A literal is written at its own width, with a sign bit in a signed product. A negative literal is negated: `a * -8n` gives `a * -5'sd8`. |
 
 ###### Returns
 
@@ -675,7 +675,7 @@ adds an arithmetic adder to the generated SystemVerilog module
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the adder. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the sum is signed, and an unsigned signal is converted with `$signed({1'b0, x})`, which adds a bit. The sum is written plain, `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a warning. A literal is written at the width the sum is computed at. |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the adder. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the sum is signed, and an unsigned signal is converted with `$signed({1'b0, x})`, which adds a bit. The sum is written plain, `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a warning. A literal is written at its own width, with a sign bit in a signed sum. A negative literal is negated: `a + -8n` gives `a + -5'sd8`. |
 
 ###### Returns
 

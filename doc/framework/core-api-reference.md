@@ -170,8 +170,10 @@ width. A `result` narrower than the natural width gets one outer cast, `8'(a + b
 the low bits (WIDTH-2), and logs a warning. If either operand is signed, or a negative literal,
 the result is signed, and an unsigned signal is converted with `$signed({1'b0, x})` (WIDTH-4).
 In a sum or difference, that conversion adds a bit, so the auto-sized result counts that
-operand one bit wider. A literal is written at the width the operation is computed at, so it's
-never extended or truncated: with an 8-bit `a`, `a + 9'd5`, or `a + -9'sd5` if `a` is signed.
+operand one bit wider. A literal is written at its own width, with a sign bit in a signed
+operation: `a + 3'd5`, or `a + 4'sd5` if `a` is signed (WIDTH-1). A negative literal is the
+negation of a signed literal that holds its magnitude and a sign bit: `a + -8n` gives
+`a + -5'sd8`.
 
 ---
 
