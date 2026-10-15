@@ -187,12 +187,14 @@ module tb_AFIFO;
     else $error("a_almost_empty: almost_empty = %0b, rd_curr_depth %0d, threshold %0d", almost_empty, rd_curr_depth, almost_empty_depth);
 `endif
 
-  // GrayPointer's own-domain assertions, on both pointers
+  // GrayPointer's assertions (own domain and both resets), on both pointers
   GrayPointer_checks #(.W(P), .INST("u_wr_ptr")) u_wr_ptr_checks (
-    .clk (wr_clk), .rst_n (wr_rst_n), .inc (dut.push_fire), .bin_ptr (dut.wr_ptr_q), .gray_q (dut.u_wr_ptr.gray_q)
+    .clk (wr_clk), .rst_n (wr_rst_n), .inc (dut.push_fire), .bin_ptr (dut.wr_ptr_q), .gray_q (dut.u_wr_ptr.gray_q),
+    .far_clk (rd_clk), .far_rst_n (rd_rst_n)
   );
   GrayPointer_checks #(.W(P), .INST("u_rd_ptr")) u_rd_ptr_checks (
-    .clk (rd_clk), .rst_n (rd_rst_n), .inc (dut.pop_fire), .bin_ptr (dut.rd_ptr_q), .gray_q (dut.u_rd_ptr.gray_q)
+    .clk (rd_clk), .rst_n (rd_rst_n), .inc (dut.pop_fire), .bin_ptr (dut.rd_ptr_q), .gray_q (dut.u_rd_ptr.gray_q),
+    .far_clk (wr_clk), .far_rst_n (wr_rst_n)
   );
 
   // ---- coverage (spec: Coverage; needs --coverage-user) ----

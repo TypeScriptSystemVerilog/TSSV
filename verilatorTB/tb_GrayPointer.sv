@@ -8,9 +8,9 @@
 // Run everything with `make -C verilatorTB graypointer_sim`, which builds with --coverage-user
 // so the covers run.
 //
-// Own domain: GrayPointer_checks holds the spec's assertions. Far domain: on every far_clk
-// edge, far_bin_ptr must equal bin_ptr as sampled syncStages far_clk edges earlier. A simulated
-// flop never goes metastable, so that's exact.
+// Own domain and both resets: GrayPointer_checks holds the spec's assertions. Far domain: on
+// every far_clk edge, far_bin_ptr must equal bin_ptr as sampled syncStages far_clk edges
+// earlier. A simulated flop never goes metastable, so that's exact.
 //
 // The timing diagram replays first, with far_clk at half clk's frequency and its rising edges
 // aligned with clk's, as the spec draws it. Then every test runs at three clock pairs
@@ -69,7 +69,9 @@ module tb_GrayPointer;
     .rst_n   (rst_n),
     .inc     (inc),
     .bin_ptr (bin_ptr),
-    .gray_q  (dut.gray_q)
+    .gray_q    (dut.gray_q),
+    .far_clk   (far_clk),
+    .far_rst_n (far_rst_n)
   );
 
   // ---- far domain: far_bin_ptr is bin_ptr from SYNC far_clk edges ago ----
