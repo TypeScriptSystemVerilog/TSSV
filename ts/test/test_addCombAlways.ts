@@ -77,21 +77,17 @@ out = a + b;
 comb_tb.addCombAlways({ inputs: inArr, outputs: outArr }, body)
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${comb_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addCombAlways/comb_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addCombAlways/comb_tb.sv', comb_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
 
-// test with no inputs
+// test with no inputs: the builder emits always_comb, with no sensitivity list
 
 const tbBodyN =
 `
+always @(posedge clk)
+  if (rst_b) assert (out == 9'd42) else $fatal(1, "Assertion failed: out should be 42 at time %0t", $time);
 `
 
 const combN_tb = markTestbench(new Module(
@@ -109,21 +105,13 @@ const outArrN: string[] = ['out']
 
 const bodyN =
 `
-display$("hi");
+out = 9'd42;
 `
 
-comb_tb.addCombAlways({ outputs: outArrN }, bodyN)
+combN_tb.addCombAlways({ outputs: outArrN }, bodyN)
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${combN_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addCombAlways/combN_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addCombAlways/combN_tb.sv', combN_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
-
-// does not result in *, but instead will just give no always block
