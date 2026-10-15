@@ -135,15 +135,6 @@
       "LINT-1 UNDRIVEN: Signal is not driven: 'clk'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1
     },
-    "sv-examples/Core/verible/missing_binary_fallback.sv": {
-      "LINT-1 DECLFILENAME: Filename 'missing_binary_fallback' does not match MODULE name: 'sample'": 1
-    },
-    "sv-examples/Core/verible/sample_formatted.sv": {
-      "LINT-1 DECLFILENAME: Filename 'sample_formatted' does not match MODULE name: 'sample'": 1
-    },
-    "sv-examples/Core/verible/timeout_fallback.sv": {
-      "LINT-1 DECLFILENAME: Filename 'timeout_fallback' does not match MODULE name: 'sample'": 1
-    },
     "sv-examples/FIR/myFIR3/myFIR3.sv": {
       "LINT-1 DECLFILENAME: Filename 'myFIR3' does not match IFACE name: 'AXI4Stream_32_4_0_4'": 1,
       "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
