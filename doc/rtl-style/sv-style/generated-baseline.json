@@ -94,41 +94,6 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1
     },
-    "sv-examples/Core/addAdder/addB_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addAdder/addSU_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addAdder/addS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addAdder/addUS_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/Core/addAdder/add_tb.sv": {
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
     "sv-examples/Core/addAlways/comb_seq_test.sv": {
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'en'": 1
     },
