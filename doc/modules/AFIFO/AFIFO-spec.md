@@ -11,7 +11,7 @@ Dual-clock (asynchronous) **First-In First-Out** queue. Words are pushed in the 
 
 The data crosses through a `TwoClockRegFile`, written on `wr_clk` and read on `rd_clk`. Only the pointers cross through synchronizers. Each pointer is Gray-coded, so one bit changes per push or pop, and a synchronizer that samples it mid-change resolves to the old value or the new one, never to a third. Each side sees the other's pointer a few cycles late, which makes the status conservative: `full` can stay asserted after a pop has freed a word, and `empty` can stay asserted after a push. Neither side ever sees more space or more data than the FIFO has.
 
-The storage is flops, not a memory macro, so the same RTL serves ASIC flows and AMD FPGA prototyping. That limits `depth` to a power of two from 4 to 32. A design that needs more buffering puts an `SFIFO` behind the `AFIFO`.
+The storage is a flop array in the RTL, not a memory macro, so the same RTL serves ASIC flows and AMD FPGA prototyping. In an ASIC flow it stays flops. On an FPGA, `fpgaRamStyle` decides what Vivado maps it to: LUTRAM with `'distributed'`, block RAM with `'block'`, and Vivado's own choice when it's unset. Flop storage limits `depth` to a power of two from 4 to 32. A design that needs more buffering puts an `SFIFO` behind the `AFIFO`.
 
 The pointer scheme is Cummings' ("Simulation and Synthesis Techniques for Asynchronous FIFO Design", SNUG 2002), as in BaseJump STL's [bsg_async_fifo](https://github.com/bespoke-silicon-group/basejump_stl/blob/master/bsg_async/bsg_async_fifo.sv), which inspired this module.
 
@@ -423,7 +423,7 @@ Each cover counts its hits in its action block. At the end of a configuration's 
 | Timing diagrams | `d4_flags`, `d4_flags_w1026` | Each diagram in [Timing](#timing) replays cycle for cycle, with `rd_clk` at half `wr_clk`'s frequency and edges aligned, as drawn. `test_AFIFO.ts` builds the vectors from the diagrams' WaveDrom JSON, as `test_SFIFO.ts` does, so a diagram change is tested without editing the testbench |
 | Random | all | 3000 `rd_clk` cycles of random pushes and pops at each clock pair, in fill-biased, drain-biased and balanced phases. Each threshold changes every 50 cycles of its own domain's clock |
 
-**FPGA mapping:** a Vivado synthesis run of a generated `AFIFO` with `fpgaRamStyle: 'distributed'` maps the storage to LUTRAM, and every synchronizer flop keeps `ASYNC_REG` in the netlist. The PR records the Vivado version and target part. This is a manual check.
+**FPGA mapping:** Vivado runs of a generated `AFIFO_1026_32` in each `fpgaRamStyle` setting. With `'distributed'`, the storage maps to LUTRAM and the design uses no block RAM. With `'block'`, it maps to block RAM and uses no LUTRAM. For the unset run, the PR records what Vivado chose. In every run, every synchronizer flop keeps `ASYNC_REG` in the netlist. For each run the PR records the RAM, LUT and register utilization and the worst slack on each clock, with the Vivado version and target part. This is a manual check.
 
 ### Simulation
 
