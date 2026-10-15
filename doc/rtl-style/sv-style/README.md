@@ -20,6 +20,7 @@ way the guide says it does.
 doc/rtl-style/sv-style/
   sv-coding-style.md    the rules, with their short Do/Don't examples inline
   rules.json            how each rule is verified; every rule ID in the guide needs an entry
+  common_waivers.vlt    the lint waivers every Verilator lint run passes (the guide's section 8)
   generated-baseline.json   the findings the test scripts' SV has today, per file
   sv/
     seq/                simulation examples for SEQ-2 and SEQ-5, with their testbenches

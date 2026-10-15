@@ -1129,7 +1129,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       this.signals[result] = { type: 'logic', isSigned: signed, width }
     }
 
-    // Plain `a op b`, with no operand cast to the result's width (SV guide, section 5). In a signed
+    // Plain `a op b`, with no operand cast to the result's width (WIDTH-3). In a signed
     // operation an unsigned signal is `$signed({1'b0, x})` (WIDTH-4). A literal is written at the
     // width the operation computes at, so it's never extended or truncated, with the operation's
     // signedness (WIDTH-1); a negative one is the negation of a signed literal that holds its
