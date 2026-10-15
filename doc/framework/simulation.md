@@ -32,7 +32,7 @@ make TOP_MODULE=Vmy_module VERILOG_FILE=../sv-examples/<Module>/<instance>/my_mo
 ```
 
 The Makefile knows how to regenerate only two SV files: FIR's `tb_lpFIR.sv` (from
-`test_FIR.js`) and `sv-examples/Core/addRegister/regMod.sv` (from `test_addRegister.js`). For
+`test_FIR.js`) and `sv-examples/Core/addRegister/addRegister_tb.sv` (from `test_addRegister.js`). For
 any other module, run its test first (`npx tsc && node out/test/test_<Name>.js`) so
 `VERILOG_FILE` exists.
 

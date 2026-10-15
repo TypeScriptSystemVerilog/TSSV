@@ -163,5 +163,5 @@ tsc: .FORCE
 ../sv-examples/FIR/myFIR3/tb_lpFIR.sv: tsc
 	cd ..; node out/test/test_FIR.js
 
-../sv-examples/Core/addRegister/regMod.sv: tsc
+../sv-examples/Core/addRegister/addRegister_tb.sv: tsc
 	cd ..; node out/test/test_addRegister.js
