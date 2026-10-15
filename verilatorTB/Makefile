@@ -101,11 +101,60 @@ twoclockregfile_sim: tsc
 	  (cd obj_dir/twoclockregfile_$$cfg && ./Vtb_TwoClockRegFile); \
 	done < $(TCRF_DIR)/tb/configs.txt
 
+# Dual-clock FIFO and its helpers (TSSV#67). Each target lints every generated variant with
+# -Wall, then runs its self-checking testbench once per configuration that its test script lists
+# in configs.txt ("<config> <.sv files>"). Each build and its waveform land in
+# obj_dir/<target>_<config>/. Both clock periods are variables that are never zero, hence
+# --no-sched-zero-delay. --coverage-user makes Verilator run the testbenches' cover properties,
+# which it otherwise compiles and skips (TSSV#97); a testbench fails if a cover is never hit.
+CDC_DIR   = ../sv-examples/CDCSynchronizer
+GP_DIR    = ../sv-examples/GrayPointer
+AFIFO_DIR = ../sv-examples/AFIFO
+CDC_SIM   = verilator --binary --timing --no-sched-zero-delay --trace-fst --coverage-user -j 0
+
+# $(call run_configs,<name>,<tb>,<tb dir>,<extra sources>): build and run <tb> per configuration
+define run_configs
+	mkdir -p obj_dir
+	set -e; while read -r cfg files; do \
+	  srcs=""; for f in $$files; do srcs="$$srcs ../$$f"; done; \
+	  $(CDC_SIM) -Mdir obj_dir/$(1)_$$cfg -o V$(2) -DCFG_$$cfg -I$(3) $(2).sv $(4) $$srcs \
+	    > obj_dir/$(1)_$$cfg.build.log 2>&1 || { cat obj_dir/$(1)_$$cfg.build.log; exit 1; }; \
+	  (cd obj_dir/$(1)_$$cfg && ./V$(2)); \
+	done < $(3)/configs.txt
+endef
+
+cdcsynchronizer_sim: tsc
+	cd ..; node out/test/modules/test_CDCSynchronizer.js
+	set -e; for f in $(CDC_DIR)/CDCSynchronizer_*/*.sv; do \
+	  verilator --lint-only -Wall $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	$(call run_configs,cdcsynchronizer,tb_CDCSynchronizer,$(CDC_DIR)/tb,)
+
+# GrayPointer and AFIFO variants are emitted one module per file, so each is linted through the
+# filelist its test script writes next to it
+graypointer_sim: tsc
+	cd ..; node out/test/modules/test_GrayPointer.js
+	set -e; for f in $(GP_DIR)/GrayPointer_*/*.f; do \
+	  verilator --lint-only -Wall -F $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	$(call run_configs,graypointer,tb_GrayPointer,$(GP_DIR)/tb,GrayPointer_checks.sv)
+
+afifo_sim: tsc
+	cd ..; node out/test/modules/test_AFIFO.js
+	set -e; for f in $(AFIFO_DIR)/AFIFO_*/*.f; do \
+	  verilator --lint-only -Wall -F $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	$(call run_configs,afifo,tb_AFIFO,$(AFIFO_DIR)/tb,GrayPointer_checks.sv)
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd
 
-.PHONY: sfifo_sim regblock_read_sim regblock_types_sim apb_to_memory_sim twoclockregfile_sim
+.PHONY: sfifo_sim regblock_read_sim regblock_types_sim apb_to_memory_sim twoclockregfile_sim \
+  cdcsynchronizer_sim graypointer_sim afifo_sim
 .FORCE:
 tsc: .FORCE
 	cd ..; npx tsc
