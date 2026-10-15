@@ -1129,19 +1129,22 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       this.signals[result] = { type: 'logic', isSigned: signed, width }
     }
 
-    // Compute at the result's width: each operand cast to it (WIDTH-3), which keeps the low bits
-    // of a narrower result, and each literal written at it with the operation's signedness (WIDTH-1).
+    // Plain `a op b`, with no operand cast to the result's width (SV guide, section 5). In a signed
+    // operation an unsigned signal is `$signed({1'b0, x})` (WIDTH-4). A literal is written at the
+    // width the operation computes at, so it's never extended or truncated, with the operation's
+    // signedness (WIDTH-1); a negative one is the negation of a signed literal that holds its
+    // magnitude. A result narrower than the natural width gets one outer cast, which keeps its low
+    // bits (WIDTH-2).
+    const signal = (x: Operand): [string, number] => (signed && !x.signed) ? [`$signed({1'b0, ${x.expr}})`, x.width + 1] : [x.expr, x.width]
+    const litWidth = (v: bigint): number => v < 0n ? this.bitWidth(-v, true) : Math.max(1, this.bitWidth(v, signed))
+    const exprWidth = Math.max(width, ...[a, b].map((x) => x.literal === undefined ? signal(x)[1] : litWidth(x.literal)))
     const term = (x: Operand): string => {
-      if (x.literal !== undefined) {
-        const mask = (1n << BigInt(width)) - 1n
-        let v = x.literal & mask
-        if (signed && v > (mask >> 1n)) v -= mask + 1n
-        return `${v < 0n ? '-' : ''}${width}'${signed ? 's' : ''}d${v < 0n ? -v : v}`
-      }
-      const [expr, exprWidth] = (signed && !x.signed) ? [`$signed({1'b0, ${x.expr}})`, x.width + 1] : [x.expr, x.width]
-      return exprWidth === width ? expr : `${width}'(${expr})`
+      if (x.literal === undefined) return signal(x)[0]
+      const v = x.literal
+      return `${v < 0n ? '-' : ''}${exprWidth}'${signed ? 's' : ''}d${v < 0n ? -v : v}`
     }
-    this.body += `   assign ${result.toString()} = ${term(a)} ${op} ${term(b)};\n`
+    const expr = `${term(a)} ${op} ${term(b)}`
+    this.body += `   assign ${result.toString()} = ${width < naturalWidth ? `${width}'(${expr})` : expr};\n`
     if (typeof result === 'string') {
       return new Sig(result)
     }

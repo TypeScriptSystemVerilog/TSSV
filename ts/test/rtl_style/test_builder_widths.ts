@@ -143,6 +143,21 @@ for (const { tag, fn, op } of OPS) {
       ...(r.width < Math.max(a.width, b.width) ? { unused: 'a result narrower than its operands needs only their low bits' } : {})
     })
   }
+  // A signal and a literal, in either order, with an explicit result: narrower than the natural
+  // width (and than the literal), or wider.
+  const litResults: Array<[Port, bigint, Port]> = [[u(8), 300n, u(6)], [u(4), 5n, u(12)], [s(4), -8n, s(12)], [s(4), -8n, s(3)], [u(4), -3n, s(4)]]
+  for (const [a, lit, r] of litResults) {
+    for (const litFirst of [false, true]) {
+      cases.push({
+        name: litFirst ? `${tag}_lit${litName(lit)}_${portName(a)}_to_${portName(r)}` : `${tag}_${portName(a)}_lit${litName(lit)}_to_${portName(r)}`,
+        inputs: { a },
+        outputs: { r },
+        build: (m) => { callOp(m, fn, litFirst ? { a: lit, b: 'a', result: 'r' } : { a: 'a', b: lit, result: 'r' }) },
+        ref: (v) => ({ r: litFirst ? op(lit, v.a) : op(v.a, lit) }),
+        ...(r.width < a.width ? { unused: 'a result narrower than its operands needs only their low bits' } : {})
+      })
+    }
+  }
 }
 
 // ---- addRound --------------------------------------------------------------------------------
