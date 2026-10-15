@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" content="&lt;mxfile host=&quot;TSSV&quot; type=&quot;device&quot;&gt;
+  &lt;diagram id=&quot;graypointer-blocks&quot; name=&quot;GrayPointer blocks&quot;&gt;
+    &lt;mxGraphModel dx=&quot;1040&quot; dy=&quot;390&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1040&quot; pageHeight=&quot;390&quot; background=&quot;#FFFFFF&quot; math=&quot;0&quot; shadow=&quot;0&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;c2&quot; value=&quot;GrayPointer: one pointer, read in two clock domains&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=18;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;13&quot; width=&quot;530&quot; height=&quot;26&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c3&quot; value=&quot;Only gray_q crosses the dashed line, and one of its bits changes per clk edge. Thick border: flop.&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=13;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;40&quot; width=&quot;696&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c4&quot; value=&quot;&quot; style=&quot;rounded=1;arcSize=2;html=1;fillColor=#EEF4FF;strokeColor=#D0D7DE;strokeWidth=1.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;76&quot; width=&quot;580&quot; height=&quot;290&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c5&quot; value=&quot;&quot; style=&quot;rounded=1;arcSize=2;html=1;fillColor=#EEFBF1;strokeColor=#D0D7DE;strokeWidth=1.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;600&quot; y=&quot;76&quot; width=&quot;420&quot; height=&quot;290&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c6&quot; value=&quot;own domain&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=15;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;32&quot; y=&quot;82&quot; width=&quot;96&quot; height=&quot;23&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c7&quot; value=&quot;clk · rst_n&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;32&quot; y=&quot;105&quot; width=&quot;90&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c8&quot; value=&quot;far domain&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=15;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;912&quot; y=&quot;82&quot; width=&quot;96&quot; height=&quot;23&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c9&quot; value=&quot;far_clk · far_rst_n&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;859&quot; y=&quot;105&quot; width=&quot;149&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c10&quot; value=&quot;&quot; style=&quot;endArrow=none;html=1;rounded=0;strokeColor=#8C959F;strokeWidth=1.6;dashed=1;dashPattern=8 5;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;600&quot; y=&quot;76&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;600&quot; y=&quot;366&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c11&quot; value=&quot;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#1F2328&amp;quot;&amp;gt;bin_ptr_nxt&amp;lt;/font&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;bin_ptr + inc&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#F6F8FA;strokeColor=#D0D7DE;strokeWidth=1.4;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;100&quot; y=&quot;150&quot; width=&quot;130&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c12&quot; value=&quot;&amp;lt;b&amp;gt;to Gray&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;x ^ (x &amp;amp;gt;&amp;amp;gt; 1)&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#F6F8FA;strokeColor=#D0D7DE;strokeWidth=1.4;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;280&quot; y=&quot;150&quot; width=&quot;120&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c13&quot; value=&quot;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#1F2328&amp;quot;&amp;gt;gray_q&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;450&quot; y=&quot;150&quot; width=&quot;100&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c14&quot; value=&quot;&amp;lt;b&amp;gt;CDCSynchronizer&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;syncStages flops&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#FFF8E5;strokeColor=#D0D7DE;strokeWidth=2.6;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;640&quot; y=&quot;145&quot; width=&quot;150&quot; height=&quot;70&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c15&quot; value=&quot;&amp;lt;b&amp;gt;to binary&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;prefix XOR&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#F6F8FA;strokeColor=#D0D7DE;strokeWidth=1.4;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;860&quot; y=&quot;150&quot; width=&quot;120&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c16&quot; value=&quot;&amp;lt;font face=&amp;quot;monospace&amp;quot; style=&amp;quot;font-size:13px&amp;quot; color=&amp;quot;#1F2328&amp;quot;&amp;gt;bin_ptr&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=Helvetica;fontSize=14;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;280&quot; y=&quot;250&quot; width=&quot;120&quot; height=&quot;56&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c17&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#6E7781;strokeWidth=1.4;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; target=&quot;c11&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;34&quot; y=&quot;180&quot; as=&quot;sourcePoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c18&quot; value=&quot;inc&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#6E7781;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;34&quot; y=&quot;159&quot; width=&quot;32&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c19&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c11&quot; target=&quot;c12&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c20&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c12&quot; target=&quot;c13&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c21&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c13&quot; target=&quot;c14&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c22&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c14&quot; target=&quot;c15&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c23&quot; value=&quot;gray_far&quot; style=&quot;text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;791&quot; y=&quot;159&quot; width=&quot;68&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c24&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c15&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;920&quot; y=&quot;300&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c25&quot; value=&quot;far_bin_ptr&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;924&quot; y=&quot;277&quot; width=&quot;90&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c26&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=0.6154;exitY=1.0;exitDx=0;exitDy=0;entryX=0.0;entryY=0.5;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c11&quot; target=&quot;c16&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;180&quot; y=&quot;278&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c27&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=1.0;exitY=0.5;exitDx=0;exitDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c16&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;560&quot; y=&quot;278&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c28&quot; value=&quot;bin_ptr&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;479&quot; y=&quot;257&quot; width=&quot;61&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c29&quot; value=&quot;&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#BC4C00;strokeWidth=1.8;exitX=0.25;exitY=1.0;exitDx=0;exitDy=0;entryX=0.2308;entryY=1.0;entryDx=0;entryDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;c16&quot; target=&quot;c11&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;310&quot; y=&quot;336&quot;/&gt;&lt;mxPoint x=&quot;130&quot; y=&quot;336&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;" width="1040" height="390" viewBox="0 0 1040 390" role="img">
+<title>GrayPointer block diagram</title>
+<desc>In the own clock domain, bin_ptr + inc feeds the bin_ptr flop and, through a binary-to-Gray conversion, the gray_q flop. Only gray_q crosses the boundary, into a CDCSynchronizer on far_clk. A Gray-to-binary conversion turns the synchronized value into far_bin_ptr.</desc>
+<defs>
+  <style>
+    :root {
+      --bg:#ffffff; --surface:#f6f8fa; --sub:#fff8e5; --reg:#ffffff; --border:#d0d7de; --strong:#57606a;
+      --wrdom:#eef4ff; --rddom:#eefbf1; --text:#1f2328; --dim:#59636e;
+      --data:#0969da; --ptr:#bc4c00; --ctl:#6e7781; --mute:#8c959f;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0d1117; --surface:#161b22; --sub:#2b2111; --reg:#0d1117; --border:#30363d; --strong:#8b949e;
+        --wrdom:#121d33; --rddom:#0f2418; --text:#e6edf3; --dim:#8b949e;
+        --data:#58a6ff; --ptr:#f0883e; --ctl:#8b949e; --mute:#6e7681;
+      }
+    }
+    .bg     { fill:var(--bg); }
+    .wrdom  { fill:var(--wrdom); stroke:var(--border); stroke-width:1.2; }
+    .rddom  { fill:var(--rddom); stroke:var(--border); stroke-width:1.2; }
+    .box    { fill:var(--surface); stroke:var(--border); stroke-width:1.4; }
+    .sub    { fill:var(--sub); stroke:var(--border); stroke-width:2.6; }
+    .reg    { fill:var(--reg); stroke:var(--strong); stroke-width:2.2; }
+    .ghost  { fill:var(--bg); stroke:var(--mute); stroke-width:1.4; stroke-dasharray:5 4; }
+    .bound  { fill:none; stroke:var(--mute); stroke-width:1.6; stroke-dasharray:8 5; }
+    .h      { fill:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; }
+    .title  { fill:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:18px; font-weight:700; }
+    .d      { fill:var(--dim); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:13px; }
+    .m      { fill:var(--text); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; }
+    .md     { fill:var(--dim); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .ldata  { fill:var(--data); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .lptr   { fill:var(--ptr); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .lctl   { fill:var(--ctl); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .data   { fill:none; stroke:var(--data); stroke-width:2.4; }
+    .ptr    { fill:none; stroke:var(--ptr); stroke-width:1.8; }
+    .ctl    { fill:none; stroke:var(--ctl); stroke-width:1.4; }
+    .opt    { stroke-dasharray:6 4; }
+    .ah-data { fill:var(--data); }
+    .ah-ptr  { fill:var(--ptr); }
+    .ah-ctl  { fill:var(--ctl); }
+  </style>
+  <marker id="a-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-data" d="M0,0 L10,5 L0,10 Z"/></marker>
+  <marker id="a-ptr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ptr" d="M0,0 L10,5 L0,10 Z"/></marker>
+  <marker id="a-ctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-ctl" d="M0,0 L10,5 L0,10 Z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="1040" height="390"/>
+<text class="title" x="24" y="34" text-anchor="start">GrayPointer: one pointer, read in two clock domains</text>
+<text class="d" x="24" y="56" text-anchor="start">Only gray_q crosses the dashed line, and one of its bits changes per clk edge. Thick border: flop.</text>
+<rect class="wrdom" x="20" y="76" width="580" height="290" rx="6"/>
+<rect class="rddom" x="600" y="76" width="420" height="290" rx="6"/>
+<text class="h" x="36" y="100" text-anchor="start">own domain</text>
+<text class="md" x="36" y="120" text-anchor="start">clk · rst_n</text>
+<text class="h" x="1004" y="100" text-anchor="end">far domain</text>
+<text class="md" x="1004" y="120" text-anchor="end">far_clk · far_rst_n</text>
+<path class="bound" d="M600,76 L600,366"/>
+<rect class="box" x="100" y="150" width="130" height="60" rx="8"/>
+<text class="m" x="165" y="175" text-anchor="middle">bin_ptr_nxt</text>
+<text class="md" x="165" y="195" text-anchor="middle">bin_ptr + inc</text>
+<rect class="box" x="280" y="150" width="120" height="60" rx="8"/>
+<text class="h" x="340" y="175" text-anchor="middle">to Gray</text>
+<text class="md" x="340" y="195" text-anchor="middle">x ^ (x &gt;&gt; 1)</text>
+<rect class="reg" x="450" y="150" width="100" height="60" rx="8"/>
+<text class="m" x="500" y="185" text-anchor="middle">gray_q</text>
+<rect class="sub" x="640" y="145" width="150" height="70" rx="8"/>
+<text class="h" x="715" y="175" text-anchor="middle">CDCSynchronizer</text>
+<text class="d" x="715" y="195" text-anchor="middle">syncStages flops</text>
+<rect class="box" x="860" y="150" width="120" height="60" rx="8"/>
+<text class="h" x="920" y="175" text-anchor="middle">to binary</text>
+<text class="md" x="920" y="195" text-anchor="middle">prefix XOR</text>
+<rect class="reg" x="280" y="250" width="120" height="56" rx="8"/>
+<text class="m" x="340" y="283" text-anchor="middle">bin_ptr</text>
+<path class="ctl" d="M34,180 L100,180" marker-end="url(#a-ctl)"/>
+<text class="lctl" x="38" y="174" text-anchor="start">inc</text>
+<path class="ptr" d="M230,180 L280,180" marker-end="url(#a-ptr)"/>
+<path class="ptr" d="M400,180 L450,180" marker-end="url(#a-ptr)"/>
+<path class="ptr" d="M550,180 L640,180" marker-end="url(#a-ptr)"/>
+<path class="ptr" d="M790,180 L860,180" marker-end="url(#a-ptr)"/>
+<text class="lptr" x="825" y="174" text-anchor="middle">gray_far</text>
+<path class="ptr" d="M920,210 L920,300" marker-end="url(#a-ptr)"/>
+<text class="lptr" x="928" y="292" text-anchor="start">far_bin_ptr</text>
+<path class="ptr" d="M180,210 L180,278 L280,278" marker-end="url(#a-ptr)"/>
+<path class="ptr" d="M400,278 L560,278" marker-end="url(#a-ptr)"/>
+<text class="lptr" x="536" y="272" text-anchor="end">bin_ptr</text>
+<path class="ptr" d="M310,306 L310,336 L130,336 L130,210" marker-end="url(#a-ptr)"/>
+</svg>
