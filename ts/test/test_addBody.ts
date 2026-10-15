@@ -47,7 +47,6 @@ writeFileSync('sv-examples/Core/addBody/test_normalize.sv', m1.writeSystemVerilo
 
 // --- Test 2: verbatim preserves indent ---
 const m2 = new TestModule({ name: 'test_verbatim' }, {
-  clk: { direction: 'input', isClock: 'posedge' },
   out: { direction: 'output', width: 8 },
   in: { direction: 'input', width: 8 }
 })
@@ -104,10 +103,8 @@ writeFileSync('sv-examples/Core/addBody/test_equiv_ref.sv', m4ref.writeSystemVer
 writeFileSync('sv-examples/Core/addBody/test_equiv_addBody.sv', m4.writeSystemVerilog())
 
 // --- Test 5: empty addBody call is a no-op ---
-const m5 = new TestModule({ name: 'test_empty' }, {
-  a: { direction: 'input', width: 1 },
-  b: { direction: 'output', width: 1 }
-})
+// No ports: with an empty body, any port would go unused or undriven
+const m5 = new TestModule({ name: 'test_empty' }, {})
 m5.addBody('   \n\n   ')
 check(
   'addBody with only whitespace/blank lines is a no-op',

@@ -94,13 +94,6 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1
     },
-    "sv-examples/Core/addBody/test_empty.sv": {
-      "LINT-1 UNDRIVEN: Signal is not driven: 'b'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'a'": 1
-    },
-    "sv-examples/Core/addBody/test_verbatim.sv": {
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1
-    },
     "sv-examples/Core/importParse/importParse_ansi.sv": {
       "LINT-1 DECLFILENAME: Filename 'importParse_ansi' does not match MODULE name: 'leaf'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'sa'": 1,
