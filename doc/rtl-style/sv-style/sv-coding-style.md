@@ -550,8 +550,9 @@ Verilator's `WIDTH*` warnings in it.
 
 Every lint run passes the common waivers file, [`common_waivers.vlt`](common_waivers.vlt)
 (section 8). It waives `WIDTHEXPAND` on the operands of `+` and `-`, which lets arithmetic be
-written plain (WIDTH-3), and nothing else: compares (with one gap, in WIDTH-10), port
-connections and every `WIDTHTRUNC` are still reported. Lint doesn't catch a dropped carry
+written plain (WIDTH-3), and on the operand of a unary minus, such as a negated literal
+(WIDTH-1), and nothing else: compares (with one gap, in WIDTH-10), port connections and every
+`WIDTHTRUNC` are still reported. Lint doesn't catch a dropped carry
 (WIDTH-2), a change of signedness (WIDTH-9) or a compare of mixed signedness (WIDTH-10) either.
 
 **WIDTH-1: Literals.**
@@ -566,11 +567,15 @@ connections and every `WIDTHTRUNC` are still reported. Lint doesn't catch a drop
 - (MUST) In signed expressions, use signed literals (`3'sd3`), never `3'd3` [`s_sub_lit`,
   `s_is_neg`]. An unsigned literal makes the whole expression unsigned, so `sa < 1'd0` is
   always false.
-- (MUST) Write a negative literal at the width its expression computes at: `-19'sd5`, not
-  `-4'sd5`. The literal is extended before it's negated, so a narrower one raises
-  `WIDTHEXPAND` on the negation, which the common waivers don't cover. Where that width is a
-  parameter, negate the expression instead [`s_mul_lit`]. Verilator flags a value too large
-  for its width, except in a negative signed literal: `-4'sd9` is silent.
+- (MUST) Size a literal operand of `+`, `-` or `*` to its own value: the bits it needs, plus a
+  sign bit when it's signed (`a + 3'd5`, `sa - 3'sd3`). Like any operand, it's extended to the
+  operation's width (WIDTH-3). Elsewhere, write a literal at the width it's used at: a
+  compare's (WIDTH-10), an assignment's or a reset value's.
+- (MUST) Write a negative literal as a negated positive one that holds its magnitude and a sign
+  bit: -8 is `-5'sd8`, never `-4'sd8`, since `4'sd8` is already -8 and negating it gives +8.
+  Verilator flags a value too large for its width, except in a negative signed literal:
+  `-4'sd9` is silent. The common waivers cover the `WIDTHEXPAND` a negated literal raises in a
+  wider expression, as in `sa * -4'sd5` [`s_mul_lit`].
 
 **WIDTH-2 (MUST): Let the target hold the result's natural growth; mark a deliberate wrap
 with one outer cast.** Addition and subtraction grow by one bit, and multiplication by the
@@ -632,10 +637,10 @@ lint clean, so review checks it.
 **WIDTH-10 (MUST): Compare operands of equal width and the same signedness.** A compare has no
 target to widen it, so size both operands to one width and give them one signedness
 [`u_at_lim`, `s_is_neg`, `s_lt_mixed`, `u_sum_gt`]. `WIDTHEXPAND` enforces the width, with one
-gap: when an operand is itself a `+` or `-`, Verilator reports the mismatch on that operation,
-as `Operator ADD expects`, and the common waivers hide it. Name the sum, or cast it to the
-compare's width (WIDTH-6). Verilator doesn't check signedness: `sa < a` compares unsigned and
-lints clean, so review checks it.
+gap: when an operand is itself a `+`, a `-` or a negation, Verilator reports the mismatch on
+that operation, as `Operator ADD expects`, and the common waivers hide it. Name the sum, or
+cast it to the compare's width (WIDTH-6). Verilator doesn't check signedness: `sa < a`
+compares unsigned and lints clean, so review checks it.
 
 ## 6. Naming and structure
 
@@ -703,10 +708,10 @@ assign mode     = cfg_word[3:0];
 - **The common waivers file**, [`common_waivers.vlt`](common_waivers.vlt). Every lint run passes
   it: `scripts/lint-sv.sh`, `lint()` in `doc/rtl-style/tools/verilator.mjs` (which
   `check-generated-sv.mjs` and this guide's checks use), `lint-style-examples.mjs`, and the
-  lint steps in `verilatorTB/Makefile`. It holds only the two waivers WIDTH-3 relies on:
-  `WIDTHEXPAND` on the operands of `+` and of `-`, matched by message text, so compares (with
-  the gap WIDTH-10 describes), port connections and every `WIDTHTRUNC` are still reported. A
-  change to it is reviewed like a change to this guide.
+  lint steps in `verilatorTB/Makefile`. It holds only three waivers, matched by message text:
+  `WIDTHEXPAND` on the operands of `+` and of `-` (WIDTH-3), and on the operand of a unary
+  minus (WIDTH-1). Compares (with the gap WIDTH-10 describes), port connections and every
+  `WIDTHTRUNC` are still reported. A change to it is reviewed like a change to this guide.
 - **A design-specific waivers file**, passed only when linting that design, such as
   `verilatorTB/regblock_read_waivers.vlt`. Each waiver in it is as narrow as it can be and says
   why, as LINT-3 asks of an in-source waiver. Never add a design's waiver to the common file.

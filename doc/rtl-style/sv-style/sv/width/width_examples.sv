@@ -99,7 +99,7 @@ module width_examples #(
   assign u_mul_narrow = a * c;
   assign u_mul_lit    = a * 2'd3;
   assign s_mul_full   = sa * sb;
-  assign s_mul_lit    = -(sa * 4'sd5);  // sa * -4'sd5 would extend 4'sd5 before negating it
+  assign s_mul_lit    = sa * -4'sd5;
   assign s_mul_mixed  = sa * $signed({1'b0, b});
   logic signed [2*W-1:0] s_prod;  // full product, named so the shift sees all 2*W bits
   assign s_prod       = sa * sb;

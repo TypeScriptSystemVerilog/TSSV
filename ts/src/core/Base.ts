@@ -1130,18 +1130,15 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
 
     // Plain `a op b`, with no operand cast to the result's width (WIDTH-3). In a signed
-    // operation an unsigned signal is `$signed({1'b0, x})` (WIDTH-4). A literal is written at the
-    // width the operation computes at, so it's never extended or truncated, with the operation's
-    // signedness (WIDTH-1); a negative one is the negation of a signed literal that holds its
-    // magnitude. A result narrower than the natural width gets one outer cast, which keeps its low
-    // bits (WIDTH-2).
-    const signal = (x: Operand): [string, number] => (signed && !x.signed) ? [`$signed({1'b0, ${x.expr}})`, x.width + 1] : [x.expr, x.width]
-    const litWidth = (v: bigint): number => v < 0n ? this.bitWidth(-v, true) : Math.max(1, this.bitWidth(v, signed))
-    const exprWidth = Math.max(width, ...[a, b].map((x) => x.literal === undefined ? signal(x)[1] : litWidth(x.literal)))
+    // operation an unsigned signal is `$signed({1'b0, x})` (WIDTH-4). A literal is written at its
+    // own width, with the operation's signedness and so, in a signed operation, a sign bit
+    // (WIDTH-1). A negative literal is the negation of a signed literal that holds its magnitude
+    // and a sign bit: -8 is `-5'sd8`. A result narrower than the natural width gets one outer
+    // cast, which keeps its low bits (WIDTH-2).
     const term = (x: Operand): string => {
-      if (x.literal === undefined) return signal(x)[0]
-      const v = x.literal
-      return `${v < 0n ? '-' : ''}${exprWidth}'${signed ? 's' : ''}d${v < 0n ? -v : v}`
+      if (x.literal === undefined) return (signed && !x.signed) ? `$signed({1'b0, ${x.expr}})` : x.expr
+      const v = x.literal < 0n ? -x.literal : x.literal
+      return `${x.literal < 0n ? '-' : ''}${Math.max(1, this.bitWidth(v, signed))}'${signed ? 's' : ''}d${v}`
     }
     const expr = `${term(a)} ${op} ${term(b)}`
     this.body += `   assign ${result.toString()} = ${width < naturalWidth ? `${width}'(${expr})` : expr};\n`
@@ -1159,7 +1156,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both
      * operands together, which holds every product. With `result`, it's computed at `result`'s
      * width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and
-     * logs a warning. A literal is written at the width the product is computed at.
+     * logs a warning. A literal is written at its own width, with a sign bit in a signed product.
+     * A negative literal is negated: `a * -8n` gives `a * -5'sd8`.
      * @returns the product result
      */
   addMultiplier (io: OperationIO): Sig {
@@ -1174,7 +1172,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the
      * wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a
      * narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a
-     * warning. A literal is written at the width the sum is computed at.
+     * warning. A literal is written at its own width, with a sign bit in a signed sum. A negative
+     * literal is negated: `a + -8n` gives `a + -5'sd8`.
      * @returns the sum result
      */
   addAdder (io: OperationIO): Sig {
