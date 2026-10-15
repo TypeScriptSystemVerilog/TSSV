@@ -136,6 +136,7 @@ const multS_tb = markTestbench(new Module(
   {},
   tbBodyS
 ))
+multS_tb.waiveWidthWarnings('#148')
 multS_tb.addSignal('a', { width: 8, isSigned: true })
 multS_tb.addSignal('b', { width: 8, isSigned: true })
 multS_tb.addMultiplier({ a: 'a', b: 'b' })
@@ -215,6 +216,7 @@ const multUS_tb = markTestbench(new Module(
   tbBodyUS
 ))
 
+multUS_tb.waiveWidthWarnings('#148')
 multUS_tb.addSignal('a', { width: 8, isSigned: false })
 multUS_tb.addSignal('b', { width: 8, isSigned: true })
 multUS_tb.addMultiplier({ a: 'a', b: 'b' })
@@ -294,6 +296,7 @@ const multSU_tb = markTestbench(new Module(
   tbBodySU
 ))
 
+multSU_tb.waiveWidthWarnings('#148')
 multSU_tb.addSignal('a', { width: 8, isSigned: true })
 multSU_tb.addSignal('b', { width: 8, isSigned: false })
 multSU_tb.addMultiplier({ a: 'a', b: 'b' })
@@ -417,6 +420,7 @@ const multUB_tb = markTestbench(new Module(
   {},
   tbBodyUB
 ))
+multUB_tb.waiveWidthWarnings('#148')
 multUB_tb.addSignal('a', { width: 8, isSigned: false })
 multUB_tb.addMultiplier({ a: 'a', b: 50n })
 
@@ -487,6 +491,7 @@ const multSB_tb = markTestbench(new Module(
   {},
   tbBodySB
 ))
+multSB_tb.waiveWidthWarnings('#148')
 multSB_tb.addSignal('a', { width: 8, isSigned: true })
 multSB_tb.addMultiplier({ a: 'a', b: -50n })
 

@@ -63,6 +63,7 @@ const add_tb = markTestbench(new Module(
   {},
   tbBody
 ))
+add_tb.waiveWidthWarnings('#148')
 add_tb.addSignal('a', { width: 8, isSigned: false })
 add_tb.addSignal('b', { width: 4, isSigned: false })
 add_tb.addAdder({ a: 'a', b: 'b' })
@@ -136,6 +137,7 @@ const addS_tb = markTestbench(new Module(
   {},
   tbBodyS
 ))
+addS_tb.waiveWidthWarnings('#148')
 addS_tb.addSignal('a', { width: 8, isSigned: true })
 addS_tb.addSignal('b', { width: 8, isSigned: true })
 addS_tb.addAdder({ a: 'a', b: 'b' })
@@ -209,6 +211,7 @@ const addUS_tb = markTestbench(new Module(
   {},
   tbBodyUS
 ))
+addUS_tb.waiveWidthWarnings('#148')
 addUS_tb.addSignal('a', { width: 8, isSigned: false })
 addUS_tb.addSignal('b', { width: 8, isSigned: true })
 addUS_tb.addAdder({ a: 'a', b: 'b' })
@@ -282,6 +285,7 @@ const addSU_tb = markTestbench(new Module(
   {},
   tbBodySU
 ))
+addSU_tb.waiveWidthWarnings('#148')
 addSU_tb.addSignal('a', { width: 8, isSigned: true })
 addSU_tb.addSignal('b', { width: 8, isSigned: false })
 addSU_tb.addAdder({ a: 'a', b: 'b' })
@@ -355,6 +359,7 @@ const addB_tb = markTestbench(new Module(
   {},
   tbBodyB
 ))
+addB_tb.waiveWidthWarnings('#148')
 addB_tb.addSignal('a', { width: 16, isSigned: true })
 addB_tb.addSignal('b', { width: 16, isSigned: true })
 addB_tb.addSignal('sum', { width: 18, isSigned: true })

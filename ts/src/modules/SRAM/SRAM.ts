@@ -68,6 +68,8 @@ export class SRAM extends Module {
       macroConfig: params.macroConfig || 'default'
     })
     if (this.params.dataWidth < 1n) throw Error(`SRAM: dataWidth must be at least 1, got ${this.params.dataWidth}`)
+    // keeps the module-wide WIDTH waiver until #150 fixes SRAM's width warnings
+    this.waiveWidthWarnings('#150')
     // signal widths are numbers in the framework; convert once here
     const dataWidth = Number(this.params.dataWidth)
 

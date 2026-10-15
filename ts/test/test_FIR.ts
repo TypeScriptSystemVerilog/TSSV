@@ -73,6 +73,7 @@ const tb_lpFIR = markTestbench(new Module(
   },
   tbBody
 ))
+tb_lpFIR.waiveWidthWarnings('#152')
 tb_lpFIR.addSubmodule(
   'dut',
   myFir3,

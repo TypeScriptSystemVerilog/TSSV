@@ -126,7 +126,7 @@ endef
 cdcsynchronizer_sim: tsc
 	cd ..; node out/test/modules/test_CDCSynchronizer.js
 	set -e; for f in $(CDC_DIR)/CDCSynchronizer_*/*.sv; do \
-	  verilator --lint-only -Wall $$f; \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) $$f; \
 	  echo "lint -Wall clean: $$f"; \
 	done
 	$(call run_configs,cdcsynchronizer,tb_CDCSynchronizer,$(CDC_DIR)/tb,)
@@ -136,7 +136,7 @@ cdcsynchronizer_sim: tsc
 graypointer_sim: tsc
 	cd ..; node out/test/modules/test_GrayPointer.js
 	set -e; for f in $(GP_DIR)/GrayPointer_*/*.f; do \
-	  verilator --lint-only -Wall -F $$f; \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) -F $$f; \
 	  echo "lint -Wall clean: $$f"; \
 	done
 	$(call run_configs,graypointer,tb_GrayPointer,$(GP_DIR)/tb,GrayPointer_checks.sv)
@@ -144,7 +144,7 @@ graypointer_sim: tsc
 afifo_sim: tsc
 	cd ..; node out/test/modules/test_AFIFO.js
 	set -e; for f in $(AFIFO_DIR)/AFIFO_*/*.f; do \
-	  verilator --lint-only -Wall -F $$f; \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) -F $$f; \
 	  echo "lint -Wall clean: $$f"; \
 	done
 	$(call run_configs,afifo,tb_AFIFO,$(AFIFO_DIR)/tb,GrayPointer_checks.sv)

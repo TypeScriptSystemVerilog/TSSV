@@ -582,6 +582,7 @@ const regMod8 = markTestbench(new Module(
   {},
   tbBody8
 ))
+regMod8.waiveWidthWarnings('#148')
 regMod8.addSignal('d', { width: 8 })
 regMod8.addSignal('q', { width: 4 })
 regMod8.addRegister(

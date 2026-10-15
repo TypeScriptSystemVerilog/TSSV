@@ -209,6 +209,7 @@ const subUS_tb = markTestbench(new Module(
   {},
   tbBodyUS
 ))
+subUS_tb.waiveWidthWarnings('#148')
 subUS_tb.addSignal('a', { width: 8, isSigned: false })
 subUS_tb.addSignal('b', { width: 8, isSigned: true })
 subUS_tb.addSubtractor({ a: 'a', b: 'b' })
@@ -282,6 +283,7 @@ const subSU_tb = markTestbench(new Module(
   {},
   tbBodySU
 ))
+subSU_tb.waiveWidthWarnings('#148')
 subSU_tb.addSignal('a', { width: 8, isSigned: true })
 subSU_tb.addSignal('b', { width: 8, isSigned: false })
 subSU_tb.addSubtractor({ a: 'a', b: 'b' })

@@ -110,6 +110,7 @@ export class testMem extends Module {
   declare params: testMem_Parameters
   constructor (params: testMem_Parameters) {
     super(params)
+    this.waiveWidthWarnings('#148')
     this.IOs = {
       data_in: { direction: 'input', width: this.params.dataWidth },
       addr: { direction: 'input', width: this.bitWidth(this.params.depth) },
@@ -146,6 +147,7 @@ export class testAddrDecode extends Module {
   declare params: testAddrDecode_Parameters
   constructor (params: testAddrDecode_Parameters) {
     super(params)
+    this.waiveWidthWarnings('#148')
     this.IOs = {
       addr: { direction: 'input', width: this.params.addrWidth },
       we: { direction: 'input' },

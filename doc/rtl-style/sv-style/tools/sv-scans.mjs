@@ -1,12 +1,18 @@
 // Rules checked by scanning generated SV text (see check-builder-examples.mjs and
 // check-generated-sv.mjs). Each scan returns a list of findings for one SV file.
 
+// SV text without its comments: a "#59" in a comment isn't a delay
+const withoutComments = (sv) => sv.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+
 export const SCANS = {
-  'SYN-1': (sv) => [
-    ...[...sv.matchAll(/^\s*(initial|force|release|casex)\b/gm)].map((m) => `testbench-only construct "${m[1]}"`),
-    ...[...sv.matchAll(/(?<![\w'])#\s*\d/g)].map(() => 'delay "#"'),
-    ...[...sv.matchAll(/\$(display|write|monitor|strobe|finish|stop|fatal|error|warning|info)\b/g)].map((m) => `system task "$${m[1]}"`)
-  ],
+  'SYN-1': (sv) => {
+    const code = withoutComments(sv)
+    return [
+      ...[...code.matchAll(/^\s*(initial|force|release|casex)\b/gm)].map((m) => `testbench-only construct "${m[1]}"`),
+      ...[...code.matchAll(/(?<![\w'])#\s*\d/g)].map(() => 'delay "#"'),
+      ...[...code.matchAll(/\$(display|write|monitor|strobe|finish|stop|fatal|error|warning|info)\b/g)].map((m) => `system task "$${m[1]}"`)
+    ]
+  },
   'LINT-3': (sv) => {
     const found = []
     const lines = sv.split('\n')

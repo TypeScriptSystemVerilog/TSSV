@@ -89,6 +89,7 @@ const sub_tb = markTestbench(new Module(
   {},
   tbBody
 ))
+sub_tb.waiveWidthWarnings('#148')
 sub_tb.addSignal('a', { width: 16, isSigned: true })
 sub_tb.addSignal('b', { width: 16, isSigned: true })
 sub_tb.addSignal('sum', { width: 18, isSigned: true })
@@ -186,6 +187,7 @@ const subA_tb = markTestbench(new Module(
   {},
   tbBodyA
 ))
+subA_tb.waiveWidthWarnings('#148')
 subA_tb.addSignal('a', { width: 8, isSigned: true })
 subA_tb.addSignal('b', { width: 8, isSigned: true })
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
@@ -260,6 +262,7 @@ const subU_tb = markTestbench(new Module(
   {},
   tbBodyU
 ))
+subU_tb.waiveWidthWarnings('#148')
 subU_tb.addSignal('a', { width: 8, isSigned: false })
 subU_tb.addSignal('b', { width: 8, isSigned: false })
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
