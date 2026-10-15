@@ -1,11 +1,16 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
 import { writeFileSync, mkdirSync, readFileSync } from 'fs'
+import { posix } from 'path'
+import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 // Regression test for addSystemVerilogSubmodule header parsing (issue #48)
 
+const OUT = 'sv-examples/Core/importParse'
+const GENERATOR = 'ts/test/test_importParse.ts'
+
 try {
-  mkdirSync('sv-examples/Core/importParse', { recursive: true })
+  mkdirSync(OUT, { recursive: true })
 } catch (e) {}
 
 let failures = 0
@@ -33,17 +38,16 @@ function directions (m: Module): Record<string, string> {
   return Object.fromEntries(Object.entries((m as unknown as { IOs: Record<string, { direction: string }> }).IOs).map(([k, v]) => [k, v.direction]))
 }
 
-// ANSI ports bound to internal signals, `module <word>` in comments, strings and identifiers
+// ANSI ports, `module <word>` in comments, strings and identifiers
 const ansiTop = new Module({ name: 'importParse_ansi' }, {
-  clk: { direction: 'input', isClock: 'posedge' },
-  y: { direction: 'output', width: 8 }
+  sa: { direction: 'input', width: 8 },
+  sen: { direction: 'input' },
+  sb: { direction: 'input' },
+  sc: { direction: 'input' },
+  ss: { direction: 'input', width: 4, isSigned: true },
+  y: { direction: 'output', width: 8 },
+  ssy: { direction: 'output', width: 4, isSigned: true }
 })
-ansiTop.addSignal('sa', { width: 8 })
-ansiTop.addSignal('sen', { width: 1 })
-ansiTop.addSignal('sb', { width: 1 })
-ansiTop.addSignal('sc', { width: 1 })
-ansiTop.addSignal('ss', { width: 4, isSigned: true })
-ansiTop.addSignal('ssy', { width: 4, isSigned: true })
 const ansiLeaf = ansiTop.addSystemVerilogSubmodule(
   'u_leaf',
   'ts/test/importParse/leaf.sv',
@@ -67,12 +71,11 @@ check('parent output bound to child input', directions(mixedLeaf), { a: 'input',
 
 // non-ANSI port declarations, with a function whose arguments must be ignored
 const nonAnsiTop = new Module({ name: 'importParse_nonansi' }, {
-  clk: { direction: 'input', isClock: 'posedge' }
+  na: { direction: 'input', width: 8 },
+  nen: { direction: 'input' },
+  ny: { direction: 'output', width: 8 },
+  nsy: { direction: 'output', width: 4, isSigned: true }
 })
-nonAnsiTop.addSignal('na', { width: 8 })
-nonAnsiTop.addSignal('nen', { width: 1 })
-nonAnsiTop.addSignal('ny', { width: 8 })
-nonAnsiTop.addSignal('nsy', { width: 4, isSigned: true })
 const nonAnsiLeaf = nonAnsiTop.addSystemVerilogSubmodule(
   'u_leaf',
   'ts/test/importParse/leaf_nonansi.sv',
@@ -119,10 +122,18 @@ checkThrows('missing verible-verilog-syntax',
   () => parseSVModules('module m; endmodule', { veribleSyntaxPath: '/nonexistent/verible-verilog-syntax' }),
   /could not run \/nonexistent\/verible-verilog-syntax/)
 
+// The imported files are this test's inputs, written by hand to hold the cases the parser must
+// handle, not generated SV. So each top is written without the module it imports, and its lint
+// filelist names the imported file where it is.
+function writeTop (top: Module, child: Module, imported: string): void {
+  writeFileSync(`${OUT}/${top.name}.sv`, top.writeSystemVerilog({ exclude: new Set([child.name]) }))
+  writeLintFilelist(OUT, top.name, [posix.relative(OUT, imported), `${top.name}.sv`], GENERATOR)
+}
+
 try {
-  writeFileSync('sv-examples/Core/importParse/importParse_ansi.sv', ansiTop.writeSystemVerilog())
-  writeFileSync('sv-examples/Core/importParse/importParse_nonansi.sv', nonAnsiTop.writeSystemVerilog())
-  writeFileSync('sv-examples/Core/importParse/importParse_multi.sv', multiTop.writeSystemVerilog())
+  writeTop(ansiTop, ansiLeaf, 'ts/test/importParse/leaf.sv')
+  writeTop(nonAnsiTop, nonAnsiLeaf, 'ts/test/importParse/leaf_nonansi.sv')
+  writeTop(multiTop, multiLeaf, 'ts/test/importParse/two_modules.sv')
 } catch (err) {
   console.error(err)
 }

@@ -94,31 +94,6 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1
     },
-    "sv-examples/Core/importParse/importParse_ansi.sv": {
-      "LINT-1 DECLFILENAME: Filename 'importParse_ansi' does not match MODULE name: 'leaf'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'sa'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'sb'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'sc'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'sen'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'ss'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ssy'": 1,
-      "SYN-1 system task \"$display\"": 1,
-      "SYN-1 testbench-only construct \"initial\"": 1
-    },
-    "sv-examples/Core/importParse/importParse_multi.sv": {
-      "LINT-1 DECLFILENAME: Filename 'importParse_multi' does not match MODULE name: 'helper'": 1
-    },
-    "sv-examples/Core/importParse/importParse_nonansi.sv": {
-      "LINT-1 DECLFILENAME: Filename 'importParse_nonansi' does not match MODULE name: 'leaf_nonansi'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'na'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'nen'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'nsy'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ny'": 1,
-      "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'en'": 1,
-      "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'y'": 1
-    },
     "sv-examples/Core/multiFileEmission/dut.sv": {
       "LINT-1 DECLFILENAME: Filename 'dut' does not match IFACE name: 'memory_bidi_32_32'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'ADDR'": 1,
