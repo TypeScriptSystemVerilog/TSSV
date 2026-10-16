@@ -65,6 +65,8 @@ export function memorySlaveModel (opts: MemoryModelOptions = {}): string {
   const sw = dw / 8
   const re = reads ? 'bus.RE' : "1'b0"
   const we = writes ? 'bus.WE' : "1'b0"
+  // A read-only model has no write to tell apart, so its access has no we argument
+  const weArg = writes ? 'input logic we, ' : ''
   const dataArgs = writes ? `, input logic [${dw - 1}:0] data, input logic [${sw - 1}:0] strb` : ''
   const writeAccess = !writes
     ? ''
@@ -90,15 +92,12 @@ module ${name} #(
   logic [${dw - 1}:0] mem [DEPTH];
   int wait_states = 0;
   int errors = 0;
-  int reads = 0;
-  int writes = 0;
-
-  // The access waiting out its wait states
-  logic busy = 1'b0;
-  int count = 0;
-  logic p_we = 1'b0;
-  logic [${aw - 1}:0] p_addr = '0;
-${writes ? `  logic [${dw - 1}:0] p_data = '0;\n  logic [${sw - 1}:0] p_strb = '0;\n` : ''}
+${reads ? '  int reads = 0;\n' : ''}${writes ? '  int writes = 0;\n' : ''}
+  // The access waiting out its wait states, cleared by reset
+  logic busy;
+  int count;
+${writes ? '  logic p_we;\n' : ''}  logic [${aw - 1}:0] p_addr;
+${writes ? `  logic [${dw - 1}:0] p_data;\n  logic [${sw - 1}:0] p_strb;\n` : ''}
   initial foreach (mem[i]) mem[i] = '0;
 
   function automatic void fail (input string what);
@@ -106,7 +105,7 @@ ${writes ? `  logic [${dw - 1}:0] p_data = '0;\n  logic [${sw - 1}:0] p_strb = '
     $display("ERROR %0t: ${name} (%m): %s", $time, what);
   endfunction
 
-  task automatic access (input logic we, input logic [${aw - 1}:0] addr${dataArgs});
+  task automatic access (${weArg}input logic [${aw - 1}:0] addr${dataArgs});
     int idx;
     idx = int'(addr / BYTES);
     if (idx >= DEPTH) begin
@@ -119,11 +118,13 @@ ${writeAccess}${readAccess}  endtask
     if (!rst_b) begin
       bus.READY <= 1'b1;
       busy <= 1'b0;
-    end else if (busy) begin
+      count <= 0;
+${writes ? "      p_we <= 1'b0;\n" : ''}      p_addr <= '0;
+${writes ? "      p_data <= '0;\n      p_strb <= '0;\n" : ''}    end else if (busy) begin
       if (${re} || ${we}) fail("request while READY is low");
       if (bus.ADDR !== p_addr) fail("ADDR changed while READY is low");
 ${writes ? `      if (p_we && (bus.DATA_WR !== p_data || bus.WSTRB !== p_strb)) fail("DATA_WR or WSTRB changed while READY is low");\n` : ''}      if (count == 0) begin
-        access(p_we, p_addr${writes ? ', p_data, p_strb' : ''});
+        access(${writes ? 'p_we, ' : ''}p_addr${writes ? ', p_data, p_strb' : ''});
         bus.READY <= 1'b1;
         busy <= 1'b0;
       end else begin
@@ -132,13 +133,12 @@ ${writes ? `      if (p_we && (bus.DATA_WR !== p_data || bus.WSTRB !== p_strb)) 
     end else if (${re} || ${we}) begin
       if (${re} && ${we}) fail("RE and WE together");
       if (wait_states == 0) begin
-        access(${we}, bus.ADDR${writes ? ', bus.DATA_WR, bus.WSTRB' : ''});
+        access(${writes ? `${we}, ` : ''}bus.ADDR${writes ? ', bus.DATA_WR, bus.WSTRB' : ''});
       end else begin
         busy <= 1'b1;
         count <= wait_states - 1;
         bus.READY <= 1'b0;
-        p_we <= ${we};
-        p_addr <= bus.ADDR;
+${writes ? `        p_we <= ${we};\n` : ''}        p_addr <= bus.ADDR;
 ${writes ? '        p_data <= bus.DATA_WR;\n        p_strb <= bus.WSTRB;\n' : ''}      end
     end
   end

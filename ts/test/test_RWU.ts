@@ -1,8 +1,7 @@
 import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
-import { mkdirSync, writeFileSync } from 'fs'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
-import { lintWrapper } from 'tssv/test/models/lintWrapper'
+import { mkdirSync } from 'fs'
+import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
 
 const OUT_DIR = 'sv-examples/test_RWU'
 const GENERATOR = 'ts/test/test_RWU.ts'
@@ -56,11 +55,10 @@ const regsSwPriority = {
 
 mkdirSync(OUT_DIR, { recursive: true })
 
-// Writes a block's SV, and a wrapper that instantiates its Memory interface port to lint it through
+// Writes a block's SV, its Memory interface's, and a wrapper that instantiates the interface port
+// to lint it through
 function write (block: RegisterBlock<Record<string, bigint>>): void {
-  writeFileSync(`${OUT_DIR}/${block.name}.sv`, block.writeSystemVerilog())
-  writeFileSync(`${OUT_DIR}/${block.name}_lint_top.sv`, lintWrapper(block, GENERATOR))
-  writeLintFilelist(OUT_DIR, `${block.name}_lint_top`, [`${block.name}.sv`, `${block.name}_lint_top.sv`], GENERATOR)
+  writeLintWrapped(block, OUT_DIR, GENERATOR)
   console.log(`wrote ${OUT_DIR}/${block.name}.sv and ${block.name}_lint_top.sv`)
 }
 

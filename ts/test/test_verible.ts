@@ -2,7 +2,9 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'fs'
 import { runVerible } from 'tssv/lib/tools/formatters/verible'
 
-try { mkdirSync('sv-examples/Core/verible', { recursive: true }) } catch (e) {}
+const OUT = 'sv-examples/Core/verible'
+
+try { mkdirSync(OUT, { recursive: true }) } catch (e) {}
 
 let passed = 0
 let failed = 0
@@ -21,6 +23,13 @@ function skip (label: string): void {
   console.log(`SKIP: ${label}`)
 }
 
+// Each case writes its copy of SAMPLE_SV, which defines module sample, to a folder named for the
+// case: the file has to be sample.sv (DECLFILENAME)
+function writeSample (testCase: string, sv: string): void {
+  mkdirSync(`${OUT}/${testCase}`, { recursive: true })
+  writeFileSync(`${OUT}/${testCase}/sample.sv`, sv)
+}
+
 const SAMPLE_SV =
 `module sample(input logic clk, output logic [7:0] out);
   always_ff @(posedge clk) begin
@@ -36,7 +45,7 @@ const veribleAvailable = probe.status === 0
 // --- Test 1: successful format (skipped if Verible not installed) ---
 if (veribleAvailable) {
   const result = runVerible(SAMPLE_SV, {})
-  writeFileSync('sv-examples/Core/verible/sample_formatted.sv', result)
+  writeSample('formatted', result)
   check(
     'runVerible returns non-empty formatted SV',
     result.length > 0 && result.includes('module'),
@@ -59,7 +68,7 @@ const result2 = runVerible(SAMPLE_SV, {
   veriblePath: '/nonexistent/verible-verilog-format',
   failOnFormatError: false
 })
-writeFileSync('sv-examples/Core/verible/missing_binary_fallback.sv', result2)
+writeSample('missing_binary_fallback', result2)
 check(
   'missing binary with failOnFormatError=false returns original SV',
   result2 === SAMPLE_SV
@@ -85,7 +94,7 @@ const result4 = runVerible(SAMPLE_SV, {
   formatTimeoutMs: 100,
   failOnFormatError: false
 })
-writeFileSync('sv-examples/Core/verible/timeout_fallback.sv', result4)
+writeSample('timeout_fallback', result4)
 check(
   'timeout with failOnFormatError=false returns original SV',
   result4 === SAMPLE_SV

@@ -1,12 +1,16 @@
-import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { Module, Expr, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
+import { mkdirSync } from 'fs'
 // import * as fs from 'fs'
-import { FIR } from 'tssv/lib/modules/FIR'
+import { Q_Channel } from 'tssv/lib/interfaces/AMBA/AMBA4/Q-Channel/r0p0_0/Q-Channel'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { markTestbench } from 'tssv/test/models/testbench'
+import { emitSplit } from 'tssv/test/models/emitSplit'
+
+const GENERATOR = 'ts/test/test_addSubmodule.ts'
+const OUT = 'sv-examples/Core/addSubmodule'
 
 try {
-  mkdirSync('sv-examples/Core/addSubmodule', { recursive: true })
+  mkdirSync(OUT, { recursive: true })
 } catch (e) {}
 
 // test 1: width extension, general
@@ -50,27 +54,27 @@ case(count)
 'd0: begin
     a <= 16'd7641;
     b <= 16'd4611;
-    assert(sum == 17'd12252) else $display("Assertion failed: sum should be 2 at time %0t", $time);
+    assert(sum == 18'sd12252) else $display("Assertion failed: sum should be 12252 at time %0t", $time);
 end
 'd1: begin
     a <= -16'd20785;
     b <= -16'd6903;
-    assert(sum == -17'd27688) else $display("Assertion failed: sum should be 4 at time %0t", $time);
+    assert(sum == -18'sd27688) else $display("Assertion failed: sum should be -27688 at time %0t", $time);
 end
 'd2: begin
     a <= 16'd20025;
     b <= -16'd11168;
-    assert(sum == 17'd8857) else $display("Assertion failed: sum should be 105 at time %0t", $time);
+    assert(sum == 18'sd8857) else $display("Assertion failed: sum should be 8857 at time %0t", $time);
 end
 'd3: begin
     a <= -16'd30974;
     b <= 16'd26651;
-    assert(sum == -17'd4323) else $display("Assertion failed: sum should be 100 at time %0t", $time);
+    assert(sum == -18'sd4323) else $display("Assertion failed: sum should be -4323 at time %0t", $time);
 end
 'd4: begin 
     a <= 16'd15349;
     b <= -16'd6500;
-    assert(sum == 17'd8849) else $display("Assertion failed: sum should be 270 at time %0t", $time);
+    assert(sum == 18'sd8849) else $display("Assertion failed: sum should be 8849 at time %0t", $time);
 end
 default: begin
     a <= 16'd0;
@@ -89,20 +93,13 @@ const sub_tb = markTestbench(new Module(
   {},
   tbBody
 ))
-sub_tb.waiveWidthWarnings('#148')
 sub_tb.addSignal('a', { width: 16, isSigned: true })
 sub_tb.addSignal('b', { width: 16, isSigned: true })
 sub_tb.addSignal('sum', { width: 18, isSigned: true })
 sub_tb.addSubmodule('add', new Adder({ aWidth: 17, bWidth: 17 }), { a: 'a', b: 'b', sum: 'sum' }, false, false, true)
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${sub_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubmodule/sub_tb.sv', TB)
+  emitSplit(sub_tb, OUT, GENERATOR)
 } catch (err) {
   console.error(err)
 }
@@ -148,31 +145,31 @@ case(count)
 'd0: begin
     a <= 8'd7;
     b <= -8'd49;
-    assert(sum == 9'd56) else $display("Assertion failed: sum should be 2 at time %0t", $time);
+    assert(sum == 9'sd56) else $display("Assertion failed: sum should be 56 at time %0t", $time);
 end
 'd1: begin
     a <= -8'd3;
     b <= -8'd24;
-    assert(sum == 9'd21) else $display("Assertion failed: sum should be 4 at time %0t", $time);
+    assert(sum == 9'sd21) else $display("Assertion failed: sum should be 21 at time %0t", $time);
 end
 'd2: begin
     a <= -8'd13;
     b <= -8'd22;
-    assert(sum == 9'd9) else $display("Assertion failed: sum should be 105 at time %0t", $time);
+    assert(sum == 9'sd9) else $display("Assertion failed: sum should be 9 at time %0t", $time);
 end
 'd3: begin
     a <= -8'd108;
     b <= 8'd28;
-    assert(sum == -9'd136) else $display("Assertion failed: sum should be 100 at time %0t", $time);
+    assert(sum == -9'sd136) else $display("Assertion failed: sum should be -136 at time %0t", $time);
 end
 'd4: begin 
     a <= 8'd98;
-    b <= 16'd63;
-    assert(sum == 9'd35) else $display("Assertion failed: sum should be 270 at time %0t", $time);
+    b <= 8'd63;
+    assert(sum == 9'sd35) else $display("Assertion failed: sum should be 35 at time %0t", $time);
 end
 default: begin
-    a <= 16'd0;
-    b <= 16'd0;
+    a <= 8'd0;
+    b <= 8'd0;
 end
 endcase
 end
@@ -187,20 +184,13 @@ const subA_tb = markTestbench(new Module(
   {},
   tbBodyA
 ))
-subA_tb.waiveWidthWarnings('#148')
 subA_tb.addSignal('a', { width: 8, isSigned: true })
 subA_tb.addSignal('b', { width: 8, isSigned: true })
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
 subA_tb.addSubmodule('subtract', new Subber({ aWidth: 8, bWidth: 8 }), { a: 'a' }, true, true, false)
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${subA_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubmodule/subA_tb.sv', TB)
+  emitSplit(subA_tb, OUT, GENERATOR)
 } catch (err) {
   console.error(err)
 }
@@ -223,31 +213,31 @@ case(count)
 'd0: begin
     a <= 8'd213;
     b <= 8'd181;
-    assert(sum == 9'd32) else $display("Assertion failed: sum should be 2 at time %0t", $time);
+    assert(sum == 10'sd32) else $display("Assertion failed: sum should be 32 at time %0t", $time);
 end
 'd1: begin
     a <= 8'd46;
     b <= 8'd155;
-    assert(sum == -9'd109) else $display("Assertion failed: sum should be 4 at time %0t", $time);
+    assert(sum == -10'sd109) else $display("Assertion failed: sum should be -109 at time %0t", $time);
 end
 'd2: begin
     a <= 8'd135;
     b <= 8'd228;
-    assert(sum == -9'd93) else $display("Assertion failed: sum should be 105 at time %0t", $time);
+    assert(sum == -10'sd93) else $display("Assertion failed: sum should be -93 at time %0t", $time);
 end
 'd3: begin
     a <= 8'd108;
     b <= 8'd80;
-    assert(sum == 9'd28) else $display("Assertion failed: sum should be 100 at time %0t", $time);
+    assert(sum == 10'sd28) else $display("Assertion failed: sum should be 28 at time %0t", $time);
 end
 'd4: begin 
     a <= 8'd181;
     b <= 8'd98;
-    assert(sum == 9'd8) else $display("Assertion failed: sum should be 270 at time %0t", $time);
+    assert(sum == 10'sd83) else $display("Assertion failed: sum should be 83 at time %0t", $time);
 end
 default: begin
-    a <= 16'd0;
-    b <= 16'd0;
+    a <= 8'd0;
+    b <= 8'd0;
 end
 endcase
 end
@@ -262,47 +252,62 @@ const subU_tb = markTestbench(new Module(
   {},
   tbBodyU
 ))
-subU_tb.waiveWidthWarnings('#148')
 subU_tb.addSignal('a', { width: 8, isSigned: false })
 subU_tb.addSignal('b', { width: 8, isSigned: false })
 // subA_tb.addSignal('sum', { width: 18, isSigned: true })
 subU_tb.addSubmodule('sub', new Subber({ aWidth: 9, bWidth: 9 }), {}, true, true, true)
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${subU_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubmodule/subU_tb.sv', TB)
+  emitSplit(subU_tb, OUT, GENERATOR)
 } catch (err) {
   console.error(err)
 }
 
-// adding component
-const tbBodyC =
-`
-`
-const subC_tb = markTestbench(new Module(
-  { name: 'subC_t' },
+// test 4: a submodule with an interface port. autoBind binds clk and rst_b, and createMissing
+// creates the bundle q for the device's Q-Channel port. The testbench toggles QREQn and checks
+// that the device accepts each change a cycle later, and never denies one
+
+const qDevice = new Module(
+  { name: 'QDevice' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
   },
   {},
-  tbBodyC
+  ''
+)
+qDevice.addInterface('q', new Q_Channel({}, 'inward'))
+qDevice.addRegister({ d: 'q.QREQn', clk: 'clk', reset: 'rst_b', resetVal: 1n, q: 'q.QACCEPTn' })
+qDevice.addAssign({ in: new Expr("1'b0"), out: 'q.QDENY' })
+qDevice.addAssign({ in: new Expr("1'b1"), out: 'q.QACTIVE' })
+
+const tbBodyI =
+`
+logic req_n_q;
+always @(posedge clk or negedge rst_b)
+if (!rst_b) begin
+  q.QREQn <= 1'b1;
+  req_n_q <= 1'b1;
+end else begin
+  q.QREQn <= ~q.QREQn;
+  req_n_q <= q.QREQn;
+  assert (q.QACCEPTn == req_n_q && !q.QDENY && q.QACTIVE)
+  else $fatal(1, "Assertion failed: QACCEPTn should be %b, QDENY 0 and QACTIVE 1 at time %0t", req_n_q, $time);
+end
+`
+const subI_tb = markTestbench(new Module(
+  { name: 'subI_tb' },
+  {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_b: { direction: 'input', isReset: 'lowasync' }
+  },
+  {},
+  tbBodyI
 ))
-subC_tb.addSubmodule('FIR', new FIR({ numTaps: 2, coefficients: [1n, 2n] }), {}, true, true, true)
+subI_tb.addSubmodule('device', qDevice, {}, true, true, true)
 
 try {
-  const TB =
-`
-    // verilator lint_off DECLFILENAME
-    // verilator lint_off UNUSED
-    ${subC_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addSubmodule/subI_tb.sv', TB)
+  emitSplit(subI_tb, OUT, GENERATOR)
 } catch (err) {
   console.error(err)
 }

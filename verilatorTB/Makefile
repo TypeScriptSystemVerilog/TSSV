@@ -35,14 +35,12 @@ REGBLOCK_DIR = ../sv-examples/RegisterBlock_read
 regblock_read_sim: tsc
 	cd ..; node out/test/test_RegisterBlock_read.js
 	set -e; for b in regblock_read32 regblock_read64; do \
-	  verilator --lint-only -Wall --top-module $${b}_lint_top $(COMMON_WAIVERS) regblock_read_waivers.vlt \
-	    $(REGBLOCK_DIR)/$$b.sv $(REGBLOCK_DIR)/$${b}_lint_top.sv; \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) regblock_read_waivers.vlt -F $(REGBLOCK_DIR)/$${b}_lint_top.f; \
 	  echo "lint -Wall clean: $$b"; \
 	done
 	mkdir -p obj_dir
 	verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/regblock_read -o Vtb_RegisterBlock_read \
-	  tb_RegisterBlock_read.sv $(REGBLOCK_DIR)/regblock_read32.sv $(REGBLOCK_DIR)/regblock_read64.sv \
-	  $(REGBLOCK_DIR)/memory_models.sv \
+	  -F $(REGBLOCK_DIR)/tb_RegisterBlock_read.f \
 	  > obj_dir/regblock_read.build.log 2>&1 || { cat obj_dir/regblock_read.build.log; exit 1; }
 	cd obj_dir/regblock_read && ./Vtb_RegisterBlock_read
 
@@ -55,11 +53,9 @@ regblock_types_sim: tsc
 	cd ..; node out/test/test_RegisterBlock_types.js
 	mkdir -p obj_dir
 	set -e; for b in regblock_types32 regblock_types64; do \
-	  verilator --lint-only -Wall --top-module $${b}_lint_top $(COMMON_WAIVERS) regblock_types_waivers.vlt \
-	    $(TYPES_DIR)/$$b.sv $(TYPES_DIR)/$${b}_lint_top.sv; \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) regblock_types_waivers.vlt -F $(TYPES_DIR)/$${b}_lint_top.f; \
 	  echo "lint -Wall clean: $$b"; \
-	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/$$b -o Vtb_$$b --top-module tb_$$b \
-	    $(TYPES_DIR)/tb_$$b.sv $(TYPES_DIR)/$$b.sv $(TYPES_DIR)/memory_models.sv \
+	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/$$b -o Vtb_$$b -F $(TYPES_DIR)/tb_$$b.f \
 	    > obj_dir/$$b.build.log 2>&1 || { cat obj_dir/$$b.build.log; exit 1; }; \
 	  (cd obj_dir/$$b && ./Vtb_$$b); \
 	done
@@ -163,5 +159,5 @@ tsc: .FORCE
 ../sv-examples/FIR/myFIR3/tb_lpFIR.sv: tsc
 	cd ..; node out/test/test_FIR.js
 
-../sv-examples/Core/addRegister/regMod.sv: tsc
+../sv-examples/Core/addRegister/addRegister_tb.sv: tsc
 	cd ..; node out/test/test_addRegister.js

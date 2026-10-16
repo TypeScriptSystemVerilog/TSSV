@@ -1,6 +1,9 @@
 import { Module, type TSSVParameters, type IntRange, type ExprParams, Expr } from 'tssv/lib/core/TSSV'
-import { TL_UL } from 'tssv/lib/interfaces/TileLink'
 import { writeFileSync, mkdirSync } from 'fs'
+import { emitSplit } from 'tssv/test/models/emitSplit'
+
+const GENERATOR = 'ts/test/test1.ts'
+const OUT = 'sv-examples/Core/test1'
 
 export interface Adder_Parameters extends TSSVParameters {
   aWidth?: IntRange<1, 32>
@@ -14,9 +17,6 @@ export class Adder extends Module {
       aWidth: params.aWidth || 8,
       bWidth: params.bWidth || 8
     })
-
-    // add Tilelink UL responder interface
-    this.addInterface('regs', new TL_UL({}, 'inward'))
 
     // define IO signals
     this.IOs = {
@@ -43,9 +43,6 @@ export class Adder3 extends Module {
       cWidth: params.bWidth || 8
     })
 
-    this.addInterface('regs1', new TL_UL({}))
-    this.addInterface('regs2', new TL_UL({}))
-
     // define IO signals
     const sumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1, (this.params.cWidth || 1))) + 2
     this.IOs = {
@@ -54,17 +51,19 @@ export class Adder3 extends Module {
       c: { direction: 'input', width: this.params.bWidth, isSigned: true },
       clk: { direction: 'input', isClock: 'posedge' },
       rst_b: { direction: 'input', isReset: 'lowasync' },
-      sum: { direction: 'output', width: sumWidth, isSigned: true }
+      sum: { direction: 'output', width: sumWidth, isSigned: true },
+      sum_d3: { direction: 'output', width: sumWidth, isSigned: true },
+      sum_d4: { direction: 'output', width: sumWidth, isSigned: true },
+      sum_d5: { direction: 'output', width: sumWidth, isSigned: true }
     }
 
     const psumWidth = Math.max((this.params.aWidth || 1), (this.params.bWidth || 1)) + 1 as IntRange<1, 32>
     const psum = this.addSignal('psum', { width: psumWidth, isSigned: true })
-    this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: psum, regs: 'regs1' })
+    this.addSubmodule('add1', new Adder({ aWidth: this.params.aWidth, bWidth: this.params.bWidth }), { sum: psum })
 
     this.addSignal('sum_d', { width: sumWidth, isSigned: true })
-    this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: 'c', b: 'psum', sum: 'sum_d', regs: 'regs2' })
+    this.addSubmodule('add2', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: 'c', b: 'psum', sum: 'sum_d' })
 
-    this.addSignal('sum_d3', { width: sumWidth })
     this.addSystemVerilogSubmodule(
       'add3',
       'ts/test/testImport.sv',
@@ -72,18 +71,16 @@ export class Adder3 extends Module {
       { a: 'c', b: 'psum', sum: 'sum_d3' }
     )
 
-    this.addSignal('sum_d4', { width: sumWidth, isSigned: true })
     this.addSubmodule(
       'add4',
       new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }),
-      { a: this.addConstSignal('testSignExtend', -5n, true, 5), b: 'psum', sum: 'sum_d4', regs: 'regs2' },
+      { a: this.addConstSignal('testSignExtend', -5n, true, 5), b: 'psum', sum: 'sum_d4' },
       true,
       true,
       true
     )
 
-    this.addSignal('sum_d5', { width: sumWidth, isSigned: true })
-    this.addSubmodule('add5', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: -32n, b: 'psum', sum: 'sum_d5', regs: 'regs2' })
+    this.addSubmodule('add5', new Adder({ aWidth: this.params.cWidth, bWidth: psumWidth }), { a: -32n, b: 'psum', sum: 'sum_d5' })
 
     this.addSequentialAlways({
       clk: 'clk',
@@ -110,10 +107,9 @@ export class testMem extends Module {
   declare params: testMem_Parameters
   constructor (params: testMem_Parameters) {
     super(params)
-    this.waiveWidthWarnings('#148')
     this.IOs = {
       data_in: { direction: 'input', width: this.params.dataWidth },
-      addr: { direction: 'input', width: this.bitWidth(this.params.depth) },
+      addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
       we: { direction: 'input' },
       re: { direction: 'input' },
       clk: { direction: 'input', isClock: 'posedge' },
@@ -147,19 +143,19 @@ export class testAddrDecode extends Module {
   declare params: testAddrDecode_Parameters
   constructor (params: testAddrDecode_Parameters) {
     super(params)
-    this.waiveWidthWarnings('#148')
     this.IOs = {
       addr: { direction: 'input', width: this.params.addrWidth },
       we: { direction: 'input' },
       re: { direction: 'input' }
     }
     const zerosWidth = this.bitWidth(this.params.blockSize - 1n) + 2
-    const mask = `'b${'1'.repeat(this.params.addrWidth - zerosWidth)}${'0'.repeat(zerosWidth)}`
+    const w = this.params.addrWidth
+    const mask = `${w}'h${(((1n << BigInt(w)) - 1n) >> BigInt(zerosWidth) << BigInt(zerosWidth)).toString(16)}`
     const decodeFuncRe = (p: ExprParams): string => {
-      return `(addr & ${mask} == 'h${p.match.toString(16)}) && re`
+      return `((addr & ${mask}) == ${w}'h${p.match.toString(16)}) && re`
     }
     const decodeFuncWe = (p: ExprParams): string => {
-      return `(addr & ${mask} == 'h${p.match.toString(16)}) && we`
+      return `((addr & ${mask}) == ${w}'h${p.match.toString(16)}) && we`
     }
     const indexes = [...Array(this.params.numBlocks).keys()]
     indexes.forEach(element => {
@@ -180,23 +176,24 @@ export class testAddrDecode extends Module {
 }
 
 const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 })
-mkdirSync('sv-examples/Core/test1', { recursive: true })
+mkdirSync(OUT, { recursive: true })
 try {
-  writeFileSync('sv-examples/Core/test1/test1.sv', test1.writeSystemVerilog())
+  // one module per file (DECLFILENAME), with a filelist for the hierarchy
+  emitSplit(test1, OUT, GENERATOR)
 } catch (err) {
   console.error(err)
 }
 
-const testMem1 = new testMem({ dataWidth: 8, depth: 32n })
+const testMem1 = new testMem({ name: 'testMem1', dataWidth: 8, depth: 32n })
 try {
-  writeFileSync('sv-examples/Core/test1/testMem1.sv', testMem1.writeSystemVerilog())
+  writeFileSync(`${OUT}/testMem1.sv`, testMem1.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
 
-const testAddrDecode1 = new testAddrDecode({ numBlocks: 5, blockSize: 16n, addrWidth: 32, baseAddr: BigInt('0xabcdef00') })
+const testAddrDecode1 = new testAddrDecode({ name: 'testAddrDecode1', numBlocks: 5, blockSize: 16n, addrWidth: 32, baseAddr: BigInt('0xabcdef00') })
 try {
-  writeFileSync('sv-examples/Core/test1/testAddrDecode1.sv', testAddrDecode1.writeSystemVerilog())
+  writeFileSync(`${OUT}/testAddrDecode1.sv`, testAddrDecode1.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }

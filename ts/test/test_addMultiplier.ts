@@ -68,13 +68,7 @@ mult_tb.addSignal('b', { width: 4, isSigned: false })
 mult_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${mult_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/mult_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/mult_tb.sv', mult_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -97,31 +91,31 @@ const tbBodyS =
     'd0: begin
         a <= 8'd1;
         b <= 8'd1;
-        assert(prod_axb == 16'd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
+        assert(prod_axb == 16'sd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
     end
     'd1: begin
         a <= 8'd25;
         b <= -8'd1;
-        assert(prod_axb == -16'd25) else $display("Assertion failed: prod_axb should be -25 at time %0t", $time);
+        assert(prod_axb == -16'sd25) else $display("Assertion failed: prod_axb should be -25 at time %0t", $time);
     end
     'd2: begin
         a <= -8'd100;
         b <= 8'd20;
-        assert(prod_axb == -16'd2000) else $display("Assertion failed: prod_axb should be -2000 at time %0t", $time);
+        assert(prod_axb == -16'sd2000) else $display("Assertion failed: prod_axb should be -2000 at time %0t", $time);
     end
     'd3: begin
         a <= -8'd73;
         b <= -8'd59;
-        assert(prod_axb == 16'd4307) else $display("Assertion failed: prod_axb should be 4307 at time %0t", $time);
+        assert(prod_axb == 16'sd4307) else $display("Assertion failed: prod_axb should be 4307 at time %0t", $time);
     end
     'd4: begin 
         a <= -8'd128;
         b <= 8'd127;
-        assert(prod_axb == -16'd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
+        assert(prod_axb == -16'sd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
     end
     default: begin
         a <= 8'b00000000;
-        b <= 4'b0000;
+        b <= 8'b00000000;
     end
     endcase
     end
@@ -136,19 +130,12 @@ const multS_tb = markTestbench(new Module(
   {},
   tbBodyS
 ))
-multS_tb.waiveWidthWarnings('#148')
 multS_tb.addSignal('a', { width: 8, isSigned: true })
 multS_tb.addSignal('b', { width: 8, isSigned: true })
 multS_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${multS_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/multS_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/multS_tb.sv', multS_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -171,36 +158,36 @@ const tbBodyUS =
   'd0: begin
       a <= 8'd1;
       b <= 8'd1;
-      assert(prod_axb == 16'd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
+      assert(prod_axb == 16'sd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
   end
   'd1: begin
       a <= 8'd25;
       b <= -8'd1;
-      assert(prod_axb == -16'd25) else $display("Assertion failed: prod_axb should be -25 at time %0t", $time);
+      assert(prod_axb == -16'sd25) else $display("Assertion failed: prod_axb should be -25 at time %0t", $time);
   end
   'd2: begin
       a <= 8'd100;
       b <= -8'd20;
-      assert(prod_axb == 16'd2000) else $display("Assertion failed: prod_axb should be -2000 at time %0t", $time);
+      assert(prod_axb == -16'sd2000) else $display("Assertion failed: prod_axb should be -2000 at time %0t", $time);
   end
   'd3: begin
       a <= 8'd197;
       b <= -8'd73;
-      assert(prod_axb == -16'd14381) else $display("Assertion failed: prod_axb should be -14381 at time %0t", $time);
+      assert(prod_axb == -16'sd14381) else $display("Assertion failed: prod_axb should be -14381 at time %0t", $time);
   end
   'd4: begin 
       a <= 8'd127;
       b <= -8'd128;
-      assert(prod_axb == -16'd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
+      assert(prod_axb == -16'sd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
   end
   'd5: begin
       a <= 8'd255;
       b <= -8'd128;
-      assert(prod_axb == -16'd32640) else $display("Assertion failed: prod_axb should be -32640 at time %0t", $time);
+      assert(prod_axb == -16'sd32640) else $display("Assertion failed: prod_axb should be -32640 at time %0t", $time);
   end
   default: begin
       a <= 8'b00000000;
-      b <= 4'b0000;
+      b <= 8'b00000000;
   end
   endcase
   end
@@ -216,19 +203,12 @@ const multUS_tb = markTestbench(new Module(
   tbBodyUS
 ))
 
-multUS_tb.waiveWidthWarnings('#148')
 multUS_tb.addSignal('a', { width: 8, isSigned: false })
 multUS_tb.addSignal('b', { width: 8, isSigned: true })
 multUS_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${multUS_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/multUS_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/multUS_tb.sv', multUS_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -251,36 +231,36 @@ const tbBodySU =
   'd0: begin
       a <= 8'd1;
       b <= 8'd1;
-      assert(prod_axb == 16'd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
+      assert(prod_axb == 16'sd1) else $display("Assertion failed: prod_axb should be 1 at time %0t", $time);
   end
   'd1: begin
       a <= -8'd25;
       b <= 8'd1;
-      assert(prod_axb == -16'd25) else $display("Assertion failed: prod_axb should be -25 at time %0t", $time);
+      assert(prod_axb == -16'sd25) else $display("Assertion failed: prod_axb should be -25 at time %0t", $time);
   end
   'd2: begin
       a <= -8'd100;
       b <= 8'd20;
-      assert(prod_axb == -16'd2000) else $display("Assertion failed: prod_axb should be -2000 at time %0t", $time);
+      assert(prod_axb == -16'sd2000) else $display("Assertion failed: prod_axb should be -2000 at time %0t", $time);
   end
   'd3: begin
       a <= -8'd73;
       b <= 8'd59;
-      assert(prod_axb == -16'd4307) else $display("Assertion failed: prod_axb should be -4307 at time %0t", $time);
+      assert(prod_axb == -16'sd4307) else $display("Assertion failed: prod_axb should be -4307 at time %0t", $time);
   end
   'd4: begin 
       a <= -8'd128;
       b <= 8'd127;
-      assert(prod_axb == -16'd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
+      assert(prod_axb == -16'sd16256) else $display("Assertion failed: prod_axb should be -16256 at time %0t", $time);
   end
   'd5: begin
       a <= -8'd128;
       b <= 8'd255;
-      assert(prod_axb == -16'd32640) else $display("Assertion failed: prod_axb should be -32640 at time %0t", $time);
+      assert(prod_axb == -16'sd32640) else $display("Assertion failed: prod_axb should be -32640 at time %0t", $time);
   end
   default: begin
       a <= 8'b00000000;
-      b <= 4'b0000;
+      b <= 8'b00000000;
   end
   endcase
   end
@@ -296,19 +276,12 @@ const multSU_tb = markTestbench(new Module(
   tbBodySU
 ))
 
-multSU_tb.waiveWidthWarnings('#148')
 multSU_tb.addSignal('a', { width: 8, isSigned: true })
 multSU_tb.addSignal('b', { width: 8, isSigned: false })
 multSU_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${multSU_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/multSU_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/multSU_tb.sv', multSU_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -354,13 +327,7 @@ multB_tb.addMultiplier({ a: 57n, b: -23n })
 multB_tb.addMultiplier({ a: -91n, b: 200n })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${multB_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/multB_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/multB_tb.sv', multB_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -382,27 +349,27 @@ const tbBodyUB =
   case(count)
   'd0: begin
       a <= 8'd1;
-      assert(prod_ax7d50 == 13'd50) else $display("Assertion failed: prod_ax7d50 should be 50 at time %0t", $time);
+      assert(prod_ax7d50 == 14'd50) else $display("Assertion failed: prod_ax7d50 should be 50 at time %0t", $time);
   end
   'd1: begin
       a <= 8'd25;
-      assert(prod_ax7d50 == 13'd1250) else $display("Assertion failed: prod_ax7d50 should be 1250 at time %0t", $time);
+      assert(prod_ax7d50 == 14'd1250) else $display("Assertion failed: prod_ax7d50 should be 1250 at time %0t", $time);
   end
   'd2: begin
       a <= 8'd100;
-      assert(prod_ax7d50 == 13'd5000) else $display("Assertion failed: prod_ax7d50 should be 5000 at time %0t", $time);
+      assert(prod_ax7d50 == 14'd5000) else $display("Assertion failed: prod_ax7d50 should be 5000 at time %0t", $time);
   end
   'd3: begin
       a <= 8'd197;
-      assert(prod_ax7d50 == 13'd9850) else $display("Assertion failed: prod_ax7d50 should be 9850 at time %0t", $time);
+      assert(prod_ax7d50 == 14'd9850) else $display("Assertion failed: prod_ax7d50 should be 9850 at time %0t", $time);
   end
   'd4: begin 
       a <= 8'd127;
-      assert(prod_ax7d50 == 13'd6350) else $display("Assertion failed: prod_ax7d50 should be 6350 at time %0t", $time);
+      assert(prod_ax7d50 == 14'd6350) else $display("Assertion failed: prod_ax7d50 should be 6350 at time %0t", $time);
   end
   'd5: begin
       a <= 8'd255;
-      assert(prod_ax7d50 == 13'd12750) else $display("Assertion failed: prod_ax7d50 should be 12750 at time %0t", $time);
+      assert(prod_ax7d50 == 14'd12750) else $display("Assertion failed: prod_ax7d50 should be 12750 at time %0t", $time);
   end
   default: begin
       a <= 8'b00000000;
@@ -420,18 +387,11 @@ const multUB_tb = markTestbench(new Module(
   {},
   tbBodyUB
 ))
-multUB_tb.waiveWidthWarnings('#148')
 multUB_tb.addSignal('a', { width: 8, isSigned: false })
 multUB_tb.addMultiplier({ a: 'a', b: 50n })
 
 try {
-  const TB =
-`
-      /* verilator lint_off DECLFILENAME */
-      /* verilator lint_off UNUSED */
-      ${multUB_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/multUB_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/multUB_tb.sv', multUB_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -453,27 +413,27 @@ const tbBodySB =
   case(count)
   'd0: begin
       a <= -8'd1;
-      assert(prod_axm7d50 == 13'd50) else $display("Assertion failed: prod_axm7d50 should be 50 at time %0t", $time);
+      assert(prod_axm7d50 == 15'sd50) else $display("Assertion failed: prod_axm7d50 should be 50 at time %0t", $time);
   end
   'd1: begin
       a <= -8'd25;
-      assert(prod_axm7d50 == 13'd1250) else $display("Assertion failed: prod_axm7d50 should be 1250 at time %0t", $time);
+      assert(prod_axm7d50 == 15'sd1250) else $display("Assertion failed: prod_axm7d50 should be 1250 at time %0t", $time);
   end
   'd2: begin
       a <= -8'd100;
-      assert(prod_axm7d50 == 13'd5000) else $display("Assertion failed: prod_axm7d50 should be 5000 at time %0t", $time);
+      assert(prod_axm7d50 == 15'sd5000) else $display("Assertion failed: prod_axm7d50 should be 5000 at time %0t", $time);
   end
   'd3: begin
       a <= 8'd59;
-      assert(prod_axm7d50 == -13'd2950) else $display("Assertion failed: prod_axm7d50 should be 9850 at time %0t", $time);
+      assert(prod_axm7d50 == -15'sd2950) else $display("Assertion failed: prod_axm7d50 should be -2950 at time %0t", $time);
   end
   'd4: begin 
       a <= 8'd127;
-      assert(prod_axm7d50 == -13'd6350) else $display("Assertion failed: prod_axm7d50 should be 6350 at time %0t", $time);
+      assert(prod_axm7d50 == -15'sd6350) else $display("Assertion failed: prod_axm7d50 should be -6350 at time %0t", $time);
   end
   'd5: begin
-      a <= 8'd255;
-      assert(prod_axm7d50 == 13'd12750) else $display("Assertion failed: prod_axm7d50 should be 12750 at time %0t", $time);
+      a <= -8'd128;
+      assert(prod_axm7d50 == 15'sd6400) else $display("Assertion failed: prod_axm7d50 should be 6400 at time %0t", $time);
   end
   default: begin
       a <= 8'b00000000;
@@ -483,7 +443,7 @@ const tbBodySB =
 `
 
 const multSB_tb = markTestbench(new Module(
-  { name: 'multUB_tb' },
+  { name: 'multSB_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
     rst_b: { direction: 'input', isReset: 'lowasync' }
@@ -491,18 +451,11 @@ const multSB_tb = markTestbench(new Module(
   {},
   tbBodySB
 ))
-multSB_tb.waiveWidthWarnings('#148')
 multSB_tb.addSignal('a', { width: 8, isSigned: true })
 multSB_tb.addMultiplier({ a: 'a', b: -50n })
 
 try {
-  const TB =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${multSB_tb.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addMultiplier/multSB_tb.sv', TB)
+  writeFileSync('sv-examples/Core/addMultiplier/multSB_tb.sv', multSB_tb.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }

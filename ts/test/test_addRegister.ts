@@ -1,5 +1,5 @@
 // import { Module, addRegister } from 'tssv/lib/core/TSSV'
-import { Module } from 'tssv/lib/core/TSSV'
+import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { writeFileSync, mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
@@ -65,13 +65,7 @@ regMod.addRegister(
 )
 
 try {
-  const TB =
-`
-  /* verilator lint_off DECLFILENAME */
-  /* verilator lint_off UNUSED */
-  ${regMod.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod.sv', TB)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod.name}.sv`, regMod.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -135,13 +129,7 @@ regMod2.addRegister(
 )
 
 try {
-  const TB2 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod2.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod2.sv', TB2)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod2.name}.sv`, regMod2.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -206,13 +194,7 @@ regMod3.addRegister(
 )
 
 try {
-  const TB3 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod3.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod3.sv', TB3)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod3.name}.sv`, regMod3.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -290,13 +272,7 @@ regMod4.addRegister(
 )
 
 try {
-  const TB4 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod4.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod4.sv', TB4)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod4.name}.sv`, regMod4.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -367,13 +343,7 @@ regMod5.addRegister(
 )
 
 try {
-  const TB5 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod5.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod5.sv', TB5)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod5.name}.sv`, regMod5.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -442,13 +412,7 @@ regMod6.addRegister(
 )
 
 try {
-  const TB6 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod6.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod6.sv', TB6)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod6.name}.sv`, regMod6.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -519,13 +483,7 @@ regMod7.addRegister(
 )
 
 try {
-  const TB7 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod7.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod7.sv', TB7)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod7.name}.sv`, regMod7.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
@@ -547,27 +505,27 @@ const tbBody8 =
     case (count)
       'd0: begin
         d <= 8'b00000000;
-        assert(q == 4'b0000) else $fatal("Assertion failed: q should be 8'b0000 at count %0d", count);
+        assert(q == 4'b0000) else $fatal("Assertion failed: q should be 4'b0000 for d = %b at count %0d", d, count);
       end
       'd1: begin
         d <= 8'b00000001;
-        assert(q == 8'b0000) else $fatal("Assertion failed: q should be 8'b00000 at count %0d", count);
+        assert(q == 4'b0000) else $fatal("Assertion failed: q should be 4'b0000 for d = %b at count %0d", d, count);
       end
       'd2: begin
         d <= 8'b00010010;
-        assert(q == 8'b0001) else $fatal("Assertion failed: q should be 8'b0001 at count %0d", count);
+        assert(q == 4'b0001) else $fatal("Assertion failed: q should be 4'b0001 for d = %b at count %0d", d, count);
       end
       'd3: begin
         d <= 8'b10000011;
-        assert(q == 8'b0010) else $fatal("Assertion failed: q should be 8'b0010 at count %0d", count);
+        assert(q == 4'b0010) else $fatal("Assertion failed: q should be 4'b0010 for d = %b at count %0d", d, count);
       end
       'd4: begin
         d <= 8'b00100100;
-        assert(q == 8'b0011) else $fatal("Assertion failed: q should be 8'b0011 at count %0d", count);
+        assert(q == 4'b0011) else $fatal("Assertion failed: q should be 4'b0011 for d = %b at count %0d", d, count);
       end
       default: begin
         d <= 8'b00000000;
-        assert(q == 8'b0100) else $fatal("Assertion failed: q should be 8'b0100 at count %0d", count);
+        assert(q == 4'b0100) else $fatal("Assertion failed: q should be 4'b0100 for d = %b at count %0d", d, count);
       end
     endcase
     end
@@ -582,25 +540,19 @@ const regMod8 = markTestbench(new Module(
   {},
   tbBody8
 ))
-regMod8.waiveWidthWarnings('#148')
 regMod8.addSignal('d', { width: 8 })
 regMod8.addSignal('q', { width: 4 })
+// q keeps d's low bits: the slice says so (WIDTH-7), and the messages print all of d
 regMod8.addRegister(
   {
-    d: 'd',
+    d: new Expr('d[3:0]'),
     clk: 'clk',
     q: 'q'
   }
 )
 
 try {
-  const TB8 =
-`
-    /* verilator lint_off DECLFILENAME */
-    /* verilator lint_off UNUSED */
-    ${regMod8.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/Core/addRegister/regMod8.sv', TB8)
+  writeFileSync(`sv-examples/Core/addRegister/${regMod8.name}.sv`, regMod8.writeSystemVerilog())
 } catch (err) {
   console.error(err)
 }
