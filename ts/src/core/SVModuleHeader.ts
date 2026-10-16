@@ -6,8 +6,10 @@
  *
  * @module SVModuleHeader
  */
-import { spawnSync } from 'node:child_process'
 import { basename } from 'node:path'
+import { type CSTNode, type VeribleSyntaxOpts, child, findAll, identifier, kids, parseSyntax } from './VeribleSyntax.js'
+
+export type { VeribleSyntaxOpts } from './VeribleSyntax.js'
 
 /** declared kind of a port on an imported SystemVerilog module */
 export type SVPortKind = 'input' | 'output' | 'inout' | 'ref' | 'interface'
@@ -18,52 +20,7 @@ export interface SVModuleHeader {
   ports: Record<string, SVPortKind>
 }
 
-export interface VeribleSyntaxOpts {
-  /** path to verible-verilog-syntax (default: found on PATH) */
-  veribleSyntaxPath?: string
-  /** timeout for the verible-verilog-syntax run (default 10000 ms) */
-  timeoutMs?: number
-}
-
-/** a node of Verible's JSON concrete syntax tree: leaves carry `text`, inner nodes `children` */
-interface CSTNode {
-  tag: string
-  text?: string
-  start?: number
-  end?: number
-  children?: Array<CSTNode | null>
-}
-
-interface VeribleError {
-  line: number
-  column: number
-  phase: string
-  text: string
-}
-
 const directions = ['input', 'output', 'inout', 'ref']
-const identifierTags = ['SymbolIdentifier', 'EscapedIdentifier']
-
-function kids (node: CSTNode | undefined): CSTNode[] {
-  return (node?.children ?? []).filter((c): c is CSTNode => c !== null)
-}
-
-function child (node: CSTNode | undefined, tag: string): CSTNode | undefined {
-  return kids(node).find(c => c.tag === tag)
-}
-
-function findAll (node: CSTNode | undefined, tag: string, out: CSTNode[] = []): CSTNode[] {
-  if (node === undefined) return out
-  if (node.tag === tag) out.push(node)
-  for (const c of kids(node)) findAll(c, tag, out)
-  return out
-}
-
-/** the text of the identifier directly under `node`, or under its kUnqualifiedId */
-function identifier (node: CSTNode | undefined): string | undefined {
-  return kids(node).find(c => identifierTags.includes(c.tag))?.text ??
-    kids(child(node, 'kUnqualifiedId')).find(c => identifierTags.includes(c.tag))?.text
-}
 
 function direction (node: CSTNode): SVPortKind | undefined {
   return kids(node).find(c => directions.includes(c.tag))?.tag as SVPortKind | undefined
@@ -128,29 +85,13 @@ function nonAnsiPorts (module: CSTNode, portList: CSTNode | undefined): Record<s
  * @returns one entry per module declaration, in source order
  */
 export function parseSVModules (src: string, opts: VeribleSyntaxOpts = {}): SVModuleHeader[] {
-  const binary = opts.veribleSyntaxPath ?? 'verible-verilog-syntax'
-  const result = spawnSync(binary, ['--export_json', '--printtree', '-'], {
-    input: src,
-    timeout: opts.timeoutMs ?? 10000,
-    encoding: 'utf8',
-    maxBuffer: 1 << 30
-  })
-  if (result.error !== undefined) {
-    throw Error(`could not run ${binary} (is Verible installed?): ${result.error.message}`)
-  }
-  let json: Record<string, { tree?: CSTNode, errors?: VeribleError[] }>
-  try {
-    json = JSON.parse(result.stdout) as typeof json
-  } catch (e) {
-    throw Error(`${binary} exited with status ${result.status ?? '(none)'}: ${result.stderr.trim()}`)
-  }
-  const file = Object.values(json)[0]
-  const firstError = file?.errors?.[0]
+  const { tree, errors } = parseSyntax(src, opts)
+  const firstError = errors[0]
   if (firstError !== undefined) {
     throw Error(`SystemVerilog syntax error at line ${firstError.line + 1}, column ${firstError.column + 1} near '${firstError.text}'`)
   }
   const modules: SVModuleHeader[] = []
-  for (const module of findAll(file?.tree, 'kModuleDeclaration')) {
+  for (const module of findAll(tree, 'kModuleDeclaration')) {
     const header = child(module, 'kModuleHeader')
     const name = identifier(header)
     if (name === undefined) continue
