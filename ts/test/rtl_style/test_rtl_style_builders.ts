@@ -321,7 +321,7 @@ check('SEQ-1', 'addSequentialAlways rejects a blocking assignment to a register'
     seqModule('seq1_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
     if (!rst_n) sum_q = '0;
-    else        sum_q = 5'(a) + 5'(b);
+    else        sum_q = a + b;
   end
 `)
   }, /SEQ-1/)
@@ -332,7 +332,7 @@ check('SEQ-1', 'addSequentialAlways accepts = to an automatic local, and <= to t
   m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
     automatic logic [4:0] sum;
-    sum = 5'(a) + 5'(b);
+    sum = a + b;
     if (!rst_n) sum_q <= '0;
     else        sum_q <= sum ^ cfg;
   end
@@ -346,12 +346,12 @@ check('SEQ-1', 'addSequentialAlways accepts = to a concatenation of automatic lo
   begin : sum_reg
     automatic logic       carry;
     automatic logic [3:0] low;
-    {carry, low} = 5'(a) + 5'(b);
+    {carry, low} = a + b;
     if (!rst_n) sum_q <= '0;
     else        sum_q <= {carry, low} ^ cfg;
   end
 `)
-  expect(flat(emit(m)).includes('{carry, low} = 5\'(a) + 5\'(b);'), 'block not emitted')
+  expect(flat(emit(m)).includes('{carry, low} = a + b;'), 'block not emitted')
 })
 
 // SEQ-6: reset values are constants.
@@ -362,7 +362,7 @@ check('SEQ-6', 'addSequentialAlways rejects a reset to a signal', () => {
     if (!rst_n) begin
       sum_q <= cfg;
     end else begin
-      sum_q <= 5'(a) + 5'(b);
+      sum_q <= a + b;
     end
   end
 `)
@@ -373,7 +373,7 @@ check('SEQ-6', 'addSequentialAlways rejects a reset to a signal in the else bran
   expectThrows(() => {
     seqModule('seq6_else_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
-    if (rst_n) sum_q <= 5'(a) + 5'(b);
+    if (rst_n) sum_q <= a + b;
     else       sum_q <= cfg;
   end
 `)
@@ -385,7 +385,7 @@ check('SEQ-6', 'addSequentialAlways accepts a constant reset value', () => {
   m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
     if (!rst_n) sum_q <= 5'd16;
-    else        sum_q <= (5'(a) + 5'(b)) ^ cfg;
+    else        sum_q <= (a + b) ^ cfg;
   end
 `)
   expect(emit(m).includes("sum_q <= 5'd16;"), 'reset value not emitted')
