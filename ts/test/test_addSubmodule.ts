@@ -307,6 +307,18 @@ try {
   console.error(err)
 }
 
+const expectThrow = (what: string, fn: () => void, match: string): void => {
+  try {
+    fn()
+  } catch (e) {
+    const msg = (e as Error).message
+    if (!msg.includes(match)) throw Error(`${what}: threw "${msg}", expected it to mention "${match}"`)
+    console.log(`PASS: ${what}`)
+    return
+  }
+  throw Error(`${what}: did not throw`)
+}
+
 // interface port binding: the parent instance must be the same SV interface type
 // (class name plus parameter values) as the child's port, and must exist
 {
@@ -314,17 +326,6 @@ try {
     const m = new Module({ name: `memChild_${dataWidth}` }, {}, {}, '')
     m.addInterface('mem', new Memory({ DATA_WIDTH: dataWidth }, 'inward'))
     return m
-  }
-  const expectThrow = (what: string, fn: () => void, match: string): void => {
-    try {
-      fn()
-    } catch (e) {
-      const msg = (e as Error).message
-      if (!msg.includes(match)) throw Error(`${what}: threw "${msg}", expected it to mention "${match}"`)
-      console.log(`PASS: ${what}`)
-      return
-    }
-    throw Error(`${what}: did not throw`)
   }
 
   const okParent = new Module({ name: 'ifBindOk' }, {}, {}, '')
@@ -360,4 +361,25 @@ try {
   expectThrow('role mismatch is still checked', () => {
     roleParent.addSubmodule('u', memChild(32), { mem: 'bus' }, false)
   }, 'interface role mismatch')
+}
+
+// a repeated instance name throws instead of replacing the first instance (#84),
+// through addSubmodule and through addSystemVerilogSubmodule, which calls it
+{
+  const leaf = new Module({ name: 'dupLeaf' }, { a: { direction: 'input', width: 4 } })
+  const dupParent = new Module({ name: 'dupInstance' }, { a: { direction: 'input', width: 4 } })
+  dupParent.addSubmodule('u0', leaf, { a: 'a' }, false)
+  expectThrow('repeated instance name', () => {
+    dupParent.addSubmodule('u0', leaf, { a: 'a' }, false)
+  }, 'submodule with instance name u0 already exists')
+
+  const svParent = new Module({ name: 'dupSVInstance' }, {
+    a: { direction: 'input', width: 8 },
+    en: { direction: 'input' },
+    y: { direction: 'output', width: 8 }
+  })
+  svParent.addSystemVerilogSubmodule('u_leaf', 'ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false)
+  expectThrow('repeated instance name through addSystemVerilogSubmodule', () => {
+    svParent.addSystemVerilogSubmodule('u_leaf', 'ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false)
+  }, 'submodule with instance name u_leaf already exists')
 }
