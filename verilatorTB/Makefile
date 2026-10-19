@@ -12,17 +12,24 @@ obj_dir/$(TOP_MODULE): $(VERILOG_FILE) sim_main.cpp
 	verilator --cc $(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
 	make -C obj_dir TOP_MODULE=$(TOP_MODULE) -j -f $(TOP_MODULE).mk $(TOP_MODULE) 
 
-# Show-ahead synchronous FIFO: a self-checking testbench, built and run once per
-# configuration that test_SFIFO.js lists in configs.txt. Each build and its waveform
+# Show-ahead synchronous FIFO: lint every generated variant with -Wall, through the filelist
+# test_SFIFO.js writes for each, then build and run a self-checking testbench once per
+# configuration it lists in configs.txt ("<config> <.sv files>"). Each build and its waveform
 # (tb_SFIFO_<config>.fst) land in obj_dir/sfifo_<config>/.
-SFIFO_TB_DIR = ../sv-examples/SFIFO/tb
+SFIFO_DIR    = ../sv-examples/SFIFO
+SFIFO_TB_DIR = $(SFIFO_DIR)/tb
 
 sfifo_sim: tsc
 	cd ..; node out/test/modules/test_SFIFO.js
+	set -e; for f in $(SFIFO_DIR)/SFIFO_*/*.f; do \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) -F $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
 	mkdir -p obj_dir
-	set -e; while read -r cfg dut; do \
+	set -e; while read -r cfg files; do \
+	  srcs=""; for f in $$files; do srcs="$$srcs ../$$f"; done; \
 	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sfifo_$$cfg -o Vtb_SFIFO \
-	    -DCFG_$$cfg -I$(SFIFO_TB_DIR) tb_SFIFO.sv ../$$dut > obj_dir/sfifo_$$cfg.build.log 2>&1 \
+	    -DCFG_$$cfg -I$(SFIFO_TB_DIR) tb_SFIFO.sv $$srcs > obj_dir/sfifo_$$cfg.build.log 2>&1 \
 	    || { cat obj_dir/sfifo_$$cfg.build.log; exit 1; }; \
 	  (cd obj_dir/sfifo_$$cfg && ./Vtb_SFIFO); \
 	done < $(SFIFO_TB_DIR)/configs.txt

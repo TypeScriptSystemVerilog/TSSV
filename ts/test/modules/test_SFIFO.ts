@@ -6,23 +6,29 @@
 //    - SFIFO_tb_configs.svh: per-configuration DUT name, depth and port options
 //    - SFIFO_tb_vectors.svh: one task per timing diagram in the spec, built from the
 //      diagram's WaveDrom JSON so the testbench checks exactly what the spec shows
-//    - configs.txt: "<config> <DUT .sv path>" per line, read by `make sfifo_sim`
+//    - configs.txt: "<config> <.sv paths>" per line, read by `make sfifo_sim`
 //
-// Run `make -C verilatorTB sfifo_sim` to generate everything and simulate each configuration.
+// Each FIFO is emitted one module per file with a lint filelist (emitSplit).
+// Run `make -C verilatorTB sfifo_sim` to generate everything, lint each variant with -Wall and
+// simulate each configuration.
 
 import { SFIFO } from 'tssv/lib/modules/SFIFO'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { emitSplit } from '../models/emitSplit.js'
+import { writeLintFilelist } from '../models/lintFilelist.js'
 
 const SPEC = 'doc/modules/SFIFO/SFIFO-spec.md'
 const TB_DIR = 'sv-examples/SFIFO/tb'
+const GENERATOR = 'ts/test/modules/test_SFIFO.ts'
 const DATA_WIDTH = 8n
 
-/** write a FIFO's SV to sv-examples/SFIFO/<name>/<name>.sv and return that path */
-function emit (fifo: SFIFO): string {
+/** write a FIFO one module per file under sv-examples/SFIFO/<name>/ and return the paths, the FIFO's last */
+function emit (fifo: SFIFO): string[] {
   const dir = `sv-examples/SFIFO/${fifo.name}`
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(`${dir}/${fifo.name}.sv`, fifo.writeSystemVerilog())
-  return `${dir}/${fifo.name}.sv`
+  const files = emitSplit(fifo, dir, GENERATOR)
+  // a depth-1 FIFO has no SRAM, so emitSplit writes it no filelist; sfifo_sim lints every variant through one
+  if (files.length === 1) writeLintFilelist(dir, fifo.name, [`${fifo.name}.sv`], GENERATOR)
+  return files
 }
 
 /** the port list the spec's IO tables give for a configuration */
@@ -76,8 +82,7 @@ let configs = header
 const configList: string[] = []
 TB_CONFIGS.forEach((c, i) => {
   const fifo = new SFIFO({ dataWidth: c.dataWidth, depth: c.depth, simultPushPop: c.simultPushPop, inclAlmostFull: c.inclAlmostFull, inclAlmostEmpty: c.inclAlmostEmpty })
-  const sv = emit(fifo)
-  configList.push(`${c.cfg} ${sv}`)
+  configList.push(`${c.cfg} ${emit(fifo).join(' ')}`)
   configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${c.cfg}\n`
   configs += `  \`define CFG_NAME "${c.cfg}"\n`
   configs += `  \`define SFIFO_DUT ${fifo.name}\n`
