@@ -194,14 +194,14 @@ export class SFIFO extends Module {
 
     const sramName = `${this.name}_sram`
     if (simult) {
-      this.addSubmodule(`u_${sramName}`,
+      this.addSubmodule('u_sram',
         new SRAM({ name: sramName, dataWidth: this.params.dataWidth, depth, ports: '1r_1w' }),
         { clk: 'clk', a_re: 'sram_re', a_addr: 'rd_addr_inc', a_data_out: 'sram_rdata', b_we: 'push_fire', b_addr: 'wr_addr_q', b_data_in: 'push_data' })
     } else {
       // push and pop are exclusive, so a push write and a prefetch read never share a cycle
       this.addSignal('sram_addr', { width: addrWidth })
       this.addAssign({ in: new Expr('push_fire ? wr_addr_q : rd_addr_inc'), out: 'sram_addr' })
-      this.addSubmodule(`u_${sramName}`,
+      this.addSubmodule('u_sram',
         new SRAM({ name: sramName, dataWidth: this.params.dataWidth, depth, ports: '1rw' }),
         { clk: 'clk', a_re: 'sram_re', a_we: 'push_fire', a_addr: 'sram_addr', a_data_in: 'push_data', a_data_out: 'sram_rdata' })
     }
