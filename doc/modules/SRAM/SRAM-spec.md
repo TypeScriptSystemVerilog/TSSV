@@ -62,11 +62,15 @@ A port `<p>_` that writes has:
 
 - **Write:** on a rising `clk` edge with `<p>_we` high, `<p>_data_in` is written to word `<p>_addr`. A write mask splits the word into lanes, 1 bit wide for `'bit'` and 8 bits for `'byte'`, and only the lanes whose `<p>_wmask` bit is set are written. Lane *i* is bits `[i*w +: w]`.
 - **Read:** on a rising `clk` edge with `<p>_re` high, word `<p>_addr` is loaded into `<p>_data_out`. While `<p>_re` is low, `<p>_data_out` holds.
-- **`readBehavior = 'readBeforeWrite'`:** a read returns the word as it was before that cycle's writes.
-- **`readBehavior = 'undefOnWrite'`** (default): a read of a word that either port writes in the same cycle *conflicts*, and `<p>_data_out` is undefined until the port's next read that doesn't conflict. In simulation it becomes X. In synthesis the read doesn't load, so `<p>_data_out` holds. A write conflicts whatever its mask, so a write that selects no lanes still does. This leaves the most choice of SRAM macro.
-  - `1rw`: every read with `a_we` high conflicts.
-  - `1r_1w`: a read conflicts when `b_we` is high and `b_addr == a_addr`.
-  - `2rw`: a port's read conflicts when that port writes, or when the other port writes the address it reads.
+- **Read/write conflict:** a read *conflicts* with a write when, in the same cycle, a port reads an address that a port writes. That is:
+  - `1rw`: a read with `a_we` high.
+  - `1r_1w`: a read with `b_we` high and `b_addr == a_addr`.
+  - `2rw`: a read on port `<p>_` with its own `<p>_we` high, or with the other port's write enable high and the two addresses equal.
+
+  Only the write enable and the addresses decide a conflict, not the write mask. A read conflicts even when the write's mask leaves every bit of the word unchanged.
+- **`readBehavior`** sets what a conflicting read returns. A read that doesn't conflict always returns the stored word.
+  - `'readBeforeWrite'`: the word as it was before that cycle's writes.
+  - `'undefOnWrite'` (default): an undefined value. `<p>_data_out` stays undefined until the port's next read that doesn't conflict. In simulation it is X. In synthesis the read doesn't load, so `<p>_data_out` keeps its previous value. Promising no value leaves the most choice of SRAM macro.
 - **`2rw` write collision:** when both ports write the same lane of the same word in one cycle, neither write happens. In simulation that lane becomes X. Lanes that only one port writes are written as usual.
 - An address at or above `depth` (possible when `depth` isn't a power of 2) is outside the array. Don't use one.
 
@@ -88,7 +92,7 @@ The X assignments are inside `` `ifndef SYNTHESIS ``, so synthesis sees only the
 |---|---|---|---|
 | `mem` | `dataWidth` × `depth` | always | The storage |
 | `addr_a_equal_b` | 1 | `2rw`; `1r_1w` with `undefOnWrite` | `a_addr == b_addr` |
-| `<p>_rw_conflict` | 1 | `undefOnWrite`, per reading port | A write, on either port, to the address port `<p>_` reads |
+| `<p>_rw_conflict` | 1 | `undefOnWrite`, per reading port | A write enable is high, on either port, for the address port `<p>_` reads ([Read/write conflict](#functional-description)) |
 
 ---
 
