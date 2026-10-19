@@ -120,6 +120,9 @@ jobs:
       - name: SFIFO simulation
         run: make -C verilatorTB sfifo_sim
 
+      - name: SRAM simulation
+        run: make -C verilatorTB sram_sim
+
       - name: TwoClockRegFile simulation
         run: make -C verilatorTB twoclockregfile_sim
 

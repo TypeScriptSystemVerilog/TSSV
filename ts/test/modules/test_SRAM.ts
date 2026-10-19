@@ -1,37 +1,148 @@
-import { SRAM } from 'tssv/lib/modules/SRAM'
-import { writeFileSync, mkdirSync } from 'fs'
+// Generate the SRAM variants and the inputs for verilatorTB/tb_SRAM.sv:
+//
+// 1. Every combination of ports, writeEnableMask and readBehavior (TB_CONFIGS), each checked
+//    against the spec's IO tables, two 1026-bit SRAMs, and the parameter values the
+//    constructor rejects.
+// 2. sv-examples/SRAM/tb/:
+//    - SRAM_tb_configs.svh: per-configuration DUT name, its port connections, sizes and options
+//    - configs.txt: "<config> <DUT .sv path>" per line, read by `make sram_sim`
+//
+// Run `make -C verilatorTB sram_sim` to generate everything, lint each variant with -Wall and
+// simulate each configuration.
 
-const testMem_1rw = new SRAM({ dataWidth: 8n, depth: 32n, ports: '1rw', writeEnableMask: 'bit', readBehavior: 'undefOnWrite' })
-try {
-  mkdirSync(`sv-examples/SRAM/${testMem_1rw.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SRAM/${testMem_1rw.name}/${testMem_1rw.name}.sv`, testMem_1rw.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+import { SRAM, type SRAM_Parameters } from 'tssv/lib/modules/SRAM'
+import { mkdirSync, writeFileSync } from 'fs'
+
+const OUT = 'sv-examples/SRAM'
+const TB_DIR = `${OUT}/tb`
+
+let passed = 0
+let failed = 0
+
+function check (label: string, ok: boolean, detail?: string): void {
+  if (ok) {
+    console.log(`PASS: ${label}`)
+    passed++
+  } else {
+    console.error(`FAIL: ${label}${detail !== undefined ? `\n  ${detail}` : ''}`)
+    failed++
+  }
 }
 
-const testMem_2rw = new SRAM({ dataWidth: 8n, depth: 32n, ports: '2rw', writeEnableMask: 'bit', readBehavior: 'undefOnWrite' })
-try {
-  mkdirSync(`sv-examples/SRAM/${testMem_2rw.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SRAM/${testMem_2rw.name}/${testMem_2rw.name}.sv`, testMem_2rw.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+function expectThrow (label: string, fn: () => unknown, message: string): void {
+  try {
+    fn()
+    check(label, false, 'did not throw')
+  } catch (e) {
+    const got = (e instanceof Error) ? e.message : String(e)
+    check(label, got.includes(message), `expected a message containing '${message}', got '${got}'`)
+  }
 }
 
-const testMem_1r_1w = new SRAM({ dataWidth: 32n, depth: 256n, ports: '1r_1w', writeEnableMask: 'byte', readBehavior: 'readBeforeWrite' })
-try {
-  mkdirSync(`sv-examples/SRAM/${testMem_1r_1w.name}`, { recursive: true })
-  writeFileSync(`sv-examples/SRAM/${testMem_1r_1w.name}/${testMem_1r_1w.name}.sv`, testMem_1r_1w.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+/** write an SRAM's SV to sv-examples/SRAM/<name>/<name>.sv and return that path */
+function emit (mem: SRAM): string {
+  const dir = `${OUT}/${mem.name}`
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(`${dir}/${mem.name}.sv`, mem.writeSystemVerilog())
+  return `${dir}/${mem.name}.sv`
 }
+
+type Ports = SRAM_Parameters['ports']
+type Mask = NonNullable<SRAM_Parameters['writeEnableMask']>
+
+/** the ports a configuration reads and writes on, as the spec's IO tables give them */
+const READS: Record<Ports, string[]> = { '1rw': ['a'], '1r_1w': ['a'], '2rw': ['a', 'b'] }
+const WRITES: Record<Ports, string[]> = { '1rw': ['a'], '1r_1w': ['b'], '2rw': ['a', 'b'] }
+
+/** the port list, with widths, the spec's IO tables give for a configuration */
+function specPorts (ports: Ports, mask: Mask, dataWidth: number, addrWidth: number): string {
+  const list = new Map<string, number>([['clk', 1]])
+  for (const p of READS[ports]) {
+    list.set(`${p}_re`, 1).set(`${p}_addr`, addrWidth).set(`${p}_data_out`, dataWidth)
+  }
+  for (const p of WRITES[ports]) {
+    list.set(`${p}_we`, 1).set(`${p}_addr`, addrWidth).set(`${p}_data_in`, dataWidth)
+    if (mask !== 'none') list.set(`${p}_wmask`, mask === 'bit' ? dataWidth : dataWidth / 8)
+  }
+  return [...list].map(([n, w]) => `${n}:${w}`).sort().join(' ')
+}
+
+const portsOf = (mem: SRAM): string =>
+  Object.entries((mem as unknown as { IOs: Record<string, { width?: number }> }).IOs)
+    .map(([n, io]) => `${n}:${io.width ?? 1}`).sort().join(' ')
+
+// ============================================ 1. every configuration
+interface TbConfig {
+  cfg: string
+  dataWidth: bigint
+  depth: bigint
+  ports: Ports
+  writeEnableMask: Mask
+  readBehavior: NonNullable<SRAM_Parameters['readBehavior']>
+}
+
+// A few words, so the testbench's random addresses collide often. Each mask shape: none, one
+// lane per bit, four byte lanes, and a byte mask on an 8-bit word (one lane, a 1-bit wmask)
+const DEPTH = 4n
+const MASKS: Array<{ label: string, mask: Mask, dataWidth: bigint }> = [
+  { label: 'none', mask: 'none', dataWidth: 8n },
+  { label: 'bit', mask: 'bit', dataWidth: 8n },
+  { label: 'byte', mask: 'byte', dataWidth: 32n },
+  { label: 'byte1', mask: 'byte', dataWidth: 8n }
+]
+const TB_CONFIGS: TbConfig[] = []
+for (const ports of ['1rw', '1r_1w', '2rw'] as const) {
+  for (const m of MASKS) {
+    for (const readBehavior of ['undefOnWrite', 'readBeforeWrite'] as const) {
+      const rb = readBehavior === 'undefOnWrite' ? 'undef' : 'rbw'
+      TB_CONFIGS.push({ cfg: `${ports}_${m.label}_${rb}`, dataWidth: m.dataWidth, depth: DEPTH, ports, writeEnableMask: m.mask, readBehavior })
+    }
+  }
+}
+
+mkdirSync(TB_DIR, { recursive: true })
+const header = '// Generated by ts/test/modules/test_SRAM.ts. Do not edit.\n'
+let configs = header
+const configList: string[] = []
+TB_CONFIGS.forEach((c, i) => {
+  const mem = new SRAM({ dataWidth: c.dataWidth, depth: c.depth, ports: c.ports, writeEnableMask: c.writeEnableMask, readBehavior: c.readBehavior })
+  const dataWidth = Number(c.dataWidth)
+  const addrWidth = mem.bitWidth(c.depth - 1n)
+  check(`${mem.name}: ports match the spec`, portsOf(mem) === specPorts(c.ports, c.writeEnableMask, dataWidth, addrWidth),
+    `got:  ${portsOf(mem)}\n  spec: ${specPorts(c.ports, c.writeEnableMask, dataWidth, addrWidth)}`)
+  configList.push(`${c.cfg} ${emit(mem)}`)
+  const lanes = c.writeEnableMask === 'bit' ? dataWidth : c.writeEnableMask === 'byte' ? dataWidth / 8 : 1
+  const has = (list: string[], p: string): number => list.includes(p) ? 1 : 0
+  configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${c.cfg}\n`
+  configs += `  \`define CFG_NAME "${c.cfg}"\n`
+  configs += `  \`define SRAM_DUT ${mem.name}\n`
+  // every DUT port connects to the testbench signal of the same name
+  configs += `  \`define SRAM_PORTS ${Object.keys((mem as unknown as { IOs: Record<string, unknown> }).IOs).map(n => `.${n}(${n})`).join(', ')}\n`
+  configs += `  \`define DATA_WIDTH ${dataWidth}\n`
+  configs += `  \`define DEPTH ${c.depth}\n`
+  configs += `  \`define LANES ${lanes}\n`
+  configs += `  \`define MASK ${c.writeEnableMask === 'none' ? 0 : 1}\n`
+  configs += `  \`define UNDEF_ON_WRITE ${c.readBehavior === 'undefOnWrite' ? 1 : 0}\n`
+  configs += `  \`define RD_A ${has(READS[c.ports], 'a')}\n  \`define RD_B ${has(READS[c.ports], 'b')}\n`
+  configs += `  \`define WR_A ${has(WRITES[c.ports], 'a')}\n  \`define WR_B ${has(WRITES[c.ports], 'b')}\n`
+})
+configs += '`else\n  `error "define one of the CFG_<config> macros"\n`endif\n'
+writeFileSync(`${TB_DIR}/SRAM_tb_configs.svh`, configs)
+writeFileSync(`${TB_DIR}/configs.txt`, configList.join('\n') + '\n')
+console.log(`${TB_CONFIGS.length} testbench configurations written to ${TB_DIR}/`)
 
 // wider than the old 256-bit dataWidth limit, in both single- and dual-port forms
 for (const ports of ['1rw', '1r_1w'] as const) {
-  const wideMem = new SRAM({ dataWidth: 1026n, depth: 4n, ports })
-  try {
-    mkdirSync(`sv-examples/SRAM/${wideMem.name}`, { recursive: true })
-    writeFileSync(`sv-examples/SRAM/${wideMem.name}/${wideMem.name}.sv`, wideMem.writeSystemVerilog())
-  } catch (err) {
-    console.error(err)
-  }
+  const wide = new SRAM({ dataWidth: 1026n, depth: 4n, ports })
+  check(`${wide.name}: ports match the spec`, portsOf(wide) === specPorts(ports, 'none', 1026, 2))
+  emit(wide)
 }
+
+// ============================================ parameter checks (TSSV guide PARAM-5)
+expectThrow('dataWidth 0 is rejected', () => new SRAM({ dataWidth: 0n, depth: 4n, ports: '1rw' }), 'SRAM: dataWidth must be at least 1, got 0')
+expectThrow('depth 1 is rejected', () => new SRAM({ dataWidth: 8n, depth: 1n, ports: '1rw' }), 'SRAM: depth must be at least 2, got 1')
+expectThrow('a byte mask on 12 bits is rejected', () => new SRAM({ dataWidth: 12n, depth: 4n, ports: '2rw', writeEnableMask: 'byte' }),
+  'SRAM: dataWidth must be a multiple of 8 for a byte write mask, got 12')
+
+console.log(`\n${passed} passed, ${failed} failed`)
+if (failed > 0) process.exit(1)
