@@ -212,7 +212,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 - **Prefetch:** on a pop with more than one entry, `sram_re` reads `rd_addr_inc`, the entry behind the head. Those entries were written on earlier edges, so the read never hits the address being written. While `sram_re` is low, the SRAM holds its read data, which keeps the head steady across idle and push-only cycles.
 - **Bypass:** `bypass_q` captures `push_data` when the push becomes the head at once: a push into an empty FIFO, or (`simultPushPop = true`) a push alongside the pop of the only entry.
 - **Head select:** `head_from_bypass_q` records which source holds the head. `pop_data = head_from_bypass_q ? bypass_q : sram_rdata`.
-- **SRAM:** `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop.
+- **SRAM:** instance `u_sram` of module `<name>_sram`. `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop.
 - **`depth = 1`:** the only entry is always the head, so there is no SRAM and no pointers; `pop_data` is `bypass_q`.
 
 ### Key signals
@@ -243,7 +243,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 **Test script:** `ts/test/modules/test_SFIFO.ts` generates every combination of `simultPushPop`, `inclAlmostFull` and `inclAlmostEmpty` (at `depth = 5`), checks each one's ports against the IO tables above, and generates the testbench configurations below.
 **Testbench:** `verilatorTB/tb_SFIFO.sv`, built once per configuration. Every cycle, a queue reference model checks `empty`, `full`, `curr_depth`, the almost flags and, while not empty, `pop_data`.
-**Output:** `sv-examples/SFIFO/<module>/` and `sv-examples/SFIFO/tb/`
+**Output:** `sv-examples/SFIFO/<module>/`, one module per file (`<module>.sv`, and `<module>_sram.sv` unless `depth = 1`) with a lint filelist, `<module>.f`; and `sv-examples/SFIFO/tb/`
 
 | Configuration | `dataWidth` | `depth` | `simultPushPop` | Almost flags |
 |---|---|---|---|---|
@@ -270,6 +270,14 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 ### Simulation
 
 ```bash
-make -C verilatorTB sfifo_sim    # generates the SV, then builds and runs each configuration
+make -C verilatorTB sfifo_sim    # generates the SV, lints each variant with -Wall, then builds and runs each configuration
 # waveform per configuration: verilatorTB/obj_dir/sfifo_<config>/tb_SFIFO_<config>.fst
 ```
+
+---
+
+## Implementation Notes
+
+- **Style-guide deviations.** The module follows the [TSSV guide](../../rtl-style/tssv-style/tssv-coding-style.md) and the [SV guide](../../rtl-style/sv-style/sv-coding-style.md), except for one SHOULD rule:
+  - **MOD-5** (TSSV guide): the push and pop sides are plain ports, not `Interface`s. They are the module's established IO, which `tb_SFIFO.sv` and the [IO tables](#io-ports) use, and TSSV has no `Interface` for a FIFO handshake.
+- **The `SRAM` is in its own file.** `test_SFIFO.ts` writes each FIFO one module per file, with a filelist that lints it with its `SRAM`. Written to one file, the `SRAM` comes first, and `verilator -Wall` reports `DECLFILENAME` because the file is named after the FIFO.
