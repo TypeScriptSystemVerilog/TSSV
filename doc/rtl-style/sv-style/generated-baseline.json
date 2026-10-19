@@ -242,9 +242,6 @@
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1
     },
-    "sv-examples/ROM/ROM_32_big_split2two/ROM_32_big_split2two.sv": {
-      "LINT-1 DECLFILENAME: Filename 'ROM_32_big_split2two' does not match MODULE name: 'ROM_32_big_split2two_lower'": 1
-    },
     "sv-examples/SFIFO/SFIFO_1026_4_true_true_true/SFIFO_1026_4_true_true_true.sv": {
       "LINT-1 DECLFILENAME: Filename 'SFIFO_1026_4_true_true_true' does not match MODULE name: 'SFIFO_1026_4_true_true_true_sram'": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
