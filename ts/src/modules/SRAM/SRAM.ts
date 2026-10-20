@@ -31,6 +31,12 @@ export interface SRAM_Parameters extends TSSVParameters {
      */
   readBehavior?: 'undefOnWrite' | 'readBeforeWrite'
   /**
+     * the fewest bits (depth * dataWidth) the SRAM needs to be implemented as a macro; at least
+     * 32, default 1024. A smaller SRAM is built from flip-flops, and its storage gets
+     * `(* ram_style = "registers" *)`. A readBeforeWrite SRAM must be smaller
+     */
+  minMacroBits?: bigint
+  /**
      * macroConfig is a free form string parameter that allows selection of technology
      * specific SRAM macro generator parameters such as high-speed, high-density,
      * mux configuration,  leakage selection, etc.
@@ -65,16 +71,24 @@ export class SRAM extends Module {
       ports: params.ports,
       writeEnableMask: params.writeEnableMask || 'none',
       readBehavior: params.readBehavior || 'undefOnWrite',
-      macroConfig: params.macroConfig || 'default'
+      macroConfig: params.macroConfig || 'default',
+      minMacroBits: params.minMacroBits ?? 1024n
     })
     const depth = this.params.depth
     const ports = this.params.ports
     const mask = this.params.writeEnableMask ?? 'none'
+    const minMacroBits = this.params.minMacroBits ?? 1024n
+    const bits = depth * this.params.dataWidth
     if (this.params.dataWidth < 1n) throw Error(`SRAM: dataWidth must be at least 1, got ${this.params.dataWidth}`)
     // one word would need a 0-bit address
     if (depth < 2n) throw Error(`SRAM: depth must be at least 2, got ${depth}`)
     if (mask === 'byte' && this.params.dataWidth % 8n !== 0n) {
       throw Error(`SRAM: dataWidth must be a multiple of 8 for a byte write mask, got ${this.params.dataWidth}`)
+    }
+    if (minMacroBits < 32n) throw Error(`SRAM: minMacroBits must be at least 32, got ${minMacroBits}`)
+    // most macros can't return the old word, so readBeforeWrite is only built from flip-flops
+    if (this.params.readBehavior === 'readBeforeWrite' && bits >= minMacroBits) {
+      throw Error(`SRAM: readBeforeWrite is built from flip-flops, so depth * dataWidth must be below minMacroBits (${minMacroBits}), got ${depth} * ${this.params.dataWidth} = ${bits}`)
     }
     // signal widths are numbers in the framework; convert once here
     const dataWidth = Number(this.params.dataWidth)
@@ -103,7 +117,8 @@ export class SRAM extends Module {
     }
 
     // ---------------------------------------------------------------- storage
-    this.addSignal('mem', { width: dataWidth, isArray: depth })
+    // below minMacroBits, mem is flip-flops rather than a macro; the attribute marks it
+    this.addSignal('mem', { width: dataWidth, isArray: depth, attributes: bits < minMacroBits ? { ram_style: 'registers' } : undefined })
 
     // ---------------------------------------------------------------- port collisions
     // 2rw: both ports writing one address collide. 1r_1w with undefOnWrite: a write to the
@@ -111,6 +126,11 @@ export class SRAM extends Module {
     if (ports === '2rw' || (ports === '1r_1w' && undefOnWrite)) {
       this.addSignal('addr_a_equal_b', {})
       this.addAssign({ in: new Expr('a_addr == b_addr'), out: 'addr_a_equal_b' })
+    }
+    if (ports === '2rw') {
+      // both ports write one word, whatever their masks
+      this.addSignal('w_collision', {})
+      this.addAssign({ in: new Expr('a_we & b_we & addr_a_equal_b'), out: 'w_collision' })
     }
     if (undefOnWrite) {
       // <p>_rw_conflict: a write, on either port, to the address read port p reads
@@ -138,21 +158,21 @@ export class SRAM extends Module {
     // lane i of a word; the whole word when there is one lane
     const lane = lanes === 1 ? '' : laneWidth === 1 ? '[i]' : `[i*${laneWidth} +: ${laneWidth}]`
     let laneWrites: string
+    // 2rw: a write collision writes neither port, and in simulation the word becomes X
+    let collisionX = ''
     if (ports === '2rw') {
-      // both ports writing one lane of one address: neither write happens, and in simulation
-      // the lane becomes X
       laneWrites = `
-        if (${laneWe('a')} & ~(${laneWe('b')} & addr_a_equal_b)) begin
+        if (${laneWe('a')} & ~w_collision) begin
           mem[a_addr]${lane} <= a_data_in${lane};
         end
-        if (${laneWe('b')} & ~(${laneWe('a')} & addr_a_equal_b)) begin
+        if (${laneWe('b')} & ~w_collision) begin
           mem[b_addr]${lane} <= b_data_in${lane};
-        end
+        end`
+      collisionX = `
 \`ifndef SYNTHESIS
-        // both ports write this lane of one address: it becomes X
-        if (${laneWe('a')} & ${laneWe('b')} & addr_a_equal_b) begin
-          mem[a_addr]${lane} <= 'x;
-        end
+      if (w_collision) begin
+        mem[a_addr] <= 'x;
+      end
 \`endif`
     } else {
       const p = ports === '1rw' ? 'a' : 'b'
@@ -166,7 +186,7 @@ export class SRAM extends Module {
       ? `
       for (int i = 0; i < ${lanes}; i++) begin${laneWrites}
       end`
-      : laneWrites}
+      : laneWrites}${collisionX}
     end
 `)
 
@@ -194,6 +214,22 @@ export class SRAM extends Module {
     end
 `)
     }
+
+    // ---------------------------------------------------------------- assertions
+    // On unless NOASSERT_SRAM_RW_CONFLICT or NOASSERT_SRAM_W_COLLISION is defined, for a
+    // testbench that conflicts or collides on purpose. No action blocks: the SV guide's SYN-1
+    // bans system tasks in RTL. A readBeforeWrite read may conflict, so it has no check
+    const asserts: string[] = []
+    if (undefOnWrite) {
+      asserts.push('`ifndef NOASSERT_SRAM_RW_CONFLICT', '// undefOnWrite: no read may conflict with a write')
+      for (const p of readPorts) asserts.push(`${p}_no_rw_conflict: assert property (@(posedge clk) !(${p}_re && ${p}_rw_conflict));`)
+      asserts.push('`endif')
+    }
+    if (ports === '2rw') {
+      asserts.push('`ifndef NOASSERT_SRAM_W_COLLISION', '// the two ports may not write one word in the same cycle',
+        'no_w_collision: assert property (@(posedge clk) !w_collision);', '`endif')
+    }
+    if (asserts.length > 0) this.addBody(['`ifndef SYNTHESIS', ...asserts, '`endif'].join('\n'))
   }
 }
 
