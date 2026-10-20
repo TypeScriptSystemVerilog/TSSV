@@ -203,6 +203,25 @@ afifo_sim: tsc
 	done
 	$(call run_configs,afifo,tb_AFIFO,$(AFIFO_DIR)/tb,GrayPointer_checks.sv)
 
+# ROM (TSSV#151): lint every generated variant with -Wall, then build and run a self-checking
+# testbench once per configuration that test_ROM.js lists in configs.txt ("<config> <.sv file>").
+# Each build and its waveform (tb_ROM_<config>.fst) land in obj_dir/rom_<config>/.
+ROM_DIR = ../sv-examples/ROM
+
+rom_sim: tsc
+	cd ..; node out/test/modules/test_ROM.js
+	mkdir -p obj_dir
+	set -e; while read -r cfg dut; do \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) ../$$dut; \
+	  echo "lint -Wall clean: $$dut"; \
+	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/rom_$$cfg -o Vtb_ROM \
+	    -DCFG_$$cfg -I$(ROM_DIR)/tb tb_ROM.sv ../$$dut > obj_dir/rom_$$cfg.build.log 2>&1 \
+	    || { cat obj_dir/rom_$$cfg.build.log; exit 1; }; \
+	  (cd obj_dir/rom_$$cfg && ./Vtb_ROM); \
+	done < $(ROM_DIR)/tb/configs.txt
+
+.PHONY: rom_sim
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd

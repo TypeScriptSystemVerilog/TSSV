@@ -215,9 +215,6 @@
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1
     },
-    "sv-examples/ROM/ROM_32_big_split2two/ROM_32_big_split2two.sv": {
-      "LINT-1 DECLFILENAME: Filename 'ROM_32_big_split2two' does not match MODULE name: 'ROM_32_big_split2two_lower'": 1
-    },
     "sv-examples/shift/shift_16_right_5_signed/shift_16_right_5_signed.sv": {
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[4:0]": 1
     },
