@@ -158,6 +158,11 @@ jobs:
       - name: APB_to_Memory simulation
         run: make -C verilatorTB apb_to_memory_sim
 
+      # Like the AFIFO targets, rom_sim lints and builds one model per
+      # configuration in sv-examples/ROM/tb/configs.txt.
+      - name: ROM simulation
+        run: make -C verilatorTB rom_sim
+
       - name: Upload simulation build logs and waveforms
         if: failure()
         uses: actions/upload-artifact@v4

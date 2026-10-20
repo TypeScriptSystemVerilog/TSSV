@@ -201,9 +201,6 @@
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
     },
-    "sv-examples/ROM/ROM_32_big_split2two/ROM_32_big_split2two.sv": {
-      "LINT-1 DECLFILENAME: Filename 'ROM_32_big_split2two' does not match MODULE name: 'ROM_32_big_split2two_lower'": 1
-    },
     "sv-examples/test_APB_Registers_output/APB4_32_32.sv": {
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
