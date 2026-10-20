@@ -221,6 +221,17 @@ All of the module's logic is in `ts/src/modules/SRAM/SRAM.ts`. It has no submodu
 
 The emitted SV doesn't yet mark which SRAMs an ASIC flow should leave as flip-flops. A custom attribute on `mem` will do that, added with the ASIC macro generator. A `readBeforeWrite` SRAM is always below `minMacroBits`, so an ASIC flow always builds it from flip-flops.
 
+What Vivado chose, in #150's check (Vivado 2025.2, `xcvu47p-fsvh2892-2-e`, out of context; see [Test Plan](#test-plan)):
+
+| `ports` | 16 × 32 (512 bits) | 32 × 1024 (32 Kbit) |
+|---|---|---|
+| `1rw`, `1r_1w` | LUTRAM (`'byte'`: 1 × RAMB18) | 1 × RAMB36 (`'bit'`: 32 × RAMB18) |
+| `2rw` | 1 × RAMB18, true dual port (`'bit'`: 16 × RAMB18) | 1 × RAMB36, true dual port (`'bit'`: 32 × RAMB18) |
+
+- **`2rw`:** distributed RAM has one write port, so a `2rw` SRAM is block RAM at any size. Vivado infers it only because each port is written from its own process (see Implementation Notes).
+- **Block RAM:** the read registers go into the RAM, leaving no flip-flops in the SRAM.
+- **`'bit'` masks:** block RAM's byte write enables don't cover them, so Vivado builds one RAM per bit. At 32 × 1024 that's 32 × RAMB18, 16 tiles instead of 1. Prefer `'byte'` or `'none'` for a large SRAM that maps to block RAM.
+
 ### Key signals
 
 | Signal | Width | Present | Description |
@@ -271,6 +282,8 @@ Every cycle, the testbench drives random reads and writes on each port over the 
 | Assertions | all | The random and diagram runs keep the assertions on, except those their traffic breaks on purpose: `NOASSERT_SRAM_RW_CONFLICT` for `undefOnWrite`, `NOASSERT_SRAM_W_COLLISION` for `2rw`. Then five more runs each break one assertion, with every write mask bit low, and pass only if the run stops on that assertion: `a_no_rw_conflict` for `1rw`, for `1r_1w`, and for port `b` writing in `2rw`; `b_no_rw_conflict` for port `b`'s own write in `2rw`; and `no_w_collision` in a `readBeforeWrite` `2rw` (`assert_checks.txt`) |
 | `minMacroBits` | — | `test_SRAM.ts` checks that `mem` has no `ram_style` attribute at 32 bits or 1024 bits with the default `minMacroBits` (1024), and that the module name includes `minMacroBits`. It also checks the constructor rejects `minMacroBits` 31 and a `readBeforeWrite` SRAM of 1024 bits, and accepts one of 32 bits with `minMacroBits` 33 |
 
+**FPGA mapping:** a manual check, run for #150 and recorded on its PR, TSSV#169. Every `ports` × `writeEnableMask` × `readBehavior` combination, at 16 × 32 and 32 × 1024, is synthesized out of context between DONT_TOUCH registers, with Vivado 2025.2 for `xcvu47p-fsvh2892-2-e`. Every one must infer LUTRAM or block RAM, not flip-flops ([Synthesis mapping](#synthesis-mapping)). The scripts are in a comment on that PR, and they run on tssv-noc's AWS build instance (`fpga/aws/vivado_exp.sh`).
+
 ### Simulation
 
 ```bash
@@ -293,5 +306,5 @@ make -C verilatorTB sram_sim    # generates the SV, lints each variant with -Wal
   - **BUILD-6** (TSSV guide): the lanes of a write mask are an SV `for` loop inside each write block, the byte-enable RAM template that synthesis tools recognize, rather than one `if` per lane from a TypeScript loop. A `'bit'` mask on a wide word would otherwise emit one `if` per bit.
   - **BUILD-1** (TSSV guide), `2rw` only: the write blocks use `addBody` rather than a builder, as above.
   - **MOD-5** (TSSV guide): each port is a set of plain signals, not an `Interface`. They mirror an SRAM macro's pins, which the ASIC macro that replaces this model must match, and `SFIFO` and `cpu_convert` bind them by name.
-- **One write port per process (`2rw`).** At first, one `always_ff` wrote both ports, because IEEE 1800 doesn't allow two `always_ff` blocks to write one variable. Vivado then built every `2rw` configuration from flip-flops: "RAM has multiple writes via different ports in same process. If RAM inferencing intended, write to one port per process." (#150's Vivado run 1). So `2rw` now follows UG901's true-dual-port templates (`rams_tdp_rf_rf.v`, `bytewrite_tdp_ram_*.v`): one plain `always` per write port, both writing `mem`. Plain `always` is legal SystemVerilog for that, where two `always_ff` would be rejected by simulators that enforce IEEE 1800 9.2.2.4. The reads stay in their own `always_ff` blocks. `1rw` and `1r_1w` already infer RAM in that form.
+- **One write port per process (`2rw`).** At first, one `always_ff` wrote both ports, because IEEE 1800 doesn't allow two `always_ff` blocks to write one variable. Vivado then built every `2rw` configuration from flip-flops: "RAM has multiple writes via different ports in same process. If RAM inferencing intended, write to one port per process." (#150's Vivado run 1). So `2rw` now follows UG901's true-dual-port templates (`rams_tdp_rf_rf.v`, `bytewrite_tdp_ram_*.v`): one plain `always` per write port, both writing `mem`. Plain `always` is legal SystemVerilog for that, where two `always_ff` would be rejected by simulators that enforce IEEE 1800 9.2.2.4. The reads stay in their own `always_ff` blocks. `1rw` and `1r_1w` already infer RAM in that form. With one write port per process, Vivado infers true-dual-port block RAM for every `2rw` configuration (#150's run 2).
 - **Changed in #150.** Before #150, a masked SRAM with more than one lane returned wrong read data: each lane was zero-extended into the whole of `<p>_data_out`, and the last lane read won. Against that code, `tb_SRAM.sv` fails every configuration with more than one lane. With `undefOnWrite`, a conflicting read also returned the lanes the write didn't select, from the wrong word on port `b` of a `2rw` SRAM with a 1-lane mask. It now treats the whole word as undefined, as this spec says. A `2rw` write collision was per lane; it is now the whole word, whatever the masks. The `minMacroBits` parameter and the assertions are new, and `minMacroBits` adds `_<minMacroBits>` to every derived module name.
