@@ -442,7 +442,8 @@ What this means in practice:
 - **Parameter values must be truthy** (§2): `0`, `''` and `false` throw ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
 
 `IpXactComponent` (`doc/modules/IpXactComponent/IpXactComponent-spec.md`) builds on the same
-header parser to wrap an SV module described by an IP-XACT component file.
+header parser to wrap an SV module described by an IP-XACT component file. It does check widths:
+against the port widths the IP-XACT file gives, not against the SV file.
 
 ## Where to go next
 

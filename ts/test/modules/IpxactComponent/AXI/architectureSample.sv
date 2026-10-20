@@ -177,7 +177,7 @@ module Specification_Architecture_Structure (
 	input  [1:0]    Init0_Ar_Burst  ;
 	input  [3:0]    Init0_Ar_Cache  ;
 	input  [7:0]    Init0_Ar_Id     ;
-	input  [7:0]    Init0_Ar_Len    ;
+	input  [3:0]    Init0_Ar_Len    ;
 	input  [1:0]    Init0_Ar_Lock   ;
 	input  [2:0]    Init0_Ar_Prot   ;
 	input  [3:0]    Init0_Ar_Qos    ;
@@ -189,7 +189,7 @@ module Specification_Architecture_Structure (
 	input  [1:0]    Init0_Aw_Burst  ;
 	input  [3:0]    Init0_Aw_Cache  ;
 	input  [7:0]    Init0_Aw_Id     ;
-	input  [7:0]    Init0_Aw_Len    ;
+	input  [3:0]    Init0_Aw_Len    ;
 	input  [1:0]    Init0_Aw_Lock   ;
 	input  [2:0]    Init0_Aw_Prot   ;
 	input  [3:0]    Init0_Aw_Qos    ;
@@ -219,7 +219,7 @@ module Specification_Architecture_Structure (
 	input  [1:0]    Init1_Ar_Burst  ;
 	input  [3:0]    Init1_Ar_Cache  ;
 	input  [7:0]    Init1_Ar_Id     ;
-	input  [7:0]    Init1_Ar_Len    ;
+	input  [3:0]    Init1_Ar_Len    ;
 	input  [1:0]    Init1_Ar_Lock   ;
 	input  [2:0]    Init1_Ar_Prot   ;
 	input  [3:0]    Init1_Ar_Qos    ;
@@ -231,7 +231,7 @@ module Specification_Architecture_Structure (
 	input  [1:0]    Init1_Aw_Burst  ;
 	input  [3:0]    Init1_Aw_Cache  ;
 	input  [7:0]    Init1_Aw_Id     ;
-	input  [7:0]    Init1_Aw_Len    ;
+	input  [3:0]    Init1_Aw_Len    ;
 	input  [1:0]    Init1_Aw_Lock   ;
 	input  [2:0]    Init1_Aw_Prot   ;
 	input  [3:0]    Init1_Aw_Qos    ;
@@ -261,7 +261,7 @@ module Specification_Architecture_Structure (
 	output [1:0]    Targ0_Ar_Burst  ;
 	output [3:0]    Targ0_Ar_Cache  ;
 	output [7:0]    Targ0_Ar_Id     ;
-	output [7:0]    Targ0_Ar_Len    ;
+	output [3:0]    Targ0_Ar_Len    ;
 	output [1:0]    Targ0_Ar_Lock   ;
 	output [2:0]    Targ0_Ar_Prot   ;
 	output [3:0]    Targ0_Ar_Qos    ;
@@ -273,7 +273,7 @@ module Specification_Architecture_Structure (
 	output [1:0]    Targ0_Aw_Burst  ;
 	output [3:0]    Targ0_Aw_Cache  ;
 	output [7:0]    Targ0_Aw_Id     ;
-	output [7:0]    Targ0_Aw_Len    ;
+	output [3:0]    Targ0_Aw_Len    ;
 	output [1:0]    Targ0_Aw_Lock   ;
 	output [2:0]    Targ0_Aw_Prot   ;
 	output [3:0]    Targ0_Aw_Qos    ;
@@ -303,7 +303,7 @@ module Specification_Architecture_Structure (
 	output [1:0]    Targ1_Ar_Burst  ;
 	output [3:0]    Targ1_Ar_Cache  ;
 	output [7:0]    Targ1_Ar_Id     ;
-	output [7:0]    Targ1_Ar_Len    ;
+	output [3:0]    Targ1_Ar_Len    ;
 	output [1:0]    Targ1_Ar_Lock   ;
 	output [2:0]    Targ1_Ar_Prot   ;
 	output [3:0]    Targ1_Ar_Qos    ;
@@ -315,7 +315,7 @@ module Specification_Architecture_Structure (
 	output [1:0]    Targ1_Aw_Burst  ;
 	output [3:0]    Targ1_Aw_Cache  ;
 	output [7:0]    Targ1_Aw_Id     ;
-	output [7:0]    Targ1_Aw_Len    ;
+	output [3:0]    Targ1_Aw_Len    ;
 	output [1:0]    Targ1_Aw_Lock   ;
 	output [2:0]    Targ1_Aw_Prot   ;
 	output [3:0]    Targ1_Aw_Qos    ;
