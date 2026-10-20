@@ -9,7 +9,7 @@ export interface SRAM_Parameters extends TSSVParameters {
      */
   dataWidth: bigint
   /**
-     * number of data words in the SRAM
+     * number of data words in the SRAM; at least 2
      */
   depth: bigint
   /**
@@ -30,6 +30,13 @@ export interface SRAM_Parameters extends TSSVParameters {
      * in the same clock cycle
      */
   readBehavior?: 'undefOnWrite' | 'readBeforeWrite'
+  /**
+     * the fewest bits (depth * dataWidth) the SRAM needs to be implemented as a macro in an
+     * ASIC flow; at least 32, default 1024. A smaller SRAM is meant to be flip-flops. It doesn't
+     * change the emitted SV yet: the attribute that marks it comes with the ASIC macro
+     * generator. A readBeforeWrite SRAM must be smaller
+     */
+  minMacroBits?: bigint
   /**
      * macroConfig is a free form string parameter that allows selection of technology
      * specific SRAM macro generator parameters such as high-speed, high-density,
@@ -65,459 +72,169 @@ export class SRAM extends Module {
       ports: params.ports,
       writeEnableMask: params.writeEnableMask || 'none',
       readBehavior: params.readBehavior || 'undefOnWrite',
-      macroConfig: params.macroConfig || 'default'
+      macroConfig: params.macroConfig || 'default',
+      minMacroBits: params.minMacroBits ?? 1024n
     })
+    const depth = this.params.depth
+    const ports = this.params.ports
+    const mask = this.params.writeEnableMask ?? 'none'
+    const minMacroBits = this.params.minMacroBits ?? 1024n
+    const bits = depth * this.params.dataWidth
     if (this.params.dataWidth < 1n) throw Error(`SRAM: dataWidth must be at least 1, got ${this.params.dataWidth}`)
-    // keeps the module-wide WIDTH waiver until #150 fixes SRAM's width warnings
-    this.waiveWidthWarnings('#150')
+    // one word would need a 0-bit address
+    if (depth < 2n) throw Error(`SRAM: depth must be at least 2, got ${depth}`)
+    if (mask === 'byte' && this.params.dataWidth % 8n !== 0n) {
+      throw Error(`SRAM: dataWidth must be a multiple of 8 for a byte write mask, got ${this.params.dataWidth}`)
+    }
+    if (minMacroBits < 32n) throw Error(`SRAM: minMacroBits must be at least 32, got ${minMacroBits}`)
+    // most macros can't return the old word, so readBeforeWrite is only built from flip-flops
+    if (this.params.readBehavior === 'readBeforeWrite' && bits >= minMacroBits) {
+      throw Error(`SRAM: readBeforeWrite is built from flip-flops, so depth * dataWidth must be below minMacroBits (${minMacroBits}), got ${depth} * ${this.params.dataWidth} = ${bits}`)
+    }
     // signal widths are numbers in the framework; convert once here
     const dataWidth = Number(this.params.dataWidth)
+    const addrWidth = this.bitWidth(depth - 1n)
+    const undefOnWrite = this.params.readBehavior === 'undefOnWrite'
+    // port a reads in every configuration, and port b only in 2rw. Port a writes in 1rw and
+    // 2rw, and port b in 1r_1w and 2rw
+    const readPorts = ports === '2rw' ? ['a', 'b'] : ['a']
+    const writePorts = ports === '1rw' ? ['a'] : ports === '1r_1w' ? ['b'] : ['a', 'b']
+    // a write mask splits each word into lanes, one per mask bit; without a mask the word is one lane
+    const laneWidth = mask === 'bit' ? 1 : mask === 'byte' ? 8 : dataWidth
+    const lanes = dataWidth / laneWidth
 
-    // add tmp register 'mem'
-    this.addSignal('mem', { width: dataWidth, isArray: this.params.depth })
-
-    // add variables for the "mask" operation
-    let mask_cnt = 0
-    let mask_w = 0
-    if (this.params.writeEnableMask === 'bit') {
-      mask_cnt = dataWidth
-      mask_w = 1
-    } else if (this.params.writeEnableMask === 'byte') {
-      mask_cnt = dataWidth / 8
-      mask_w = 8
+    this.IOs = { clk: { direction: 'input', isClock: 'posedge' } }
+    for (const p of ['a', 'b']) {
+      const reads = readPorts.includes(p)
+      const writes = writePorts.includes(p)
+      if (reads) this.IOs[`${p}_re`] = { direction: 'input' }
+      if (writes) {
+        this.IOs[`${p}_we`] = { direction: 'input' }
+        this.IOs[`${p}_data_in`] = { direction: 'input', width: dataWidth }
+      }
+      if (reads) this.IOs[`${p}_data_out`] = { direction: 'output', width: dataWidth }
+      if (reads || writes) this.IOs[`${p}_addr`] = { direction: 'input', width: addrWidth }
+      if (writes && mask !== 'none') this.IOs[`${p}_wmask`] = { direction: 'input', width: lanes }
     }
 
-    // define IO signals
-    switch (this.params.ports) {
-      //= ================================== 1rw ===========================================
-      case '1rw': {
-        this.IOs = {
-          clk: { direction: 'input', isClock: 'posedge' },
-          a_re: { direction: 'input' },
-          a_we: { direction: 'input' },
-          a_data_in: { direction: 'input', width: dataWidth },
-          a_data_out: { direction: 'output', width: dataWidth },
-          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
-        }
-        if (this.params.writeEnableMask === 'bit') {
-          this.IOs.a_wmask = { direction: 'input', width: dataWidth }
-        } else if (this.params.writeEnableMask === 'byte') {
-          if ((dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-          this.IOs.a_wmask = { direction: 'input', width: dataWidth / 8 }
-        }
-        // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
-        let read_enable = 'a_re'
-        let rw_conflict_out_MaskNone = '' // for Mask: none mode
-        let rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
-        let rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
-        if (this.params.readBehavior === 'undefOnWrite') {
-          read_enable = 'a_re & ~a_we'
-          rw_conflict_out_MaskNone =
-        `\`ifndef SYNTHESIS
-        else if(a_re & a_we ) begin //output is X after reading and writing the same address at the same time
-            a_data_out <= 'hx;
-        end 
-        \`endif`
+    // ---------------------------------------------------------------- storage
+    this.addSignal('mem', { width: dataWidth, isArray: depth })
 
-          rw_conflict_out_MaskWidthEqual1 =
-        `else if(a_re & a_we & ~a_wmask) begin
-            a_data_out <= mem[a_addr];
-        end
-        \`ifndef SYNTHESIS
-        else if(a_re & a_we & a_wmask) begin //output is X after reading and writing the same address at the same time
-            a_data_out <= 'hx;
-        end
-        \`endif`
-
-          rw_conflict_out_MaskWidthGreater1 =
-            `else if(a_re & a_we & ~a_wmask[i]) begin
-                a_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            \`ifndef SYNTHESIS
-            else if(a_re & a_we & a_wmask[i]) begin //output is X after reading and writing the same address at the same time
-                a_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
-            end 
-            \`endif`
-        }
-        // define always block
-        let body_1rw = ''
-        if (this.params.writeEnableMask === 'none') {
-          body_1rw =
-    `
-    always_ff @(posedge clk) begin 
-        if(a_we) begin
-            mem[a_addr] <= a_data_in;
-        end
-        if(${read_enable}) begin
-            a_data_out <= mem[a_addr];
-        end
-        ${rw_conflict_out_MaskNone}
-    end          
-    `
-        } else if (mask_cnt === 1) {
-          body_1rw =
-    `
-    always_ff @(posedge clk) begin
-        if(a_we & a_wmask) begin
-            mem[a_addr] <= a_data_in;
-        end 
-        if(${read_enable}) begin
-            a_data_out <= mem[a_addr];
-        end 
-        ${rw_conflict_out_MaskWidthEqual1}
-    end
-    `
-        } else {
-          body_1rw =
-    `
-    always_ff @(posedge clk) begin
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(a_we & a_wmask[i]) begin
-                mem[a_addr][i*${mask_w} +: ${mask_w}] <= a_data_in[i*${mask_w} +: ${mask_w}];
-            end
-        end
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(${read_enable} & ~a_wmask[i]) begin
-                a_data_out <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            ${rw_conflict_out_MaskWidthGreater1}
-        end
-    end
-    `
-        }
-        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_1rw)
-        break
-      }
-      //= ================================== 2rw ===========================================
-      case '2rw': {
-        this.IOs = {
-          clk: { direction: 'input', isClock: 'posedge' },
-          a_re: { direction: 'input' },
-          a_we: { direction: 'input' },
-          a_data_in: { direction: 'input', width: dataWidth },
-          a_data_out: { direction: 'output', width: dataWidth },
-          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }, // remove - 1n
-          b_re: { direction: 'input' },
-          b_we: { direction: 'input' },
-          b_data_in: { direction: 'input', width: dataWidth },
-          b_data_out: { direction: 'output', width: dataWidth },
-          b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
-        }
-        if (this.params.writeEnableMask === 'bit') {
-          this.IOs.a_wmask = { direction: 'input', width: dataWidth }
-          this.IOs.b_wmask = { direction: 'input', width: dataWidth }
-        } else if (this.params.writeEnableMask === 'byte') {
-          if ((dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-          this.IOs.a_wmask = { direction: 'input', width: dataWidth / 8 }
-          this.IOs.b_wmask = { direction: 'input', width: dataWidth / 8 }
-        }
-        // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
-        let a_read_enable = 'a_re'
-        let b_read_enable = 'b_re'
-        let a_rw_conflict_out_MaskNone = '' // for Mask: none mode
-        let a_rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
-        let a_rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
-        let b_rw_conflict_out_MaskNone = '' // for Mask: none mode
-        let b_rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
-        let b_rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
-        if (this.params.readBehavior === 'undefOnWrite') {
-          a_read_enable = 'a_re & ~a_rw_conflict'
-          b_read_enable = 'b_re & ~b_rw_conflict'
-          a_rw_conflict_out_MaskNone =
-        `\`ifndef SYNTHESIS
-        else if(a_re & a_rw_conflict) begin //output is X after reading and writing the same address at the same time
-            a_data_out <= 'hx;
-        end
-        \`endif`
-
-          a_rw_conflict_out_MaskWidthEqual1 =
-        `else if(a_re & a_rw_conflict & ~((a_we & a_wmask) | (b_write_at_same_addr & b_wmask))) begin
-            a_data_out <= mem[a_addr];
-        end
-        \`ifndef SYNTHESIS
-        else if(a_re & a_rw_conflict & ((a_we & a_wmask) | (b_write_at_same_addr & b_wmask))) begin //output is X after reading and writing the same address at the same time
-            a_data_out <= 'hx;
-        end
-        \`endif`
-
-          a_rw_conflict_out_MaskWidthGreater1 =
-            `else if(a_re & a_rw_conflict & ~((a_we & a_wmask[i]) | (b_write_at_same_addr & b_wmask[i]))) begin
-                a_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            \`ifndef SYNTHESIS
-            else if(a_re & a_rw_conflict & ((a_we & a_wmask[i]) | (b_write_at_same_addr & b_wmask[i]))) begin //output is X after reading and writing the same address at the same time
-                a_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
-            end
-            \`endif`
-
-          b_rw_conflict_out_MaskNone =
-        `\`ifndef SYNTHESIS
-        else if(b_re & b_rw_conflict) begin //output is X after reading and writing the same address at the same time
-            b_data_out <= 'hx;
-        end
-        \`endif`
-
-          b_rw_conflict_out_MaskWidthEqual1 =
-        `else if(b_re & b_rw_conflict & ~((b_we & b_wmask) | (a_write_at_same_addr & a_wmask))) begin
-            b_data_out <= mem[a_addr];
-        end
-        \`ifndef SYNTHESIS
-        else if(b_re & b_rw_conflict & ((b_we & b_wmask) | (a_write_at_same_addr & a_wmask))) begin //output is X after reading and writing the same address at the same time
-            b_data_out <= 'hx;
-        end
-        \`endif`
-
-          b_rw_conflict_out_MaskWidthGreater1 =
-            `else if(b_re & b_rw_conflict & ~((b_we & b_wmask[i]) | (a_write_at_same_addr & a_wmask[i]))) begin
-                b_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            \`ifndef SYNTHESIS
-            else if(b_re & b_rw_conflict & ((b_we & b_wmask[i]) | (a_write_at_same_addr & a_wmask[i]))) begin //output is X after reading and writing the same address at the same time
-                b_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
-            end
-            \`endif`
-        }
-        // define always block
-        let body_2rw_a = ''
-        let body_2rw_b = ''
-        if (this.params.writeEnableMask === 'none') {
-          body_2rw_a =
-    `
-    always_ff @ (posedge clk) begin
-        if(a_we & ~b_write_at_same_addr) begin
-          mem[a_addr] <= a_data_in;
-        end
-        \`ifndef SYNTHESIS
-        else if(a_we & b_write_at_same_addr) begin //output is X after reading and writing the same address at the same time
-            mem[a_addr] <= 'hx;
-        end
-        \`endif
-        if(${a_read_enable}) begin
-          a_data_out <= mem[a_addr];
-        end
-        ${a_rw_conflict_out_MaskNone}
-    end
-    `
-          body_2rw_b =
-    `
-    always_ff @ (posedge clk) begin
-        if(b_we & ~a_write_at_same_addr) begin
-          mem[b_addr] <= b_data_in;
-        end
-        \`ifndef SYNTHESIS
-        else if(b_we & a_write_at_same_addr) begin //output is X after reading and writing the same address at the same time
-            mem[b_addr] <= 'hx;
-        end
-        \`endif
-        if(${b_read_enable}) begin
-          b_data_out <= mem[b_addr];
-        end
-        ${b_rw_conflict_out_MaskNone}
-    end
-    `
-        } else if (mask_cnt === 1) {
-          body_2rw_a =
-    `
-    always_ff @(posedge clk) begin
-        if(a_we & a_wmask & ~(b_write_at_same_addr & b_wmask)) begin
-            mem[a_addr] <= a_data_in;
-        end
-        \`ifndef SYNTHESIS
-        else if(a_we & a_wmask & (b_write_at_same_addr & b_wmask)) begin //output is X after reading and writing the same address at the same time
-            mem[a_addr] <= 'hx;
-        end
-        \`endif
-        if(${a_read_enable}) begin
-            a_data_out <= mem[a_addr];
-        end
-        ${a_rw_conflict_out_MaskWidthEqual1}
-    end
-    `
-          body_2rw_b =
-    `
-    always_ff @(posedge clk) begin
-        if(b_we & b_wmask & ~(a_write_at_same_addr & a_wmask)) begin
-            mem[b_addr] <= b_data_in;
-        end
-        \`ifndef SYNTHESIS
-        else if(b_we & b_wmask & (a_write_at_same_addr & a_wmask)) begin //output is X after reading and writing the same address at the same time
-            mem[b_addr] <= 'hx;
-        end
-        \`endif
-        if(${b_read_enable}) begin
-            b_data_out <= mem[b_addr];
-        end
-        ${b_rw_conflict_out_MaskWidthEqual1}
-    end
-    `
-        } else {
-          body_2rw_a =
-    `
-    always_ff @(posedge clk) begin
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(a_we & a_wmask[i] & ~(b_write_at_same_addr & b_wmask[i])) begin
-                mem[a_addr][i*${mask_w} +: ${mask_w}] <= a_data_in[i*${mask_w} +: ${mask_w}];
-            end
-            \`ifndef SYNTHESIS
-            else if(a_we & a_wmask[i] & (b_write_at_same_addr & b_wmask[i])) begin //output is X after reading and writing the same address at the same time
-                mem[a_addr][i*${mask_w} +: ${mask_w}] <= 'hx;
-            end
-            \`endif
-        end
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(${a_read_enable}) begin
-                a_data_out <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            ${a_rw_conflict_out_MaskWidthGreater1}
-        end
-        
-    end
-    `
-          body_2rw_b =
-    `
-    always_ff @(posedge clk) begin
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(b_we & b_wmask[i] & ~(a_write_at_same_addr & a_wmask[i])) begin
-                mem[b_addr][i*${mask_w} +: ${mask_w}] <= b_data_in[i*${mask_w} +: ${mask_w}];
-            end 
-            \`ifndef SYNTHESIS
-            else if(b_we & b_wmask[i] & (a_write_at_same_addr & a_wmask[i])) begin //output is X after reading and writing the same address at the same time
-                mem[b_addr][i*${mask_w} +: ${mask_w}] <= 'hx;
-            end
-            \`endif
-        end
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(${b_read_enable}) begin
-                b_data_out <= mem[b_addr][i*${mask_w} +: ${mask_w}];
-            end
-            ${b_rw_conflict_out_MaskWidthGreater1}
-        end
-    end
-    `
-        }
-        this.addSignal('addr_a_equal_b', { description: '//1 means a_addr === b_addr' })
-        this.addSignal('b_write_at_same_addr', { description: '//1 means port b write the same address as port a' })
-        this.addSignal('a_write_at_same_addr', { description: '//1 means port a write the same address as port b' })
-        this.addAssign({ in: new Expr('~(|(a_addr ^ b_addr))'), out: 'addr_a_equal_b' })
-        this.addAssign({ in: new Expr('b_we & addr_a_equal_b'), out: 'b_write_at_same_addr' })
-        this.addAssign({ in: new Expr('a_we & addr_a_equal_b'), out: 'a_write_at_same_addr' })
-        if (this.params.readBehavior === 'undefOnWrite') {
-          this.addSignal('a_rw_conflict', { description: '//1 means that either a or b is writing to the same address, while port a is reading, used to determine read/write conflicts at port a' })
-          this.addSignal('b_rw_conflict', { description: '//1 means that either a or b is writing to the same address, while port b is reading, used to determine read/write conflicts at port b' })
-          this.addAssign({ in: new Expr('a_we | b_write_at_same_addr'), out: 'a_rw_conflict' })
-          this.addAssign({ in: new Expr('b_we | a_write_at_same_addr'), out: 'b_rw_conflict' })
-        }
-        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_2rw_a)
-        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'b_data_out'] }, body_2rw_b)
-        break
-      }
-      //= ================================== 1r1w ===========================================
-      case '1r_1w': {
-        this.IOs = {
-          clk: { direction: 'input', isClock: 'posedge' },
-          a_re: { direction: 'input' },
-          a_data_out: { direction: 'output', width: dataWidth },
-          a_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) },
-          b_we: { direction: 'input' },
-          b_data_in: { direction: 'input', width: dataWidth },
-          b_addr: { direction: 'input', width: this.bitWidth(this.params.depth - 1n) }
-        }
-        if (this.params.writeEnableMask === 'bit') {
-          this.IOs.b_wmask = { direction: 'input', width: dataWidth }
-        } else if (this.params.writeEnableMask === 'byte') {
-          if ((dataWidth % 8) !== 0) throw Error('SRAM: dataWidth must be a multiple of 8 for byte mask')
-          this.IOs.b_wmask = { direction: 'input', width: dataWidth / 8 }
-        }
-        // Define read_enable and data_out in different modes than undefOnWrite and readBeforeWrite
-        let read_enable = 'a_re'
-        let rw_conflict_out_MaskNone = '' // for Mask: none mode
-        let rw_conflict_out_MaskWidthEqual1 = '' // for Mask: bit/byte mode while mask width equal to 1
-        let rw_conflict_out_MaskWidthGreater1 = '' // for Mask: bit/byte mode while mask width greater than 1
-        if (this.params.readBehavior === 'undefOnWrite') {
-          read_enable = 'a_re & ~b_write_at_same_addr'
-          rw_conflict_out_MaskNone =
-        `\`ifndef SYNTHESIS
-        else if(a_re & b_write_at_same_addr) begin //output is X after reading and writing the same address at the same time
-            a_data_out <= 'hx;
-        end
-        \`endif`
-
-          rw_conflict_out_MaskWidthEqual1 =
-        `else if (a_re & b_write_at_same_addr & ~b_wmask) begin
-            a_data_out <= mem[a_addr];
-        end
-        \`ifndef SYNTHESIS
-        else if(a_re & b_write_at_same_addr & b_wmask) begin //output is X after reading and writing the same address at the same time
-            a_data_out <= 'hx;
-        end
-        \`endif`
-
-          rw_conflict_out_MaskWidthGreater1 =
-            `else if (a_re & b_write_at_same_addr & ~b_wmask[i]) begin
-                a_data_out[i*${mask_w} +: ${mask_w}] <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            \`ifndef SYNTHESIS
-            else if(a_re & b_write_at_same_addr & b_wmask[i]) begin //output is X after reading and writing the same address at the same time
-                a_data_out[i*${mask_w} +: ${mask_w}] <= 'hx;
-            end
-            \`endif`
-        }
-        // define always block
-        let body_1r_1w = ''
-        if (this.params.writeEnableMask === 'none') {
-          body_1r_1w =
-    `
-    always_ff @ (posedge clk) begin
-        if(b_we) begin
-            mem[b_addr] <= b_data_in;
-        end
-        if(${read_enable}) begin
-            a_data_out <= mem[a_addr];
-        end
-        ${rw_conflict_out_MaskNone}
-    end
-    `
-        } else if (mask_cnt === 1) {
-          body_1r_1w =
-    `
-    always_ff @(posedge clk) begin
-        if(b_we & b_wmask) begin
-            mem[b_addr] <= b_data_in;
-        end 
-        if(${read_enable}) begin
-            a_data_out <= mem[a_addr];
-        end
-        ${rw_conflict_out_MaskWidthEqual1}
-    end
-    `
-        } else {
-          body_1r_1w =
-    `
-    always_ff @(posedge clk) begin
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(b_we & b_wmask[i]) begin
-                mem[b_addr][i*${mask_w} +: ${mask_w}] <= b_data_in[i*${mask_w} +: ${mask_w}];
-            end
-        end
-        for(integer i=0; i<${mask_cnt}; i=i+1) begin
-            if(${read_enable}) begin
-                a_data_out <= mem[a_addr][i*${mask_w} +: ${mask_w}];
-            end
-            ${rw_conflict_out_MaskWidthGreater1}
-        end
-    end
-    `
-        }
-        if (this.params.readBehavior === 'undefOnWrite') {
-          this.addSignal('addr_a_equal_b', { description: '//1 means a_addr === b_addr' })
-          this.addSignal('b_write_at_same_addr', { description: '//1 means port b write the same address as port a' })
-          this.addAssign({ in: new Expr('~(|(a_addr ^ b_addr))'), out: 'addr_a_equal_b' })
-          this.addAssign({ in: new Expr('b_we & addr_a_equal_b'), out: 'b_write_at_same_addr' })
-        }
-        this.addSequentialAlways({ clk: 'clk', outputs: ['mem', 'a_data_out'] }, body_1r_1w)
-        break
+    // ---------------------------------------------------------------- port collisions
+    // 2rw: both ports writing one address collide. 1r_1w with undefOnWrite: a write to the
+    // address being read makes the read undefined
+    if (ports === '2rw' || (ports === '1r_1w' && undefOnWrite)) {
+      this.addSignal('addr_a_equal_b', {})
+      this.addAssign({ in: new Expr('a_addr == b_addr'), out: 'addr_a_equal_b' })
+    }
+    if (ports === '2rw') {
+      // both ports write one word, whatever their masks
+      this.addSignal('w_collision', {})
+      this.addAssign({ in: new Expr('a_we & b_we & addr_a_equal_b'), out: 'w_collision' })
+    }
+    if (undefOnWrite) {
+      // <p>_rw_conflict: a write, on either port, to the address read port p reads
+      const conflicts: Record<string, string> = ports === '1rw'
+        ? { a: 'a_we' }
+        : ports === '1r_1w'
+          ? { a: 'b_we & addr_a_equal_b' }
+          : { a: 'a_we | (b_we & addr_a_equal_b)', b: 'b_we | (a_we & addr_a_equal_b)' }
+      for (const [p, conflict] of Object.entries(conflicts)) {
+        this.addSignal(`${p}_rw_conflict`, {})
+        this.addAssign({ in: new Expr(conflict), out: `${p}_rw_conflict` })
       }
     }
+
+    // mem and the read data are written in clocked blocks with their enables and addresses
+    // inline, the form synthesis tools map to a RAM. Computing them in an always_comb first (SV guide
+    // SEQ-2) would make the array read combinational.
+
+    // ---------------------------------------------------------------- writes
+    // One process per write port. With more than one lane, an SV loop over the lanes inside it
+    // is the byte-enable RAM template synthesis tools recognize, so the lanes aren't unrolled in
+    // TypeScript (TSSV guide BUILD-6).
+    // laneWe(p): port p writes lane i
+    const laneWe = (p: string): string => mask === 'none' ? `${p}_we` : `${p}_we & ${p}_wmask${lanes > 1 ? '[i]' : ''}`
+    // lane i of a word; the whole word when there is one lane
+    const lane = lanes === 1 ? '' : laneWidth === 1 ? '[i]' : `[i*${laneWidth} +: ${laneWidth}]`
+    // the block that writes port p's lanes; a 2rw write collision writes neither port
+    const writeBlock = (label: string, p: string, tail = ''): string => {
+      const laneWrite = `
+        if (${laneWe(p)}${ports === '2rw' ? ' & ~w_collision' : ''}) begin
+          mem[${p}_addr]${lane} <= ${p}_data_in${lane};
+        end`
+      return `begin : ${label}${lanes > 1
+        ? `
+      for (int i = 0; i < ${lanes}; i++) begin${laneWrite}
+      end`
+        : laneWrite}${tail}
+    end`
+    }
+    if (ports === '2rw') {
+      // Vivado infers a true-dual-port RAM only when each process writes one port (UG901's
+      // templates; it built #150's single-process form from flip-flops). always_ff can't have
+      // two processes write one variable (IEEE 1800 9.2.2.4), so these are plain always blocks,
+      // emitted with addBody since the builder only writes always_ff. Both write mem, so the SV
+      // guide's COMB-5 is waived for it, in a comment in the SV next to them
+      const collisionX = `
+\`ifndef SYNTHESIS
+      // both ports write one word: it becomes X
+      if (w_collision) begin
+        mem[a_addr] <= 'x;
+      end
+\`endif`
+      this.addBody(`
+        // SV guide COMB-5 waived for mem: a true-dual-port RAM has one write port per process,
+        // the form Vivado infers (UG901), and always_ff doesn't allow two processes to write mem
+        always @(posedge clk) ${writeBlock('a_write', 'a', collisionX)}
+        always @(posedge clk) ${writeBlock('b_write', 'b')}
+      `)
+    } else {
+      this.addSequentialAlways({ clk: 'clk', outputs: ['mem'] }, `
+    ${writeBlock('mem_write', ports === '1rw' ? 'a' : 'b')}
+`)
+    }
+
+    // ---------------------------------------------------------------- reads
+    // A read port registers mem[<p>_addr] while <p>_re is high, and holds it otherwise.
+    // undefOnWrite: a read that conflicts with a write doesn't load, and in simulation the
+    // read data becomes X until the next read
+    for (const p of readPorts) {
+      const read = undefOnWrite
+        ? `
+      if (${p}_re & ~${p}_rw_conflict) begin
+        ${p}_data_out <= mem[${p}_addr];
+      end
+\`ifndef SYNTHESIS
+      if (${p}_re & ${p}_rw_conflict) begin
+        ${p}_data_out <= 'x;
+      end
+\`endif`
+        : `
+      if (${p}_re) begin
+        ${p}_data_out <= mem[${p}_addr];
+      end`
+      this.addSequentialAlways({ clk: 'clk', outputs: [`${p}_data_out`] }, `
+    begin : ${p}_read${read}
+    end
+`)
+    }
+
+    // ---------------------------------------------------------------- assertions
+    // On unless NOASSERT_SRAM_RW_CONFLICT or NOASSERT_SRAM_W_COLLISION is defined, for a
+    // testbench that conflicts or collides on purpose. No action blocks: the SV guide's SYN-1
+    // bans system tasks in RTL. A readBeforeWrite read may conflict, so it has no check
+    const asserts: string[] = []
+    if (undefOnWrite) {
+      asserts.push('`ifndef NOASSERT_SRAM_RW_CONFLICT', '// undefOnWrite: no read may conflict with a write')
+      for (const p of readPorts) asserts.push(`${p}_no_rw_conflict: assert property (@(posedge clk) !(${p}_re && ${p}_rw_conflict));`)
+      asserts.push('`endif')
+    }
+    if (ports === '2rw') {
+      asserts.push('`ifndef NOASSERT_SRAM_W_COLLISION', '// the two ports may not write one word in the same cycle',
+        'no_w_collision: assert property (@(posedge clk) !w_collision);', '`endif')
+    }
+    if (asserts.length > 0) this.addBody(['`ifndef SYNTHESIS', ...asserts, '`endif'].join('\n'))
   }
 }
 

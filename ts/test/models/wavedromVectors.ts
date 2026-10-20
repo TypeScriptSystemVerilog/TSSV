@@ -11,7 +11,7 @@ import { readFileSync } from 'fs'
 export const ABSENT = -2
 export const DONT_CARE = -1
 
-interface Lane { name?: string, wave?: string, data?: string[] | string, period?: number }
+export interface Lane { name?: string, wave?: string, data?: string[] | string, period?: number }
 
 /** one clock's lanes in a diagram */
 export interface ClockLanes {
@@ -34,7 +34,7 @@ function labelValue (label: string, binary: boolean, where: string): number {
 }
 
 /** expand a lane's wave into one value per cycle of its own clock */
-function expandLane (lane: Lane, binary: boolean, where: string): number[] {
+export function expandLane (lane: Lane, binary: boolean, where: string): number[] {
   const data = typeof lane.data === 'string' ? lane.data.split(/\s+/) : (lane.data ?? [])
   let next = 0
   let prev: number | undefined
