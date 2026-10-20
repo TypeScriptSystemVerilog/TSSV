@@ -35,8 +35,10 @@ sfifo_sim: tsc
 	done < $(SFIFO_TB_DIR)/configs.txt
 
 # SRAM: lint every generated variant with -Wall, then build and run a self-checking
-# testbench once per configuration that test_SRAM.js lists in configs.txt. Each build and
-# its waveform (tb_SRAM_<config>.fst) land in obj_dir/sram_<config>/.
+# testbench once per configuration that test_SRAM.js lists in configs.txt, with the defines
+# that line gives. Each build and its waveform (tb_SRAM_<config>.fst) land in
+# obj_dir/sram_<config>/. Then each run in assert_checks.txt breaks one of the SRAM's
+# assertions on purpose, and must stop on that assertion.
 SRAM_DIR = ../sv-examples/SRAM
 
 sram_sim: tsc
@@ -46,12 +48,23 @@ sram_sim: tsc
 	  echo "lint -Wall clean: $$f"; \
 	done
 	mkdir -p obj_dir
-	set -e; while read -r cfg dut; do \
+	set -e; while read -r cfg dut defines; do \
 	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sram_$$cfg -o Vtb_SRAM \
-	    -DCFG_$$cfg -I$(SRAM_DIR)/tb tb_SRAM.sv ../$$dut > obj_dir/sram_$$cfg.build.log 2>&1 \
+	    -DCFG_$$cfg $$defines -I$(SRAM_DIR)/tb tb_SRAM.sv ../$$dut > obj_dir/sram_$$cfg.build.log 2>&1 \
 	    || { cat obj_dir/sram_$$cfg.build.log; exit 1; }; \
 	  (cd obj_dir/sram_$$cfg && ./Vtb_SRAM); \
 	done < $(SRAM_DIR)/tb/configs.txt
+	set -e; while read -r check cfg dut mode assertion; do \
+	  verilator --binary --timing -j 0 -Mdir obj_dir/sram_assert_$$check -o Vtb_SRAM \
+	    -DCFG_$$cfg -DCHECK_ASSERT=$$mode -I$(SRAM_DIR)/tb tb_SRAM.sv ../$$dut \
+	    > obj_dir/sram_assert_$$check.build.log 2>&1 || { cat obj_dir/sram_assert_$$check.build.log; exit 1; }; \
+	  if (cd obj_dir/sram_assert_$$check && ./Vtb_SRAM) > obj_dir/sram_assert_$$check.log 2>&1; then \
+	    cat obj_dir/sram_assert_$$check.log; echo "FAIL: $$check: the run didn't stop"; exit 1; \
+	  fi; \
+	  grep -q "Assertion failed in tb_SRAM.dut.$$assertion:" obj_dir/sram_assert_$$check.log \
+	    || { cat obj_dir/sram_assert_$$check.log; echo "FAIL: $$check: $$assertion didn't fire"; exit 1; }; \
+	  echo "PASS: $$check: $$assertion fires"; \
+	done < $(SRAM_DIR)/tb/assert_checks.txt
 
 # RegisterBlock read path (TSSV#79): lint both regression blocks with -Wall, then run the
 # self-checking testbench against them. regblock_read_waivers.vlt holds the only waivers,

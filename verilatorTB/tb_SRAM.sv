@@ -2,20 +2,28 @@
 // tb_SRAM — self-checking testbench for the TSSV SRAM
 //
 // Built once per configuration in sv-examples/SRAM/tb/configs.txt with -DCFG_<config>.
-// ts/test/modules/test_SRAM.ts generates the DUTs and SRAM_tb_configs.svh (DUT name, its
-// port connections, sizes and options). Run everything with `make -C verilatorTB sram_sim`.
+// ts/test/modules/test_SRAM.ts generates the DUTs and two includes: SRAM_tb_configs.svh (DUT
+// name, its port connections, sizes, options and diagrams) and SRAM_tb_vectors.svh (one task
+// per timing diagram and readBehavior in the spec). Run everything with
+// `make -C verilatorTB sram_sim`.
 //
-// Every cycle drives random reads and writes on the DUT's ports, over a few words so that
+// An unmasked configuration first replays its timing diagram from the spec, cycle for cycle.
+// Then every cycle drives random reads and writes on the DUT's ports, over a few words so that
 // the ports often meet on one address. A reference model of the storage gives each read's
 // expected data, as the spec describes it:
 // - a write sets the lanes its mask selects (the whole word without a mask);
 // - readBeforeWrite: a read returns the word as it was before this cycle's writes;
 // - undefOnWrite: a read of a word written in the same cycle, on either port, is undefined
 //   until the port's next read;
-// - 2rw: both ports writing one lane of one word leave that lane undefined.
+// - 2rw: both ports writing one word, whatever their masks, leave it undefined.
 // The model tracks which bits are defined, and a check compares only those. Verilator is
 // two-state, so it can't show the X the RTL assigns in simulation. While a port's read enable
 // is low, its read data must hold.
+//
+// The SRAM's assertions are on. A configuration whose traffic conflicts or collides on purpose
+// is built with the NOASSERT_* defines for those, which configs.txt lists. Built with
+// -DCHECK_ASSERT=<n> instead, the testbench breaks one assertion and must stop on it
+// (break_assertion below; the checks are in sv-examples/SRAM/tb/assert_checks.txt).
 //
 // Timing: inputs change at each falling edge and outputs are checked 1 ns after the rising
 // edge.
@@ -69,7 +77,7 @@ module tb_SRAM;
   int n_defined = 0;                     // checks that compared at least one bit
   int n_rbw = 0;                         // readBeforeWrite: defined reads of a word written in the same cycle
   int n_conflict = 0;                    // undefOnWrite: reads of a word written in the same cycle
-  int n_collide = 0;                     // 2rw: both ports writing one lane of one word
+  int n_collide = 0;                     // 2rw: both ports writing one word
   int n_partial = 0;                     // writes whose mask selects some lanes but not all
 
   // a random value of any width, built 32 bits at a time
@@ -129,22 +137,19 @@ module tb_SRAM;
       end
     end
 
-    // then the writes, lane by lane
+    // then the writes, lane by lane. Both ports writing one word collide, whatever their
+    // masks: neither write happens, and the word is undefined
     for (int p = 0; p < 2; p++) if (we[p] && wm[p] != '0 && wm[p] != '1) n_partial++;
-    for (int i = 0; i < LANES; i++) begin
-      automatic bit w0 = we[0] && wm[0][i];
-      automatic bit w1 = we[1] && wm[1][i];
-      if (w0 && w1 && addr[0] == addr[1]) begin
-        known[addr[0]][i*LW +: LW] = '0;
-        n_collide++;
-      end else begin
-        if (w0) begin
-          model[addr[0]][i*LW +: LW] = lane_of(din[0], i);
-          known[addr[0]][i*LW +: LW] = '1;
-        end
-        if (w1) begin
-          model[addr[1]][i*LW +: LW] = lane_of(din[1], i);
-          known[addr[1]][i*LW +: LW] = '1;
+    if (we[0] && we[1] && addr[0] == addr[1]) begin
+      known[addr[0]] = '0;
+      n_collide++;
+    end else begin
+      for (int i = 0; i < LANES; i++) begin
+        for (int p = 0; p < 2; p++) begin
+          if (we[p] && wm[p][i]) begin
+            model[addr[p]][i*LW +: LW] = lane_of(din[p], i);
+            known[addr[p]][i*LW +: LW] = '1;
+          end
         end
       end
     end
@@ -169,6 +174,54 @@ module tb_SRAM;
     @(negedge clk);
   endtask
 
+  // ---- timing-diagram replay ----
+  // test_SRAM.ts builds one task per timing diagram and readBehavior in the spec, with one row
+  // per cycle. Each row's inputs are driven at a falling edge and sampled on the next rising
+  // edge, and its read data is checked as it stands before that edge.
+  localparam int ABSENT    = -2;           // lane not in the diagram: input low, output not checked
+  localparam int DONT_CARE = -1;           // 'x' in the diagram: input random, output not checked
+  typedef struct {
+    int a_re, a_we, a_addr, a_data_in, b_re, b_we, b_addr, b_data_in;
+    int a_data_out, b_data_out;
+  } vec_t;
+
+  function automatic int in_val(int v, int width);
+    if (v == ABSENT) return 0;
+    if (v == DONT_CARE) return int'($urandom_range(0, (1 << width) - 1));
+    return v;
+  endfunction
+
+  function automatic logic [DW-1:0] data_val(int v);
+    if (v == DONT_CARE) return rand_word();
+    return (v == ABSENT) ? '0 : DW'(v);
+  endfunction
+
+  function automatic void expect_row(string ctx, string port, logic [DW-1:0] got, int want);
+    if (want < 0) return;
+    checks++;
+    if (got !== DW'(want)) begin
+      errors++;
+      $display("%s: %s = 0x%0h, expected 0x%0h", ctx, port, got, want);
+    end
+  endfunction
+
+  task automatic run_vectors(string name, vec_t v[]);
+    foreach (v[k]) begin
+      automatic string ctx = $sformatf("diagram %s cycle %0d", name, k);
+      a_re = 1'(in_val(v[k].a_re, 1)); a_we = 1'(in_val(v[k].a_we, 1));
+      a_addr = AW'(in_val(v[k].a_addr, AW)); a_data_in = data_val(v[k].a_data_in);
+      b_re = 1'(in_val(v[k].b_re, 1)); b_we = 1'(in_val(v[k].b_we, 1));
+      b_addr = AW'(in_val(v[k].b_addr, AW)); b_data_in = data_val(v[k].b_data_in);
+      a_wmask = '1; b_wmask = '1;          // the diagrams have no write mask
+      if (RD[0]) expect_row(ctx, "a_data_out", a_data_out, v[k].a_data_out);
+      if (RD[1]) expect_row(ctx, "b_data_out", b_data_out, v[k].b_data_out);
+      @(posedge clk);
+      @(negedge clk);
+    end
+  endtask
+
+  `include "SRAM_tb_vectors.svh"
+
   function automatic void expect_covered(string what, int count, bit applies);
     if (applies && count == 0) begin
       errors++;
@@ -176,17 +229,44 @@ module tb_SRAM;
     end
   endfunction
 
+`ifdef CHECK_ASSERT
+  // A run that one of the SRAM's assertions must stop: drive one access that breaks it, with
+  // every write mask bit low, since masks don't matter to conflicts or collisions. make sram_sim
+  // checks that the run stops on the expected assertion.
+  //   1: port a reads a word that port b writes, or that port a writes if port b can't
+  //   2: port b reads the word it writes (2rw)
+  //   3: both ports write one word (2rw)
+  task automatic break_assertion(int check);
+    a_addr = '0; b_addr = '0; a_wmask = '0; b_wmask = '0;
+    case (check)
+      1: begin a_re = 1'b1; if (WR[1]) b_we = 1'b1; else a_we = 1'b1; end
+      2: begin b_re = 1'b1; b_we = 1'b1; end
+      3: begin a_we = 1'b1; b_we = 1'b1; end
+      default: $fatal(1, "CHECK_ASSERT=%0d is not a check", check);
+    endcase
+    @(negedge clk);
+    a_re = 1'b0; a_we = 1'b0; b_re = 1'b0; b_we = 1'b0;
+    repeat (2) @(negedge clk);
+    $fatal(1, "CHECK_ASSERT=%0d: no SRAM assertion stopped the run", check);
+  endtask
+`endif
+
   initial begin
     $dumpfile({"tb_SRAM_", `CFG_NAME, ".fst"});
     $dumpvars(0, tb_SRAM);
     for (int p = 0; p < 2; p++) exp_known[p] = '0;
     @(negedge clk);
+`ifdef CHECK_ASSERT
+    break_assertion(`CHECK_ASSERT);
+`endif
+    // the diagrams first, from power-up; the random phase's model knows nothing they wrote
+    `RUN_DIAGRAMS
     repeat (CYCLES) cycle();
 
     expect_covered("a read with defined data", n_defined, 1'b1);
     expect_covered("a read of a word written in the same cycle", n_rbw, !UNDEF && (WR[0] || WR[1]));
     expect_covered("a read that conflicts with a write", n_conflict, UNDEF);
-    expect_covered("both ports writing one lane of one word", n_collide, WR[0] && WR[1]);
+    expect_covered("both ports writing one word", n_collide, WR[0] && WR[1]);
     expect_covered("a write with a partial mask", n_partial, MASK && LANES > 1);
     if (errors == 0) begin
       $display("PASS: %s (%s): %0d checks, %0d with defined data; %0d read-before-write, %0d conflicting reads, %0d colliding lanes, %0d partial writes",
