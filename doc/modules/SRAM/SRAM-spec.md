@@ -80,11 +80,19 @@ A port `<p>_` that writes has:
 
 ## Timing
 
-There is one diagram per `ports` value, each with `depth = 4`, `dataWidth = 8` and no write mask. Each diagram covers both `readBehavior` values. The inputs are the same for both, and each value's read data has its own lanes, named `<p>_data_out (<readBehavior>)`. The numbers along the top are cycles. The inputs in a cycle are sampled on the rising edge that ends it, so read data appears in the next cycle. Hatched read data is undefined: before the first read, and after a conflicting read under `undefOnWrite`, where simulation shows X and synthesis holds the previous value. `make sram_sim` replays each diagram cycle for cycle against both of its configurations, `<ports>_none_undef` and `<ports>_none_rbw` (see [Test Plan](#test-plan)). The diagrams show conflicts and a collision on purpose, so the replays turn off the assertions those break.
+There is one diagram per `ports` value, plus one for the `2rw` write collision. Each has `depth = 4`, `dataWidth = 8` and no write mask. The numbers along the top are cycles. The inputs in a cycle are sampled on the rising edge that ends it, so read data appears in the next cycle.
+
+A diagram draws its inputs once, and the read data under each behavior on its own lane, named `<p>_data_out (<behavior>)`:
+
+- `(undefOnWrite, simulation)`: a conflicting read assigns X, drawn as an `XX` brick, which stays until the port's next read that doesn't conflict.
+- `(undefOnWrite, synthesis)`: a conflicting read doesn't load, so the read data keeps its previous value.
+- `(readBeforeWrite)`: a conflicting read returns the word as it was before the write, in simulation and synthesis alike.
+
+Hatched read data is unknown: before the first read. `make sram_sim` replays every diagram cycle for cycle: its simulation lanes against `<ports>_none_<undef|rbw>`, and its synthesis lanes against `<ports>_none_<undef|rbw>_synth`, which is built with `SYNTHESIS` defined (see [Test Plan](#test-plan)). The diagrams show conflicts and a collision on purpose, so the replays turn off the assertions those break.
 
 ### `1rw`
 
-Cycles 1 and 2 write `A` to word 1 and `B` to word 2. Cycle 3 reads word 1: `A` appears in cycle 4, and holds in cycle 5 because `a_re` is low in cycle 4. Cycle 5 reads word 1 while writing `C` to it, which is a conflict. Under `undefOnWrite` the read data is undefined until the next read, in cycle 7. Under `readBeforeWrite` it is `A`, the word before the write. Cycles 7 and 8 read `C` and `B`.
+Cycles 1 and 2 write `A` to word 1 and `B` to word 2. Cycle 3 reads word 1: `A` appears in cycle 4, and holds in cycle 5 because `a_re` is low in cycle 4. Cycle 5 reads word 1 while writing `C` to it, which is a conflict. In simulation, `undefOnWrite` read data is X until the next read, in cycle 7. In synthesis it stays `A`. `readBeforeWrite` returns `A` again, the word before the write. Cycles 7 and 8 read `C` and `B`.
 
 <!-- wavedrom SRAM-timing-1rw.svg
 {
@@ -95,9 +103,9 @@ Cycles 1 and 2 write `A` to word 1 and `B` to word 2. Cycle 3 reads word 1: `A` 
     {"name": "a_addr",    "wave": "x===x=x==x", "data": ["1", "2", "1", "1", "1", "2"]},
     {"name": "a_data_in", "wave": "x34x.5x...", "data": ["A", "B", "C"]},
     {},
-    {"name": "a_data_out (undefOnWrite)",    "wave": "x...3.x.54", "data": ["A", "C", "B"]},
-    {},
-    {"name": "a_data_out (readBeforeWrite)", "wave": "x...3.3.54", "data": ["A", "A", "C", "B"]}
+    {"name": "a_data_out (undefOnWrite, simulation)", "wave": "x...3.=.54", "data": ["A", "XX", "C", "B"]},
+    {"name": "a_data_out (undefOnWrite, synthesis)",  "wave": "x...3...54", "data": ["A", "C", "B"]},
+    {"name": "a_data_out (readBeforeWrite)",          "wave": "x...3.3.54", "data": ["A", "A", "C", "B"]}
   ],
   "head": {"text": "SRAM 1rw: write, read, hold, and a read of the word being written", "tick": 0}
 }
@@ -106,7 +114,7 @@ Cycles 1 and 2 write `A` to word 1 and `B` to word 2. Cycle 3 reads word 1: `A` 
 
 ### `1r_1w`
 
-Port `b` writes and port `a` reads. Cycle 1 writes `A` to word 1. Cycle 2 writes `B` to word 2 while reading word 1. The words differ, so there is no conflict, and `A` appears in cycle 3. Cycle 3 writes `C` to word 1 while reading it, which is a conflict. In cycle 4 the read data is undefined under `undefOnWrite` and `A` under `readBeforeWrite`. Cycle 4 reads `C`. Cycle 5 writes `D` to word 3 while reading `B` from word 2, and `B` holds once `a_re` is low.
+Port `b` writes and port `a` reads. Cycle 1 writes `A` to word 1. Cycle 2 writes `B` to word 2 while reading word 1. The words differ, so there is no conflict, and `A` appears in cycle 3. Cycle 3 writes `C` to word 1 while reading it, which is a conflict. In cycle 4, `undefOnWrite` read data is X in simulation and stays `A` in synthesis, and `readBeforeWrite` returns `A`. Cycle 4 reads `C`. Cycle 5 writes `D` to word 3 while reading `B` from word 2, and `B` holds once `a_re` is low.
 
 <!-- wavedrom SRAM-timing-1r_1w.svg
 {
@@ -119,9 +127,9 @@ Port `b` writes and port `a` reads. Cycle 1 writes `A` to word 1. Cycle 2 writes
     {"name": "a_re",      "wave": "0.1...0."},
     {"name": "a_addr",    "wave": "x.====x.", "data": ["1", "1", "1", "2"]},
     {},
-    {"name": "a_data_out (undefOnWrite)",    "wave": "x..3x54.", "data": ["A", "C", "B"]},
-    {},
-    {"name": "a_data_out (readBeforeWrite)", "wave": "x..3354.", "data": ["A", "A", "C", "B"]}
+    {"name": "a_data_out (undefOnWrite, simulation)", "wave": "x..3=54.", "data": ["A", "XX", "C", "B"]},
+    {"name": "a_data_out (undefOnWrite, synthesis)",  "wave": "x..3.54.", "data": ["A", "C", "B"]},
+    {"name": "a_data_out (readBeforeWrite)",          "wave": "x..3354.", "data": ["A", "A", "C", "B"]}
   ],
   "head": {"text": "SRAM 1r_1w: reads of other words and of the word being written", "tick": 0}
 }
@@ -132,36 +140,61 @@ Port `b` writes and port `a` reads. Cycle 1 writes `A` to word 1. Cycle 2 writes
 
 - Cycle 1: port `a` writes `A` to word 0, and port `b` writes `B` to word 1.
 - Cycle 2: each port reads the word the other wrote. `B` appears on `a_data_out` and `A` on `b_data_out` in cycle 3.
-- Cycle 3: port `a` writes `C` to word 1 while port `b` reads it. That is a conflict on port `b` only, since port `a` doesn't read.
-- Cycle 4: port `a` reads word 0 while writing `F` to it, a conflict on port `a`. Port `b` reads word 1, which nothing writes, so it gets `C`.
-- Cycle 5: both ports write word 2, a write collision. Word 2 becomes undefined under either `readBehavior`.
-- Cycle 6: port `a` reads `F` from word 0, and port `b` reads word 2, which is undefined.
-- Cycle 7: port `b` reads `C` from word 1 again.
+- Cycle 3: port `a` writes `C` to word 1 while port `b` reads it. That is a conflict on port `b` only, since port `a` doesn't read. In cycle 4, `b_data_out` is X in simulation and stays `A` in synthesis under `undefOnWrite`. Under `readBeforeWrite` it is `B`, the word before the write.
+- Cycle 4: port `a` reads word 0 while writing `F` to it, a conflict on port `a`. In cycle 5, `a_data_out` is X in simulation and stays `B` in synthesis under `undefOnWrite`, and is `A` under `readBeforeWrite`. Port `b` reads word 1, which nothing writes, so it gets `C`.
+- Cycle 5: port `a` reads `F` from word 0.
 
 <!-- wavedrom SRAM-timing-2rw.svg
 {
   "signal": [
-    {"name": "clk",       "wave": "p........"},
-    {"name": "a_we",      "wave": "0101..0.."},
-    {"name": "a_re",      "wave": "0.101010."},
-    {"name": "a_addr",    "wave": "x======x.", "data": ["0", "1", "1", "0", "2", "0"]},
-    {"name": "a_data_in", "wave": "x3x586x..", "data": ["A", "C", "F", "D"]},
+    {"name": "clk",       "wave": "p......."},
+    {"name": "a_we",      "wave": "0101.0.."},
+    {"name": "a_re",      "wave": "0.101.0."},
+    {"name": "a_addr",    "wave": "x=====x.", "data": ["0", "1", "1", "0", "0"]},
+    {"name": "a_data_in", "wave": "x3x58x..", "data": ["A", "C", "F"]},
     {},
-    {"name": "b_we",      "wave": "010..10.."},
-    {"name": "b_re",      "wave": "0.1..01.0"},
-    {"name": "b_addr",    "wave": "x=======x", "data": ["1", "0", "1", "1", "2", "2", "1"]},
-    {"name": "b_data_in", "wave": "x4x..7x..", "data": ["B", "E"]},
+    {"name": "b_we",      "wave": "010....."},
+    {"name": "b_re",      "wave": "0.1..0.."},
+    {"name": "b_addr",    "wave": "x====x..", "data": ["1", "0", "1", "1"]},
+    {"name": "b_data_in", "wave": "x4x.....", "data": ["B"]},
     {},
-    {"name": "a_data_out (undefOnWrite)",    "wave": "x..4.x.8.", "data": ["B", "F"]},
-    {"name": "b_data_out (undefOnWrite)",    "wave": "x..3x5.x5", "data": ["A", "C", "C"]},
+    {"name": "a_data_out (undefOnWrite, simulation)", "wave": "x..4.=8.", "data": ["B", "XX", "F"]},
+    {"name": "a_data_out (undefOnWrite, synthesis)",  "wave": "x..4..8.", "data": ["B", "F"]},
+    {"name": "a_data_out (readBeforeWrite)",          "wave": "x..4.38.", "data": ["B", "A", "F"]},
     {},
-    {"name": "a_data_out (readBeforeWrite)", "wave": "x..4.3.8.", "data": ["B", "A", "F"]},
-    {"name": "b_data_out (readBeforeWrite)", "wave": "x..345.x5", "data": ["A", "B", "C", "C"]}
+    {"name": "b_data_out (undefOnWrite, simulation)", "wave": "x..3=5..", "data": ["A", "XX", "C"]},
+    {"name": "b_data_out (undefOnWrite, synthesis)",  "wave": "x..3.5..", "data": ["A", "C"]},
+    {"name": "b_data_out (readBeforeWrite)",          "wave": "x..345..", "data": ["A", "B", "C"]}
   ],
-  "head": {"text": "SRAM 2rw: cross reads, a conflict on each port, and a write collision", "tick": 0}
+  "head": {"text": "SRAM 2rw: cross reads, and a conflict on each port", "tick": 0}
 }
 -->
 ![SRAM timing: 2rw](SRAM-timing-2rw.svg)
+
+### `2rw` write collision
+
+A collision behaves the same under either `readBehavior`, so this diagram's read data lanes name only the simulation and synthesis behaviors. Cycle 1 writes `A` to word 2, and cycle 2 reads it back. In cycle 3 both ports write word 2, `D` and `E`: a collision. Cycle 4 reads word 2. In simulation, the collision made it X. In synthesis neither write happened, so it is still `A`. Cycle 5 writes `F` to word 2 from port `a` alone, and cycle 6 reads it.
+
+<!-- wavedrom SRAM-timing-2rw-collision.svg
+{
+  "signal": [
+    {"name": "clk",       "wave": "p......."},
+    {"name": "a_we",      "wave": "0101010."},
+    {"name": "a_addr",    "wave": "x=x=x=x.", "data": ["2", "2", "2"]},
+    {"name": "a_data_in", "wave": "x3x6x8x.", "data": ["A", "D", "F"]},
+    {},
+    {"name": "b_we",      "wave": "0..10..."},
+    {"name": "b_re",      "wave": "0.101010"},
+    {"name": "b_addr",    "wave": "x.===x=x", "data": ["2", "2", "2", "2"]},
+    {"name": "b_data_in", "wave": "x..7x...", "data": ["E"]},
+    {},
+    {"name": "b_data_out (simulation)", "wave": "x..3.=.8", "data": ["A", "XX", "F"]},
+    {"name": "b_data_out (synthesis)",  "wave": "x..3.3.8", "data": ["A", "A", "F"]}
+  ],
+  "head": {"text": "SRAM 2rw: a write collision, in simulation and synthesis", "tick": 0}
+}
+-->
+![SRAM timing: 2rw write collision](SRAM-timing-2rw-collision.svg)
 
 ---
 
@@ -222,16 +255,18 @@ Each configuration is named `<ports>_<mask>_<undef|rbw>`, for every `ports` and 
 | `byte` | `'byte'` | 32 | 4 |
 | `byte1` | `'byte'` | 8 | 1 (a 1-bit `<p>_wmask`) |
 
-Every cycle, the testbench drives random reads and writes on each port over the 4 words, so the ports often meet on one address. A reference model of the storage gives the expected read data, following [Functional Description](#functional-description). The model tracks which bits are defined, and a check compares only those bits: Verilator is two-state, so it can't show the X the RTL assigns in simulation.
+The six unmasked configurations are also built with `SYNTHESIS` defined, as `<ports>_none_<undef|rbw>_synth`. Without its X assignments, the RTL then behaves as synthesis builds it.
+
+Every cycle, the testbench drives random reads and writes on each port over the 4 words, so the ports often meet on one address. A reference model of the storage gives the expected read data, following [Functional Description](#functional-description). The model tracks which bits are defined, and a check compares only those bits: Verilator is two-state, so it can't show the X the RTL assigns in simulation. In a `_synth` configuration, the model checks the synthesis behavior instead: a conflicting `undefOnWrite` read keeps the previous read data, and a collision leaves the word as it was.
 
 | Test case | Configurations | Notes |
 |---|---|---|
 | Masked writes | `bit`, `byte`, `byte1` | Random masks, including all lanes and none. The run fails if no write selects some lanes but not all (`bit`, `byte`) |
 | Read before write | `readBeforeWrite` | A read of a word written in the same cycle returns the old word. The run fails if none happens |
-| Read/write conflict | `undefOnWrite` | Such a read is undefined until the port's next read. The run fails if none happens |
-| Write collision | `2rw` | Both ports writing the same word make it undefined, whatever their masks. The run fails if none happens |
+| Read/write conflict | `undefOnWrite` | Such a read is undefined until the port's next read; with `SYNTHESIS` defined, the read data holds. The run fails if none happens |
+| Write collision | `2rw` | Both ports writing the same word make it undefined, whatever their masks; with `SYNTHESIS` defined, it keeps its value. The run fails if none happens |
 | Hold | all | While `<p>_re` is low, `<p>_data_out` keeps its value |
-| Timing diagrams | `<ports>_none_undef`, `<ports>_none_rbw` | Each diagram in [Timing](#timing) replays cycle for cycle against the read data lanes for the configuration's `readBehavior`, before the random phase. `test_SRAM.ts` builds the vectors from the diagrams' WaveDrom JSON, so a diagram change is tested without editing the testbench, and it fails if a `ports` value or `readBehavior` has no diagram |
+| Timing diagrams | `<ports>_none_<undef\|rbw>`, and the same with `_synth` | Each diagram in [Timing](#timing) replays cycle for cycle against the read data lanes for the configuration's `readBehavior`, in simulation or synthesis, before the random phase. `XX` bricks aren't checked, since Verilator is two-state. `test_SRAM.ts` builds the vectors from the diagrams' WaveDrom JSON, so a diagram change is tested without editing the testbench, and it fails if a `ports` value, `readBehavior`, or simulation or synthesis has no diagram |
 | Random | all | 4000 cycles |
 | Assertions | all | The random and diagram runs keep the assertions on, except those their traffic breaks on purpose: `NOASSERT_SRAM_RW_CONFLICT` for `undefOnWrite`, `NOASSERT_SRAM_W_COLLISION` for `2rw`. Then five more runs each break one assertion, with every write mask bit low, and pass only if the run stops on that assertion: `a_no_rw_conflict` for `1rw`, for `1r_1w`, and for port `b` writing in `2rw`; `b_no_rw_conflict` for port `b`'s own write in `2rw`; and `no_w_collision` in a `readBeforeWrite` `2rw` (`assert_checks.txt`) |
 | `minMacroBits` | — | `test_SRAM.ts` checks that `mem` has no `ram_style` attribute at 32 bits or 1024 bits with the default `minMacroBits` (1024), and that the module name includes `minMacroBits`. It also checks the constructor rejects `minMacroBits` 31 and a `readBeforeWrite` SRAM of 1024 bits, and accepts one of 32 bits with `minMacroBits` 33 |

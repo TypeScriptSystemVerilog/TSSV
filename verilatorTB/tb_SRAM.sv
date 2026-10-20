@@ -7,7 +7,7 @@
 // per timing diagram and readBehavior in the spec). Run everything with
 // `make -C verilatorTB sram_sim`.
 //
-// An unmasked configuration first replays its timing diagram from the spec, cycle for cycle.
+// An unmasked configuration first replays its timing diagrams from the spec, cycle for cycle.
 // Then every cycle drives random reads and writes on the DUT's ports, over a few words so that
 // the ports often meet on one address. A reference model of the storage gives each read's
 // expected data, as the spec describes it:
@@ -16,6 +16,9 @@
 // - undefOnWrite: a read of a word written in the same cycle, on either port, is undefined
 //   until the port's next read;
 // - 2rw: both ports writing one word, whatever their masks, leave it undefined.
+// Built with -DSYNTHESIS (the <config>_synth configurations), the RTL has its synthesis
+// behavior instead, which the model checks: a conflicting read doesn't load, and a collision
+// writes nothing.
 // The model tracks which bits are defined, and a check compares only those. Verilator is
 // two-state, so it can't show the X the RTL assigns in simulation. While a port's read enable
 // is low, its read data must hold.
@@ -41,6 +44,13 @@ module tb_SRAM;
   localparam int LW     = DW / LANES;      // bits per lane
   localparam bit MASK   = `MASK;
   localparam bit UNDEF  = `UNDEF_ON_WRITE;
+  // Built with SYNTHESIS defined, the RTL drops its X assignments: a conflicting read doesn't
+  // load, and a collision writes nothing, so the model can check both
+`ifdef SYNTHESIS
+  localparam bit SYNTH  = 1'b1;
+`else
+  localparam bit SYNTH  = 1'b0;
+`endif
   localparam bit RD [2] = '{`RD_A, `RD_B}; // port a is 0, port b is 1
   localparam bit WR [2] = '{`WR_A, `WR_B};
   localparam int CYCLES = 4000;
@@ -127,7 +137,7 @@ module tb_SRAM;
         automatic bit written = 1'b0;
         for (int q = 0; q < 2; q++) if (we[q] && addr[q] == addr[p]) written = 1'b1;
         if (UNDEF && written) begin
-          exp_known[p] = '0;
+          if (!SYNTH) exp_known[p] = '0;   // X until the next read; in synthesis it holds
           n_conflict++;
         end else begin
           exp_data[p]  = model[addr[p]];
@@ -138,10 +148,10 @@ module tb_SRAM;
     end
 
     // then the writes, lane by lane. Both ports writing one word collide, whatever their
-    // masks: neither write happens, and the word is undefined
+    // masks: neither write happens, and in simulation the word is undefined
     for (int p = 0; p < 2; p++) if (we[p] && wm[p] != '0 && wm[p] != '1) n_partial++;
     if (we[0] && we[1] && addr[0] == addr[1]) begin
-      known[addr[0]] = '0;
+      if (!SYNTH) known[addr[0]] = '0;   // X; in synthesis the word keeps its value
       n_collide++;
     end else begin
       for (int i = 0; i < LANES; i++) begin
