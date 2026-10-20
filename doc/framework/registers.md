@@ -329,20 +329,23 @@ which returns `{ addrMap, def }`:
 Register `i` resets to `resetValues[i]`, default `0n`. FIR builds its block from the factory:
 
 ```typescript
-const { def: coeffDef } = createFirCoeffsDef(numTaps, this.params.coefficientsWidth, this.params.coefficients)
+const { def: coeffDef } = createFirCoeffsDef(numTaps, coefficientsWidth, coefficients)
+this.addInterface('regs', new Memory({ DATA_WIDTH: regsWidth, ADDR_WIDTH: REGS_ADDR_WIDTH }, 'inward'))
+...
 const coeffRegBlock = new RegisterBlock<Record<string, bigint>>(
-  { name: `${String(params.name ?? 'fir')}_coeffRegs`, busAddressWidth: 32 },
+  { name: `${this.name}_coeffRegs`, busAddressWidth: REGS_ADDR_WIDTH },
   coeffDef,
   new Memory()
 )
-this.addSubmodule('coeff_block', coeffRegBlock, coeffBindings, true, true)
+this.addSubmodule('u_coeff_regs', coeffRegBlock, coeffBindings)
 ```
 
-(From `ts/src/modules/FIR/FIR.ts`.) Note the
-`createMissing` (last `true`). It binds the block's `regs` bus to a new **internal** bundle in
-FIR, not to a FIR port (see [concepts.md §5](concepts.md#5-submodules)), contrary to FIR's spec
-([#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83)). To reach a block's bus
-from outside, give the parent a port of the same interface type and bind `regs` to it.
+(From `ts/src/modules/FIR/FIR.ts`.) `coeffBindings` binds the block's `regs` bus to FIR's own
+inward `Memory` port, also named `regs`, so the coefficients can be written from outside FIR. To
+reach a block's bus from outside, give the parent a port of the same interface type and bind
+`regs` to it. `createMissing` would bind it to a new **internal** bundle instead (see
+[concepts.md §5](concepts.md#5-submodules)), as FIR did until
+[#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83).
 
 ## 5. Current limitations
 
