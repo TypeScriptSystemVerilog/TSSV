@@ -54,6 +54,26 @@ for (const simult of [true, false]) {
   }
 }
 
+// ============================================ the SRAM's parameters, rippled up
+// macroConfig and minMacroBits reach the storage SRAM (its parameter comment shows them), and a
+// depth-1 FIFO, which builds no SRAM, still rejects a minMacroBits the SRAM would
+{
+  const fifo = new SFIFO({ dataWidth: DATA_WIDTH, depth: 4n, macroConfig: 'hd', minMacroBits: 2048n })
+  const sv = fifo.writeSystemVerilog()
+  for (const want of ['// macroConfig = hd', '// minMacroBits = 2048n']) {
+    if (!sv.includes(want)) throw Error(`${fifo.name}: its SRAM's parameters don't include "${want}"`)
+  }
+  console.log(`${fifo.name}: macroConfig and minMacroBits reach the SRAM`)
+  let message = ''
+  try {
+    void new SFIFO({ dataWidth: DATA_WIDTH, depth: 1n, minMacroBits: 31n })
+  } catch (e) {
+    message = e instanceof Error ? e.message : String(e)
+  }
+  if (message !== 'SFIFO: minMacroBits must be at least 32, got 31') throw Error(`depth-1 SFIFO with minMacroBits 31: got "${message}"`)
+  console.log('a depth-1 SFIFO rejects minMacroBits 31')
+}
+
 // ============================================ 2. testbench configurations
 interface TbConfig {
   cfg: string

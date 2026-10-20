@@ -21,6 +21,8 @@ Synchronous **First-In First-Out** queue backed by an `SRAM` submodule. Supports
 | `simultPushPop` | `boolean` | `true` | `true`: push and pop may occur in the same cycle; storage is a dual-port (`1r_1w`) `SRAM` and the enables are `push_en`/`pop_en`. `false`: push and pop are mutually exclusive; storage is a single-port (`1rw`) `SRAM` and the enables are `en`/`push1_pop0` |
 | `inclAlmostFull` | `boolean` | `false` | Enables `almost_full_depth` input and `almost_full` output |
 | `inclAlmostEmpty` | `boolean` | `false` | Enables `almost_empty_depth` input and `almost_empty` output |
+| `macroConfig` | `string` | `'default'` | Passed to the storage `SRAM`'s `macroConfig`: a free-form technology macro selector. It doesn't change the behavioral model |
+| `minMacroBits` | `bigint` (≥ 32) | `1024` | Passed to the storage `SRAM`'s `minMacroBits`: the fewest bits (`depth * dataWidth`) it needs to be implemented as a macro in an ASIC flow (see the `SRAM` spec's Synthesis mapping). A `depth = 1` FIFO has no `SRAM`, but still rejects a value below 32 |
 
 
 ---
@@ -212,7 +214,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 - **Prefetch:** on a pop with more than one entry, `sram_re` reads `rd_addr_inc`, the entry behind the head. Those entries were written on earlier edges, so the read never hits the address being written. While `sram_re` is low, the SRAM holds its read data, which keeps the head steady across idle and push-only cycles.
 - **Bypass:** `bypass_q` captures `push_data` when the push becomes the head at once: a push into an empty FIFO, or (`simultPushPop = true`) a push alongside the pop of the only entry.
 - **Head select:** `head_from_bypass_q` records which source holds the head. `pop_data = head_from_bypass_q ? bypass_q : sram_rdata`.
-- **SRAM:** instance `u_sram` of module `<name>_sram`. `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop. It takes `SRAM`'s default `minMacroBits` (1024), so in an ASIC flow, a FIFO with fewer than 1024 bits of storage (`depth * dataWidth`) gets a flip-flop `SRAM`, not a macro. The SRAM's assertions are on, and `sfifo_sim` passes with them: the prefetch read never conflicts with the push write.
+- **SRAM:** instance `u_sram` of module `<name>_sram`. `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop. It gets the FIFO's `macroConfig` and `minMacroBits`. With the default `minMacroBits` (1024), an ASIC flow builds a FIFO with fewer than 1024 bits of storage (`depth * dataWidth`) from flip-flops rather than a macro. The SRAM's assertions are on, and `sfifo_sim` passes with them: the prefetch read never conflicts with the push write.
 - **`depth = 1`:** the only entry is always the head, so there is no SRAM and no pointers; `pop_data` is `bypass_q`.
 
 ### Key signals
@@ -241,7 +243,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 ## Test Plan
 
-**Test script:** `ts/test/modules/test_SFIFO.ts` generates every combination of `simultPushPop`, `inclAlmostFull` and `inclAlmostEmpty` (at `depth = 5`), checks each one's ports against the IO tables above, and generates the testbench configurations below.
+**Test script:** `ts/test/modules/test_SFIFO.ts` generates every combination of `simultPushPop`, `inclAlmostFull` and `inclAlmostEmpty` (at `depth = 5`), checks each one's ports against the IO tables above, checks that `macroConfig` and `minMacroBits` reach the `SRAM` and that a `depth = 1` FIFO rejects `minMacroBits` 31, and generates the testbench configurations below.
 **Testbench:** `verilatorTB/tb_SFIFO.sv`, built once per configuration. Every cycle, a queue reference model checks `empty`, `full`, `curr_depth`, the almost flags and, while not empty, `pop_data`.
 **Output:** `sv-examples/SFIFO/<module>/`, one module per file (`<module>.sv`, and `<module>_sram.sv` unless `depth = 1`) with a lint filelist, `<module>.f`; and `sv-examples/SFIFO/tb/`
 

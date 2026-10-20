@@ -28,6 +28,16 @@ export interface SFIFO_Parameters extends TSSVParameters {
    * add the `almost_empty_depth` input and `almost_empty` output
    */
   inclAlmostEmpty?: boolean
+  /**
+   * passed to the storage SRAM's macroConfig: a free-form technology macro selector
+   * (default 'default'). It doesn't change the behavioral model
+   */
+  macroConfig?: string
+  /**
+   * passed to the storage SRAM's minMacroBits: the fewest bits (depth * dataWidth) the SRAM
+   * needs to be implemented as a macro in an ASIC flow (at least 32, default 1024)
+   */
+  minMacroBits?: bigint
 }
 
 /**
@@ -47,11 +57,18 @@ export class SFIFO extends Module {
       depth: params.depth,
       simultPushPop: params.simultPushPop ?? true,
       inclAlmostFull: params.inclAlmostFull ?? false,
-      inclAlmostEmpty: params.inclAlmostEmpty ?? false
+      inclAlmostEmpty: params.inclAlmostEmpty ?? false,
+      macroConfig: params.macroConfig || 'default',
+      minMacroBits: params.minMacroBits ?? 1024n
     })
     const depth = this.params.depth
     if (depth < 1n) throw Error(`SFIFO: depth must be at least 1, got ${depth}`)
     if (this.params.dataWidth < 1n) throw Error(`SFIFO: dataWidth must be at least 1, got ${this.params.dataWidth}`)
+    // checked here too, since a depth-1 FIFO builds no SRAM to check it
+    const minMacroBits = this.params.minMacroBits ?? 1024n
+    if (minMacroBits < 32n) throw Error(`SFIFO: minMacroBits must be at least 32, got ${minMacroBits}`)
+    // the storage SRAM's own parameters, rippled up
+    const sramParams = { dataWidth: this.params.dataWidth, depth, macroConfig: this.params.macroConfig, minMacroBits }
     // signal widths are numbers in the framework; convert once here
     const dataWidth = Number(this.params.dataWidth)
     const simult = this.params.simultPushPop === true
@@ -195,14 +212,14 @@ export class SFIFO extends Module {
     const sramName = `${this.name}_sram`
     if (simult) {
       this.addSubmodule('u_sram',
-        new SRAM({ name: sramName, dataWidth: this.params.dataWidth, depth, ports: '1r_1w' }),
+        new SRAM({ name: sramName, ...sramParams, ports: '1r_1w' }),
         { clk: 'clk', a_re: 'sram_re', a_addr: 'rd_addr_inc', a_data_out: 'sram_rdata', b_we: 'push_fire', b_addr: 'wr_addr_q', b_data_in: 'push_data' })
     } else {
       // push and pop are exclusive, so a push write and a prefetch read never share a cycle
       this.addSignal('sram_addr', { width: addrWidth })
       this.addAssign({ in: new Expr('push_fire ? wr_addr_q : rd_addr_inc'), out: 'sram_addr' })
       this.addSubmodule('u_sram',
-        new SRAM({ name: sramName, dataWidth: this.params.dataWidth, depth, ports: '1rw' }),
+        new SRAM({ name: sramName, ...sramParams, ports: '1rw' }),
         { clk: 'clk', a_re: 'sram_re', a_we: 'push_fire', a_addr: 'sram_addr', a_data_in: 'push_data', a_data_out: 'sram_rdata' })
     }
   }
