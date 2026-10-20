@@ -10,7 +10,7 @@
 // Run `make -C verilatorTB rom_sim` to generate everything, lint each variant with -Wall and
 // simulate each one.
 
-import { ROM } from 'tssv/lib/modules/ROM'
+import { ROM, type ROM_Parameters } from 'tssv/lib/modules/ROM'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 
 const OUT = 'sv-examples/ROM'
@@ -108,39 +108,39 @@ const uint8Bytes17 = Array.from(new Uint8Array(bytes17))
 // ================================================== test 1 =======================================================
 // A file of binary, hexadecimal and decimal entries, with sizes, '_' and spaces; writes an RCF too
 console.log('test 1')
-mkdirSync(`${OUT}/ROM_32_big`, { recursive: true })
-const testMem1 = new ROM({ dataWidth: 32 }, 'ts/test/test_rom_init_file.txt', `${OUT}/ROM_32_big`)
-check(`${testMem1.name}: the derived name is ROM_32_big`, testMem1.name === 'ROM_32_big')
+mkdirSync(`${OUT}/rcf`, { recursive: true })
+const testMem1 = new ROM({ dataWidth: 32, ROMContents: 'ts/test/test_rom_init_file.txt' }, `${OUT}/rcf`)
+check(`${testMem1.name}: the derived name holds a hash of the contents`, /^ROM_32_big_[0-9a-z]{7}_default$/.test(testMem1.name))
 emitRom(testMem1, 32, initFileWords)
-const rcf1 = readFileSync(`${OUT}/ROM_32_big/ROM_32_big.rcf`, 'utf8')
+const rcf1 = readFileSync(`${OUT}/rcf/${testMem1.name}.rcf`, 'utf8')
 check(`${testMem1.name}: the RCF holds each word in binary, one per line`,
   rcf1 === initFileWords.map(w => w.toString(2).padStart(32, '0')).join('\n'))
 
 // ================================================== tests 2, 3 ===================================================
 // A file of 8-digit binary entries packed into 32-bit words, in each byte order
 console.log('test 2')
-emitRom(new ROM({ name: 'ROM_32_4_little_InitialFile8_test', dataWidth: 32, endianness: 'little' }, 'ts/test/test_rom_init_file_32_4_binary.txt'),
+emitRom(new ROM({ name: 'ROM_32_4_little_InitialFile8_test', dataWidth: 32, endianness: 'little', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
   32, pack(binaryFileBytes, 32, 'little'))
 console.log('test 3')
-emitRom(new ROM({ name: 'ROM_32_4_big_InitialFile8_test', dataWidth: 32, endianness: 'big' }, 'ts/test/test_rom_init_file_32_4_binary.txt'),
+emitRom(new ROM({ name: 'ROM_32_4_big_InitialFile8_test', dataWidth: 32, endianness: 'big', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
   32, pack(binaryFileBytes, 32, 'big'))
 
 // ================================================== test 4 =======================================================
 // A signed decimal array, negative values in two's complement
 console.log('test 4')
-emitRom(new ROM({ name: 'ROM_16_6_normal_array_test', dataWidth: 16 }, [-5, -255, 0, 255, 32767, -32767]),
+emitRom(new ROM({ name: 'ROM_16_6_normal_array_test', dataWidth: 16, ROMContents: [-5, -255, 0, 255, 32767, -32767] }),
   16, [0xFFFBn, 0xFF01n, 0x0000n, 0x00FFn, 0x7FFFn, 0x8001n])
 
 // ================================================== tests 5, 9 ===================================================
 // A Uint8Array packed into 32-bit words, in each byte order; its 17 bytes fill 4 words and 1 byte
 // of a 5th, whose other bytes are zero (#127)
 console.log('test 5')
-const sv5 = emitRom(new ROM({ name: 'ROM_32_4_uint8array_little_test', dataWidth: 32, endianness: 'little' }, new Uint8Array(bytes17)),
+const sv5 = emitRom(new ROM({ name: 'ROM_32_4_uint8array_little_test', dataWidth: 32, endianness: 'little', ROMContents: new Uint8Array(bytes17) }),
   32, pack(uint8Bytes17, 32, 'little'))
 check('ROM_32_4_uint8array_little_test: partly filled last word is zero-padded',
   sv5.includes("3'd4: data_out <= 32'h00000020;"))
 console.log('test 9')
-const sv10 = emitRom(new ROM({ name: 'ROM_32_5_uint8array_big_test', dataWidth: 32, endianness: 'big' }, new Uint8Array(bytes17)),
+const sv10 = emitRom(new ROM({ name: 'ROM_32_5_uint8array_big_test', dataWidth: 32, endianness: 'big', ROMContents: new Uint8Array(bytes17) }),
   32, pack(uint8Bytes17, 32, 'big'))
 check('ROM_32_5_uint8array_big_test: partly filled last word is zero-padded',
   sv10.includes("3'd4: data_out <= 32'h20000000;"))
@@ -148,16 +148,16 @@ check('ROM_32_5_uint8array_big_test: partly filled last word is zero-padded',
 // ================================================== tests 6, 7 ===================================================
 // With a width that isn't a multiple of 8, bytes aren't packed: each one is a word
 console.log('test 6')
-emitRom(new ROM({ name: 'ROM_31_16_uint8array_NonMul8_test', dataWidth: 31, endianness: 'little' }, new Uint8Array(bytes17)),
+emitRom(new ROM({ name: 'ROM_31_16_uint8array_NonMul8_test', dataWidth: 31, endianness: 'little', ROMContents: new Uint8Array(bytes17) }),
   31, uint8Bytes17.map(b => BigInt(b)))
 console.log('test 7')
-emitRom(new ROM({ name: 'ROM_25_4_big_InitialFile8_NonMul8_test', dataWidth: 25, endianness: 'big' }, 'ts/test/test_rom_init_file_32_4_binary.txt'),
+emitRom(new ROM({ name: 'ROM_25_4_big_InitialFile8_NonMul8_test', dataWidth: 25, endianness: 'big', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
   25, binaryFileBytes.map(b => BigInt(b)))
 
 // ================================================== test 8 =======================================================
 // Entries at both ends of what fits 9 bits: -256 signed and 511 unsigned
 console.log('test 8')
-emitRom(new ROM({ name: 'ROM_9_5_normal_array_test', dataWidth: 9 }, [-5, -256, 0, 255, 511]),
+emitRom(new ROM({ name: 'ROM_9_5_normal_array_test', dataWidth: 9, ROMContents: [-5, -256, 0, 255, 511] }),
   9, [0x1FBn, 0x100n, 0x000n, 0x0FFn, 0x1FFn])
 
 // ================================================== tests 10 to 14 ===============================================
@@ -165,36 +165,60 @@ emitRom(new ROM({ name: 'ROM_9_5_normal_array_test', dataWidth: 9 }, [-5, -256, 
 console.log('tests 10 to 14')
 // 40-bit words with a power-of-2 depth, so no address is past the last word
 const words40 = Array.from({ length: 8 }, (_, i) => 0x1234567800n + BigInt(i) * 0x0101010101n)
-emitRom(new ROM({ name: 'ROM_40_8', dataWidth: 40 }, words40.map(Number)), 40, words40)
+emitRom(new ROM({ name: 'ROM_40_8', dataWidth: 40, ROMContents: words40.map(Number) }), 40, words40)
 // 70 bytes packed big-endian into 64-bit words: 9 words, the last partly filled; with an RCF
 const bytes70 = Array.from({ length: 70 }, (_, i) => (i * 37) % 256)
-mkdirSync(`${OUT}/ROM_64_9_uint8array_big`, { recursive: true })
-const testMem64 = new ROM({ name: 'ROM_64_9_uint8array_big', dataWidth: 64 }, new Uint8Array(bytes70), `${OUT}/ROM_64_9_uint8array_big`)
+const testMem64 = new ROM({ name: 'ROM_64_9_uint8array_big', dataWidth: 64, ROMContents: new Uint8Array(bytes70) }, `${OUT}/rcf`)
 const words64 = pack(bytes70, 64, 'big')
 emitRom(testMem64, 64, words64)
-const rcf64 = readFileSync(`${OUT}/ROM_64_9_uint8array_big/ROM_64_9_uint8array_big.rcf`, 'utf8')
+const rcf64 = readFileSync(`${OUT}/rcf/ROM_64_9_uint8array_big.rcf`, 'utf8')
 check('ROM_64_9_uint8array_big: the RCF holds each packed word, not each byte',
   rcf64 === words64.map(w => w.toString(2).padStart(64, '0')).join('\n'))
 // one word: the address is still 1 bit
-emitRom(new ROM({ name: 'ROM_8_1', dataWidth: 8 }, [0x5A]), 8, [0x5An])
+emitRom(new ROM({ name: 'ROM_8_1', dataWidth: 8, ROMContents: [0x5A] }), 8, [0x5An])
 // 1-bit words
-emitRom(new ROM({ name: 'ROM_1_4', dataWidth: 1 }, [1, 0, -1, 0]), 1, [1n, 0n, 1n, 0n])
+emitRom(new ROM({ name: 'ROM_1_4', dataWidth: 1, ROMContents: [1, 0, -1, 0] }), 1, [1n, 0n, 1n, 0n])
 // 256-bit words from entries beyond a double's 53-bit precision, in a file with blank lines
 const max256 = (1n << 256n) - 1n
-emitRom(new ROM({ name: 'ROM_256_3', dataWidth: 256 }, initFile('ROM_256_3', [`256'h${max256.toString(16)}`, '', "'d18446744073709551617", '-1', ''])),
+emitRom(new ROM({ name: 'ROM_256_3', dataWidth: 256, ROMContents: initFile('ROM_256_3', [`256'h${max256.toString(16)}`, '', "'d18446744073709551617", '-1', '']) }),
   256, [max256, 18446744073709551617n, max256])
 
-// ============================================ init data the constructor rejects (TSSV guide PARAM-5)
-console.log('rejected init data')
-expectThrow('no entries', () => new ROM({ name: 'r', dataWidth: 8 }, []), 'MemInitFile has no entries')
-expectThrow('only blank lines', () => new ROM({ name: 'r', dataWidth: 8 }, initFile('blank', ['', ' _ ', ''])), 'MemInitFile has no entries')
-expectThrow('a missing file', () => new ROM({ name: 'r', dataWidth: 8 }, 'ts/test/no_such_rom_file.txt'), "can't read MemInitFile 'ts/test/no_such_rom_file.txt'")
-expectThrow('an entry that is no literal', () => new ROM({ name: 'r', dataWidth: 8 }, initFile('bad_literal', ['0x12', '0xZZ'])), "can't parse MemInitFile line 2: '0xZZ'")
-expectThrow('a decimal above 9 bits', () => new ROM({ name: 'r', dataWidth: 9 }, [0, 512]), 'MemInitFile entry 1 (512) doesn\'t fit in 9 bits')
-expectThrow('a decimal below 9 bits', () => new ROM({ name: 'r', dataWidth: 9 }, [-257]), 'MemInitFile entry 0 (-257) doesn\'t fit in 9 bits')
-expectThrow('a hex entry wider than the word', () => new ROM({ name: 'r', dataWidth: 8 }, initFile('wide_hex', ["'h1FF"])), "MemInitFile line 1 ('h1FF) doesn't fit in 8 bits")
-expectThrow('a packed entry wider than a byte', () => new ROM({ name: 'r', dataWidth: 32 }, initFile('wide_byte', ["8'b00000001", "'h1FF"])), "MemInitFile line 2 ('h1FF) doesn't fit in 8 bits, as a byte")
-expectThrow('a fraction', () => new ROM({ name: 'r', dataWidth: 8 }, [1.5]), 'MemInitFile entry 0 must be an integer, got 1.5')
+// ================================================== test 15 ======================================================
+// A string array of every entry format: the spec's mixed-format example
+console.log('test 15')
+emitRom(new ROM({ name: 'ROM_16_7_strings', dataWidth: 16, ROMContents: ['0x1234', '0XDE AD', "16'hBEEF", "'b1010_0101", "'d100", '-1', '255'] }),
+  16, [0x1234n, 0xDEADn, 0xBEEFn, 0x00A5n, 0x0064n, 0xFFFFn, 0x00FFn])
+
+// ============================================ the module name holds the contents (TSSV guide PARAM-2)
+console.log('module names')
+const named = (p: Partial<ROM_Parameters>): string => new ROM({ dataWidth: 8, ROMContents: [1, 2], ...p }).name
+check('different contents give different names', named({ ROMContents: [1, 2] }) !== named({ ROMContents: [1, 3] }))
+check('the same words from a file and a number array give the same name',
+  named({ ROMContents: initFile('words_5_6', ['0x05', "'d6"]) }) === named({ ROMContents: [5, 6] }))
+check('the same file contents at two paths give the same name',
+  named({ ROMContents: initFile('copy_a', ['0x07', '0x08']) }) === named({ ROMContents: initFile('copy_b', ['0x07', '0x08']) }))
+check('macroConfig changes the name', named({}) !== named({ macroConfig: 'hd' }))
+check("leaving macroConfig out is the same as 'default'", named({}) === named({ macroConfig: 'default' }))
+check('a derived name is a legal SV identifier, without the file path',
+  [named({}), testMem1.name].every(n => /^[A-Za-z_][A-Za-z0-9_$]*$/.test(n)))
+const rebuilt = new ROM({ ...testMem1.params, name: undefined })
+check('a ROM rebuilt from its params gets the same name and SV',
+  rebuilt.name === testMem1.name && rebuilt.writeSystemVerilog() === testMem1.writeSystemVerilog())
+const svHd = new ROM({ name: 'ROM_hd', dataWidth: 8, ROMContents: [1, 2, 3], macroConfig: 'hd' }).writeSystemVerilog()
+check('the parameter comment gives macroConfig, and the word count for the contents',
+  svHd.includes('// macroConfig = hd') && svHd.includes('// ROMContents = 3 words, in rom_read'))
+
+// ============================================ contents the constructor rejects (TSSV guide PARAM-5)
+console.log('rejected contents')
+expectThrow('no entries', () => new ROM({ name: 'r', dataWidth: 8, ROMContents: [] }), 'ROMContents has no entries')
+expectThrow('only blank lines', () => new ROM({ name: 'r', dataWidth: 8, ROMContents: initFile('blank', ['', ' _ ', '']) }), 'ROMContents has no entries')
+expectThrow('a missing file', () => new ROM({ name: 'r', dataWidth: 8, ROMContents: 'ts/test/no_such_rom_file.txt' }), "can't read ROMContents file 'ts/test/no_such_rom_file.txt'")
+expectThrow('an entry that is no literal', () => new ROM({ name: 'r', dataWidth: 8, ROMContents: initFile('bad_literal', ['0x12', '0xZZ']) }), "can't parse ROMContents line 2: '0xZZ'")
+expectThrow('a decimal above 9 bits', () => new ROM({ name: 'r', dataWidth: 9, ROMContents: [0, 512] }), 'ROMContents entry 1 (512) doesn\'t fit in 9 bits')
+expectThrow('a decimal below 9 bits', () => new ROM({ name: 'r', dataWidth: 9, ROMContents: [-257] }), 'ROMContents entry 0 (-257) doesn\'t fit in 9 bits')
+expectThrow('a hex entry wider than the word', () => new ROM({ name: 'r', dataWidth: 8, ROMContents: initFile('wide_hex', ["'h1FF"]) }), "ROMContents line 1 ('h1FF) doesn't fit in 8 bits")
+expectThrow('a packed entry wider than a byte', () => new ROM({ name: 'r', dataWidth: 32, ROMContents: initFile('wide_byte', ["8'b00000001", "'h1FF"]) }), "ROMContents line 2 ('h1FF) doesn't fit in 8 bits, as a byte")
+expectThrow('a fraction', () => new ROM({ name: 'r', dataWidth: 8, ROMContents: [1.5] }), 'ROMContents entry 0 must be an integer, got 1.5')
 
 // ============================================ testbench inputs
 mkdirSync(TB_DIR, { recursive: true })
