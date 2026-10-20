@@ -1,42 +1,119 @@
-import { shift } from 'tssv/lib/modules/shift'
-import { writeFileSync, mkdirSync } from 'fs'
+// Generate shift variants and the inputs for verilatorTB/tb_shift.sv:
+//
+// 1. Every structural configuration: left, unsigned right and signed right shifts, including a
+//    1-bit word, the largest right shift (dataWidth - 1) and the 256-bit maximum. Each one's
+//    ports are checked against the spec's IO table. The default parameters and the invalid ones
+//    are checked too.
+// 2. sv-examples/shift/tb/:
+//    - shift_tb_configs.svh: per-configuration DUT name, width, amount, direction and signedness
+//    - configs.txt: "<config> <DUT .sv path>" per line, read by `make shift_sim`
+//
+// Run `make -C verilatorTB shift_sim` to generate everything, lint each variant with -Wall and
+// check each one against a reference model.
 
-// ============================================test1=======================================================
-console.log('test1')
-const test_1 = new shift({ dataWidth: 16, shift_val: 5 })
-try {
-  mkdirSync(`sv-examples/shift/${test_1.name}`, { recursive: true })
-  writeFileSync(`sv-examples/shift/${test_1.name}/${test_1.name}.sv`, test_1.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+import { shift, type shift_Parameters } from 'tssv/lib/modules/shift'
+import { mkdirSync, writeFileSync } from 'fs'
+
+const OUT = 'sv-examples/shift'
+const TB_DIR = `${OUT}/tb`
+
+let passed = 0
+let failed = 0
+
+function check (label: string, ok: boolean, detail?: string): void {
+  if (ok) {
+    console.log(`PASS: ${label}`)
+    passed++
+  } else {
+    console.error(`FAIL: ${label}${detail !== undefined ? `\n  ${detail}` : ''}`)
+    failed++
+  }
 }
 
-// ============================================test2=======================================================
-console.log('test2')
-const test_2 = new shift({ dataWidth: 16, shift_direct: 'left', shift_val: 5 })
-try {
-  mkdirSync(`sv-examples/shift/${test_2.name}`, { recursive: true })
-  writeFileSync(`sv-examples/shift/${test_2.name}/${test_2.name}.sv`, test_2.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+function expectThrow (label: string, fn: () => unknown, message: string): void {
+  try {
+    fn()
+    check(label, false, 'did not throw')
+  } catch (e) {
+    const got = (e instanceof Error) ? e.message : String(e)
+    check(label, got.includes(message), `expected a message containing '${message}', got '${got}'`)
+  }
 }
 
-// ============================================test3=======================================================
-console.log('test3')
-const test_3 = new shift({ dataWidth: 5, shift_direct: 'right', shift_val: 3 })
-try {
-  mkdirSync(`sv-examples/shift/${test_3.name}`, { recursive: true })
-  writeFileSync(`sv-examples/shift/${test_3.name}/${test_3.name}.sv`, test_3.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+/** write a shift's SV to sv-examples/shift/<name>/<name>.sv and return its path */
+function emit (s: shift): string {
+  const dir = `${OUT}/${s.name}`
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(`${dir}/${s.name}.sv`, s.writeSystemVerilog())
+  return `${dir}/${s.name}.sv`
 }
 
-// ============================================test4=======================================================
-console.log('test4')
-const test_4 = new shift({ dataWidth: 16, shift_val: 5, shift_direct: 'right', isSigned: 'signed' })
-try {
-  mkdirSync(`sv-examples/shift/${test_4.name}`, { recursive: true })
-  writeFileSync(`sv-examples/shift/${test_4.name}/${test_4.name}.sv`, test_4.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+/** the spec's IO table for a configuration: "<port>:<width>", sorted */
+function specPorts (p: shift_Parameters): string {
+  const outWidth = p.shift_direct === 'left' ? p.dataWidth + p.shift_val : p.dataWidth
+  return [`data_in:${p.dataWidth}`, `data_out:${outWidth}`].sort().join(' ')
 }
+
+// ============================================ 1. every structural configuration
+// each one is also a testbench configuration (2)
+const CONFIGS: Array<{ cfg: string, params: shift_Parameters }> = [
+  { cfg: 'w16_right5', params: { dataWidth: 16, shift_val: 5 } },
+  { cfg: 'w16_left5', params: { dataWidth: 16, shift_direct: 'left', shift_val: 5 } },
+  { cfg: 'w5_right3', params: { dataWidth: 5, shift_direct: 'right', shift_val: 3 } },
+  { cfg: 'w16_right5_signed', params: { dataWidth: 16, shift_val: 5, shift_direct: 'right', isSigned: 'signed' } },
+  { cfg: 'w1_left1', params: { dataWidth: 1, shift_direct: 'left', shift_val: 1 } },
+  { cfg: 'w8_right7_signed', params: { dataWidth: 8, shift_direct: 'right', shift_val: 7, isSigned: 'signed' } },
+  { cfg: 'w256_left256', params: { dataWidth: 256, shift_direct: 'left', shift_val: 256 } },
+  { cfg: 'w256_right255_signed', params: { dataWidth: 256, shift_direct: 'right', shift_val: 255, isSigned: 'signed' } }
+]
+
+mkdirSync(TB_DIR, { recursive: true })
+let configs = '// Generated by ts/test/modules/test_shift.ts. Do not edit.\n'
+const configList: string[] = []
+CONFIGS.forEach(({ cfg, params }, i) => {
+  const s = new shift(params)
+  const path = emit(s)
+  const IOs = (s as unknown as { IOs: Record<string, { width?: number }> }).IOs
+  const ports = Object.entries(IOs).map(([name, io]) => `${name}:${io.width ?? 1}`).sort().join(' ')
+  const p = { ...params, shift_direct: params.shift_direct ?? 'right' }
+  check(`${s.name}: ports match the spec`, ports === specPorts(p), `got:  ${ports}\n  spec: ${specPorts(p)}`)
+
+  configList.push(`${cfg} ${path}`)
+  configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${cfg}\n`
+  configs += `  \`define CFG_NAME "${cfg}"\n`
+  configs += `  \`define SHIFT_DUT ${s.name}\n`
+  configs += `  \`define WIDTH ${params.dataWidth}\n`
+  configs += `  \`define AMOUNT ${params.shift_val}\n`
+  if (p.shift_direct === 'left') configs += '  `define LEFT\n'
+  if (params.isSigned === 'signed') configs += '  `define SIGNED\n'
+})
+configs += '`else\n  `error "define one of the CFG_<config> macros"\n`endif\n'
+writeFileSync(`${TB_DIR}/shift_tb_configs.svh`, configs)
+writeFileSync(`${TB_DIR}/configs.txt`, configList.join('\n') + '\n')
+console.log(`${configList.length} testbench configurations written to ${TB_DIR}/configs.txt`)
+
+// ============================================ the defaults and the names
+const byDefault = new shift({ dataWidth: 16, shift_val: 5 }).name
+check(`the defaults are a right shift, unsigned (${byDefault})`,
+  byDefault === 'shift_16_right_5_unsigned' &&
+  byDefault === new shift({ dataWidth: 16, shift_val: 5, shift_direct: 'right', isSigned: 'unsigned' }).name)
+
+// ============================================ the invalid parameters
+const bad = (p: Record<string, unknown>): shift_Parameters => p as unknown as shift_Parameters
+expectThrow('a right shift by dataWidth throws', () => new shift({ dataWidth: 5, shift_val: 5 }),
+  'shift: shift_val must be less than dataWidth for a right shift, got 5 with dataWidth 5')
+expectThrow('a signed right shift past dataWidth throws', () => new shift({ dataWidth: 5, shift_val: 9, isSigned: 'signed' }),
+  'shift: shift_val must be less than dataWidth for a right shift, got 9 with dataWidth 5')
+expectThrow('dataWidth 0 throws', () => new shift(bad({ dataWidth: 0, shift_val: 1, shift_direct: 'left' })),
+  'shift: dataWidth must be an integer from 1 to 256, got 0')
+expectThrow('shift_val 257 throws', () => new shift(bad({ dataWidth: 8, shift_val: 257, shift_direct: 'left' })),
+  'shift: shift_val must be an integer from 1 to 256, got 257')
+expectThrow('shift_val 1.5 throws', () => new shift(bad({ dataWidth: 8, shift_val: 1.5 })),
+  'shift: shift_val must be an integer from 1 to 256, got 1.5')
+expectThrow("shift_direct 'up' throws", () => new shift(bad({ dataWidth: 8, shift_val: 1, shift_direct: 'up' })),
+  "shift: shift_direct must be 'left' or 'right', got up")
+expectThrow("isSigned 'yes' throws", () => new shift(bad({ dataWidth: 8, shift_val: 1, isSigned: 'yes' })),
+  "shift: isSigned must be 'signed' or 'unsigned', got yes")
+
+console.log(`\n${passed} passed, ${failed} failed`)
+if (failed > 0) process.exit(1)

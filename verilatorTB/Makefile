@@ -134,6 +134,30 @@ fir_sim: tsc
 
 .PHONY: fir_sim
 
+# LZC and shift (TSSV#153): lint every variant the test script generates with -Wall, then build
+# and run the self-checking testbench once per configuration in configs.txt ("<config> <DUT .sv
+# path>"). Each build and its waveform land in obj_dir/lzc_<config>/ or obj_dir/shift_<config>/.
+LZC_DIR   = ../sv-examples/LZC
+SHIFT_DIR = ../sv-examples/shift
+
+lzc_sim: tsc
+	cd ..; node out/test/modules/test_LZC.js
+	set -e; for f in $(LZC_DIR)/LZC_*/*.sv; do \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	$(call run_configs,lzc,tb_LZC,$(LZC_DIR)/tb,)
+
+shift_sim: tsc
+	cd ..; node out/test/modules/test_shift.js
+	set -e; for f in $(SHIFT_DIR)/shift_*/*.sv; do \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	$(call run_configs,shift,tb_shift,$(SHIFT_DIR)/tb,)
+
+.PHONY: lzc_sim shift_sim
+
 # Two-clock register file (TSSV#121): lint every generated variant with -Wall, then run the
 # self-checking testbench once per configuration that test_TwoClockRegFile.js lists in
 # configs.txt. Each build and its waveform (tb_TwoClockRegFile_<config>.fst) land in

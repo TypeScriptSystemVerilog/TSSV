@@ -201,29 +201,6 @@
       "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
       "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
     },
-    "sv-examples/LZC/LZC_21/LZC_21.sv": {
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'tmp_zero_num'[5]": 1,
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1
-    },
-    "sv-examples/LZC/LZC_28/LZC_28.sv": {
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'tmp_zero_num'[5]": 1,
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1
-    },
-    "sv-examples/LZC/LZC_64/LZC_64.sv": {
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1
-    },
-    "sv-examples/shift/shift_16_right_5_signed/shift_16_right_5_signed.sv": {
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[4:0]": 1
-    },
-    "sv-examples/shift/shift_16_right_5_unsigned/shift_16_right_5_unsigned.sv": {
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[4:0]": 1
-    },
-    "sv-examples/shift/shift_5_right_3_unsigned/shift_5_right_3_unsigned.sv": {
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[2:0]": 1
-    },
     "sv-examples/test_APB_Registers_output/APB4_32_32.sv": {
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
