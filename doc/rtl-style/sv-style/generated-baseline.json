@@ -4,19 +4,6 @@
     "sv-examples/AXI4XBar/": "Rocket Chip's generator writes this SV, not TSSV's builders, so the SV guide doesn't apply to it. test_AXI4XBar also needs Docker, so runAllTests.sh skips it (scripts/test-skips.sh)."
   },
   "findings": {
-    "sv-examples/APB_to_Memory/apb_regblock.sv": {
-      "LINT-1 DECLFILENAME: Filename 'apb_regblock' does not match IFACE name: 'APB4_32_32'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PPROT'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRESETn'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rst_b'": 1
-    },
-    "sv-examples/APB_to_Memory/memory_models.sv": {
-      "LINT-1 DECLFILENAME: Filename 'memory_models' does not match MODULE name: 'memory_slave_bidi_32_32'": 1,
-      "LINT-1 VARHIDDEN: Declaration of signal hides declaration in upper scope: 'mem'": 1
-    },
     "sv-examples/Core/Registers/tb_testRegBlock.sv": {
       "LINT-1 DECLFILENAME: Filename 'tb_testRegBlock' does not match MODULE name: 'ram_32x32'": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'DATA_RD'": 1,
@@ -223,16 +210,6 @@
     },
     "sv-examples/shift/shift_5_right_3_unsigned/shift_5_right_3_unsigned.sv": {
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[2:0]": 1
-    },
-    "sv-examples/test_APB_Registers_output/APB4_32_32.sv": {
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLK'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PCLKEN'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PPROT'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'PRESETn'": 1
-    },
-    "sv-examples/test_APB_Registers_output/APB_to_Memory.sv": {
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'clk'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rst_b'": 1
     }
   }
 }
