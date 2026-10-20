@@ -1,4 +1,4 @@
-import { Module, type TSSVParameters, type IntRange, Expr } from 'tssv/lib/core/TSSV'
+import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
 import * as fs from 'fs'
 
 /**
@@ -15,18 +15,13 @@ export interface ROM_Parameters extends TSSVParameters {
      * (default `'big'`)
      */
   endianness?: 'big' | 'little'
-  /**
-     * `'split2two'` builds the ROM from two ROM instances, split at its top address bit;
-     * `'interal'` builds one (default `'interal'`)
-     */
-  split_setting?: 'interal' | 'split2two'
 }
 
 /**
- * initial contents of a ROM: the path of a file with one entry per line, an array of such
- * entries, an array of signed decimal numbers, or bytes
+ * initial contents of a ROM: the path of a file with one entry per line, an array of signed
+ * decimal numbers, or bytes
  */
-export type ROM_InitData = string | string[] | number[] | Uint8Array
+export type ROM_InitData = string | number[] | Uint8Array
 
 /**
  * Synchronous read-only memory. Its contents are fixed at elaboration time from `MemInitFile`,
@@ -49,8 +44,7 @@ export class ROM extends Module {
     super({
       name: params.name,
       dataWidth: params.dataWidth,
-      endianness: params.endianness ?? 'big',
-      split_setting: params.split_setting ?? 'interal'
+      endianness: params.endianness ?? 'big'
     })
     this.rcf_path = rcf_path ?? ''
     this.MemInitFile = MemInitFile
@@ -58,12 +52,7 @@ export class ROM extends Module {
     // contents, as one unsigned value per word
     const w = this.params.dataWidth
     const words = romWords(`ROM ${this.name}`, MemInitFile, w, this.params.endianness ?? 'big')
-    const depth = words.length
-    const split = this.params.split_setting === 'split2two'
-    if (split && depth < 3) {
-      throw Error(`ROM ${this.name}: split_setting 'split2two' needs at least 3 words, got ${depth}`)
-    }
-    const addrWidth = Math.max(1, this.bitWidth(depth - 1))
+    const addrWidth = Math.max(1, this.bitWidth(words.length - 1))
     const literal = (word: bigint): string => `${w}'h${word.toString(16).toUpperCase().padStart(Math.ceil(w / 4), '0')}`
 
     this.IOs = {
@@ -73,54 +62,18 @@ export class ROM extends Module {
       data_out: { direction: 'output', width: w }
     }
 
-    if (split) {
-      // split2two: the lower ROM holds the words below the top address bit, the upper ROM the rest
-      const lowerDepth = 2 ** (addrWidth - 1)
-      const lowerAddrWidth = addrWidth - 1
-      const upperAddrWidth = Math.max(1, this.bitWidth(depth - lowerDepth - 1))
-      const top = `addr[${addrWidth - 1}]`
-      // with a depth that isn't a power of 2, addresses past the last word read neither ROM
-      const inRange = depth === 2 ** addrWidth ? '' : ` && (addr < ${addrWidth}'d${depth})`
-      const low = (bits: number): string => bits === 1 ? 'addr[0]' : `addr[${bits - 1}:0]`
-      this.addSignal('rd_en_l', {})
-      this.addSignal('rd_en_u', {})
-      this.addSignal('addr_l', { width: lowerAddrWidth })
-      this.addSignal('addr_u', { width: upperAddrWidth })
-      this.addAssign({ in: new Expr(`rd_en && !${top}`), out: 'rd_en_l' })
-      this.addAssign({ in: new Expr(`rd_en && ${top}${inRange}`), out: 'rd_en_u' })
-      this.addAssign({ in: new Expr(low(lowerAddrWidth)), out: 'addr_l' })
-      this.addAssign({ in: new Expr(low(upperAddrWidth)), out: 'addr_u' })
-
-      // which ROM the last read selected; data_out holds between reads, as in one ROM
-      this.addSignal('sel_l_q', {})
-      this.addSignal('sel_u_q', {})
-      this.addRegister({ d: 'rd_en_l', clk: 'clk', en: 'rd_en', q: 'sel_l_q' })
-      this.addRegister({ d: 'rd_en_u', clk: 'clk', en: 'rd_en', q: 'sel_u_q' })
-      this.addSignal('data_out_l', { width: w })
-      this.addSignal('data_out_u', { width: w })
-      this.addAssign({ in: new Expr("sel_l_q ? data_out_l : (sel_u_q ? data_out_u : 'x)"), out: 'data_out' })
-
-      // each half gets its words as 'h entries, so they're never packed from bytes again
-      const half = (suffix: string, from: number, to?: number): ROM =>
-        new ROM({ name: `${this.name}_${suffix}`, dataWidth: w }, words.slice(from, to).map(literal), this.rcf_path)
-      this.addSubmodule('u_lower', half('lower', 0, lowerDepth),
-        { clk: 'clk', rd_en: 'rd_en_l', addr: 'addr_l', data_out: 'data_out_l' })
-      this.addSubmodule('u_upper', half('upper', lowerDepth),
-        { clk: 'clk', rd_en: 'rd_en_u', addr: 'addr_u', data_out: 'data_out_u' })
-    } else {
-      // the words as a case table; the read data holds while rd_en is low
-      const rows = words.map((word, i) => `${addrWidth}'d${i}: data_out <= ${literal(word)};`)
-      this.addSequentialAlways({ clk: 'clk', outputs: ['data_out'] }, `
-        begin : rom_read
-          if (rd_en) begin
-            case (addr)
-              ${rows.join('\n              ')}
-              default: data_out <= 'x;
-            endcase
-          end
+    // the words as a case table; the read data holds while rd_en is low
+    const rows = words.map((word, i) => `${addrWidth}'d${i}: data_out <= ${literal(word)};`)
+    this.addSequentialAlways({ clk: 'clk', outputs: ['data_out'] }, `
+      begin : rom_read
+        if (rd_en) begin
+          case (addr)
+            ${rows.join('\n            ')}
+            default: data_out <= 'x;
+          endcase
         end
-      `)
-    }
+      end
+    `)
 
     if (this.rcf_path !== '') {
       fs.writeFileSync(`${this.rcf_path}/${this.name}.rcf`, words.map(word => word.toString(2).padStart(w, '0')).join('\n'))
@@ -128,7 +81,7 @@ export class ROM extends Module {
   }
 }
 
-// One entry of a file or a string array, with any '_' and spaces already removed:
+// One entry of a file, with any '_' and spaces already removed:
 // [-][size]'b<binary>, [-][size]'h<hex>, [-][size]'d<decimal>, [-]0x<hex>, or [-]<decimal>.
 // The size is ignored. Returns undefined if the entry isn't one of these.
 function parseEntry (text: string): bigint | undefined {
@@ -147,31 +100,24 @@ function parseEntry (text: string): bigint | undefined {
 function romWords (who: string, init: ROM_InitData, dataWidth: number, endianness: 'big' | 'little'): bigint[] {
   const values: bigint[] = []
   const where: string[] = [] // each value's entry, for error messages
-  let firstText: string | undefined // the first entry of a file or string array
+  let firstText: string | undefined // the first entry of a file
   if (init instanceof Uint8Array) {
     init.forEach((b, i) => { values.push(BigInt(b)); where.push(`entry ${i} (${b})`) })
-  } else if (typeof init === 'string' || init.some(e => typeof e === 'string')) {
+  } else if (typeof init === 'string') {
     let lines: string[]
-    let label: (i: number) => string
-    if (typeof init === 'string') {
-      try {
-        lines = fs.readFileSync(init, 'utf8').split(/\r?\n/)
-      } catch (err) {
-        throw Error(`${who}: can't read MemInitFile '${init}': ${(err as Error).message}`)
-      }
-      label = i => `line ${i + 1}`
-    } else {
-      lines = init.map(String)
-      label = i => `entry ${i}`
+    try {
+      lines = fs.readFileSync(init, 'utf8').split(/\r?\n/)
+    } catch (err) {
+      throw Error(`${who}: can't read MemInitFile '${init}': ${(err as Error).message}`)
     }
     lines.forEach((line, i) => {
       const text = line.replace(/[_\s]/g, '')
-      if (text === '') return // blank lines, such as a file's last newline, are skipped
+      if (text === '') return // blank lines, such as the last newline, are skipped
       const value = parseEntry(text)
-      if (value === undefined) throw Error(`${who}: can't parse MemInitFile ${label(i)}: '${line.trim()}'`)
+      if (value === undefined) throw Error(`${who}: can't parse MemInitFile line ${i + 1}: '${line.trim()}'`)
       firstText ??= text
       values.push(value)
-      where.push(`${label(i)} (${line.trim()})`)
+      where.push(`line ${i + 1} (${line.trim()})`)
     })
   } else {
     init.forEach((n, i) => {
@@ -183,7 +129,7 @@ function romWords (who: string, init: ROM_InitData, dataWidth: number, endiannes
   if (values.length === 0) throw Error(`${who}: MemInitFile has no entries`)
 
   // Bytes are packed into words when a word holds more than one byte: a Uint8Array's, or a file's
-  // or string array's whose first entry is 8-digit binary
+  // whose first entry is 8-digit binary
   const packed = dataWidth % 8 === 0 && dataWidth > 8 &&
     (init instanceof Uint8Array || /^-?\d*'b[01]{8}$/i.test(firstText ?? ''))
   // an entry fits if it's a value of this many bits, signed or unsigned
