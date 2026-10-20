@@ -59,6 +59,76 @@ The contents are parsed at TypeScript elaboration time.
 3. **Packing.** When `dataWidth` is a multiple of 8 above 8, bytes are packed into words, `dataWidth / 8` to a word. A `Uint8Array` is always packed, and a file is packed when its first entry is 8-digit binary, such as `8'b0000_0001`. A number array is never packed. With `endianness: 'big'` the first byte of each word is its top byte, with `'little'` its bottom byte. If the bytes don't fill the last word, the missing bytes are zero: they are the high bytes of that word with `'little'` and the low bytes with `'big'`. Contents that aren't packed give one word per entry.
 4. **Depth** is the number of words.
 
+### Example contents
+
+**A file of mixed formats.** Formats can be mixed freely, one entry per line. With `dataWidth: 16`:
+
+```text
+0x1234
+0XDE AD
+16'hBEEF
+'b1010_0101
+'d100
+-1
+255
+```
+
+| Line | Format | Word |
+|---|---|---|
+| `0x1234` | hexadecimal | `16'h1234` |
+| `0XDE AD` | hexadecimal; the space is removed | `16'hDEAD` |
+| `16'hBEEF` | hexadecimal with a size, which is ignored | `16'hBEEF` |
+| `'b1010_0101` | binary; the `_` is removed | `16'h00A5` |
+| `'d100` | decimal | `16'h0064` |
+| `-1` | negative decimal, stored in two's complement | `16'hFFFF` |
+| `255` | decimal without a prefix | `16'h00FF` |
+
+That's 7 words, so `addr` is 3 bits wide and address 7 reads `'x`. A newline after the last line adds nothing.
+
+**A file of bytes.** The first entry is 8-digit binary, so when `dataWidth` is a multiple of 8 above 8, the bytes are packed into words:
+
+```text
+8'b0000_0001
+8'b0000_0010
+8'b0000_0011
+8'b0000_0100
+8'b0000_0101
+```
+
+| `dataWidth` | `endianness` | Words |
+|---|---|---|
+| 32 | `'big'` | `32'h01020304`, `32'h05000000` |
+| 32 | `'little'` | `32'h04030201`, `32'h00000005` |
+| 8 | either | `8'h01` to `8'h05`: not packed, one word per byte |
+
+The fifth byte starts a second word, and the missing bytes of that word are zero.
+
+**A number array.** Each number is one word, never packed:
+
+```ts
+new ROM({ dataWidth: 16 }, [-5, 0, 255, 32767, -32768])
+// 16'hFFFB, 16'h0000, 16'h00FF, 16'h7FFF, 16'h8000
+```
+
+**A `Uint8Array`.** Packed whenever `dataWidth` is a multiple of 8 above 8:
+
+```ts
+new ROM({ dataWidth: 32 }, new Uint8Array([0xDE, 0xAD, 0xBE, 0xEF, 0x01]))
+```
+
+| `dataWidth` | `endianness` | Words |
+|---|---|---|
+| 32 | `'big'` | `32'hDEADBEEF`, `32'h01000000` |
+| 32 | `'little'` | `32'hEFBEADDE`, `32'h00000001` |
+| 12 | either | `12'h0DE`, `12'h0AD`, `12'h0BE`, `12'h0EF`, `12'h001`: not packed, since 12 isn't a multiple of 8 |
+
+**Rejected.** These throw ([Rejected contents](#rejected-contents)):
+
+- `0xZZ` in a file: not a literal;
+- `'h1FF` in a file with `dataWidth: 8`: 9 bits;
+- `65536` in a number array with `dataWidth: 16`: 17 bits;
+- `1.5` in a number array: not an integer.
+
 ### Reads
 
 5. The words form a `case (addr)` table in an `always_ff @(posedge clk)` block named `rom_read`. On a clock edge with `rd_en` high, `data_out` loads word `addr`. While `rd_en` is low, `data_out` holds.
@@ -87,6 +157,30 @@ Right after building its parameters, the constructor throws an error that starts
 - Non-power-of-2 depths: the address width is `ceil(log2(depth))`, and addresses past the last word read `'x`.
 - Words wider than 53 bits: entries are parsed as `bigint`, so every bit is exact, up to 256-bit words.
 - A partly filled last word (packed bytes only) is zero-padded; e.g. 17 bytes into 32-bit words give 5 words, the last `32'h00000020` (little) or `32'h20000000` (big) for a final byte of `0x20`.
+
+---
+
+## Timing
+
+Reads from the 16-bit, 7-word ROM of the [mixed-format example](#example-contents). Each read's word appears on `data_out` one clock edge after `rd_en` and `addr` are sampled: `16'h1234` for address 0, then `16'hDEAD` for address 1. While `rd_en` is low, `data_out` holds `16'hDEAD`, whatever `addr` is. Address 6 reads `16'h00FF`. Address 7 is past the last word, so `data_out` becomes `'x` until the next read.
+
+<!-- wavedrom ROM-timing-read.svg
+{
+  "signal": [
+    {"name": "clk",      "wave": "p........."},
+    {"name": "rd_en",    "wave": "01.0.1.0.."},
+    {"name": "addr",     "wave": "x==x.==x..", "data": ["0", "1", "6", "7"], "node": ".A....C..."},
+    {},
+    {"name": "data_out", "wave": "x.==..=x..", "data": ["1234", "DEAD", "00FF"], "node": "..B....D.."}
+  ],
+  "edge": ["A~>B 1 cycle", "C~>D past the last word"],
+  "head": {"text": "ROM read: 1-cycle latency, hold, read past the last word"},
+  "config": {"hscale": 2}
+}
+-->
+![ROM timing: 1-cycle read latency, data_out held while rd_en is low, a read past the last word gives x](ROM-timing-read.svg)
+
+_Latency from `rd_en` and `addr` to `data_out`: **1 clock cycle**._
 
 ---
 
