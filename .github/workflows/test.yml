@@ -138,6 +138,11 @@ jobs:
       - name: RegisterBlock register-type simulation
         run: make -C verilatorTB regblock_types_sim
 
+      # Like the AFIFO targets, fir_sim lints and builds one model per
+      # configuration in sv-examples/FIR/tb/configs.txt.
+      - name: FIR simulation
+        run: make -C verilatorTB fir_sim
+
       - name: APB_to_Memory simulation
         run: make -C verilatorTB apb_to_memory_sim
 

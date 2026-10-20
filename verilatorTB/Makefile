@@ -9,8 +9,9 @@ COMMON_WAIVERS = ../doc/rtl-style/sv-style/common_waivers.vlt
 run: obj_dir/$(TOP_MODULE)
 	obj_dir/$(TOP_MODULE)
 
+# The common waivers here too: generated SV writes + and - without operand casts (WIDTH-3)
 obj_dir/$(TOP_MODULE): $(VERILOG_FILE) sim_main.cpp
-	verilator --cc $(if $(filter %.f,$(VERILOG_FILE)),-F )$(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
+	verilator --cc $(COMMON_WAIVERS) $(if $(filter %.f,$(VERILOG_FILE)),-F )$(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
 	make -C obj_dir TOP_MODULE=$(TOP_MODULE) -j -f $(TOP_MODULE).mk $(TOP_MODULE) 
 
 # Show-ahead synchronous FIFO: a self-checking testbench, built and run once per
@@ -80,7 +81,8 @@ apb_to_memory_sim: tsc
 # FIR (TSSV#152): lint every configuration test_FIR.js generates with -Wall, through the lint
 # wrapper and filelist written next to it, then build and run the self-checking testbench once
 # per configuration in configs.txt ("<config> <.sv files>"). Each build and its waveform
-# (tb_FIR_<config>.fst) land in obj_dir/fir_<config>/.
+# (tb_FIR_<config>.fst) land in obj_dir/fir_<config>/. The builds pass the common waivers, like the
+# lint, because FIR's accumulator writes + without operand casts (WIDTH-3).
 FIR_DIR = ../sv-examples/FIR
 
 fir_sim: tsc
