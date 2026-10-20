@@ -31,9 +31,10 @@ export interface SRAM_Parameters extends TSSVParameters {
      */
   readBehavior?: 'undefOnWrite' | 'readBeforeWrite'
   /**
-     * the fewest bits (depth * dataWidth) the SRAM needs to be implemented as a macro; at least
-     * 32, default 1024. A smaller SRAM is built from flip-flops, and its storage gets
-     * `(* ram_style = "registers" *)`. A readBeforeWrite SRAM must be smaller
+     * the fewest bits (depth * dataWidth) the SRAM needs to be implemented as a macro in an
+     * ASIC flow; at least 32, default 1024. A smaller SRAM is meant to be flip-flops. It doesn't
+     * change the emitted SV yet: the attribute that marks it comes with the ASIC macro
+     * generator. A readBeforeWrite SRAM must be smaller
      */
   minMacroBits?: bigint
   /**
@@ -117,8 +118,7 @@ export class SRAM extends Module {
     }
 
     // ---------------------------------------------------------------- storage
-    // below minMacroBits, mem is flip-flops rather than a macro; the attribute marks it
-    this.addSignal('mem', { width: dataWidth, isArray: depth, attributes: bits < minMacroBits ? { ram_style: 'registers' } : undefined })
+    this.addSignal('mem', { width: dataWidth, isArray: depth })
 
     // ---------------------------------------------------------------- port collisions
     // 2rw: both ports writing one address collide. 1r_1w with undefOnWrite: a write to the

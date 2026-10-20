@@ -21,7 +21,7 @@ Synchronous **Static RAM** with configurable port topology (`1rw`, `1r_1w`, `2rw
 | `ports` | `'1rw' \| '1r_1w' \| '2rw'` | — | Port configuration |
 | `writeEnableMask` | `'none' \| 'bit' \| 'byte'` | `'none'` | Granularity of write mask. `'byte'` requires `dataWidth` divisible by 8 |
 | `readBehavior` | `'undefOnWrite' \| 'readBeforeWrite'` | `'undefOnWrite'` | Read data when the same word is read and written in the same cycle |
-| `minMacroBits` | `bigint` (≥ 32) | `1024` | The fewest bits (`depth * dataWidth`) an SRAM needs to be implemented as a macro. A smaller one is built from flip-flops: `mem` gets `(* ram_style = "registers" *)` (see [Synthesis mapping](#synthesis-mapping)) |
+| `minMacroBits` | `bigint` (≥ 32) | `1024` | The fewest bits (`depth * dataWidth`) an SRAM needs to be implemented as a macro in an ASIC flow. A smaller one is meant to be flip-flops. It doesn't change the emitted SV yet (see [Synthesis mapping](#synthesis-mapping)) |
 | `macroConfig` | `string` | `'default'` | Free-form technology macro selector (high-speed, density, mux, etc.). It doesn't change the behavioral model |
 
 The constructor throws on a `dataWidth` below 1, a `depth` below 2 (one word would need a 0-bit address), and a byte mask on a `dataWidth` that isn't a multiple of 8.
@@ -169,7 +169,7 @@ Port `b` writes and port `a` reads. Cycle 1 writes `A` to word 1. Cycle 2 writes
 
 All of the module's logic is in `ts/src/modules/SRAM/SRAM.ts`. It has no submodules.
 
-- **Storage:** one array, `mem`, of `depth` words. It has no reset. Below `minMacroBits` bits it carries `(* ram_style = "registers" *)` (see [Synthesis mapping](#synthesis-mapping)).
+- **Storage:** one array, `mem`, of `depth` words. It has no reset, and no attribute (see [Synthesis mapping](#synthesis-mapping)).
 - **`mem_write`:** one `always_ff` writes `mem` from every write port. With more than one lane, a `for` loop over the lanes writes each lane its mask selects. With `2rw`, `w_collision` blocks every lane write of both ports, and outside synthesis sets the word to X.
 - **`<p>_read`:** one `always_ff` per reading port loads `mem[<p>_addr]` into `<p>_data_out` while `<p>_re` is high. With `undefOnWrite`, it loads only while `<p>_rw_conflict` is low, and sets `<p>_data_out` to X outside synthesis while it's high.
 - Any X assignments, and the assertions, are inside `` `ifndef SYNTHESIS ``, so synthesis sees only the loads and writes.
@@ -179,14 +179,14 @@ All of the module's logic is in `ts/src/modules/SRAM/SRAM.ts`. It has no submodu
 
 ### Synthesis mapping
 
-`minMacroBits` decides how `mem` is implemented, through Vivado's `ram_style` attribute, the same mechanism `TwoClockRegFile`'s `fpgaRamStyle` uses. The attribute is set through the `attributes` field of `mem`'s signal declaration, not written into the body by hand.
+`minMacroBits` decides how an ASIC flow implements `mem`. It doesn't constrain Vivado, so `mem` has no `ram_style` attribute, and Vivado builds it however it chooses.
 
-| `depth * dataWidth` | Attribute on `mem` | Vivado maps `mem` to | ASIC flow |
-|---|---|---|---|
-| below `minMacroBits` | `(* ram_style = "registers" *)` | Flip-flops | Flip-flops. The SRAM isn't replaced by a macro, and the attribute is what marks it |
-| `minMacroBits` or more | none | Block RAM or LUTRAM, by Vivado's choice | Replaced by a macro |
+| `depth * dataWidth` | ASIC flow | Vivado |
+|---|---|---|
+| below `minMacroBits` | Flip-flops, not a macro | Its own choice |
+| `minMacroBits` or more | Replaced by a macro | Its own choice, block RAM or LUTRAM |
 
-A `readBeforeWrite` SRAM is always below `minMacroBits`, so it is always flip-flops. The RTL's behavior is the same either way: the attribute changes only how synthesis builds `mem`.
+The emitted SV doesn't yet mark which SRAMs an ASIC flow should leave as flip-flops. A custom attribute on `mem` will do that, added with the ASIC macro generator. A `readBeforeWrite` SRAM is always below `minMacroBits`, so an ASIC flow always builds it from flip-flops.
 
 ### Key signals
 
@@ -234,7 +234,7 @@ Every cycle, the testbench drives random reads and writes on each port over the 
 | Timing diagrams | `<ports>_none_undef`, `<ports>_none_rbw` | Each diagram in [Timing](#timing) replays cycle for cycle against the read data lanes for the configuration's `readBehavior`, before the random phase. `test_SRAM.ts` builds the vectors from the diagrams' WaveDrom JSON, so a diagram change is tested without editing the testbench, and it fails if a `ports` value or `readBehavior` has no diagram |
 | Random | all | 4000 cycles |
 | Assertions | all | The random and diagram runs keep the assertions on, except those their traffic breaks on purpose: `NOASSERT_SRAM_RW_CONFLICT` for `undefOnWrite`, `NOASSERT_SRAM_W_COLLISION` for `2rw`. Then five more runs each break one assertion, with every write mask bit low, and pass only if the run stops on that assertion: `a_no_rw_conflict` for `1rw`, for `1r_1w`, and for port `b` writing in `2rw`; `b_no_rw_conflict` for port `b`'s own write in `2rw`; and `no_w_collision` in a `readBeforeWrite` `2rw` (`assert_checks.txt`) |
-| `minMacroBits` | — | `test_SRAM.ts` checks `ram_style = "registers"` on `mem` at 32 bits with `minMacroBits` 33 and the default 1024, and no attribute at 32 bits with `minMacroBits` 32 or at 1024 bits, and that the module name includes `minMacroBits`. It also checks the constructor rejects `minMacroBits` 31 and a `readBeforeWrite` SRAM of 1024 bits, and accepts one of 32 bits with `minMacroBits` 33 |
+| `minMacroBits` | — | `test_SRAM.ts` checks that `mem` has no `ram_style` attribute at 32 bits or 1024 bits with the default `minMacroBits` (1024), and that the module name includes `minMacroBits`. It also checks the constructor rejects `minMacroBits` 31 and a `readBeforeWrite` SRAM of 1024 bits, and accepts one of 32 bits with `minMacroBits` 33 |
 
 ### Simulation
 

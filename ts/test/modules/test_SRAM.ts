@@ -234,13 +234,10 @@ for (const ports of ['1rw', '1r_1w'] as const) {
 }
 
 // ============================================ minMacroBits (spec: Synthesis mapping)
-// mem is flip-flops, marked (* ram_style = "registers" *), below minMacroBits bits
-const isRegisters = (mem: SRAM): boolean => /\(\*\s*ram_style\s*=\s*"registers"\s*\*\)\s*logic\b[^;]*\bmem\b/.test(mem.writeSystemVerilog())
+// Vivado isn't told how to build mem on either side of minMacroBits: no ram_style attribute
+const hasRamStyle = (mem: SRAM): boolean => mem.writeSystemVerilog().includes('ram_style')
 const at = (minMacroBits: bigint | undefined, dataWidth = 8n, depth = 4n): SRAM => new SRAM({ dataWidth, depth, ports: '1rw', minMacroBits })
-check('8 x 4 (32 bits), default minMacroBits (1024): flip-flops', isRegisters(at(undefined)))
-check('8 x 128 (1024 bits), default minMacroBits: a macro, with no ram_style', !isRegisters(at(undefined, 8n, 128n)))
-check('8 x 4 (32 bits), minMacroBits 32: a macro', !isRegisters(at(32n)))
-check('8 x 4 (32 bits), minMacroBits 33: flip-flops', isRegisters(at(33n)))
+check('no ram_style below minMacroBits (32 bits, 1024) or at it (1024 bits, 1024)', !hasRamStyle(at(undefined)) && !hasRamStyle(at(undefined, 8n, 128n)))
 check('the module name includes minMacroBits', at(undefined).name === 'SRAM_8_4_1rw_none_undefOnWrite_default_1024' && at(64n).name.endsWith('_64'),
   `got ${at(undefined).name} and ${at(64n).name}`)
 
@@ -254,7 +251,7 @@ expectThrow('readBeforeWrite at minMacroBits bits is rejected', () => new SRAM({
   'SRAM: readBeforeWrite is built from flip-flops, so depth * dataWidth must be below minMacroBits (1024), got 32 * 32 = 1024')
 check('readBeforeWrite one bit below minMacroBits is accepted', (() => {
   try {
-    return isRegisters(new SRAM({ dataWidth: 8n, depth: 4n, ports: '1rw', readBehavior: 'readBeforeWrite', minMacroBits: 33n }))
+    return new SRAM({ dataWidth: 8n, depth: 4n, ports: '1rw', readBehavior: 'readBeforeWrite', minMacroBits: 33n }).name.endsWith('_33')
   } catch {
     return false
   }
