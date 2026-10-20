@@ -1,8 +1,8 @@
 // Generate the ROM variants and the inputs for verilatorTB/tb_ROM.sv:
 //
-// 1. Every configuration below, each emitted one module per file under sv-examples/ROM/<name>/
-//    (a split2two ROM with a lint filelist), its ports checked against the spec, and its words
-//    against the ones the spec's parsing rules give. Then the init data the constructor rejects.
+// 1. Every configuration below, each emitted to sv-examples/ROM/<name>/<name>.sv, its ports checked
+//    against the spec, and its words against the ones the spec's parsing rules give. Then the init
+//    data the constructor rejects.
 // 2. sv-examples/ROM/tb/:
 //    - ROM_tb_configs.svh: per-configuration DUT name, data width, depth and expected words
 //    - configs.txt: "<config> <.sv files>" per line, read by `make rom_sim`
@@ -11,12 +11,11 @@
 // simulate each one.
 
 import { ROM } from 'tssv/lib/modules/ROM'
-import { emitSplit } from 'tssv/test/models/emitSplit'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 
 const OUT = 'sv-examples/ROM'
 const TB_DIR = `${OUT}/tb`
-const GENERATOR = 'ts/test/modules/test_ROM.ts'
+const INIT_DIR = `${OUT}/init`
 
 let failed = 0
 
@@ -64,28 +63,37 @@ function specPorts (dataWidth: number, depth: number): string {
   return `clk:1 rd_en:1 addr:${addrWidth} data_out:${dataWidth}`
 }
 
-interface TbConfig { name: string, dataWidth: number, words: bigint[], files: string[] }
+// writes an init file of these lines to sv-examples/ROM/init/<name>.txt and returns its path
+function initFile (name: string, lines: string[]): string {
+  mkdirSync(INIT_DIR, { recursive: true })
+  writeFileSync(`${INIT_DIR}/${name}.txt`, lines.join('\n'))
+  return `${INIT_DIR}/${name}.txt`
+}
+
+interface TbConfig { name: string, dataWidth: number, words: bigint[], file: string }
 const tbConfigs: TbConfig[] = []
 
-// Emits `rom` under sv-examples/ROM/<name>/, one module per file, and checks it against the spec:
-// its ports, its words in the case table of every module it emits, and no `undefined` (#127).
-function emitRom (rom: ROM, dataWidth: number, words: bigint[]): string[] {
-  let files: string[] = []
+// Writes `rom` to sv-examples/ROM/<name>/<name>.sv, checks it against the spec (its ports, its
+// words in the case table, no `undefined` (#127)), and returns its SV.
+function emitRom (rom: ROM, dataWidth: number, words: bigint[]): string {
+  const file = `${OUT}/${rom.name}/${rom.name}.sv`
+  let sv = ''
   try {
-    files = emitSplit(rom, `${OUT}/${rom.name}`, GENERATOR)
+    sv = rom.writeSystemVerilog()
+    mkdirSync(`${OUT}/${rom.name}`, { recursive: true })
+    writeFileSync(file, sv)
   } catch (err) {
     console.error(err)
     check(`${rom.name}: emitted`, false)
-    return files
+    return sv
   }
-  const sv = files.map(f => readFileSync(f, 'utf8')).join('\n')
   check(`${rom.name}: no 'undefined' in the emitted SV`, !sv.includes('undefined'))
   check(`${rom.name}: ports match the spec`, portsOf(rom) === specPorts(dataWidth, words.length))
   const hex = (word: bigint): string => `${dataWidth}'h${word.toString(16).toUpperCase().padStart(Math.ceil(dataWidth / 4), '0')}`
   const missing = words.filter(word => !sv.includes(`data_out <= ${hex(word)};`))
-  check(`${rom.name}: every word is in a case table`, missing.length === 0)
-  tbConfigs.push({ name: rom.name, dataWidth, words, files })
-  return files
+  check(`${rom.name}: every word is in the case table`, missing.length === 0)
+  tbConfigs.push({ name: rom.name, dataWidth, words, file })
+  return sv
 }
 
 // the words of ts/test/test_rom_init_file.txt, one per line, at 32 bits
@@ -100,10 +108,11 @@ const uint8Bytes17 = Array.from(new Uint8Array(bytes17))
 // ================================================== test 1 =======================================================
 // A file of binary, hexadecimal and decimal entries, with sizes, '_' and spaces; writes an RCF too
 console.log('test 1')
-mkdirSync(`${OUT}/ROM_32_big_interal`, { recursive: true })
-const testMem1 = new ROM({ dataWidth: 32 }, 'ts/test/test_rom_init_file.txt', `${OUT}/ROM_32_big_interal`)
+mkdirSync(`${OUT}/ROM_32_big`, { recursive: true })
+const testMem1 = new ROM({ dataWidth: 32 }, 'ts/test/test_rom_init_file.txt', `${OUT}/ROM_32_big`)
+check(`${testMem1.name}: the derived name is ROM_32_big`, testMem1.name === 'ROM_32_big')
 emitRom(testMem1, 32, initFileWords)
-const rcf1 = readFileSync(`${OUT}/ROM_32_big_interal/ROM_32_big_interal.rcf`, 'utf8')
+const rcf1 = readFileSync(`${OUT}/ROM_32_big/ROM_32_big.rcf`, 'utf8')
 check(`${testMem1.name}: the RCF holds each word in binary, one per line`,
   rcf1 === initFileWords.map(w => w.toString(2).padStart(32, '0')).join('\n'))
 
@@ -122,19 +131,19 @@ console.log('test 4')
 emitRom(new ROM({ name: 'ROM_16_6_normal_array_test', dataWidth: 16 }, [-5, -255, 0, 255, 32767, -32767]),
   16, [0xFFFBn, 0xFF01n, 0x0000n, 0x00FFn, 0x7FFFn, 0x8001n])
 
-// ================================================== tests 5, 10 ==================================================
+// ================================================== tests 5, 9 ===================================================
 // A Uint8Array packed into 32-bit words, in each byte order; its 17 bytes fill 4 words and 1 byte
 // of a 5th, whose other bytes are zero (#127)
 console.log('test 5')
 const sv5 = emitRom(new ROM({ name: 'ROM_32_4_uint8array_little_test', dataWidth: 32, endianness: 'little' }, new Uint8Array(bytes17)),
   32, pack(uint8Bytes17, 32, 'little'))
 check('ROM_32_4_uint8array_little_test: partly filled last word is zero-padded',
-  sv5.some(f => readFileSync(f, 'utf8').includes("3'd4: data_out <= 32'h00000020;")))
-console.log('test 10')
+  sv5.includes("3'd4: data_out <= 32'h00000020;"))
+console.log('test 9')
 const sv10 = emitRom(new ROM({ name: 'ROM_32_5_uint8array_big_test', dataWidth: 32, endianness: 'big' }, new Uint8Array(bytes17)),
   32, pack(uint8Bytes17, 32, 'big'))
 check('ROM_32_5_uint8array_big_test: partly filled last word is zero-padded',
-  sv10.some(f => readFileSync(f, 'utf8').includes("3'd4: data_out <= 32'h20000000;")))
+  sv10.includes("3'd4: data_out <= 32'h20000000;"))
 
 // ================================================== tests 6, 7 ===================================================
 // With a width that isn't a multiple of 8, bytes aren't packed: each one is a word
@@ -151,56 +160,41 @@ console.log('test 8')
 emitRom(new ROM({ name: 'ROM_9_5_normal_array_test', dataWidth: 9 }, [-5, -256, 0, 255, 511]),
   9, [0x1FBn, 0x100n, 0x000n, 0x0FFn, 0x1FFn])
 
-// ================================================== test 9 =======================================================
-// The file of test 1 split into two ROMs: 8 words below addr[3], 2 above, addresses 10 to 15 unused
-console.log('test 9')
-emitRom(new ROM({ dataWidth: 32, split_setting: 'split2two' }, 'ts/test/test_rom_init_file.txt'), 32, initFileWords)
-
-// ================================================== tests 11 to 16 ===============================================
-// The configurations that change the structure (TSSV guide TEST-2), at widths that aren't 32
-console.log('tests 11 to 16')
-// split2two from packed bytes: 20 bytes make 5 words, 4 in the lower ROM and 1 in the upper
-const bytes20 = Array.from({ length: 20 }, (_, i) => 0x10 + i)
-emitRom(new ROM({ name: 'ROM_32_5_uint8array_little_split', dataWidth: 32, endianness: 'little', split_setting: 'split2two' }, new Uint8Array(bytes20)),
-  32, pack(bytes20, 32, 'little'))
-// split2two at its smallest depth, 3, with 8-bit words
-emitRom(new ROM({ name: 'ROM_8_3_split', dataWidth: 8, split_setting: 'split2two' }, [1, -2, 127]), 8, [0x01n, 0xFEn, 0x7Fn])
-// split2two with a power-of-2 depth (no address is out of range) and 40-bit words, from a string array
+// ================================================== tests 10 to 14 ===============================================
+// Widths and depths the tests above don't reach (TSSV guide TEST-2)
+console.log('tests 10 to 14')
+// 40-bit words with a power-of-2 depth, so no address is past the last word
 const words40 = Array.from({ length: 8 }, (_, i) => 0x1234567800n + BigInt(i) * 0x0101010101n)
-emitRom(new ROM({ name: 'ROM_40_8_split', dataWidth: 40, split_setting: 'split2two' }, words40.map(w => `0x${w.toString(16)}`)), 40, words40)
-// split2two from a string array of 8-digit binary bytes packed big-endian into 64-bit words: 70 bytes
-// make 9 words, the last partly filled, so the upper ROM holds 1 word
+emitRom(new ROM({ name: 'ROM_40_8', dataWidth: 40 }, words40.map(Number)), 40, words40)
+// 70 bytes packed big-endian into 64-bit words: 9 words, the last partly filled; with an RCF
 const bytes70 = Array.from({ length: 70 }, (_, i) => (i * 37) % 256)
-mkdirSync(`${OUT}/ROM_64_9_binary_split`, { recursive: true })
-const testMem64 = new ROM({ name: 'ROM_64_9_binary_split', dataWidth: 64, split_setting: 'split2two' },
-  bytes70.map(b => `8'b${b.toString(2).padStart(8, '0')}`), `${OUT}/ROM_64_9_binary_split`)
+mkdirSync(`${OUT}/ROM_64_9_uint8array_big`, { recursive: true })
+const testMem64 = new ROM({ name: 'ROM_64_9_uint8array_big', dataWidth: 64 }, new Uint8Array(bytes70), `${OUT}/ROM_64_9_uint8array_big`)
 const words64 = pack(bytes70, 64, 'big')
 emitRom(testMem64, 64, words64)
-const rcf64 = readFileSync(`${OUT}/ROM_64_9_binary_split/ROM_64_9_binary_split.rcf`, 'utf8')
-check('ROM_64_9_binary_split: the RCF holds each packed word, not each byte',
+const rcf64 = readFileSync(`${OUT}/ROM_64_9_uint8array_big/ROM_64_9_uint8array_big.rcf`, 'utf8')
+check('ROM_64_9_uint8array_big: the RCF holds each packed word, not each byte',
   rcf64 === words64.map(w => w.toString(2).padStart(64, '0')).join('\n'))
 // one word: the address is still 1 bit
 emitRom(new ROM({ name: 'ROM_8_1', dataWidth: 8 }, [0x5A]), 8, [0x5An])
 // 1-bit words
 emitRom(new ROM({ name: 'ROM_1_4', dataWidth: 1 }, [1, 0, -1, 0]), 1, [1n, 0n, 1n, 0n])
-// 256-bit words from entries beyond a double's 53-bit precision
+// 256-bit words from entries beyond a double's 53-bit precision, in a file with blank lines
 const max256 = (1n << 256n) - 1n
-emitRom(new ROM({ name: 'ROM_256_3', dataWidth: 256 }, [`256'h${max256.toString(16)}`, "'d18446744073709551617", '-1']),
+emitRom(new ROM({ name: 'ROM_256_3', dataWidth: 256 }, initFile('ROM_256_3', [`256'h${max256.toString(16)}`, '', "'d18446744073709551617", '-1', ''])),
   256, [max256, 18446744073709551617n, max256])
 
 // ============================================ init data the constructor rejects (TSSV guide PARAM-5)
 console.log('rejected init data')
 expectThrow('no entries', () => new ROM({ name: 'r', dataWidth: 8 }, []), 'MemInitFile has no entries')
-expectThrow('only blank lines', () => new ROM({ name: 'r', dataWidth: 8 }, ['', ' _ ']), 'MemInitFile has no entries')
+expectThrow('only blank lines', () => new ROM({ name: 'r', dataWidth: 8 }, initFile('blank', ['', ' _ ', ''])), 'MemInitFile has no entries')
 expectThrow('a missing file', () => new ROM({ name: 'r', dataWidth: 8 }, 'ts/test/no_such_rom_file.txt'), "can't read MemInitFile 'ts/test/no_such_rom_file.txt'")
-expectThrow('an entry that is no literal', () => new ROM({ name: 'r', dataWidth: 8 }, ['0x12', '0xZZ']), "can't parse MemInitFile entry 1: '0xZZ'")
+expectThrow('an entry that is no literal', () => new ROM({ name: 'r', dataWidth: 8 }, initFile('bad_literal', ['0x12', '0xZZ'])), "can't parse MemInitFile line 2: '0xZZ'")
 expectThrow('a decimal above 9 bits', () => new ROM({ name: 'r', dataWidth: 9 }, [0, 512]), 'MemInitFile entry 1 (512) doesn\'t fit in 9 bits')
 expectThrow('a decimal below 9 bits', () => new ROM({ name: 'r', dataWidth: 9 }, [-257]), 'MemInitFile entry 0 (-257) doesn\'t fit in 9 bits')
-expectThrow('a hex entry wider than the word', () => new ROM({ name: 'r', dataWidth: 8 }, ["'h1FF"]), "doesn't fit in 8 bits")
-expectThrow('a packed entry wider than a byte', () => new ROM({ name: 'r', dataWidth: 32 }, ["8'b00000001", "'h1FF"]), "MemInitFile entry 1 ('h1FF) doesn't fit in 8 bits, as a byte")
+expectThrow('a hex entry wider than the word', () => new ROM({ name: 'r', dataWidth: 8 }, initFile('wide_hex', ["'h1FF"])), "MemInitFile line 1 ('h1FF) doesn't fit in 8 bits")
+expectThrow('a packed entry wider than a byte', () => new ROM({ name: 'r', dataWidth: 32 }, initFile('wide_byte', ["8'b00000001", "'h1FF"])), "MemInitFile line 2 ('h1FF) doesn't fit in 8 bits, as a byte")
 expectThrow('a fraction', () => new ROM({ name: 'r', dataWidth: 8 }, [1.5]), 'MemInitFile entry 0 must be an integer, got 1.5')
-expectThrow('split2two with 2 words', () => new ROM({ name: 'r', dataWidth: 8, split_setting: 'split2two' }, [1, 2]),
-  "split_setting 'split2two' needs at least 3 words, got 2")
 
 // ============================================ testbench inputs
 mkdirSync(TB_DIR, { recursive: true })
@@ -213,7 +207,7 @@ tbConfigs.forEach((c, i) => {
 })
 svh += '`else\n  `error "define one of the CFG_<config> macros"\n`endif\n'
 writeFileSync(`${TB_DIR}/ROM_tb_configs.svh`, svh)
-writeFileSync(`${TB_DIR}/configs.txt`, tbConfigs.map(c => `${c.name} ${c.files.join(' ')}`).join('\n') + '\n')
+writeFileSync(`${TB_DIR}/configs.txt`, tbConfigs.map(c => `${c.name} ${c.file}`).join('\n') + '\n')
 console.log(`${tbConfigs.length} testbench configurations written to ${TB_DIR}/`)
 
 if (failed > 0) process.exit(1)
