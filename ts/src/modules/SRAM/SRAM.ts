@@ -145,50 +145,55 @@ export class SRAM extends Module {
       }
     }
 
-    // mem and the read data are written in always_ff with their enables and addresses inline,
-    // the form synthesis tools map to a RAM. Computing them in an always_comb first (SV guide
+    // mem and the read data are written in clocked blocks with their enables and addresses
+    // inline, the form synthesis tools map to a RAM. Computing them in an always_comb first (SV guide
     // SEQ-2) would make the array read combinational.
 
     // ---------------------------------------------------------------- writes
-    // One block writes mem from every write port (SV guide COMB-5). With more than one lane,
-    // an SV loop over the lanes inside it is the byte-enable RAM template synthesis tools
-    // recognize, so the lanes aren't unrolled in TypeScript (TSSV guide BUILD-6).
+    // One process per write port. With more than one lane, an SV loop over the lanes inside it
+    // is the byte-enable RAM template synthesis tools recognize, so the lanes aren't unrolled in
+    // TypeScript (TSSV guide BUILD-6).
     // laneWe(p): port p writes lane i
     const laneWe = (p: string): string => mask === 'none' ? `${p}_we` : `${p}_we & ${p}_wmask${lanes > 1 ? '[i]' : ''}`
     // lane i of a word; the whole word when there is one lane
     const lane = lanes === 1 ? '' : laneWidth === 1 ? '[i]' : `[i*${laneWidth} +: ${laneWidth}]`
-    let laneWrites: string
-    // 2rw: a write collision writes neither port, and in simulation the word becomes X
-    let collisionX = ''
-    if (ports === '2rw') {
-      laneWrites = `
-        if (${laneWe('a')} & ~w_collision) begin
-          mem[a_addr]${lane} <= a_data_in${lane};
-        end
-        if (${laneWe('b')} & ~w_collision) begin
-          mem[b_addr]${lane} <= b_data_in${lane};
+    // the block that writes port p's lanes; a 2rw write collision writes neither port
+    const writeBlock = (label: string, p: string, tail = ''): string => {
+      const laneWrite = `
+        if (${laneWe(p)}${ports === '2rw' ? ' & ~w_collision' : ''}) begin
+          mem[${p}_addr]${lane} <= ${p}_data_in${lane};
         end`
-      collisionX = `
+      return `begin : ${label}${lanes > 1
+        ? `
+      for (int i = 0; i < ${lanes}; i++) begin${laneWrite}
+      end`
+        : laneWrite}${tail}
+    end`
+    }
+    if (ports === '2rw') {
+      // Vivado infers a true-dual-port RAM only when each process writes one port (UG901's
+      // templates; it built #150's single-process form from flip-flops). always_ff can't have
+      // two processes write one variable (IEEE 1800 9.2.2.4), so these are plain always blocks,
+      // emitted with addBody since the builder only writes always_ff. Both write mem, so the SV
+      // guide's COMB-5 is waived for it, in a comment in the SV next to them
+      const collisionX = `
 \`ifndef SYNTHESIS
+      // both ports write one word: it becomes X
       if (w_collision) begin
         mem[a_addr] <= 'x;
       end
 \`endif`
+      this.addBody(`
+        // SV guide COMB-5 waived for mem: a true-dual-port RAM has one write port per process,
+        // the form Vivado infers (UG901), and always_ff doesn't allow two processes to write mem
+        always @(posedge clk) ${writeBlock('a_write', 'a', collisionX)}
+        always @(posedge clk) ${writeBlock('b_write', 'b')}
+      `)
     } else {
-      const p = ports === '1rw' ? 'a' : 'b'
-      laneWrites = `
-        if (${laneWe(p)}) begin
-          mem[${p}_addr]${lane} <= ${p}_data_in${lane};
-        end`
-    }
-    this.addSequentialAlways({ clk: 'clk', outputs: ['mem'] }, `
-    begin : mem_write${lanes > 1
-      ? `
-      for (int i = 0; i < ${lanes}; i++) begin${laneWrites}
-      end`
-      : laneWrites}${collisionX}
-    end
+      this.addSequentialAlways({ clk: 'clk', outputs: ['mem'] }, `
+    ${writeBlock('mem_write', ports === '1rw' ? 'a' : 'b')}
 `)
+    }
 
     // ---------------------------------------------------------------- reads
     // A read port registers mem[<p>_addr] while <p>_re is high, and holds it otherwise.
