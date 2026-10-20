@@ -212,7 +212,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 - **Prefetch:** on a pop with more than one entry, `sram_re` reads `rd_addr_inc`, the entry behind the head. Those entries were written on earlier edges, so the read never hits the address being written. While `sram_re` is low, the SRAM holds its read data, which keeps the head steady across idle and push-only cycles.
 - **Bypass:** `bypass_q` captures `push_data` when the push becomes the head at once: a push into an empty FIFO, or (`simultPushPop = true`) a push alongside the pop of the only entry.
 - **Head select:** `head_from_bypass_q` records which source holds the head. `pop_data = head_from_bypass_q ? bypass_q : sram_rdata`.
-- **SRAM:** instance `u_sram` of module `<name>_sram`. `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop.
+- **SRAM:** instance `u_sram` of module `<name>_sram`. `1r_1w` with `simultPushPop = true` (read port on `rd_addr_inc`, write port on `wr_addr_q`). `1rw` otherwise, addressed by `wr_addr_q` on a push and `rd_addr_inc` on a pop. It takes `SRAM`'s default `minMacroBits` (1024), so a FIFO with fewer than 1024 bits of storage (`depth * dataWidth`) gets a flip-flop `SRAM`. The SRAM's assertions are on, and `sfifo_sim` passes with them: the prefetch read never conflicts with the push write.
 - **`depth = 1`:** the only entry is always the head, so there is no SRAM and no pointers; `pop_data` is `bypass_q`.
 
 ### Key signals
