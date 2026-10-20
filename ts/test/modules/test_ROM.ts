@@ -208,7 +208,10 @@ check('a ROM rebuilt from its params gets the same name and SV',
   rebuilt.name === testMem1.name && rebuilt.writeSystemVerilog() === testMem1.writeSystemVerilog())
 const svHd = new ROM({ name: 'ROM_hd', dataWidth: 8, ROMContents: [1, 2, 3], macroConfig: 'hd' }).writeSystemVerilog()
 check('the parameter comment gives macroConfig, and the word count for the contents',
-  svHd.includes('// macroConfig = hd') && svHd.includes('// ROMContents = 3 words, in rom_read'))
+  svHd.includes('// macroConfig = hd') && /\/\/ ROMContents = 3 words, hash [0-9a-z]{7}, in rom_read/.test(svHd))
+const hash1 = testMem1.name.split('_')[3] ?? ''
+check(`${testMem1.name}: the parameter comment gives the hash in the derived name`,
+  testMem1.writeSystemVerilog().includes(`// ROMContents = 10 words, hash ${hash1}, in rom_read`))
 
 // ============================================ contents the constructor rejects (TSSV guide PARAM-5)
 console.log('rejected contents')

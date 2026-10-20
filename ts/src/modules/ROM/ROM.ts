@@ -92,13 +92,16 @@ export class ROM extends Module {
     }
   }
 
-  // The contents are the case table, so the SV's parameter comment gives only their size
+  // The contents are the case table, so the SV's parameter comment gives only their size and their
+  // hash, the same one a derived module name holds
   protected override formatParametersForComment (
     params: TSSVParameters = this.params,
     opts?: { prefix?: string, skipName?: boolean }
   ): string {
     const contents = params.ROMContents
-    const summary = Array.isArray(contents) ? { ...params, ROMContents: `${contents.length} words, in rom_read` } : params
+    const summary = Array.isArray(contents)
+      ? { ...params, ROMContents: `${contents.length} words, hash ${this.simpleHash(JSON.stringify(contents))}, in rom_read` }
+      : params
     return super.formatParametersForComment(summary, opts)
   }
 }
