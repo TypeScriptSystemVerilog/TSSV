@@ -242,69 +242,6 @@
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'val2'[0]": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not driven, nor used: 'val1'": 1
     },
-    "sv-examples/SFIFO/SFIFO_1026_4_true_true_true/SFIFO_1026_4_true_true_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_1026_4_true_true_true' does not match MODULE name: 'SFIFO_1026_4_true_true_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_4_false_false_false/SFIFO_8_4_false_false_false.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_4_false_false_false' does not match MODULE name: 'SFIFO_8_4_false_false_false_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_4_true_true_true/SFIFO_8_4_true_true_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_4_true_true_true' does not match MODULE name: 'SFIFO_8_4_true_true_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_false_false_false/SFIFO_8_5_false_false_false.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_false_false' does not match MODULE name: 'SFIFO_8_5_false_false_false_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_false_false_true/SFIFO_8_5_false_false_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_false_true' does not match MODULE name: 'SFIFO_8_5_false_false_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_false_true_false/SFIFO_8_5_false_true_false.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_true_false' does not match MODULE name: 'SFIFO_8_5_false_true_false_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_false_true_true/SFIFO_8_5_false_true_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_false_true_true' does not match MODULE name: 'SFIFO_8_5_false_true_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_true_false_false/SFIFO_8_5_true_false_false.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_false_false' does not match MODULE name: 'SFIFO_8_5_true_false_false_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_true_false_true/SFIFO_8_5_true_false_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_false_true' does not match MODULE name: 'SFIFO_8_5_true_false_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_true_true_false/SFIFO_8_5_true_true_false.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_true_false' does not match MODULE name: 'SFIFO_8_5_true_true_false_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_5_true_true_true/SFIFO_8_5_true_true_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_5_true_true_true' does not match MODULE name: 'SFIFO_8_5_true_true_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SFIFO/SFIFO_8_8_true_true_true/SFIFO_8_8_true_true_true.sv": {
-      "LINT-1 DECLFILENAME: Filename 'SFIFO_8_8_true_true_true' does not match MODULE name: 'SFIFO_8_8_true_true_true_sram'": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SRAM/SRAM_1026_4_1r_1w_none_undefOnWrite_default/SRAM_1026_4_1r_1w_none_undefOnWrite_default.sv": {
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SRAM/SRAM_1026_4_1rw_none_undefOnWrite_default/SRAM_1026_4_1rw_none_undefOnWrite_default.sv": {
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SRAM/SRAM_32_256_1r_1w_byte_readBeforeWrite_default/SRAM_32_256_1r_1w_byte_readBeforeWrite_default.sv": {
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SRAM/SRAM_8_32_1rw_bit_undefOnWrite_default/SRAM_8_32_1rw_bit_undefOnWrite_default.sv": {
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
-    "sv-examples/SRAM/SRAM_8_32_2rw_bit_undefOnWrite_default/SRAM_8_32_2rw_bit_undefOnWrite_default.sv": {
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
     "sv-examples/shift/shift_16_right_5_signed/shift_16_right_5_signed.sv": {
       "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'data_in'[4:0]": 1
     },

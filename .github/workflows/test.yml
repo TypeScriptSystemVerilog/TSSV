@@ -114,11 +114,15 @@ jobs:
       # every PR, without this workflow's path filter.
 
       # Self-checking testbenches in verilatorTB/, each $fatal on any failed
-      # check. sfifo_sim, twoclockregfile_sim and the AFIFO targets build one
-      # model per configuration in their sv-examples/<module>/tb/configs.txt;
-      # every target but sfifo_sim lints its DUTs with -Wall first.
+      # check. sfifo_sim, sram_sim, twoclockregfile_sim and the AFIFO targets
+      # build one model per configuration in their
+      # sv-examples/<module>/tb/configs.txt; every target lints its DUTs with
+      # -Wall first.
       - name: SFIFO simulation
         run: make -C verilatorTB sfifo_sim
+
+      - name: SRAM simulation
+        run: make -C verilatorTB sram_sim
 
       - name: TwoClockRegFile simulation
         run: make -C verilatorTB twoclockregfile_sim
