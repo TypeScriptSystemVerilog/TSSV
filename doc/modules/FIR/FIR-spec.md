@@ -79,18 +79,28 @@ All tap, sum, and output registers clear to 0. Coefficient registers reset to th
 
 ## Timing
 
-```wavedrom
+`myFIR3` from reset, with bubbles on `s_axis` and a two-cycle stall on `m_axis`. Output `oN` is the
+filter's output for input `iN`. A sample transferred in cycle c comes out in cycle c + 3: `i0` in
+cycle 1, `o0` in cycle 4. While `m_axis.TVALID` is high and `m_axis.TREADY` low (cycles 9 and 10),
+the whole pipeline holds, so `s_axis.TREADY` is low and `o3` stays on `m_axis.TDATA`. `i4`, in the
+tap line during the stall, comes out two cycles late. `make -C verilatorTB fir_sim` replays this
+diagram cycle for cycle.
+
+<!-- wavedrom FIR-timing-stream.svg
 {
   "signal": [
-    {"name": "          clk", "wave": "p........."},
-    {"name": "s_axis.TVALID", "wave": "01.0.1.01."},
-    {"name": "s_axis.TREADY", "wave": "1........."},
-    {"name": " s_axis.TDATA", "wave": "x34..56.78", "data": ["i0","i1","i2","i3","i4","i5"]},
-    {"name": "m_axis.TVALID", "wave": "0..1..0.1."},
-    {"name": " m_axis.TDATA", "wave": "x...34..56", "data": ["o0","o1","o2","o3"]}
+    {"name": "clk",           "wave": "p..............."},
+    {"name": "s_axis.TVALID", "wave": "01.0.1.01...0..."},
+    {"name": "s_axis.TREADY", "wave": "1........0.1...."},
+    {"name": "s_axis.TDATA",  "wave": "x34x.56x78..x...", "data": ["i0", "i1", "i2", "i3", "i4", "i5"]},
+    {"name": "m_axis.TVALID", "wave": "0...1.0.1...01.0"},
+    {"name": "m_axis.TREADY", "wave": "1........0.1...."},
+    {"name": "m_axis.TDATA",  "wave": "x...34x.56..x78x", "data": ["o0", "o1", "o2", "o3", "o4", "o5"]}
   ]
 }
-```
+-->
+
+![FIR stream timing: bubbles on s_axis, a stall on m_axis](FIR-timing-stream.svg)
 
 ---
 
