@@ -1,5 +1,6 @@
 TOP_MODULE?=Vtb_lpFIR
-VERILOG_FILE?= ../sv-examples/FIR/myFIR3/tb_lpFIR.sv
+# An .sv file, or a Verilator filelist (.f) such as the one-module-per-file emissions write
+VERILOG_FILE?= ../sv-examples/FIR/myFIR3/tb_lpFIR.f
 
 # Every --lint-only run below passes the common waivers file first (SV guide, section 8).
 COMMON_WAIVERS = ../doc/rtl-style/sv-style/common_waivers.vlt
@@ -8,8 +9,9 @@ COMMON_WAIVERS = ../doc/rtl-style/sv-style/common_waivers.vlt
 run: obj_dir/$(TOP_MODULE)
 	obj_dir/$(TOP_MODULE)
 
+# The common waivers here too: generated SV writes + and - without operand casts (WIDTH-3)
 obj_dir/$(TOP_MODULE): $(VERILOG_FILE) sim_main.cpp
-	verilator --cc $(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
+	verilator --cc $(COMMON_WAIVERS) $(if $(filter %.f,$(VERILOG_FILE)),-F )$(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
 	make -C obj_dir TOP_MODULE=$(TOP_MODULE) -j -f $(TOP_MODULE).mk $(TOP_MODULE) 
 
 # Show-ahead synchronous FIFO: lint every generated variant with -Wall, through the filelist
@@ -115,6 +117,23 @@ apb_to_memory_sim: tsc
 	  > obj_dir/apb_to_memory.build.log 2>&1 || { cat obj_dir/apb_to_memory.build.log; exit 1; }
 	cd obj_dir/apb_to_memory && ./Vtb_APB_to_Memory
 
+# FIR (TSSV#152): lint every configuration test_FIR.js generates with -Wall, through the lint
+# wrapper and filelist written next to it, then build and run the self-checking testbench once
+# per configuration in configs.txt ("<config> <.sv files>"). Each build and its waveform
+# (tb_FIR_<config>.fst) land in obj_dir/fir_<config>/. The builds pass the common waivers, like the
+# lint, because FIR's accumulator writes + without operand casts (WIDTH-3).
+FIR_DIR = ../sv-examples/FIR
+
+fir_sim: tsc
+	cd ..; node out/test/test_FIR.js
+	set -e; for f in $(FIR_DIR)/*/*_lint_top.f; do \
+	  verilator --lint-only -Wall $(COMMON_WAIVERS) -F $$f; \
+	  echo "lint -Wall clean: $$f"; \
+	done
+	$(call run_configs,fir,tb_FIR,$(FIR_DIR)/tb,$(COMMON_WAIVERS))
+
+.PHONY: fir_sim
+
 # Two-clock register file (TSSV#121): lint every generated variant with -Wall, then run the
 # self-checking testbench once per configuration that test_TwoClockRegFile.js lists in
 # configs.txt. Each build and its waveform (tb_TwoClockRegFile_<config>.fst) land in
@@ -195,7 +214,7 @@ tsc: .FORCE
 	cd ..; npx tsc
 
 
-../sv-examples/FIR/myFIR3/tb_lpFIR.sv: tsc
+../sv-examples/FIR/myFIR3/tb_lpFIR.f: tsc
 	cd ..; node out/test/test_FIR.js
 
 ../sv-examples/Core/addRegister/addRegister_tb.sv: tsc

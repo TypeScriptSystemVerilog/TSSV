@@ -181,7 +181,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`) |
 | API reference (`doc/reference/`) | Core only | Markdown generated from the core's JSDoc by `npm run docs`; CI fails a PR whose reference is stale. Modules, interfaces and tools aren't covered yet |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
-| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `apb_to_memory_sim`). Runs on PRs and on pushes to `main` |
+| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `fir_sim`, `apb_to_memory_sim`). Runs on PRs and on pushes to `main` |
 
 ## Common Tasks — Where to Start
 

@@ -323,7 +323,7 @@ this.addSubmodule(
     COEFF_0: coeffSig
   },
   true,   // autoBind: auto-match unbound ports by name to existing parent signals/IOs
-  true    // createMissing: for unbound ports, create new signals in parent (promotes interface bundles up)
+  true    // createMissing: for unbound ports, create new local signals and bundles in parent (not ports)
 )
 ```
 
