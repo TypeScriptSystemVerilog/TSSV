@@ -233,8 +233,11 @@ inputs.
 **`createMissing` doesn't add ports to the parent.** It creates local signals and bundles, so
 anything the child exposes through them is reachable only from inside the parent. To expose a
 child's port or bus, declare the parent's own port (in `IOs`, or `addInterface` with a role)
-and bind to it. `RegisterBlock` inside FIR is bound this way: its `regs` bus becomes an internal
-`memory_bidi_32_32 regs ();` in FIR, although FIR's spec describes a `regs` port ([#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83)).
+and bind to it. FIR does this for its coefficient `RegisterBlock`: it adds its own inward
+`Memory` port `regs` and binds the block's `regs` bus to it. Until
+[#83](https://github.com/TypeScriptSystemVerilog/TSSV/issues/83) it relied on `createMissing`,
+which made the bus an internal `memory_bidi_32_32 regs ();`, so nothing outside FIR could write a
+coefficient.
 
 ### Checks on every binding
 

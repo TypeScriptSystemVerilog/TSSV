@@ -88,33 +88,6 @@
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'rdata'": 1,
       "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ready'": 1
     },
-    "sv-examples/FIR/myFIR3/myFIR3.sv": {
-      "LINT-1 DECLFILENAME: Filename 'myFIR3' does not match IFACE name: 'AXI4Stream_32_4_0_4'": 1,
-      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
-      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'WSTRB'[0]": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'WE'": 1,
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not driven, nor used: 'DATA_WR'[31:8]": 1,
-      "LINT-1 UNUSEDSIGNAL: Bits of signal are not driven, nor used: 'WSTRB'[3:1]": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ACLK'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ACLKEN'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'ARESETn'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'DATA_RD'": 1,
-      "LINT-1 UNUSEDSIGNAL: Signal is not used: 'READY'": 1
-    },
-    "sv-examples/FIR/myFIR3/tb_lpFIR.sv": {
-      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'DATA_WR'[7:0]": 1,
-      "LINT-1 UNDRIVEN: Bits of signal are not driven: 'WSTRB'[0]": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'ADDR'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'RE'": 1,
-      "LINT-1 UNDRIVEN: Signal is not driven: 'WE'": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off DECLFILENAME\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" covers the whole module": 1,
-      "LINT-3 waiver \"lint_off UNUSED\" has no justification comment": 1,
-      "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-    },
     "sv-examples/IpXactComponent/apbComponent/apbComponentExample.sv": {
       "LINT-1 EOFNEWLINE: Missing newline at end of file (POSIX 3.206).": 1,
       "LINT-1 UNDRIVEN: Signal is not driven: 'Init0_P_RData'": 1,
