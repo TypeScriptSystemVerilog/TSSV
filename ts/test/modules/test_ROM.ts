@@ -119,45 +119,43 @@ check(`${testMem1.name}: the RCF holds each word in binary, one per line`,
 // ================================================== tests 2, 3 ===================================================
 // A file of 8-digit binary entries packed into 32-bit words, in each byte order
 console.log('test 2')
-emitRom(new ROM({ name: 'ROM_32_4_little_InitialFile8_test', dataWidth: 32, endianness: 'little', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
+emitRom(new ROM({ dataWidth: 32, endianness: 'little', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
   32, pack(binaryFileBytes, 32, 'little'))
 console.log('test 3')
-emitRom(new ROM({ name: 'ROM_32_4_big_InitialFile8_test', dataWidth: 32, endianness: 'big', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
+emitRom(new ROM({ dataWidth: 32, endianness: 'big', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
   32, pack(binaryFileBytes, 32, 'big'))
 
 // ================================================== test 4 =======================================================
 // A signed decimal array, negative values in two's complement
 console.log('test 4')
-emitRom(new ROM({ name: 'ROM_16_6_normal_array_test', dataWidth: 16, ROMContents: [-5, -255, 0, 255, 32767, -32767] }),
+emitRom(new ROM({ dataWidth: 16, ROMContents: [-5, -255, 0, 255, 32767, -32767] }),
   16, [0xFFFBn, 0xFF01n, 0x0000n, 0x00FFn, 0x7FFFn, 0x8001n])
 
 // ================================================== tests 5, 9 ===================================================
 // A Uint8Array packed into 32-bit words, in each byte order; its 17 bytes fill 4 words and 1 byte
 // of a 5th, whose other bytes are zero (#127)
 console.log('test 5')
-const sv5 = emitRom(new ROM({ name: 'ROM_32_4_uint8array_little_test', dataWidth: 32, endianness: 'little', ROMContents: new Uint8Array(bytes17) }),
+const sv5 = emitRom(new ROM({ dataWidth: 32, endianness: 'little', ROMContents: new Uint8Array(bytes17) }),
   32, pack(uint8Bytes17, 32, 'little'))
-check('ROM_32_4_uint8array_little_test: partly filled last word is zero-padded',
-  sv5.includes("3'd4: data_out <= 32'h00000020;"))
+check('17 little-endian bytes: partly filled last word is zero-padded', sv5.includes("3'd4: data_out <= 32'h00000020;"))
 console.log('test 9')
-const sv10 = emitRom(new ROM({ name: 'ROM_32_5_uint8array_big_test', dataWidth: 32, endianness: 'big', ROMContents: new Uint8Array(bytes17) }),
+const sv10 = emitRom(new ROM({ dataWidth: 32, endianness: 'big', ROMContents: new Uint8Array(bytes17) }),
   32, pack(uint8Bytes17, 32, 'big'))
-check('ROM_32_5_uint8array_big_test: partly filled last word is zero-padded',
-  sv10.includes("3'd4: data_out <= 32'h20000000;"))
+check('17 big-endian bytes: partly filled last word is zero-padded', sv10.includes("3'd4: data_out <= 32'h20000000;"))
 
 // ================================================== tests 6, 7 ===================================================
 // With a width that isn't a multiple of 8, bytes aren't packed: each one is a word
 console.log('test 6')
-emitRom(new ROM({ name: 'ROM_31_16_uint8array_NonMul8_test', dataWidth: 31, endianness: 'little', ROMContents: new Uint8Array(bytes17) }),
+emitRom(new ROM({ dataWidth: 31, endianness: 'little', ROMContents: new Uint8Array(bytes17) }),
   31, uint8Bytes17.map(b => BigInt(b)))
 console.log('test 7')
-emitRom(new ROM({ name: 'ROM_25_4_big_InitialFile8_NonMul8_test', dataWidth: 25, endianness: 'big', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
+emitRom(new ROM({ dataWidth: 25, endianness: 'big', ROMContents: 'ts/test/test_rom_init_file_32_4_binary.txt' }),
   25, binaryFileBytes.map(b => BigInt(b)))
 
 // ================================================== test 8 =======================================================
 // Entries at both ends of what fits 9 bits: -256 signed and 511 unsigned
 console.log('test 8')
-emitRom(new ROM({ name: 'ROM_9_5_normal_array_test', dataWidth: 9, ROMContents: [-5, -256, 0, 255, 511] }),
+emitRom(new ROM({ dataWidth: 9, ROMContents: [-5, -256, 0, 255, 511] }),
   9, [0x1FBn, 0x100n, 0x000n, 0x0FFn, 0x1FFn])
 
 // ================================================== tests 10 to 14 ===============================================
@@ -165,28 +163,28 @@ emitRom(new ROM({ name: 'ROM_9_5_normal_array_test', dataWidth: 9, ROMContents: 
 console.log('tests 10 to 14')
 // 40-bit words with a power-of-2 depth, so no address is past the last word
 const words40 = Array.from({ length: 8 }, (_, i) => 0x1234567800n + BigInt(i) * 0x0101010101n)
-emitRom(new ROM({ name: 'ROM_40_8', dataWidth: 40, ROMContents: words40.map(Number) }), 40, words40)
+emitRom(new ROM({ dataWidth: 40, ROMContents: words40.map(Number) }), 40, words40)
 // 70 bytes packed big-endian into 64-bit words: 9 words, the last partly filled; with an RCF
 const bytes70 = Array.from({ length: 70 }, (_, i) => (i * 37) % 256)
-const testMem64 = new ROM({ name: 'ROM_64_9_uint8array_big', dataWidth: 64, ROMContents: new Uint8Array(bytes70) }, `${OUT}/rcf`)
+const testMem64 = new ROM({ dataWidth: 64, ROMContents: new Uint8Array(bytes70) }, `${OUT}/rcf`)
 const words64 = pack(bytes70, 64, 'big')
 emitRom(testMem64, 64, words64)
-const rcf64 = readFileSync(`${OUT}/rcf/ROM_64_9_uint8array_big.rcf`, 'utf8')
-check('ROM_64_9_uint8array_big: the RCF holds each packed word, not each byte',
+const rcf64 = readFileSync(`${OUT}/rcf/${testMem64.name}.rcf`, 'utf8')
+check(`${testMem64.name}: the RCF holds each packed word, not each byte`,
   rcf64 === words64.map(w => w.toString(2).padStart(64, '0')).join('\n'))
 // one word: the address is still 1 bit
-emitRom(new ROM({ name: 'ROM_8_1', dataWidth: 8, ROMContents: [0x5A] }), 8, [0x5An])
+emitRom(new ROM({ dataWidth: 8, ROMContents: [0x5A] }), 8, [0x5An])
 // 1-bit words
-emitRom(new ROM({ name: 'ROM_1_4', dataWidth: 1, ROMContents: [1, 0, -1, 0] }), 1, [1n, 0n, 1n, 0n])
+emitRom(new ROM({ dataWidth: 1, ROMContents: [1, 0, -1, 0] }), 1, [1n, 0n, 1n, 0n])
 // 256-bit words from entries beyond a double's 53-bit precision, in a file with blank lines
 const max256 = (1n << 256n) - 1n
-emitRom(new ROM({ name: 'ROM_256_3', dataWidth: 256, ROMContents: initFile('ROM_256_3', [`256'h${max256.toString(16)}`, '', "'d18446744073709551617", '-1', '']) }),
+emitRom(new ROM({ dataWidth: 256, ROMContents: initFile('words_256', [`256'h${max256.toString(16)}`, '', "'d18446744073709551617", '-1', '']) }),
   256, [max256, 18446744073709551617n, max256])
 
 // ================================================== test 15 ======================================================
 // A string array of every entry format: the spec's mixed-format example
 console.log('test 15')
-emitRom(new ROM({ name: 'ROM_16_7_strings', dataWidth: 16, ROMContents: ['0x1234', '0XDE AD', "16'hBEEF", "'b1010_0101", "'d100", '-1', '255'] }),
+emitRom(new ROM({ dataWidth: 16, ROMContents: ['0x1234', '0XDE AD', "16'hBEEF", "'b1010_0101", "'d100", '-1', '255'] }),
   16, [0x1234n, 0xDEADn, 0xBEEFn, 0x00A5n, 0x0064n, 0xFFFFn, 0x00FFn])
 
 // ============================================ the module name holds the contents (TSSV guide PARAM-2)
@@ -201,6 +199,10 @@ check('macroConfig changes the name', named({}) !== named({ macroConfig: 'hd' })
 check("leaving macroConfig out is the same as 'default'", named({}) === named({ macroConfig: 'default' }))
 check('a derived name is a legal SV identifier, without the file path',
   [named({}), testMem1.name].every(n => /^[A-Za-z_][A-Za-z0-9_$]*$/.test(n)))
+check('every ROM above has its own derived name, with a hash of its contents',
+  new Set(tbConfigs.map(c => c.name)).size === tbConfigs.length &&
+  tbConfigs.every(c => /^ROM_\d+_(big|little)_[0-9a-z]{7}_default$/.test(c.name)))
+check('an explicit name is used as given', new ROM({ name: 'my_rom', dataWidth: 8, ROMContents: [1, 2] }).name === 'my_rom')
 const rebuilt = new ROM({ ...testMem1.params, name: undefined })
 check('a ROM rebuilt from its params gets the same name and SV',
   rebuilt.name === testMem1.name && rebuilt.writeSystemVerilog() === testMem1.writeSystemVerilog())
