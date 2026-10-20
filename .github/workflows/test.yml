@@ -147,6 +147,14 @@ jobs:
       - name: FIR simulation
         run: make -C verilatorTB fir_sim
 
+      # lzc_sim and shift_sim lint and build one model per configuration in
+      # sv-examples/LZC/tb/configs.txt and sv-examples/shift/tb/configs.txt.
+      - name: LZC simulation
+        run: make -C verilatorTB lzc_sim
+
+      - name: shift simulation
+        run: make -C verilatorTB shift_sim
+
       - name: APB_to_Memory simulation
         run: make -C verilatorTB apb_to_memory_sim
 
