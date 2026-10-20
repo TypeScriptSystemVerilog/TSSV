@@ -2,6 +2,12 @@ import { Module, type TSSVParameters, type IntRange } from 'tssv/lib/core/TSSV'
 import * as fs from 'fs'
 
 /**
+ * contents of a ROM: the path of a file with one entry per line, an array of such entries, an
+ * array of signed decimal numbers, or bytes
+ */
+export type ROM_Contents = string | string[] | number[] | Uint8Array
+
+/**
  * configuration parameters of the ROM module
  */
 export interface ROM_Parameters extends TSSVParameters {
@@ -15,16 +21,25 @@ export interface ROM_Parameters extends TSSVParameters {
      * (default `'big'`)
      */
   endianness?: 'big' | 'little'
+  /**
+     * the ROM's contents, whose words set its depth. The constructor replaces the value with one
+     * `'h` entry per word, so a derived module name holds a hash of the words, never a file path,
+     * and the same words give the same name however they were given
+     */
+  ROMContents: ROM_Contents
+  /**
+     * macroConfig is a free form string parameter that allows selection of technology
+     * specific ROM macro generator parameters such as high-speed, high-density,
+     * mux configuration, leakage selection, etc.
+     * This parameter has no influence on the behavior of the ROM behavioral model and
+     * is meant only to choose macro generation settings that effect the size, speed, and
+     * power performance of the resulting macro (default `'default'`)
+     */
+  macroConfig?: string
 }
 
 /**
- * initial contents of a ROM: the path of a file with one entry per line, an array of signed
- * decimal numbers, or bytes
- */
-export type ROM_InitData = string | number[] | Uint8Array
-
-/**
- * Synchronous read-only memory. Its contents are fixed at elaboration time from `MemInitFile`,
+ * Synchronous read-only memory. Its contents are fixed at elaboration time from `ROMContents`,
  * and its depth is the number of words they make. Entries are binary (`'b`), hexadecimal
  * (`'h`, `0x`) or decimal (`'d`, or no prefix), with any `_` and spaces ignored. Bytes, or a file
  * of 8-digit binary entries, are packed into words when `dataWidth` is a multiple of 8 above 8.
@@ -35,25 +50,22 @@ export type ROM_InitData = string | number[] | Uint8Array
  */
 export class ROM extends Module {
   declare params: ROM_Parameters
-  declare MemInitFile: ROM_InitData // initial data file path or array
   declare rcf_path: string // rcf file directory, '' for none
-  constructor (params: ROM_Parameters, MemInitFile: ROM_InitData, rcf_path?: string) {
-    // TSSV guide PARAM-2 deviation: the contents change the SV but aren't a parameter, so ROMs
-    // that differ only in contents get the same derived name. Name each such ROM explicitly
-    // until #123 makes the contents a parameter.
+  constructor (params: ROM_Parameters, rcf_path?: string) {
+    // the contents, as one unsigned value per word, then as the 'h entries the parameter holds
+    const w = params.dataWidth
+    const endianness = params.endianness ?? 'big'
+    const words = romWords(params.name === undefined ? 'ROM' : `ROM ${params.name}`, params.ROMContents, w, endianness)
+    const hex = (word: bigint): string => word.toString(16).toUpperCase().padStart(Math.ceil(w / 4), '0')
     super({
       name: params.name,
-      dataWidth: params.dataWidth,
-      endianness: params.endianness ?? 'big'
+      dataWidth: w,
+      endianness,
+      ROMContents: words.map(word => `'h${hex(word)}`),
+      macroConfig: params.macroConfig || 'default'
     })
     this.rcf_path = rcf_path ?? ''
-    this.MemInitFile = MemInitFile
-
-    // contents, as one unsigned value per word
-    const w = this.params.dataWidth
-    const words = romWords(`ROM ${this.name}`, MemInitFile, w, this.params.endianness ?? 'big')
     const addrWidth = Math.max(1, this.bitWidth(words.length - 1))
-    const literal = (word: bigint): string => `${w}'h${word.toString(16).toUpperCase().padStart(Math.ceil(w / 4), '0')}`
 
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
@@ -63,7 +75,7 @@ export class ROM extends Module {
     }
 
     // the words as a case table; the read data holds while rd_en is low
-    const rows = words.map((word, i) => `${addrWidth}'d${i}: data_out <= ${literal(word)};`)
+    const rows = words.map((word, i) => `${addrWidth}'d${i}: data_out <= ${w}'h${hex(word)};`)
     this.addSequentialAlways({ clk: 'clk', outputs: ['data_out'] }, `
       begin : rom_read
         if (rd_en) begin
@@ -79,9 +91,19 @@ export class ROM extends Module {
       fs.writeFileSync(`${this.rcf_path}/${this.name}.rcf`, words.map(word => word.toString(2).padStart(w, '0')).join('\n'))
     }
   }
+
+  // The contents are the case table, so the SV's parameter comment gives only their size
+  protected override formatParametersForComment (
+    params: TSSVParameters = this.params,
+    opts?: { prefix?: string, skipName?: boolean }
+  ): string {
+    const contents = params.ROMContents
+    const summary = Array.isArray(contents) ? { ...params, ROMContents: `${contents.length} words, in rom_read` } : params
+    return super.formatParametersForComment(summary, opts)
+  }
 }
 
-// One entry of a file, with any '_' and spaces already removed:
+// One entry of a file or a string array, with any '_' and spaces already removed:
 // [-][size]'b<binary>, [-][size]'h<hex>, [-][size]'d<decimal>, [-]0x<hex>, or [-]<decimal>.
 // The size is ignored. Returns undefined if the entry isn't one of these.
 function parseEntry (text: string): bigint | undefined {
@@ -95,48 +117,55 @@ function parseEntry (text: string): bigint | undefined {
   return sign === '-' ? -value : value
 }
 
-// The ROM's words from its init data, each an unsigned value below 2^dataWidth. `who` starts
+// The ROM's words from its contents, each an unsigned value below 2^dataWidth. `who` starts
 // every error message.
-function romWords (who: string, init: ROM_InitData, dataWidth: number, endianness: 'big' | 'little'): bigint[] {
+function romWords (who: string, contents: ROM_Contents, dataWidth: number, endianness: 'big' | 'little'): bigint[] {
   const values: bigint[] = []
   const where: string[] = [] // each value's entry, for error messages
-  let firstText: string | undefined // the first entry of a file
-  if (init instanceof Uint8Array) {
-    init.forEach((b, i) => { values.push(BigInt(b)); where.push(`entry ${i} (${b})`) })
-  } else if (typeof init === 'string') {
+  let firstText: string | undefined // the first entry of a file or string array
+  if (contents instanceof Uint8Array) {
+    contents.forEach((b, i) => { values.push(BigInt(b)); where.push(`entry ${i} (${b})`) })
+  } else if (typeof contents === 'string' || contents.some(e => typeof e === 'string')) {
     let lines: string[]
-    try {
-      lines = fs.readFileSync(init, 'utf8').split(/\r?\n/)
-    } catch (err) {
-      throw Error(`${who}: can't read MemInitFile '${init}': ${(err as Error).message}`)
+    let label: (i: number) => string
+    if (typeof contents === 'string') {
+      try {
+        lines = fs.readFileSync(contents, 'utf8').split(/\r?\n/)
+      } catch (err) {
+        throw Error(`${who}: can't read ROMContents file '${contents}': ${(err as Error).message}`)
+      }
+      label = i => `line ${i + 1}`
+    } else {
+      lines = contents.map(String)
+      label = i => `entry ${i}`
     }
     lines.forEach((line, i) => {
       const text = line.replace(/[_\s]/g, '')
-      if (text === '') return // blank lines, such as the last newline, are skipped
+      if (text === '') return // blank entries, such as a file's last newline, are skipped
       const value = parseEntry(text)
-      if (value === undefined) throw Error(`${who}: can't parse MemInitFile line ${i + 1}: '${line.trim()}'`)
+      if (value === undefined) throw Error(`${who}: can't parse ROMContents ${label(i)}: '${line.trim()}'`)
       firstText ??= text
       values.push(value)
-      where.push(`line ${i + 1} (${line.trim()})`)
+      where.push(`${label(i)} (${line.trim()})`)
     })
   } else {
-    init.forEach((n, i) => {
-      if (!Number.isSafeInteger(n)) throw Error(`${who}: MemInitFile entry ${i} must be an integer, got ${n}`)
+    contents.forEach((n, i) => {
+      if (!Number.isSafeInteger(n)) throw Error(`${who}: ROMContents entry ${i} must be an integer, got ${n}`)
       values.push(BigInt(n))
       where.push(`entry ${i} (${n})`)
     })
   }
-  if (values.length === 0) throw Error(`${who}: MemInitFile has no entries`)
+  if (values.length === 0) throw Error(`${who}: ROMContents has no entries`)
 
   // Bytes are packed into words when a word holds more than one byte: a Uint8Array's, or a file's
-  // whose first entry is 8-digit binary
+  // or string array's whose first entry is 8-digit binary
   const packed = dataWidth % 8 === 0 && dataWidth > 8 &&
-    (init instanceof Uint8Array || /^-?\d*'b[01]{8}$/i.test(firstText ?? ''))
+    (contents instanceof Uint8Array || /^-?\d*'b[01]{8}$/i.test(firstText ?? ''))
   // an entry fits if it's a value of this many bits, signed or unsigned
   const bits = packed ? 8 : dataWidth
   values.forEach((v, i) => {
     if (v < -(1n << BigInt(bits - 1)) || v >= 1n << BigInt(bits)) {
-      throw Error(`${who}: MemInitFile ${where[i]} doesn't fit in ${bits} bits${packed ? ', as a byte packed into a word' : ''}`)
+      throw Error(`${who}: ROMContents ${where[i]} doesn't fit in ${bits} bits${packed ? ', as a byte packed into a word' : ''}`)
     }
   })
   const unsigned = (v: bigint, n: number): bigint => v & ((1n << BigInt(n)) - 1n)
