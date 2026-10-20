@@ -267,6 +267,9 @@ base constructor
 | `bindingRules.inout` | `public` | `string`[] | `undefined` | - |
 | <a id="body"></a> `body` | `protected` | `string` | `undefined` | - |
 | <a id="widthwaiverissue"></a> `widthWaiverIssue?` | `protected` | `string` | `undefined` | - |
+| <a id="resetkind"></a> `resetKind?` | `protected` | `object` | `undefined` | - |
+| `resetKind.reset` | `public` | `string` | `undefined` | - |
+| `resetKind.kind` | `public` | `string` | `undefined` | - |
 | <a id="registerblocks"></a> `registerBlocks` | `protected` | `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, \{ `d`: `string`; `resetVal?`: `bigint`; \}\>\>\>\> | `{}` | - |
 | <a id="printedinterfaces"></a> `printedInterfaces` | `static` | `Record`\<`string`, `boolean`\> | `{}` | - |
 | <a id="verilogparams"></a> `verilogParams` | `protected` | `Record`\<`string`, `boolean`\> | `undefined` | - |
@@ -480,7 +483,9 @@ signal that can be passed to other add* functions to make connections
 addRegister(io): Sig;
 ```
 
-add a DFF register(can be multi-bit) to the d input
+add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
+(SV guide SEQ-6), and `reset` must be the same kind (`isReset`) as every other reset in the
+module (RST-2).
 
 ###### Parameters
 
@@ -575,15 +580,27 @@ signal of the result of the saturation
 addSequentialAlways(io, body): void;
 ```
 
+Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
+<reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
+The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
+on a body that breaks these rules of the SV guide:
+- COMB-2: a local declared with an initializer must be `automatic`.
+- SEQ-1: `=` only for the block's own locals; every other assignment uses `<=`.
+- SEQ-6: in a reset branch, no assignment reads one of the module's signals or ports.
+  Constants, parameters and enum values are fine. A reset branch is the `if` branch of
+  `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of `if (rst)`
+  or `if (!rst)`.
+- RST-2: `reset` must be the same kind (`isReset`) as every other reset in the module.
+
 ###### Parameters
 
-| Parameter | Type |
-| ------ | ------ |
-| `io` | \{ `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `outputs`: (`string` \| [`Sig`](#sig))[]; \} |
-| `io.clk` | `string` \| [`Sig`](#sig) |
-| `io.reset?` | `string` \| [`Sig`](#sig) |
-| `io.outputs` | (`string` \| [`Sig`](#sig))[] |
-| `body` | `string` |
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the block's clock, its reset if it has one, and the signals it assigns, which become `logic` |
+| `io.clk` | `string` \| [`Sig`](#sig) | - |
+| `io.reset?` | `string` \| [`Sig`](#sig) | - |
+| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
+| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
 
 ###### Returns
 
@@ -595,14 +612,20 @@ addSequentialAlways(io, body): void;
 addCombAlways(io, body): void;
 ```
 
+Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
+The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
+on a body that breaks these rules of the SV guide:
+- COMB-2: a local declared with an initializer must be `automatic`.
+- COMB-3: no nonblocking assignments. `<=` as a comparison, as in `if (a <= b)`, is fine.
+
 ###### Parameters
 
-| Parameter | Type |
-| ------ | ------ |
-| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} |
-| `io.inputs?` | (`string` \| [`Sig`](#sig))[] |
-| `io.outputs` | (`string` \| [`Sig`](#sig))[] |
-| `body` | `string` |
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the signals the block assigns, which become `logic`; `inputs` gives a sensitivity list instead of `always_comb` |
+| `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
+| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
+| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
 
 ###### Returns
 
@@ -614,14 +637,57 @@ addCombAlways(io, body): void;
 addLatchAlways(io, body): void;
 ```
 
+Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5). The builder
+parses the block with `verible-verilog-syntax`. It throws on a syntax error, and on a local
+declared with an initializer that isn't `automatic` (SV guide COMB-2).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the signals the block assigns, which become `logic`; `inputs` gives a sensitivity list instead of `always_latch` |
+| `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
+| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
+| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
+
+###### Returns
+
+`void`
+
+##### checkStaticLocals()
+
+```ts
+protected checkStaticLocals(where, block): void;
+```
+
 ###### Parameters
 
 | Parameter | Type |
 | ------ | ------ |
-| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} |
-| `io.inputs?` | (`string` \| [`Sig`](#sig))[] |
-| `io.outputs` | (`string` \| [`Sig`](#sig))[] |
-| `body` | `string` |
+| `where` | `string` |
+| `block` | [`AlwaysBody`](#alwaysbody) |
+
+###### Returns
+
+`void`
+
+##### useResetKind()
+
+```ts
+protected useResetKind(
+   where, 
+   reset, 
+   kind
+): void;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `where` | `string` |
+| `reset` | `string` |
+| `kind` | `string` |
 
 ###### Returns
 
@@ -982,6 +1048,36 @@ write the generated SystemVerilog code to a string
 string containing the generated SystemVerilog code for this module
 
 ## Interfaces
+
+### Write
+
+An assignment in an always block.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="kind"></a> `kind` | `"blocking"` \| `"nonblocking"` | `<=`, or blocking: `=`, `+=`, `++`, and the assignments in a `for` loop header |
+| <a id="target"></a> `target` | `string` | the target as written, such as `q[3:0]` or `{a, b}` |
+| <a id="names"></a> `names` | `string`[] | the variables the target names: `q` for `q[3:0]` or `q.f`, `a` and `b` for `{a, b}` |
+| <a id="reads"></a> `reads` | `string`[] | the identifiers the assignment reads; for `+=` and `++`, the target's too |
+
+***
+
+### AlwaysBody
+
+What an always block declares and assigns.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="writes"></a> `writes` | [`Write`](#write)[] | every assignment in the block |
+| <a id="resetwrites"></a> `resetWrites` | [`Write`](#write)[] | the assignments in the block's reset branches, when a reset is given |
+| <a id="locals"></a> `locals` | `Set`\<`string`\> | the variables the block declares, in its body or in a `for` loop header |
+| <a id="initialized"></a> `initialized` | `object`[] | each declaration with an initializer: the names it initializes, and whether it's `automatic` |
+
+***
 
 ### TSSVParameters
 

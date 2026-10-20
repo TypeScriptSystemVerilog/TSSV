@@ -254,6 +254,8 @@ For complex logic that can't be expressed with the `add*()` primitives, use thes
 
 Wraps `body` in `always_ff @(posedge clk …)`. TSSV fills the sensitivity list from `io.clk`/`io.reset` metadata; you only write the logic body.
 
+It parses the block with `verible-verilog-syntax`, and throws on a syntax error or on a body that breaks the SV guide: an initialized local that isn't `automatic` (COMB-2), `=` to anything but the block's own locals (SEQ-1), a reset branch that reads one of the module's signals (SEQ-6), or a reset of a different kind from the module's others (RST-2). A reset branch is the `if` branch of `if (!rst_n)`, or the `else` branch of `if (rst_n)`.
+
 ```typescript
 this.addSequentialAlways(
   { clk: 'clk', reset: 'rst_b', outputs: ['count'] },
@@ -268,6 +270,8 @@ this.addSequentialAlways(
 
 Wraps `body` in `always_comb` (no inputs → `always_comb`; explicit inputs → `always @(a or b or …)`).
 
+It parses the block with `verible-verilog-syntax`, and throws on a syntax error, an initialized local that isn't `automatic` (COMB-2), or a nonblocking assignment (COMB-3). `<=` as a comparison is fine.
+
 ```typescript
 this.addCombAlways(
   { outputs: ['y'] },
@@ -279,7 +283,7 @@ this.addCombAlways(
 
 ### `addLatchAlways(io, body): void`
 
-Same as `addCombAlways` but generates `always_latch`. Use for purely combinational logic that tools should not infer as a latch — or when explicitly modelling latch behavior.
+Same as `addCombAlways` but generates `always_latch`. Use it only for a latch you mean to build (TSSV guide BUILD-5); combinational logic goes in `addCombAlways`. It throws on a syntax error, and on an initialized local that isn't `automatic` (COMB-2).
 
 ---
 

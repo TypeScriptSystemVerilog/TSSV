@@ -140,8 +140,9 @@ node --version && npm --version
 ```
 
 **Verible** must be on your `PATH`. TSSV formats every emitted `.sv` file with
-`verible-verilog-format` and parses imported SystemVerilog (`addSystemVerilogSubmodule()`) with
-`verible-verilog-syntax`. Generation fails with an error if either is missing.
+`verible-verilog-format`. It parses imported SystemVerilog (`addSystemVerilogSubmodule()`), and
+the always blocks passed to `addCombAlways()`, `addSequentialAlways()` and `addLatchAlways()`,
+with `verible-verilog-syntax`. Generation fails with an error if either is missing.
 
 Neither Ubuntu nor Homebrew packages the pinned release, so install the prebuilt static binaries.
 
@@ -183,7 +184,7 @@ verible-verilog-format --version   # expect: Version v0.0-4296-g0f262651
 ```
 
 To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilog()`.
-Importing SystemVerilog still requires `verible-verilog-syntax`.
+Importing SystemVerilog and the always-block builders still require `verible-verilog-syntax`.
 
 **Verilator** is an open-source Verilog/SystemVerilog simulator, also used as a lint check. Use
 the pinned version below. Older releases miss real RTL bugs (for example, latches that Verilator
