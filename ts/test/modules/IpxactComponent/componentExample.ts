@@ -1,4 +1,4 @@
-// Wraps two sample components with IpXactComponent, and writes each under
+// Wraps three sample components with IpXactComponent, and writes each under
 // sv-examples/IpXactComponent/<component>/, one definition per file:
 // - <component>.sv: the wrapper, with each bus interface as a port
 // - <interface>.sv: the interface those ports use
@@ -9,6 +9,9 @@
 // Each sample's SystemVerilog file stands in for the vendor's RTL. It is this test's input,
 // written by hand, not generated SV, so it isn't written out with the wrapper: the filelist names
 // it where it is (doc/modules/IpXactComponent/IpXactComponent-spec.md).
+//
+// The AXI and APB samples come from a NoC generator. The adder is the spec's worked example: one
+// APB port, so its XML has one bus interface, one parameter list and so on.
 //
 // It also checks that IpXactComponent ties an unmapped input to 0, and rejects a port whose width
 // differs from its bus signal's.
@@ -27,12 +30,14 @@ const GENERATOR = 'ts/test/modules/IpxactComponent/componentExample.ts'
 const SAMPLES = 'ts/test/modules/IpxactComponent'
 const OUT = 'sv-examples/IpXactComponent'
 
+// `tied`: the inputs of the sample's module that its XML maps to no bus signal
 const samples = [
-  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv` },
-  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv` }
+  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv`, tied: ['tm'] },
+  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv`, tied: ['tm'] },
+  { name: 'adderComponent', xmlDataPath: `${SAMPLES}/Adder/adder.xml`, svFilePath: `${SAMPLES}/Adder/apb_adder.sv`, tied: [] }
 ]
 
-for (const params of samples) {
+for (const { tied, ...params } of samples) {
   const component = new IpXactComponent(params)
   const dir = `${OUT}/${component.name}`
   mkdirSync(dir, { recursive: true })
@@ -45,9 +50,10 @@ for (const params of samples) {
   writeLintFilelist(dir, `${component.name}_lint_top`,
     [posix.relative(dir, params.svFilePath), ...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`], GENERATOR)
   console.log(`wrote ${dir}/${[...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`].join(', ')}`)
-  // `tm` is an input of both samples that the XML maps to no bus signal: it's tied to 0
-  if (!readFileSync(`${dir}/${component.name}.sv`, 'utf8').includes('.tm(const_w1u0)')) {
-    throw Error(`${component.name}: tm isn't tied to 0`)
+  // Each of them is tied to 0
+  const sv = readFileSync(`${dir}/${component.name}.sv`, 'utf8')
+  for (const port of tied) {
+    if (!sv.includes(`.${port}(const_w1u0)`)) throw Error(`${component.name}: ${port} isn't tied to 0`)
   }
 }
 
@@ -63,7 +69,7 @@ function expectThrow (what: string, edit: (xml: string) => string, expected: str
     if (edited === xml) throw Error(`${what}: the edit didn't change the AXI sample's XML`)
     const xmlDataPath = join(tmp, 'axiSample.xml')
     writeFileSync(xmlDataPath, edited)
-    void new IpXactComponent({ ...axi, xmlDataPath })
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath })
   } catch (err) {
     message = (err as Error).message
   } finally {
