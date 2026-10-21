@@ -655,6 +655,19 @@ check('RST-4', 'writeSystemVerilog rejects a reset assigned in always_comb', () 
   expectThrows(() => m.writeSystemVerilog(), /rst_int_n is assigned in a combinational block \(RST-4/)
 })
 
+check('RST-4', 'writeSystemVerilog rejects a reset generated in raw SV', () => {
+  const m = resetUser('rst4_raw_dont')
+  m.addSignal('rst_int_n', { isReset: 'lowasync' })
+  m.addBody(`
+  assign rst_int_n = rst_n & !clr;
+  always_ff @(posedge clk or negedge rst_int_n) begin : q_reg
+    if (!rst_int_n) q <= 1'b0;
+    else            q <= d;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /reset rst_int_n is generated in logic.*RST-4/)
+})
+
 check('RST-4', 'writeSystemVerilog rejects a submodule reset bound to a signal generated in logic', () => {
   const child = resetUser('rst4_child')
   child.addRegister({ d: 'd', clk: 'clk', reset: 'rst_n', q: 'q' })
