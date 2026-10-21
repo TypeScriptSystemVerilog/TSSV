@@ -211,8 +211,8 @@ export class IpXactComponent extends Module {
     // A bound with attributes (spirit:format, spirit:resolve) parses to an object holding its text
     const bound = (value: any): number => Number(typeof value === 'object' ? value.text : value)
     const widths: Record<string, number> = {}
-    for (const component of [removePrefix(parser.parse(xmlData)).component].flat()) {
-      for (const port of [component?.model?.ports?.port ?? []].flat()) {
+    for (const component of list(removePrefix(parser.parse(xmlData)).component)) {
+      for (const port of list(component.model?.ports?.port)) {
         const vector = port.wire?.vector
         widths[port.name] = vector === undefined ? 1 : Math.abs(bound(vector.left) - bound(vector.right)) + 1
       }
@@ -274,7 +274,8 @@ export class IpXactComponent extends Module {
     const result: Record<string, ComponentData> = {}
 
     const processComponent = (component: any): void => {
-      const busInterfaces = component.busInterfaces.busInterface
+      // The parser gives a single element as itself and several as an array: list() takes both
+      const busInterfaces = list(component.busInterfaces.busInterface)
       busInterfaces.forEach((busInterface: any) => {
         const interfaceName = busInterface.name
         const abstractionType = busInterface.abstractionType
@@ -283,7 +284,7 @@ export class IpXactComponent extends Module {
         const abstractionLibrary = abstractionType.library
         const busType = busInterface.busType
         const busName = busType.name.replace(/_+$/, '')
-        const portMaps = busInterface.portMaps.portMap
+        const portMaps = list(busInterface.portMaps.portMap)
         const portDictionary: Record<string, string> = {}
 
         portMaps.forEach((portMap: any) => {
@@ -430,13 +431,13 @@ export class IpXactComponent extends Module {
     })
 
     const parsedXml = parser.parse(xmlInput)
-    const busInterfaces = parsedXml['spirit:component']['spirit:busInterfaces']['spirit:busInterface']
+    const busInterfaces = list(parsedXml['spirit:component']['spirit:busInterfaces']['spirit:busInterface'])
 
     const parametersData: Record<string, Record<string, ParameterData>> = {}
 
     busInterfaces.forEach((interfaceData: any) => {
       const interfaceName = interfaceData['spirit:name']
-      const parameters = interfaceData['spirit:parameters']['spirit:parameter']
+      const parameters = list(interfaceData['spirit:parameters']?.['spirit:parameter'])
 
       const interfaceParametersData: Record<string, ParameterData> = {}
 
@@ -455,6 +456,12 @@ export class IpXactComponent extends Module {
 
     return parametersData
   }
+}
+
+// An XML element that may occur more than once, as an array: the parser gives one occurrence as
+// itself, several as an array, and none as undefined
+function list (element: any): any[] {
+  return element === undefined ? [] : [element].flat()
 }
 
 // The parsed XML with each key's namespace prefix (`spirit:`, `ipxact:`) removed
