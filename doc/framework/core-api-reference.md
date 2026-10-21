@@ -254,7 +254,7 @@ For complex logic that can't be expressed with the `add*()` primitives, use thes
 
 Wraps `body` in `always_ff @(posedge clk …)`. TSSV fills the sensitivity list from `io.clk`/`io.reset` metadata; you only write the logic body.
 
-It parses the block with `verible-verilog-syntax`, and throws on a syntax error or on a body that breaks the SV guide: an initialized local that isn't `automatic` (COMB-2), `=` to anything but the block's own locals (SEQ-1), a reset branch that reads one of the module's signals (SEQ-6), or a reset of a different kind from the module's others (RST-2). A reset branch is the `if` branch of `if (!rst_n)`, or the `else` branch of `if (rst_n)`.
+`writeSystemVerilog()` checks the block against the SV guide, as it checks every always block in the module (see [`writeSystemVerilog()`](#writesystemverilog-string)). COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
 
 ```typescript
 this.addSequentialAlways(
@@ -270,7 +270,7 @@ this.addSequentialAlways(
 
 Wraps `body` in `always_comb` (no inputs → `always_comb`; explicit inputs → `always @(a or b or …)`).
 
-It parses the block with `verible-verilog-syntax`, and throws on a syntax error, an initialized local that isn't `automatic` (COMB-2), or a nonblocking assignment (COMB-3). `<=` as a comparison is fine.
+`writeSystemVerilog()` checks the block against the SV guide, as it checks every always block in the module. COMB-2 and COMB-3 apply to this one: no initialized local that isn't `automatic`, and no nonblocking assignment. `<=` as a comparison is fine.
 
 ```typescript
 this.addCombAlways(
@@ -283,7 +283,7 @@ this.addCombAlways(
 
 ### `addLatchAlways(io, body): void`
 
-Same as `addCombAlways` but generates `always_latch`. Use it only for a latch you mean to build (TSSV guide BUILD-5); combinational logic goes in `addCombAlways`. It throws on a syntax error, and on an initialized local that isn't `automatic` (COMB-2).
+Same as `addCombAlways` but generates `always_latch`. Use it only for a latch you mean to build (TSSV guide BUILD-5); combinational logic goes in `addCombAlways`. `writeSystemVerilog()` checks the block: an initialized local must be `automatic` (COMB-2).
 
 ---
 
@@ -370,6 +370,19 @@ Marks a parameter for emission as a SV `#(parameter ...)` override, enabling par
 ### `writeSystemVerilog(): string`
 
 Renders the module to a SV string. Recursively includes all submodule definitions. Safe to call multiple times (idempotent after the fix in `Base.ts`).
+
+It checks each module it emits against the SV guide first (`ts/src/core/ModuleCheck.ts`). `verible-verilog-syntax` parses the module's SV, and every always block in it is checked, whether a builder or raw SV (`addBody()`, a constructor `body`) wrote it. A syntax error or a broken rule throws, and the error lists every violation in the module. The signal table says which signals are resets (`isReset`), of which kind, and which are constants:
+
+| Rule | What it rejects |
+|---|---|
+| COMB-2 | A local declared with an initializer that isn't `automatic` |
+| COMB-3 | `<=` in a combinational block: `always_comb`, `always @*`, or `always` with a list of levels |
+| SEQ-1 | In a sequential block (`always_ff`, or `always` with an edge), `=` to anything but the block's own locals |
+| SEQ-4 | A sequential block with more than one clock, or a clock on both edges. Every event-control term that isn't a reset is a clock, so an async reset must be marked `isReset` |
+| SEQ-5 | An async reset missing from the event control or on the wrong edge, or a sync reset in it |
+| SEQ-6 | A reset branch that reads a port, a signal that isn't a constant, an interface, or a variable raw SV declares. A reset branch is the `if` branch of `if (!rst_n)`, or the `else` branch of `if (rst_n)` |
+| RST-2 | Sequential blocks that use resets of more than one kind |
+| RST-4 | A reset generated in logic: a reset that isn't an input, or a signal bound to a submodule's reset port, assigned an expression or assigned in a combinational block. A reset may come from an input, a submodule output or a register, plainly, as a bit, or inverted (`!r`, `~r`) |
 
 ---
 

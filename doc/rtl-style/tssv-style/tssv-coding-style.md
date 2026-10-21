@@ -388,7 +388,9 @@ export class EventCounter extends Module {
 
 **MOD-3 (MUST): Mark each clock `isClock` and each reset `isReset` where you declare it.**
 `addRegister` and `addSequentialAlways` read those fields to build the sensitivity list and
-the reset condition. They refuse a clock or reset signal that isn't marked.
+the reset condition. They refuse a clock or reset signal that isn't marked. `writeSystemVerilog()`
+reads `isReset` too, to check the SV guide's reset rules in every always block, raw SV
+included. It takes an async reset that isn't marked for a second clock (SV guide SEQ-4).
 
 <!-- ts: dont body throws "rst_n is not a reset signal"
 clk: { direction: 'input', isClock: 'posedge' }

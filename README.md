@@ -100,7 +100,7 @@ The remaining steps are written so that either you or the agent can follow them.
 | [Node.js](https://nodejs.org/) 24 LTS | Builds and runs everything (`npx tsc`, test scripts) | `node --version` |
 | [git](https://git-scm.com/) | Version control | `git --version` |
 | [`gh` CLI](https://cli.github.com/) | Issue/PR operations, if you'll contribute (see [`doc/process/issue-workflow.md`](doc/process/issue-workflow.md)) | `gh --version` |
-| [Verible](https://github.com/chipsalliance/verible) `v0.0-4296-g0f262651` | Formats emitted SV and parses imported SV | `verible-verilog-format --version` |
+| [Verible](https://github.com/chipsalliance/verible) `v0.0-4296-g0f262651` | Formats emitted SV, and parses emitted and imported SV | `verible-verilog-format --version` |
 | [Verilator](https://verilator.org/) `v5.052` | Lints and simulates generated SV | `verilator --version` |
 
 **git and `gh`:**
@@ -141,8 +141,8 @@ node --version && npm --version
 
 **Verible** must be on your `PATH`. TSSV formats every emitted `.sv` file with
 `verible-verilog-format`. It parses imported SystemVerilog (`addSystemVerilogSubmodule()`), and
-the always blocks passed to `addCombAlways()`, `addSequentialAlways()` and `addLatchAlways()`,
-with `verible-verilog-syntax`. Generation fails with an error if either is missing.
+each module it emits, to check it against the SV guide, with `verible-verilog-syntax`.
+Generation fails with an error if either is missing.
 
 Neither Ubuntu nor Homebrew packages the pinned release, so install the prebuilt static binaries.
 
@@ -184,7 +184,7 @@ verible-verilog-format --version   # expect: Version v0.0-4296-g0f262651
 ```
 
 To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilog()`.
-Importing SystemVerilog and the always-block builders still require `verible-verilog-syntax`.
+`writeSystemVerilog()` and importing SystemVerilog still require `verible-verilog-syntax`.
 
 **Verilator** is an open-source Verilog/SystemVerilog simulator, also used as a lint check. Use
 the pinned version below. Older releases miss real RTL bugs (for example, latches that Verilator
