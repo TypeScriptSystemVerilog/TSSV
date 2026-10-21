@@ -1,7 +1,8 @@
-// Builder checks for the style guides in doc/rtl-style/: SEQ-5 in the SV guide, and the TSSV
-// guide's rules about what a builder emits or rejects. Each check() builds small modules with
-// the TSSV builders and confirms what the guide claims. Every module that should be clean is
-// written to sv-examples/rtl_style/ for doc/rtl-style/sv-style/tools/check-builder-examples.mjs to lint.
+// Builder and module checks for the style guides in doc/rtl-style/: the SV guide's rules that
+// writeSystemVerilog() enforces on every module, SEQ-5's headers, and the TSSV guide's rules about
+// what a builder emits or rejects. Each check() builds small modules with the TSSV builders, or
+// raw SV through addBody(), and confirms what the guide claims. Every module that should be clean
+// is written to sv-examples/rtl_style/ for doc/rtl-style/sv-style/tools/check-builder-examples.mjs to lint.
 //
 // Prints one `RESULT {json}` line per check; check-builder-examples.mjs reads them.
 
@@ -219,17 +220,19 @@ check('PARAM-3', 'widths computed in TypeScript appear as numbers in the SV', ()
   expect(emit(m).includes('output logic [3:0] ptr_q'), 'ptr_q is not 4 bits wide')
 })
 
-// COMB-3: addCombAlways rejects a nonblocking assignment, and accepts <= as a comparison.
-check('COMB-3', 'addCombAlways rejects a nonblocking assignment', () => {
+// The SV guide's rules on always blocks: writeSystemVerilog() checks every block in the module,
+// whether a builder or raw SV wrote it (#149, #166). Each Don't breaks only the rule it tests.
+
+// COMB-3: no nonblocking assignment in combinational logic; <= as a comparison is fine.
+check('COMB-3', 'writeSystemVerilog rejects a nonblocking assignment from addCombAlways', () => {
   const m = arbiter('comb3_dont')
-  expectThrows(() => {
-    m.addCombAlways({ outputs: ['grant'] }, `
+  m.addCombAlways({ outputs: ['grant'] }, `
   begin : arb
     grant = '0;
     if (req[0]) grant <= 2'b01;
   end
 `)
-  }, /COMB-3/)
+  expectThrows(() => m.writeSystemVerilog(), /COMB-3/)
 })
 
 check('COMB-3', 'addCombAlways accepts <= as a comparison', () => {
@@ -249,10 +252,9 @@ check('COMB-3', 'addCombAlways accepts <= as a comparison', () => {
   expect(emit(m).includes('le = a <= b;'), 'comparison not emitted')
 })
 
-check('COMB-3', 'addCombAlways rejects a nonblocking assignment under a case label in parentheses', () => {
+check('COMB-3', 'writeSystemVerilog rejects a nonblocking assignment under a case label in parentheses', () => {
   const m = arbiter('comb3_case_dont')
-  expectThrows(() => {
-    m.addCombAlways({ outputs: ['grant'] }, `
+  m.addCombAlways({ outputs: ['grant'] }, `
   begin : arb
     unique case (req)
       (2'b01), (2'b11): grant <= 2'b01;
@@ -260,10 +262,21 @@ check('COMB-3', 'addCombAlways rejects a nonblocking assignment under a case lab
     endcase
   end
 `)
-  }, /COMB-3/)
+  expectThrows(() => m.writeSystemVerilog(), /COMB-3/)
 })
 
-// COMB-2: an always-block builder rejects a local that is initialized but static.
+check('COMB-3', 'writeSystemVerilog rejects a nonblocking assignment in raw SV, in always @*', () => {
+  const m = arbiter('comb3_raw_dont')
+  m.addBody(`
+  always @* begin : arb
+    grant = '0;
+    if (req[0]) grant <= 2'b01;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /COMB-3/)
+})
+
+// COMB-2: an always block rejects a local that is initialized but static.
 const firstSet = (name: string): Module => new Module({ name }, {
   rdy: { direction: 'input', width: 4 },
   sel: { direction: 'output', width: 2 },
@@ -284,8 +297,10 @@ const firstSetBody = (local: string): string => `
   end
 `
 
-check('COMB-2', 'addCombAlways rejects an initialized local that is not automatic', () => {
-  expectThrows(() => { firstSet('comb2_dont').addCombAlways({ outputs: ['sel', 'valid'] }, firstSetBody('')) }, /COMB-2/)
+check('COMB-2', 'writeSystemVerilog rejects an initialized local that is not automatic, from addCombAlways', () => {
+  const m = firstSet('comb2_dont')
+  m.addCombAlways({ outputs: ['sel', 'valid'] }, firstSetBody(''))
+  expectThrows(() => m.writeSystemVerilog(), /COMB-2/)
 })
 
 check('COMB-2', 'addCombAlways accepts an initialized automatic local', () => {
@@ -294,19 +309,28 @@ check('COMB-2', 'addCombAlways accepts an initialized automatic local', () => {
   expect(emit(m).includes('automatic logic [1:0] idx'), 'automatic local not emitted')
 })
 
-check('COMB-2', 'addSequentialAlways and addLatchAlways reject an initialized static local too', () => {
-  const m = new Module({ name: 'comb2_seq_latch' }, {
+check('COMB-2', 'writeSystemVerilog rejects an initialized static local from addSequentialAlways and addLatchAlways too', () => {
+  const ports = {
     clk: { direction: 'input', isClock: 'posedge' },
     en: { direction: 'input' },
     d: { direction: 'input' },
-    q: { direction: 'output' },
-    l: { direction: 'output' }
-  })
-  expectThrows(() => { m.addSequentialAlways({ clk: 'clk', outputs: ['q'] }, 'begin : q_reg\n  logic t = 1\'b0;\n  q <= d;\nend\n') }, /COMB-2/)
-  expectThrows(() => { m.addLatchAlways({ outputs: ['l'] }, 'begin : l_latch\n  logic t = 1\'b0;\n  if (en) l = d;\nend\n') }, /COMB-2/)
+    q: { direction: 'output' }
+  } as const
+  const seq = new Module({ name: 'comb2_seq' }, { ...ports })
+  seq.addSequentialAlways({ clk: 'clk', outputs: ['q'] }, 'begin : q_reg\n  logic t = 1\'b0;\n  q <= d;\nend\n')
+  expectThrows(() => seq.writeSystemVerilog(), /COMB-2/)
+  const latch = new Module({ name: 'comb2_latch' }, { ...ports })
+  latch.addLatchAlways({ outputs: ['q'] }, 'begin : q_latch\n  logic t = 1\'b0;\n  if (en) q = d;\nend\n')
+  expectThrows(() => latch.writeSystemVerilog(), /COMB-2/)
 })
 
-// SEQ-1: addSequentialAlways rejects = to anything but the block's own locals.
+check('COMB-2', 'writeSystemVerilog rejects an initialized static local in raw SV', () => {
+  const m = firstSet('comb2_raw_dont')
+  m.addBody(`always_comb ${firstSetBody('')}`)
+  expectThrows(() => m.writeSystemVerilog(), /COMB-2/)
+})
+
+// SEQ-1: a sequential block assigns = only to its own locals.
 const seqModule = (name: string): Module => new Module({ name }, {
   clk: { direction: 'input', isClock: 'posedge' },
   rst_n: { direction: 'input', isReset: 'lowasync' },
@@ -316,15 +340,15 @@ const seqModule = (name: string): Module => new Module({ name }, {
   sum_q: { direction: 'output', width: 5 }
 })
 
-check('SEQ-1', 'addSequentialAlways rejects a blocking assignment to a register', () => {
-  expectThrows(() => {
-    seqModule('seq1_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+check('SEQ-1', 'writeSystemVerilog rejects a blocking assignment to a register, from addSequentialAlways', () => {
+  const m = seqModule('seq1_dont')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
     if (!rst_n) sum_q = '0;
     else        sum_q = a + b;
   end
 `)
-  }, /SEQ-1/)
+  expectThrows(() => m.writeSystemVerilog(), /SEQ-1/)
 })
 
 check('SEQ-1', 'addSequentialAlways accepts = to an automatic local, and <= to the register', () => {
@@ -354,10 +378,119 @@ check('SEQ-1', 'addSequentialAlways accepts = to a concatenation of automatic lo
   expect(flat(emit(m)).includes('{carry, low} = a + b;'), 'block not emitted')
 })
 
+check('SEQ-1', 'writeSystemVerilog rejects a blocking assignment to a register in raw SV, in always @(posedge ...)', () => {
+  const m = seqModule('seq1_raw_dont')
+  m.addBody(`
+  always @(posedge clk or negedge rst_n) begin : sum_reg
+    if (!rst_n) sum_q = '0;
+    else        sum_q = a + b;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /SEQ-1/)
+})
+
+// SEQ-4: one clock per sequential block, and one edge.
+const twoClocks = (name: string, rst: { direction: 'input', isReset?: 'lowasync' } = { direction: 'input', isReset: 'lowasync' }): Module => new Module({ name }, {
+  clk_a: { direction: 'input', isClock: 'posedge' },
+  clk_b: { direction: 'input', isClock: 'posedge' },
+  rst_n: rst,
+  da: { direction: 'input' },
+  db: { direction: 'input' },
+  qa: { direction: 'output' },
+  qb: { direction: 'output' }
+})
+
+check('SEQ-4', 'writeSystemVerilog rejects a block sensitive to two clocks', () => {
+  const m = twoClocks('seq4_dont')
+  m.addBody(`
+  always_ff @(posedge clk_a or posedge clk_b) begin : sync
+    qa <= da;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /2 clocks, clk_a and clk_b, in its event control \(SEQ-4/)
+})
+
+check('SEQ-4', 'writeSystemVerilog rejects a block on both edges of its clock', () => {
+  const m = twoClocks('seq4_edges_dont')
+  m.addBody(`
+  always_ff @(posedge clk_a or negedge clk_a) begin : ddr
+    qa <= da;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /SEQ-4/)
+})
+
+check('SEQ-4', 'writeSystemVerilog takes an async reset not marked isReset for a second clock', () => {
+  const m = twoClocks('seq4_unmarked_dont', { direction: 'input' })
+  m.addBody(`
+  always_ff @(posedge clk_a or negedge rst_n) begin : a_reg
+    if (!rst_n) qa <= 1'b0;
+    else        qa <= da;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /clk_a and rst_n.*SEQ-4.*marked isReset/)
+})
+
+check('SEQ-4', 'writeSystemVerilog accepts one block per clock, from a builder and from raw SV', () => {
+  const m = twoClocks('seq4_do')
+  m.addSequentialAlways({ clk: 'clk_a', reset: 'rst_n', outputs: ['qa'] }, `
+  begin : a_reg
+    if (!rst_n) qa <= 1'b0;
+    else        qa <= da;
+  end
+`)
+  m.addBody(`
+  always_ff @(posedge clk_b or negedge rst_n) begin : b_reg
+    if (!rst_n) qb <= 1'b0;
+    else        qb <= db;
+  end
+`)
+  expect((emit(m).match(/always_ff/g) ?? []).length === 2, 'expected two always_ff blocks')
+})
+
+// SEQ-5 in raw SV: the sensitivity list matches the reset kind.
+const stateModule = (name: string, kind: 'lowasync' | 'lowsync'): Module => new Module({ name }, {
+  clk: { direction: 'input', isClock: 'posedge' },
+  rst_n: { direction: 'input', isReset: kind },
+  st_nxt: { direction: 'input', width: 2 },
+  st_q: { direction: 'output', width: 2 }
+})
+const stateBody = (sense: string): string => `
+  localparam logic [1:0] IDLE = 2'd0;
+  always_ff @(${sense}) begin : st_reg
+    if (!rst_n) st_q <= IDLE;
+    else        st_q <= st_nxt;
+  end
+`
+
+check('SEQ-5', 'writeSystemVerilog rejects an async reset missing from the event control', () => {
+  const m = stateModule('seq5_raw_dont', 'lowasync')
+  m.addBody(stateBody('posedge clk'))
+  expectThrows(() => m.writeSystemVerilog(), /rst_n is lowasync, but it isn't in the event control.*SEQ-5/)
+})
+
+check('SEQ-5', 'writeSystemVerilog rejects a sync reset in the event control', () => {
+  const m = stateModule('seq5_raw_sync_dont', 'lowsync')
+  m.addBody(stateBody('posedge clk or negedge rst_n'))
+  expectThrows(() => m.writeSystemVerilog(), /a sync reset, but it's in the event control.*SEQ-5/)
+})
+
+check('SEQ-5', 'writeSystemVerilog rejects an async reset on the wrong edge', () => {
+  const m = stateModule('seq5_raw_edge_dont', 'lowasync')
+  m.addBody(stateBody('posedge clk or posedge rst_n'))
+  expectThrows(() => m.writeSystemVerilog(), /its event is negedge rst_n.*SEQ-5/)
+})
+
+check('SEQ-5', 'writeSystemVerilog accepts raw SV whose sensitivity list matches the reset kind', () => {
+  const m = stateModule('seq5_raw_do', 'lowasync')
+  m.addBody(stateBody('posedge clk or negedge rst_n'))
+  expect(flat(emit(m)).includes('always_ff @(posedge clk or negedge rst_n)'), 'block not emitted')
+})
+
 // SEQ-6: reset values are constants.
-check('SEQ-6', 'addSequentialAlways rejects a reset to a signal', () => {
-  expectThrows(() => {
-    seqModule('seq6_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+check('SEQ-6', 'writeSystemVerilog rejects a reset to a signal, from addSequentialAlways', () => {
+  const m = seqModule('seq6_dont')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
     if (!rst_n) begin
       sum_q <= cfg;
@@ -366,18 +499,18 @@ check('SEQ-6', 'addSequentialAlways rejects a reset to a signal', () => {
     end
   end
 `)
-  }, /SEQ-6/)
+  expectThrows(() => m.writeSystemVerilog(), /SEQ-6/)
 })
 
-check('SEQ-6', 'addSequentialAlways rejects a reset to a signal in the else branch of if (rst_n)', () => {
-  expectThrows(() => {
-    seqModule('seq6_else_dont').addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
+check('SEQ-6', 'writeSystemVerilog rejects a reset to a signal in the else branch of if (rst_n)', () => {
+  const m = seqModule('seq6_else_dont')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sum_q'] }, `
   begin : sum_reg
     if (rst_n) sum_q <= a + b;
     else       sum_q <= cfg;
   end
 `)
-  }, /SEQ-6/)
+  expectThrows(() => m.writeSystemVerilog(), /SEQ-6/)
 })
 
 check('SEQ-6', 'addSequentialAlways accepts a constant reset value', () => {
@@ -398,19 +531,88 @@ check('SEQ-6', 'addRegister rejects a reset value that is not a bigint', () => {
   expectThrows(() => m.addRegister({ d: 'base', clk: 'clk', reset: 'rst_n', resetVal }), /SEQ-6/)
 })
 
+check('SEQ-6', 'writeSystemVerilog rejects a reset to a port in raw SV', () => {
+  const m = seqModule('seq6_raw_dont')
+  m.addBody(`
+  always_ff @(posedge clk or negedge rst_n) begin : sum_reg
+    if (!rst_n) sum_q <= cfg;
+    else        sum_q <= (a + b) ^ cfg;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /sum_q resets to cfg, a signal \(SEQ-6/)
+})
+
+check('SEQ-6', 'writeSystemVerilog rejects a reset to a variable that raw SV declares', () => {
+  const m = seqModule('seq6_raw_decl_dont')
+  m.addBody(`
+  logic [4:0] seed;
+  assign seed = cfg ^ 5'd16;
+  always_ff @(posedge clk or negedge rst_n) begin : sum_reg
+    if (!rst_n) sum_q <= seed;
+    else        sum_q <= (a + b) ^ cfg;
+  end
+`)
+  expectThrows(() => m.writeSystemVerilog(), /sum_q resets to seed, a signal \(SEQ-6/)
+})
+
+check('SEQ-6', 'writeSystemVerilog accepts a reset to a localparam in raw SV', () => {
+  const m = seqModule('seq6_raw_do')
+  m.addBody(`
+  localparam logic [4:0] SEED = 5'd16;
+  always_ff @(posedge clk or negedge rst_n) begin : sum_reg
+    if (!rst_n) sum_q <= SEED;
+    else        sum_q <= (a + b) ^ cfg;
+  end
+`)
+  expect(emit(m).includes('sum_q <= SEED;'), 'reset value not emitted')
+})
+
 // RST-2: one reset kind per module.
-check('RST-2', 'a module rejects a second reset kind', () => {
-  const m = new Module({ name: 'rst2_dont' }, {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_n: { direction: 'input', isReset: 'lowasync' },
-    srst: { direction: 'input', isReset: 'highsync' },
-    a: { direction: 'input' },
-    b: { direction: 'input' },
-    y: { direction: 'output', width: 2 }
-  })
+const twoResets = (name: string): Module => new Module({ name }, {
+  clk: { direction: 'input', isClock: 'posedge' },
+  rst_n: { direction: 'input', isReset: 'lowasync' },
+  srst: { direction: 'input', isReset: 'highsync' },
+  a: { direction: 'input' },
+  b: { direction: 'input' },
+  y: { direction: 'output', width: 2 }
+})
+const srstBlock = `
+  always_ff @(posedge clk) begin : b_reg
+    if (srst) y[1] <= 1'b0;
+    else      y[1] <= b;
+  end
+`
+
+check('RST-2', 'writeSystemVerilog rejects registers of two reset kinds', () => {
+  const m = twoResets('rst2_dont')
   m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
-  expectThrows(() => m.addRegister({ d: 'b', clk: 'clk', reset: 'srst' }), /RST-2/)
-  expectThrows(() => { m.addSequentialAlways({ clk: 'clk', reset: 'srst', outputs: ['y'] }, 'begin : y_reg\n  if (srst) y <= \'0;\n  else y <= {a, b};\nend\n') }, /RST-2/)
+  m.addRegister({ d: 'b', clk: 'clk', reset: 'srst' })
+  expectThrows(() => m.writeSystemVerilog(), /rst_n, which is lowasync.*srst, which is highsync.*RST-2/)
+})
+
+check('RST-2', 'writeSystemVerilog rejects addRegister and addSequentialAlways with two reset kinds', () => {
+  const m = twoResets('rst2_seq_dont')
+  m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
+  m.addSequentialAlways({ clk: 'clk', reset: 'srst', outputs: ['y'] }, 'begin : y_reg\n  if (srst) y <= \'0;\n  else y <= {a, b};\nend\n')
+  expectThrows(() => m.writeSystemVerilog(), /RST-2/)
+})
+
+check('RST-2', 'writeSystemVerilog rejects raw SV with two reset kinds', () => {
+  const m = twoResets('rst2_raw_dont')
+  m.addBody(`
+  always_ff @(posedge clk or negedge rst_n) begin : a_reg
+    if (!rst_n) y[0] <= 1'b0;
+    else        y[0] <= a;
+  end
+${srstBlock}`)
+  expectThrows(() => m.writeSystemVerilog(), /RST-2/)
+})
+
+check('RST-2', 'writeSystemVerilog rejects raw SV and addRegister with two reset kinds', () => {
+  const m = twoResets('rst2_mixed_dont')
+  m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
+  m.addBody(srstBlock)
+  expectThrows(() => m.writeSystemVerilog(), /RST-2/)
 })
 
 check('RST-2', 'a module accepts two resets of the same kind', () => {
@@ -426,4 +628,78 @@ check('RST-2', 'a module accepts two resets of the same kind', () => {
   m.addRegister({ d: 'b', clk: 'clk', reset: 'rst_b_n' })
   m.addAssign({ in: new Expr('{a_q, b_q}'), out: 'y' })
   expect((emit(m).match(/always_ff/g) ?? []).length === 2, 'expected two always_ff blocks')
+})
+
+// RST-4: a reset is never generated in logic.
+const resetUser = (name: string): Module => new Module({ name }, {
+  clk: { direction: 'input', isClock: 'posedge' },
+  rst_n: { direction: 'input', isReset: 'lowasync' },
+  clr: { direction: 'input' },
+  d: { direction: 'input' },
+  q: { direction: 'output' }
+})
+
+check('RST-4', 'writeSystemVerilog rejects a reset assigned an expression', () => {
+  const m = resetUser('rst4_assign_dont')
+  m.addSignal('rst_int_n', { isReset: 'lowasync' })
+  m.addAssign({ in: new Expr('rst_n & !clr'), out: 'rst_int_n' })
+  m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_int_n', q: 'q' })
+  expectThrows(() => m.writeSystemVerilog(), /reset rst_int_n is generated in logic: rst_int_n is assigned rst_n & !clr \(RST-4/)
+})
+
+check('RST-4', 'writeSystemVerilog rejects a reset assigned in always_comb', () => {
+  const m = resetUser('rst4_comb_dont')
+  m.addSignal('rst_int_n', { isReset: 'lowasync' })
+  m.addCombAlways({ outputs: ['rst_int_n'] }, 'begin : rst_gen\n  rst_int_n = rst_n && !clr;\nend\n')
+  m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_int_n', q: 'q' })
+  expectThrows(() => m.writeSystemVerilog(), /rst_int_n is assigned in a combinational block \(RST-4/)
+})
+
+check('RST-4', 'writeSystemVerilog rejects a submodule reset bound to a signal generated in logic', () => {
+  const child = resetUser('rst4_child')
+  child.addRegister({ d: 'd', clk: 'clk', reset: 'rst_n', q: 'q' })
+  const m = resetUser('rst4_bind_dont')
+  m.addSignal('soft_rst_n', {})
+  m.addAssign({ in: new Expr('rst_n & !clr'), out: 'soft_rst_n' })
+  m.addSubmodule('u_child', child, { rst_n: 'soft_rst_n' })
+  expectThrows(() => m.writeSystemVerilog(), /reset soft_rst_n is generated in logic.*RST-4/)
+})
+
+check('RST-4', 'writeSystemVerilog accepts a reset assigned from an input', () => {
+  const m = resetUser('rst4_alias_do')
+  m.addSignal('rst_int_n', { isReset: 'lowasync' })
+  m.addAssign({ in: new Expr('rst_n'), out: 'rst_int_n' })
+  m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_int_n', en: 'clr', q: 'q' })
+  emit(m)
+})
+
+check('RST-4', 'writeSystemVerilog accepts a reset that inverts an input', () => {
+  const m = resetUser('rst4_invert_do')
+  m.addSignal('rst', { isReset: 'highasync' })
+  m.addAssign({ in: new Expr('~rst_n'), out: 'rst' })
+  m.addRegister({ d: 'd', clk: 'clk', reset: 'rst', en: 'clr', q: 'q' })
+  emit(m)
+})
+
+// A sync reset, registered through two flops. (An async reset from a synchronizer passes RST-4
+// too, but Verilator's SYNCASYNCNET flags it, so it isn't a clean Do module.)
+check('RST-4', 'writeSystemVerilog accepts a reset from a register', () => {
+  const m = new Module({ name: 'rst4_reg_do' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    rst_n: { direction: 'input', isReset: 'lowsync' },
+    clr: { direction: 'input' },
+    d: { direction: 'input' },
+    q: { direction: 'output' }
+  })
+  m.addSignal('sync_q', { width: 2 })
+  m.addSignal('rst_sync_n', { isReset: 'lowsync' })
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['sync_q'] }, `
+  begin : rst_pipe
+    if (!rst_n) sync_q <= '0;
+    else        sync_q <= {sync_q[0], 1'b1};
+  end
+`)
+  m.addAssign({ in: new Expr('sync_q[1]'), out: 'rst_sync_n' })
+  m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_sync_n', en: 'clr', q: 'q' })
+  emit(m)
 })
