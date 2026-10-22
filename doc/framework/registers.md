@@ -419,4 +419,4 @@ How a definition maps to RALF:
 | Look up `RegisterBlock`, `RegisterBlockDef` and `writeRALF` signatures | [`doc/reference/Registers.md`](../reference/Registers.md) |
 | See a block used inside a module | [FIR tutorial, Part 4](../tutorials/fir.md#part-4--parameterized-register-block-via-repeatedregister-yaml) |
 | Understand naming, binding and `createMissing` | [concepts.md](concepts.md) |
-| Test a block in simulation | `ts/test/testRegisters.ts` (Memory bus), `ts/test/test_APB_Registers.ts` (APB) |
+| Test a block in simulation | `ts/test/testRegisters.ts` (Memory bus; it generates a self-checking testbench from the block's definition with `ts/test/models/RegisterBlockTestbench.ts`, and `make -C verilatorTB registers_sim` runs it), `ts/test/test_APB_Registers.ts` (APB) |
