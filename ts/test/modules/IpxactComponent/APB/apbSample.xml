@@ -573,123 +573,41 @@
         </spirit:views>
         <spirit:ports>
             <spirit:port>
-                <spirit:name>Init1_P_Clk</spirit:name>
+                <spirit:name>Init0_P_Addr</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_Resetn</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_Sel</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_Enable</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_Write</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_Addr</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>52</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Init1_P_WData</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
-                    <spirit:vector>
-                        <spirit:left>31</spirit:left>
-                        <spirit:right>0</spirit:right>
-                    </spirit:vector>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_RData</spirit:name>
+                <spirit:name>Init0_P_Selx</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>0</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_Ready</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init1_P_SlvErr</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init0_P_Clk</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init0_P_Resetn</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init0_P_Sel</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
                 <spirit:name>Init0_P_Enable</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init0_P_Write</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Init0_P_Addr</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
+                    <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>0</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Init0_P_WData</spirit:name>
+                <spirit:name>Init0_P_Write</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
+                    <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>0</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -697,9 +615,19 @@
             <spirit:port>
                 <spirit:name>Init0_P_RData</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>1023</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Init0_P_WData</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>1023</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -707,133 +635,139 @@
             <spirit:port>
                 <spirit:name>Init0_P_Ready</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
                 <spirit:name>Init0_P_SlvErr</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ1_P_Clk</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ1_P_Resetn</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ1_P_Sel</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ1_P_Enable</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ1_P_Write</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ1_P_Addr</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
+                    <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>0</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Targ1_P_WData</spirit:name>
+                <spirit:name>Init1_P_Addr</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>52</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Targ1_P_RData</spirit:name>
+                <spirit:name>Init1_P_Selx</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
+                    <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>0</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Targ1_P_Ready</spirit:name>
+                <spirit:name>Init1_P_Enable</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Init1_P_Write</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Init1_P_RData</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>1023</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Targ1_P_SlvErr</spirit:name>
+                <spirit:name>Init1_P_WData</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>1023</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Init1_P_Ready</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Targ0_P_Clk</spirit:name>
+                <spirit:name>Init1_P_SlvErr</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ0_P_Resetn</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ0_P_Sel</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ0_P_Enable</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
-                </spirit:wire>
-            </spirit:port>
-            <spirit:port>
-                <spirit:name>Targ0_P_Write</spirit:name>
-                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
                 <spirit:name>Targ0_P_Addr</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
+                    <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>52</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
-                <spirit:name>Targ0_P_WData</spirit:name>
+                <spirit:name>Targ0_P_Selx</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>in</spirit:direction>
+                    <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ0_P_Enable</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ0_P_Write</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -841,9 +775,19 @@
             <spirit:port>
                 <spirit:name>Targ0_P_RData</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>1023</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ0_P_WData</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>31</spirit:left>
+                        <spirit:left>1023</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -851,13 +795,111 @@
             <spirit:port>
                 <spirit:name>Targ0_P_Ready</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
-                    <spirit:direction>out</spirit:direction>
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>
                 <spirit:name>Targ0_P_SlvErr</spirit:name>
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_Addr</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>52</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_Selx</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_Enable</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_Write</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_RData</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>1023</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_WData</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>out</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>1023</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_Ready</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>Targ1_P_SlvErr</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
+                </spirit:wire>
+            </spirit:port>
+            <spirit:port>
+                <spirit:name>noc_prstn</spirit:name>
+                <spirit:wire spirit:allLogicalDirectionsAllowed="false">
+                    <spirit:direction>in</spirit:direction>
+                    <spirit:vector>
+                        <spirit:left>0</spirit:left>
+                        <spirit:right>0</spirit:right>
+                    </spirit:vector>
                 </spirit:wire>
             </spirit:port>
             <spirit:port>

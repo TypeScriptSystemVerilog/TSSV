@@ -459,7 +459,7 @@
                 <spirit:parameter>
                     <spirit:name>wLen</spirit:name>
                     <spirit:description>Parameter wLen sets the Len bits width.</spirit:description>
-                    <spirit:value>8</spirit:value>
+                    <spirit:value>4</spirit:value>
                 </spirit:parameter>
                 <spirit:parameter>
                     <spirit:name>wLoop</spirit:name>
@@ -992,7 +992,7 @@
                 <spirit:parameter>
                     <spirit:name>wLen</spirit:name>
                     <spirit:description>Parameter wLen sets the Len bits width.</spirit:description>
-                    <spirit:value>8</spirit:value>
+                    <spirit:value>4</spirit:value>
                 </spirit:parameter>
                 <spirit:parameter>
                     <spirit:name>wLoop</spirit:name>
@@ -1525,7 +1525,7 @@
                 <spirit:parameter>
                     <spirit:name>wLen</spirit:name>
                     <spirit:description>Parameter wLen sets the Len bits width.</spirit:description>
-                    <spirit:value>8</spirit:value>
+                    <spirit:value>4</spirit:value>
                 </spirit:parameter>
                 <spirit:parameter>
                     <spirit:name>wLoop</spirit:name>
@@ -2058,7 +2058,7 @@
                 <spirit:parameter>
                     <spirit:name>wLen</spirit:name>
                     <spirit:description>Parameter wLen sets the Len bits width.</spirit:description>
-                    <spirit:value>8</spirit:value>
+                    <spirit:value>4</spirit:value>
                 </spirit:parameter>
                 <spirit:parameter>
                     <spirit:name>wLoop</spirit:name>
@@ -2287,7 +2287,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -2531,7 +2531,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -2659,7 +2659,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -2903,7 +2903,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>in</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -3031,7 +3031,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -3275,7 +3275,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -3403,7 +3403,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>
@@ -3647,7 +3647,7 @@
                 <spirit:wire spirit:allLogicalDirectionsAllowed="false">
                     <spirit:direction>out</spirit:direction>
                     <spirit:vector>
-                        <spirit:left>7</spirit:left>
+                        <spirit:left>3</spirit:left>
                         <spirit:right>0</spirit:right>
                     </spirit:vector>
                 </spirit:wire>

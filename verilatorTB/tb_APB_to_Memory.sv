@@ -15,7 +15,7 @@
 // together, a request lasts one cycle, comes only in the APB setup phase and only while READY
 // is high, and each transfer makes exactly one request.
 //
-// The RAM window is served by a zero-wait slave model from memory_models.sv
+// The RAM window is served by a zero-wait slave model, memory_slave_bidi_32_32.sv
 // (ts/test/models/MemoryModels.ts), which also flags any contract violation on the window's bus.
 //
 // Timing: inputs change on a falling edge and outputs are checked 1 ns after a falling edge.
@@ -55,7 +55,7 @@ module tb_APB_to_Memory;
     .apb,
     .MEM (mem_bus)
   );
-  memory_slave_bidi_32_32 #(.DEPTH(4)) mem (.clk, .rst_b, .bus (mem_bus));
+  memory_slave_bidi_32_32 #(.DEPTH(4)) MEM_mem (.clk, .rst_b, .bus (mem_bus));
 
   // ---- reference model ----
   localparam logic [31:0] CTRL_MASK = 32'h0000_ff07;  // enable [0], mode [2:1], divisor [15:8]
@@ -149,7 +149,7 @@ module tb_APB_to_Memory;
       32'hc: check("write CMD", CMD, data);
       32'h20, 32'h24, 32'h28, 32'h2c: begin
         m_mem[(addr - 32'h20) / 4] = data;
-        check("write MEM word", mem.mem[(addr - 32'h20) / 4], data);
+        check("write MEM word", MEM_mem.mem[(addr - 32'h20) / 4], data);
       end
       default: ;
     endcase
@@ -204,7 +204,7 @@ module tb_APB_to_Memory;
     idle(2);
 
     check("one Memory request per APB transfer", 32'(requests), 32'(transfers));
-    errors += mem.errors;  // contract violations the slave model saw on the window's bus
+    errors += MEM_mem.errors;  // contract violations the slave model saw on the window's bus
 
     if (errors == 0) begin
       $display("tb_APB_to_Memory: PASS (%0d checks, %0d transfers)", checks, transfers);

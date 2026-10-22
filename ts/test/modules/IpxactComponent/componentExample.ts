@@ -1,72 +1,93 @@
-import { writeFileSync, mkdirSync } from 'fs'
-// import * as fs from 'fs'
+// Wraps three sample components with IpXactComponent, and writes each under
+// sv-examples/IpXactComponent/<component>/, one definition per file:
+// - <component>.sv: the wrapper, with each bus interface as a port
+// - <interface>.sv: the interface those ports use
+// - <component>_lint_top.sv: a wrapper that instantiates the interfaces, so the component can be
+//   linted with `verilator --lint-only -Wall`
+// - <component>_lint_top.f: the lint filelist
+//
+// Each sample's SystemVerilog file stands in for the vendor's RTL. It is this test's input,
+// written by hand, not generated SV, so it isn't written out with the wrapper: the filelist names
+// it where it is (doc/modules/IpXactComponent/IpXactComponent-spec.md).
+//
+// The AXI and APB samples come from a NoC generator. The adder is the spec's worked example: one
+// APB port, so its XML has one bus interface, one parameter list and so on.
+//
+// It also checks that IpXactComponent ties an unmapped input to 0, and rejects a port whose width
+// differs from its bus signal's.
+//
+// Run from the repo root: the sample paths are relative to it.
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join, posix } from 'path'
 import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { parseSVModules, selectSVModule } from 'tssv/lib/core/SVModuleHeader'
+import { writePortInterfaces } from 'tssv/test/models/emitSplit'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { lintWrapper } from 'tssv/test/models/lintWrapper'
 
 const GENERATOR = 'ts/test/modules/IpxactComponent/componentExample.ts'
+const SAMPLES = 'ts/test/modules/IpxactComponent'
+const OUT = 'sv-examples/IpXactComponent'
 
-// Convert import.meta.url to __dirname
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+// `tied`: the inputs of the sample's module that its XML maps to no bus signal
+const samples = [
+  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv`, tied: ['tm'] },
+  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv`, tied: ['tm'] },
+  { name: 'adderComponent', xmlDataPath: `${SAMPLES}/Adder/adder.xml`, svFilePath: `${SAMPLES}/Adder/apb_adder.sv`, tied: [] }
+]
 
-mkdirSync('sv-examples/IpXactComponent/axiComponent', { recursive: true })
-mkdirSync('sv-examples/IpXactComponent/apbComponent', { recursive: true })
-
-const xml_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/AXI/axiSample.xml')
-const sv_path = join(__dirname, '../../../../ts/test/modules/IpxactComponent/AXI/architectureSample.sv')
-
-// AXI component
-
-const component = new IpXactComponent(
-  {
-    name: 'axiComponent',
-    xmlDataPath: xml_path,
-    svFilePath: sv_path
-  })
-
-try {
-  const TB =
-`
-    // verilator lint_off DECLFILENAME
-    // verilator lint_off UNUSED
-    ${component.writeSystemVerilog()}
-`
-  writeFileSync('sv-examples/IpXactComponent/axiComponent/componentExample.sv', TB)
-  // Its ports are interfaces, so it's linted through a wrapper that instantiates them
-  writeFileSync('sv-examples/IpXactComponent/axiComponent/axiComponent_lint_top.sv', lintWrapper(component, GENERATOR))
-  writeLintFilelist('sv-examples/IpXactComponent/axiComponent', 'axiComponent_lint_top',
-    ['componentExample.sv', 'axiComponent_lint_top.sv'], GENERATOR)
-} catch (err) {
-  console.error(err)
-}
-
-// APB component
-
-const xml_path_apb = join(__dirname, '../../../../ts/test/modules/IpxactComponent/APB/apbSample.xml')
-const sv_path_apb = join(__dirname, '../../../../ts/test/modules/IpxactComponent/APB/apbArchitecture.sv')
-
-const apbComponent = new IpXactComponent(
-  {
-    name: 'apbComponent',
-    xmlDataPath: xml_path_apb,
-    svFilePath: sv_path_apb
+for (const { tied, ...params } of samples) {
+  const component = new IpXactComponent(params)
+  const dir = `${OUT}/${component.name}`
+  mkdirSync(dir, { recursive: true })
+  // The sample's module, which the wrapper instantiates, is left out of the wrapper's file
+  const sample = selectSVModule(parseSVModules(readFileSync(params.svFilePath, 'utf8')), params.svFilePath).name
+  const defined = new Set<string>()
+  const interfaces = writePortInterfaces(component, dir, defined)
+  writeFileSync(`${dir}/${component.name}.sv`, component.writeSystemVerilog({ exclude: new Set([...defined, sample]) }))
+  writeFileSync(`${dir}/${component.name}_lint_top.sv`, lintWrapper(component, GENERATOR))
+  writeLintFilelist(dir, `${component.name}_lint_top`,
+    [posix.relative(dir, params.svFilePath), ...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`], GENERATOR)
+  console.log(`wrote ${dir}/${[...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`].join(', ')}`)
+  // Each of them is tied to 0
+  const sv = readFileSync(`${dir}/${component.name}.sv`, 'utf8')
+  for (const port of tied) {
+    if (!sv.includes(`.${port}(const_w1u0)`)) throw Error(`${component.name}: ${port} isn't tied to 0`)
   }
-)
-
-try {
-  const TB =
-  `
-      // verilator lint_off DECLFILENAME
-      // verilator lint_off UNUSED
-      ${apbComponent.writeSystemVerilog()}
-  `
-  writeFileSync('sv-examples/IpXactComponent/apbComponent/apbComponentExample.sv', TB)
-  writeFileSync('sv-examples/IpXactComponent/apbComponent/apbComponent_lint_top.sv', lintWrapper(apbComponent, GENERATOR))
-  writeLintFilelist('sv-examples/IpXactComponent/apbComponent', 'apbComponent_lint_top',
-    ['apbComponentExample.sv', 'apbComponent_lint_top.sv'], GENERATOR)
-} catch (err) {
-  console.error(err)
 }
+
+// The AXI sample with its XML edited by `edit` must fail to build, with an error mentioning
+// `expected`
+function expectThrow (what: string, edit: (xml: string) => string, expected: string): void {
+  const axi = samples[0]
+  const tmp = mkdtempSync(join(tmpdir(), 'ipxact-'))
+  let message = ''
+  try {
+    const xml = readFileSync(axi.xmlDataPath, 'utf8')
+    const edited = edit(xml)
+    if (edited === xml) throw Error(`${what}: the edit didn't change the AXI sample's XML`)
+    const xmlDataPath = join(tmp, 'axiSample.xml')
+    writeFileSync(xmlDataPath, edited)
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath })
+  } catch (err) {
+    message = (err as Error).message
+  } finally {
+    rmSync(tmp, { recursive: true, force: true })
+  }
+  if (!message.includes(expected)) throw Error(`${what}: expected a throw mentioning "${expected}", got "${message}"`)
+  console.log(`PASS: ${what} throws`)
+}
+
+// A port whose width in the XML's <model><ports> differs from its bus signal's: Init0_Ar_Len
+// widened to 8 bits in the model, which comes after the bus interfaces
+expectThrow('a port wider than its bus signal', xml => {
+  const model = xml.indexOf('<spirit:model>')
+  return xml.slice(0, model) + xml.slice(model).replace(
+    /(<spirit:name>Init0_Ar_Len<\/spirit:name>(?:(?!<\/spirit:port>)[\s\S])*<spirit:left>)3(<\/spirit:left>)/,
+    (_, head: string, tail: string) => `${head}7${tail}`)
+}, 'maps port Init0_Ar_Len (8 bits) to Init0.ARLEN (4 bits)')
+
+// A bus type that isn't in IpXactComponent.knownInterfaces: the first interface's
+expectThrow('an unknown bus type', xml => xml.replace('spirit:name="AXI_"', 'spirit:name="NOPE_"'),
+  "of bus type tssv/lib/interfaces/AMBA/AMBA3/NOPE/r2p0_0/NOPE, which isn't in IpXactComponent.knownInterfaces")
