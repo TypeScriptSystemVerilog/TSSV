@@ -98,18 +98,20 @@ function attributePrefix (declName: string, attributes: SVAttributes | undefined
  * writes, with a `` `include `` of each file in `includes` for `USE_INCLUDES` builds. SV that
  * already defines the guard macro, such as an imported file written in the same convention, is
  * returned as is: a second guard on the same macro would hide everything inside it.
- * @param name the module or interface name, which is also the guard macro
+ * @param name the module or interface name; the guard macro is `DEF__<name>__`
  * @param includes names of the files to include, without `.sv`
  * @param sv the definition
  * @returns the contents of `<name>.sv`
  */
 function guardSVFile (name: string, includes: string[], sv: string): string {
-  // `name` is a legal identifier by now, so `$` is the only character in it that a regex treats
-  // specially: escape each one so it matches a literal `$`
-  const macro = name.replace(/\$/g, '\\$')
+  const guard = `DEF__${name}__`
+  // `name` is a legal identifier by now, so `$` is the only character in the guard that a regex
+  // treats specially: escape each one so it matches a literal `$`
+  const macro = guard.replace(/\$/g, '\\$')
   // A line that defines the guard macro: optional indentation, `define, whitespace, then the
-  // name. The lookahead (?!...) rejects a longer identifier that merely starts with the name,
-  // such as `define leaf_2 for leaf. 'm' makes ^ match at the start of every line.
+  // macro. The lookahead (?!...) rejects a longer identifier that merely starts with the macro,
+  // such as module leaf__2's `define DEF__leaf__2__ for leaf. 'm' makes ^ match at the start of
+  // every line.
   if (new RegExp(`^\\s*\`define\\s+${macro}(?![A-Za-z0-9_$])`, 'm').test(sv)) return sv
   const includeBlock = includes.length === 0
     ? ''
@@ -117,7 +119,7 @@ function guardSVFile (name: string, includes: string[], sv: string): string {
   // Drop the blank lines at the start (one or more runs of whitespace ending in a newline), so
   // the definition starts right after the guard, and the whitespace at the end
   const body = sv.replace(/^(\s*\n)+/, '').trimEnd()
-  return `\`ifndef ${name}\n\`define ${name}\n${includeBlock}\n${body}\n\n\`endif //!${name}\n`
+  return `\`ifndef ${guard}\n\`define ${guard}\n${includeBlock}\n${body}\n\n\`endif //!${guard}\n`
 }
 
 type PortDirection = 'input' | 'output' | 'inout'
@@ -1670,12 +1672,12 @@ ${caseAssignments}
    * Writes this module and everything it reaches one definition per file: `<outDir>/<name>.sv`
    * for each module and each interface, each defined once.
    *
-   * Each file sits inside an include guard named after what it defines, and a module's file
-   * includes the files of the interfaces it uses and the modules it instantiates directly:
+   * Each file sits inside an include guard, `DEF__<name>__` for what it defines, and a module's
+   * file includes the files of the interfaces it uses and the modules it instantiates directly:
    *
    * ```systemverilog
-   * `ifndef mid
-   * `define mid
+   * `ifndef DEF__mid__
+   * `define DEF__mid__
    * `ifdef USE_INCLUDES
    * `include "memory_rd_only_32_32.sv"
    * `include "leaf.sv"
@@ -1685,7 +1687,7 @@ ${caseAssignments}
    *    ...
    * endmodule
    *
-   * `endif //!mid
+   * `endif //!DEF__mid__
    * ```
    *
    * A module with no interfaces and no submodules, and every interface, has the guard only. The
@@ -1703,8 +1705,8 @@ ${caseAssignments}
    *   `verilator --lint-only <every path in files>`
    *
    * A module imported with `addSystemVerilogSubmodule()` is written to `<moduleName>.sv` as its
-   * source, inside the guard. A source that already defines its own `<moduleName>` guard macro is
-   * written unchanged.
+   * source, inside the guard. A source that already defines its own `DEF__<moduleName>__` guard
+   * macro is written unchanged.
    *
    * Names must be legal SystemVerilog identifiers, because they name files and macros, and must
    * differ in more than case, because two files whose names differ only in case are one file on
@@ -1750,9 +1752,9 @@ ${caseAssignments}
     for (const u of units) {
       // A simple SystemVerilog identifier: a letter or underscore, then letters, digits,
       // underscores or `$`. Escaped identifiers (\foo) can't name a file or a macro, so they fail.
-      if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(u.name) || u.name === 'USE_INCLUDES') {
+      if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(u.name)) {
         throw Error(`writeSystemVerilogFiles: ${describe(u)} can't name a file and its include guard: ` +
-          'it is not a legal SystemVerilog identifier, or is USE_INCLUDES')
+          'it is not a legal SystemVerilog identifier')
       }
       const other = byFileName.get(u.name.toLowerCase())
       if (other !== undefined) {

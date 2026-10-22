@@ -186,7 +186,7 @@ check('the top file is returned last', files[files.length - 1] === `${OUT}/Top.s
 // ---- Test 2: guards, includes and order ---------------------------------------------------
 for (const [name, sv] of text) {
   check(`${name}.sv is inside its include guard`,
-    sv.startsWith(`\`ifndef ${name}\n\`define ${name}\n`) && sv.endsWith(`\n\`endif //!${name}\n`))
+    sv.startsWith(`\`ifndef DEF__${name}__\n\`define DEF__${name}__\n`) && sv.endsWith(`\n\`endif //!DEF__${name}__\n`))
 }
 check('MidA includes its interface, then its two leaves',
   includes(text.get('MidA') ?? '').join(' ') === 'memory_rd_only_32_32 Leaf_8 Leaf_16',
@@ -207,7 +207,7 @@ names.forEach((name, i) => {
 const plainSource = readFileSync(`${FIXTURES}/plain_import.sv`, 'utf8')
 check('an imported file is written inside the guard, otherwise unchanged',
   text.get('plain_import') ===
-    `\`ifndef plain_import\n\`define plain_import\n\n${plainSource.trimEnd()}\n\n\`endif //!plain_import\n`)
+    `\`ifndef DEF__plain_import__\n\`define DEF__plain_import__\n\n${plainSource.trimEnd()}\n\n\`endif //!DEF__plain_import__\n`)
 check('an imported file that already has the guard is written unchanged',
   text.get('guarded_import') === readFileSync(`${FIXTURES}/guarded_import.sv`, 'utf8'))
 
@@ -241,7 +241,7 @@ check('writeSystemVerilog() is unchanged by writeSystemVerilogFiles()', top.writ
 // guarded_import's source is emitted verbatim, so its own guard is the only one. The regex
 // captures the macro of every line that is exactly `ifndef <macro> ('m': ^ and $ match per line).
 const guards = [...singleFile.matchAll(/^`ifndef (\S+)$/gm)].map(m => m[1])
-check('writeSystemVerilog() adds no include guard', guards.join(' ') === 'guarded_import', `guards: ${guards.join(' ')}`)
+check('writeSystemVerilog() adds no include guard', guards.join(' ') === 'DEF__guarded_import__', `guards: ${guards.join(' ')}`)
 
 // ---- Test 7: names that can't be files ----------------------------------------------------
 class Named extends Module {

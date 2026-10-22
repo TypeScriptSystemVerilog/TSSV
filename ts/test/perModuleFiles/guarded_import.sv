@@ -1,5 +1,5 @@
-`ifndef guarded_import
-`define guarded_import
+`ifndef DEF__guarded_import__
+`define DEF__guarded_import__
 // Imported by ts/test/test_perModuleFiles.ts with addSystemVerilogSubmodule(). It already has the
 // include guard writeSystemVerilogFiles() writes, so it is written unchanged, not guarded twice.
 
@@ -14,4 +14,4 @@ module guarded_import
   end
 endmodule
 
-`endif //!guarded_import
+`endif //!DEF__guarded_import__

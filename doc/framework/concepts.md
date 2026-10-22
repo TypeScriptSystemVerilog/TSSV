@@ -391,13 +391,13 @@ single-file emission does, with nothing defined twice.
 module and everything it reaches to `<outDir>/<name>.sv`, one file for each module and each
 interface. It returns the paths, each one after every file it includes, so the top's is last.
 
-Each file sits inside an include guard named after what it defines. A module's file also
-includes the files of the interfaces it uses, ports and local bundles, and of the modules it
-instantiates directly:
+Each file sits inside an include guard, `DEF__<name>__` for what it defines. A module's file
+also includes the files of the interfaces it uses, ports and local bundles, and of the modules
+it instantiates directly:
 
 ```systemverilog
-`ifndef mid
-`define mid
+`ifndef DEF__mid__
+`define DEF__mid__
 `ifdef USE_INCLUDES
 `include "memory_rd_only_32_32.sv"
 `include "leaf.sv"
@@ -407,7 +407,7 @@ module mid
    ...
 endmodule
 
-`endif //!mid
+`endif //!DEF__mid__
 ```
 
 - **The guard** lets a file be reached more than once, from two parents or from the command
@@ -418,8 +418,8 @@ endmodule
   name every file, on the command line or in a filelist, using the returned paths.
 - An interface's file, and a module's with no interfaces and no submodules, have the guard only.
 - **Imported SV** (§8) is written to `<moduleName>.sv` as its source, inside the guard. A source
-  that already defines its own `<moduleName>` guard macro is written unchanged, because a second
-  guard on the same macro would hide the module.
+  that already defines its own `DEF__<moduleName>__` guard macro is written unchanged, because a
+  second guard on the same macro would hide the module.
 - **Names** become file names and macro names, so emission throws, naming the modules involved,
   when a name isn't a legal SystemVerilog identifier, or when two names differ only in case
   (one file on macOS and Windows). Two different modules with the same name are still written as

@@ -1056,12 +1056,12 @@ writeSystemVerilogFiles(outDir): string[];
 Writes this module and everything it reaches one definition per file: `<outDir>/<name>.sv`
 for each module and each interface, each defined once.
 
-Each file sits inside an include guard named after what it defines, and a module's file
-includes the files of the interfaces it uses and the modules it instantiates directly:
+Each file sits inside an include guard, `DEF__<name>__` for what it defines, and a module's
+file includes the files of the interfaces it uses and the modules it instantiates directly:
 
 ```systemverilog
-`ifndef mid
-`define mid
+`ifndef DEF__mid__
+`define DEF__mid__
 `ifdef USE_INCLUDES
 `include "memory_rd_only_32_32.sv"
 `include "leaf.sv"
@@ -1071,7 +1071,7 @@ module mid
    ...
 endmodule
 
-`endif //!mid
+`endif //!DEF__mid__
 ```
 
 A module with no interfaces and no submodules, and every interface, has the guard only. The
@@ -1089,8 +1089,8 @@ The files can be built two ways:
   `verilator --lint-only <every path in files>`
 
 A module imported with `addSystemVerilogSubmodule()` is written to `<moduleName>.sv` as its
-source, inside the guard. A source that already defines its own `<moduleName>` guard macro is
-written unchanged.
+source, inside the guard. A source that already defines its own `DEF__<moduleName>__` guard
+macro is written unchanged.
 
 Names must be legal SystemVerilog identifiers, because they name files and macros, and must
 differ in more than case, because two files whose names differ only in case are one file on
