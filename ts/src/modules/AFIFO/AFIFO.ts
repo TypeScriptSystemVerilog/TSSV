@@ -11,9 +11,9 @@ export interface AFIFO_Parameters extends TSSVParameters {
    */
   dataWidth: bigint
   /**
-   * number of data words: 4, 8, 16 or 32
+   * number of data words: 4, 8, 16 or 32 (default 8)
    */
-  depth: bigint
+  depth?: bigint
   /**
    * flops in each pointer synchronizer, at least 2
    */
@@ -53,13 +53,13 @@ export class AFIFO extends Module {
     super({
       name: params.name,
       dataWidth: params.dataWidth,
-      depth: params.depth,
+      depth: params.depth ?? 8n,
       syncStages: params.syncStages ?? 2n,
       inclAlmostFull: params.inclAlmostFull ?? false,
       inclAlmostEmpty: params.inclAlmostEmpty ?? false,
       fpgaRamStyle: params.fpgaRamStyle
     })
-    const depth = this.params.depth
+    const depth = this.params.depth ?? 8n
     const syncStages = this.params.syncStages ?? 2n
     const style = this.params.fpgaRamStyle
     if (this.params.dataWidth < 1n) throw Error(`AFIFO: dataWidth must be at least 1, got ${this.params.dataWidth}`)

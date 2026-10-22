@@ -83,6 +83,7 @@ check(`AFIFOs that differ in any parameter get different names (${names.join(', 
 check('the default name is AFIFO_<dataWidth>_<depth>_<syncStages>_<inclAlmostFull>_<inclAlmostEmpty>',
   names[0] === 'AFIFO_8_4_2_false_false' &&
   new AFIFO({ dataWidth: 8n, depth: 4n, syncStages: 2n, inclAlmostFull: false, inclAlmostEmpty: false }).name === names[0])
+check('depth defaults to 8, and the name shows it', new AFIFO({ dataWidth: 8n }).name === 'AFIFO_8_8_2_false_false')
 
 for (const depth of [4n, 8n, 16n, 32n]) {
   for (const syncStages of [2n, 3n]) {
