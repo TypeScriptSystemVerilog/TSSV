@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'fs'
+import { Module } from 'tssv/lib/core/TSSV'
 import { runVerible } from 'tssv/lib/tools/formatters/verible'
 
 const OUT = 'sv-examples/Core/verible'
@@ -87,10 +88,11 @@ try {
 check('missing binary with failOnFormatError=true throws', threw)
 
 // --- Test 4: timeout, failOnFormatError=false → returns original ---
-// a stand-in formatter that sleeps, so the timeout fires however fast Verible is
+// a stand-in formatter that sleeps, so the timeout fires however fast Verible is. runVerible adds
+// its own flags after these, and `--` hands them to the script: node would reject them
 const result4 = runVerible(SAMPLE_SV, {
   veriblePath: process.execPath,
-  veribleFlags: ['-e', 'setTimeout(() => {}, 5000)'],
+  veribleFlags: ['-e', 'setTimeout(() => {}, 5000)', '--'],
   formatTimeoutMs: 100,
   failOnFormatError: false
 })
@@ -105,7 +107,7 @@ let timeoutMsg = ''
 try {
   runVerible(SAMPLE_SV, {
     veriblePath: process.execPath,
-    veribleFlags: ['-e', 'setTimeout(() => {}, 5000)'],
+    veribleFlags: ['-e', 'setTimeout(() => {}, 5000)', '--'],
     formatTimeoutMs: 100,
     failOnFormatError: true
   })
@@ -117,6 +119,65 @@ check(
   timeoutMsg.includes('timeout:   100 ms (exceeded'),
   `got: ${JSON.stringify(timeoutMsg)}`
 )
+
+// --- Tests 6 and 7: a syntax error in a module's body, through writeSystemVerilog() ---
+// Neither writes its SV: lint:sv would reject the syntax error
+if (veribleAvailable) {
+  const bad = new Module({ name: 'syntax_error' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    q: { direction: 'output', width: 8 }
+  })
+  bad.addBody(`
+    always_ff @(posedge clk) begin
+      q <= ;
+    end
+  `)
+  Module.setFormatterConfig({ engine: 'off' })
+  const unformatted = bad.writeSystemVerilog()
+  // where Verible reports the error: 1-based, at the ';' after '<= '
+  const lines = unformatted.split('\n')
+  const errorLine = lines.findIndex((l) => l.includes('<= ;'))
+  const errorColumn = (lines[errorLine] ?? '').indexOf('<= ;') + 4
+  const location = `<stdin>:${errorLine + 1}:${errorColumn}: syntax error at token ";"`
+
+  // Test 6: the default configuration throws, with Verible's line, column and token
+  Module.setFormatterConfig({ engine: 'verible', failOnFormatError: true })
+  let syntaxMsg = ''
+  try {
+    bad.writeSystemVerilog()
+  } catch (e) {
+    syntaxMsg = (e as Error).message
+  }
+  check(
+    'syntax error with failOnFormatError=true throws with its location',
+    syntaxMsg.includes(location),
+    `expected ${JSON.stringify(location)}, got: ${JSON.stringify(syntaxMsg)}`
+  )
+
+  // Test 7: failOnFormatError=false warns with the location and returns the unformatted SV
+  Module.setFormatterConfig({ engine: 'verible', failOnFormatError: false })
+  const warnings: string[] = []
+  const warn = console.warn
+  console.warn = (msg: string) => { warnings.push(msg) }
+  let warned = ''
+  try {
+    warned = bad.writeSystemVerilog()
+  } finally {
+    console.warn = warn
+    Module.setFormatterConfig({ engine: 'verible', failOnFormatError: true })
+  }
+  check(
+    'syntax error with failOnFormatError=false warns with its location',
+    warnings.length === 1 && (warnings[0] ?? '').includes(location),
+    `expected one warning with ${JSON.stringify(location)}, got: ${JSON.stringify(warnings)}`
+  )
+  check(
+    'syntax error with failOnFormatError=false returns the unformatted SV',
+    warned === unformatted
+  )
+} else {
+  skip('syntax error through writeSystemVerilog (verible-verilog-format not found on PATH)')
+}
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
