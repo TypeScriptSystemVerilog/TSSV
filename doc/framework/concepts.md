@@ -402,10 +402,14 @@ Module.setFormatterConfig({
 ```
 
 - The default is `{ engine: 'verible', failOnFormatError: true }`, so generation fails if
-  Verible isn't installed, times out or crashes. The thrown message carries its diagnostic.
-- **A syntax error doesn't fail generation.** On a syntax error `verible-verilog-format` exits
-  with status 0 and returns its input unformatted, and the core discards its error output.
-  Unformatted output is the only sign. Lint generated SV with Verilator to catch these. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
+  Verible isn't installed, times out, crashes or finds a syntax error. The thrown message
+  carries its diagnostic.
+- **A syntax error is a formatter failure.** Left to its defaults, `verible-verilog-format`
+  exits 0 on a syntax error and returns its input unformatted. The core passes
+  `--failsafe_success=false`, after any `veribleFlags`, so it exits 1 instead. The diagnostic's
+  `stderr:` line has Verible's line, column and token, such as
+  `<stdin>:12:9: syntax error at token ";"`. The line counts from the start of the top-level
+  call's unformatted output, which is the text returned under `failOnFormatError: false`. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
 - `setFormatterConfig` **replaces** the whole configuration. Fields you leave out are unset,
   not kept from the default. Leave out `failOnFormatError` and failures become warnings.
 - `'internal'` is accepted, but today it does nothing: it skips formatting, as `'off'` does.
