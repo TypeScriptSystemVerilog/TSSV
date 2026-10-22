@@ -9,7 +9,10 @@ export interface VeribleOpts {
 
 export function runVerible (sv: string, opts: VeribleOpts): string {
   const binary = opts.veriblePath ?? 'verible-verilog-format'
-  const args = [...(opts.veribleFlags ?? []), '-']
+  // By default Verible exits 0 on a syntax error and returns its input unformatted, so the error
+  // would pass as success. With this it exits 1 and the error takes the failure path below. It
+  // comes after veribleFlags, so they can't turn it back off.
+  const args = [...(opts.veribleFlags ?? []), '--failsafe_success=false', '-']
   // Large generated designs (tens of thousands of lines) take several seconds to format.
   const timeout = opts.formatTimeoutMs ?? 60000
 
