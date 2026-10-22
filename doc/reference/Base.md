@@ -1022,6 +1022,70 @@ are constants. The rules:
 
 string containing the generated SystemVerilog code for this module
 
+##### writeSystemVerilogFiles()
+
+```ts
+writeSystemVerilogFiles(outDir): string[];
+```
+
+Writes this module and everything it reaches one definition per file: `<outDir>/<name>.sv`
+for each module and each interface, each defined once.
+
+Each file sits inside an include guard, `DEF__<name>__` for what it defines, and a module's
+file includes the files of the interfaces it uses and the modules it instantiates directly:
+
+```systemverilog
+`ifndef DEF__mid__
+`define DEF__mid__
+`ifdef USE_INCLUDES
+`include "memory_rd_only_32_32.sv"
+`include "leaf.sv"
+`endif //USE_INCLUDES
+
+module mid
+   ...
+endmodule
+
+`endif //!DEF__mid__
+```
+
+A module with no interfaces and no submodules, and every interface, has the guard only. The
+guard lets a file be reached more than once, from two parents or from the command line as
+well, and still define its module once.
+
+```typescript
+const files = top.writeSystemVerilogFiles('build/rtl')   // leaves first, top last
+```
+
+The files can be built two ways:
+- With `USE_INCLUDES`, name only the top file and let the includes find the rest:
+  `verilator --lint-only +define+USE_INCLUDES +incdir+build/rtl build/rtl/top.sv`
+- Without it, name every file, on the command line or in a filelist:
+  `verilator --lint-only <every path in files>`
+
+A module imported with `addSystemVerilogSubmodule()` is written to `<moduleName>.sv` as its
+source, inside the guard. A source that already defines its own `DEF__<moduleName>__` guard
+macro is written unchanged.
+
+Names must be legal SystemVerilog identifiers, because they name files and macros, and must
+differ in more than case, because two files whose names differ only in case are one file on
+macOS and Windows. Two different modules with the same name are still written as one (#122).
+Files already in `outDir` that this call doesn't write are left in place.
+
+`writeSystemVerilog()` is unaffected: its single-string output carries no guards.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `outDir` | `string` | the directory to write to, created if it doesn't exist |
+
+###### Returns
+
+`string`[]
+
+the paths written, each after every file it includes, so this module's is last
+
 ## Interfaces
 
 ### TSSVParameters

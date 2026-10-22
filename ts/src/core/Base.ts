@@ -1,5 +1,6 @@
 /** @module Base */
-import { readFileSync } from 'fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { join } from 'path'
 import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
 import { type ModuleTable, checkModule } from './ModuleCheck.js'
 import { runVerible } from '../tools/formatters/verible.js'
@@ -90,6 +91,35 @@ function attributePrefix (declName: string, attributes: SVAttributes | undefined
     }
   }
   return (specs.length > 0) ? `(* ${specs.join(', ')} *) ` : ''
+}
+
+/**
+ * Wraps one module's or interface's SV in the include guard that `writeSystemVerilogFiles()`
+ * writes, with a `` `include `` of each file in `includes` for `USE_INCLUDES` builds. SV that
+ * already defines the guard macro, such as an imported file written in the same convention, is
+ * returned as is: a second guard on the same macro would hide everything inside it.
+ * @param name the module or interface name; the guard macro is `DEF__<name>__`
+ * @param includes names of the files to include, without `.sv`
+ * @param sv the definition
+ * @returns the contents of `<name>.sv`
+ */
+function guardSVFile (name: string, includes: string[], sv: string): string {
+  const guard = `DEF__${name}__`
+  // `name` is a legal identifier by now, so `$` is the only character in the guard that a regex
+  // treats specially: escape each one so it matches a literal `$`
+  const macro = guard.replace(/\$/g, '\\$')
+  // A line that defines the guard macro: optional indentation, `define, whitespace, then the
+  // macro. The lookahead (?!...) rejects a longer identifier that merely starts with the macro,
+  // such as module leaf__2's `define DEF__leaf__2__ for leaf. 'm' makes ^ match at the start of
+  // every line.
+  if (new RegExp(`^\\s*\`define\\s+${macro}(?![A-Za-z0-9_$])`, 'm').test(sv)) return sv
+  const includeBlock = includes.length === 0
+    ? ''
+    : ['`ifdef USE_INCLUDES', ...includes.map(i => `\`include "${i}.sv"`), '`endif //USE_INCLUDES', ''].join('\n')
+  // Drop the blank lines at the start (one or more runs of whitespace ending in a newline), so
+  // the definition starts right after the guard, and the whitespace at the end
+  const body = sv.replace(/^(\s*\n)+/, '').trimEnd()
+  return `\`ifndef ${guard}\n\`define ${guard}\n${includeBlock}\n${body}\n\n\`endif //!${guard}\n`
 }
 
 type PortDirection = 'input' | 'output' | 'inout'
@@ -1606,6 +1636,109 @@ ${caseAssignments}
       return runVerible(sv, Module.formatterConfig)
     }
     return sv
+  }
+
+  /**
+   * Writes this module and everything it reaches one definition per file: `<outDir>/<name>.sv`
+   * for each module and each interface, each defined once.
+   *
+   * Each file sits inside an include guard, `DEF__<name>__` for what it defines, and a module's
+   * file includes the files of the interfaces it uses and the modules it instantiates directly:
+   *
+   * ```systemverilog
+   * `ifndef DEF__mid__
+   * `define DEF__mid__
+   * `ifdef USE_INCLUDES
+   * `include "memory_rd_only_32_32.sv"
+   * `include "leaf.sv"
+   * `endif //USE_INCLUDES
+   *
+   * module mid
+   *    ...
+   * endmodule
+   *
+   * `endif //!DEF__mid__
+   * ```
+   *
+   * A module with no interfaces and no submodules, and every interface, has the guard only. The
+   * guard lets a file be reached more than once, from two parents or from the command line as
+   * well, and still define its module once.
+   *
+   * ```typescript
+   * const files = top.writeSystemVerilogFiles('build/rtl')   // leaves first, top last
+   * ```
+   *
+   * The files can be built two ways:
+   * - With `USE_INCLUDES`, name only the top file and let the includes find the rest:
+   *   `verilator --lint-only +define+USE_INCLUDES +incdir+build/rtl build/rtl/top.sv`
+   * - Without it, name every file, on the command line or in a filelist:
+   *   `verilator --lint-only <every path in files>`
+   *
+   * A module imported with `addSystemVerilogSubmodule()` is written to `<moduleName>.sv` as its
+   * source, inside the guard. A source that already defines its own `DEF__<moduleName>__` guard
+   * macro is written unchanged.
+   *
+   * Names must be legal SystemVerilog identifiers, because they name files and macros, and must
+   * differ in more than case, because two files whose names differ only in case are one file on
+   * macOS and Windows. Two different modules with the same name are still written as one (#122).
+   * Files already in `outDir` that this call doesn't write are left in place.
+   *
+   * `writeSystemVerilog()` is unaffected: its single-string output carries no guards.
+   * @param outDir the directory to write to, created if it doesn't exist
+   * @returns the paths written, each after every file it includes, so this module's is last
+   */
+  writeSystemVerilogFiles (outDir: string): string[] {
+    interface Unit { kind: 'module' | 'interface', name: string, usedBy?: string, includes: string[], text: () => string }
+    const units: Unit[] = []
+    const seen = new Set<string>()
+    // Post-order, so each file lands after everything it includes. A local interface bundle's
+    // type is usually defined first by the submodule port it connects, which carries modports.
+    const visit = (m: Module, usedBy?: string): void => {
+      if (seen.has(`module ${m.name}`)) return
+      seen.add(`module ${m.name}`)
+      const submoduleNames: string[] = []
+      for (const { module } of Object.values(m.submodules)) {
+        visit(module, m.name)
+        if (!submoduleNames.includes(module.name)) submoduleNames.push(module.name)
+      }
+      const interfaceNames: string[] = []
+      for (const intf of Object.values(m.interfaces)) {
+        const name = intf.interfaceName()
+        if (!seen.has(`interface ${name}`)) {
+          seen.add(`interface ${name}`)
+          units.push({ kind: 'interface', name, usedBy: m.name, includes: [], text: () => this.applyFormatter(intf.writeSystemVerilog()) })
+        }
+        if (!interfaceNames.includes(name)) interfaceNames.push(name)
+      }
+      const includes = [...interfaceNames, ...submoduleNames]
+      // Excluding what m includes leaves m's own definition: nothing below it is reached
+      units.push({ kind: 'module', name: m.name, usedBy, includes, text: () => m.writeSystemVerilog({ exclude: new Set(includes) }) })
+    }
+    visit(this)
+
+    const describe = (u: Unit): string =>
+      `${u.kind} ${u.name} (${u.usedBy === undefined ? 'the top module' : `used by ${u.usedBy}`})`
+    const byFileName = new Map<string, Unit>()
+    for (const u of units) {
+      // A simple SystemVerilog identifier: a letter or underscore, then letters, digits,
+      // underscores or `$`. Escaped identifiers (\foo) can't name a file or a macro, so they fail.
+      if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(u.name)) {
+        throw Error(`writeSystemVerilogFiles: ${describe(u)} can't name a file and its include guard: ` +
+          'it is not a legal SystemVerilog identifier')
+      }
+      const other = byFileName.get(u.name.toLowerCase())
+      if (other !== undefined) {
+        throw Error(`writeSystemVerilogFiles: ${describe(other)} and ${describe(u)} would be written to ` +
+          'the same file on a case-insensitive file system')
+      }
+      byFileName.set(u.name.toLowerCase(), u)
+    }
+
+    // Generate everything before writing anything, so a failure leaves no partial output
+    const files = units.map(u => ({ path: join(outDir, `${u.name}.sv`), sv: guardSVFile(u.name, u.includes, u.text()) }))
+    mkdirSync(outDir, { recursive: true })
+    for (const { path, sv } of files) writeFileSync(path, sv)
+    return files.map(f => f.path)
   }
 
   private _writeSystemVerilog (): string {

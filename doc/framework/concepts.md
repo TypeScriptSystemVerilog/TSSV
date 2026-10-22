@@ -385,6 +385,52 @@ const tbSV = tb.writeSystemVerilog({ exclude: defined })     // references it
 `ts/test/test_multiFileEmission.ts` checks that the files together define exactly what a
 single-file emission does, with nothing defined twice.
 
+### One file per module: `writeSystemVerilogFiles()` (#172)
+
+[`writeSystemVerilogFiles(outDir)`](../reference/Base.md#writesystemverilogfiles) writes the
+module and everything it reaches to `<outDir>/<name>.sv`, one file for each module and each
+interface. It returns the paths, each one after every file it includes, so the top's is last.
+
+Each file sits inside an include guard, `DEF__<name>__` for what it defines. A module's file
+also includes the files of the interfaces it uses, ports and local bundles, and of the modules
+it instantiates directly:
+
+```systemverilog
+`ifndef DEF__mid__
+`define DEF__mid__
+`ifdef USE_INCLUDES
+`include "memory_rd_only_32_32.sv"
+`include "leaf.sv"
+`endif //USE_INCLUDES
+
+module mid
+   ...
+endmodule
+
+`endif //!DEF__mid__
+```
+
+- **The guard** lets a file be reached more than once, from two parents or from the command
+  line as well, and still define its module once.
+- **`USE_INCLUDES`** picks how a build finds the files. With it, name only the top file and let
+  the includes find the rest:
+  `verilator --lint-only +define+USE_INCLUDES +incdir+<outDir> <outDir>/top.sv`. Without it,
+  name every file, on the command line or in a filelist, using the returned paths.
+- An interface's file, and a module's with no interfaces and no submodules, have the guard only.
+- **Imported SV** (§8) is written to `<moduleName>.sv` as its source, inside the guard. A source
+  that already defines its own `DEF__<moduleName>__` guard macro is written unchanged, because a
+  second guard on the same macro would hide the module.
+- **Names** become file names and macro names, so emission throws, naming the modules involved,
+  when a name isn't a legal SystemVerilog identifier, or when two names differ only in case
+  (one file on macOS and Windows). Two different modules with the same name are still written as
+  one, as in a single-file emission (#122).
+- Verible formats each file's definition on its own, before the guard is added.
+- Files already in `outDir` that the call doesn't write are left in place.
+
+`writeSystemVerilog()` is unchanged: its single-string output has no guards.
+`ts/test/test_perModuleFiles.ts` lints the files with Verilator both ways, and with both at once
+so that every file is reached twice.
+
 ### Checking each module against the SV guide
 
 Before a module's SV joins the output, it's checked against the SV guide's rules on always blocks
@@ -412,8 +458,8 @@ Each module is checked as it's emitted, submodules first, and SV imported with
 ### Formatting with Verible
 
 The returned text is passed through `verible-verilog-format` before it is returned. This
-happens once, on the top-level call's output. The configuration is a static setting shared by
-every module:
+happens once, on the top-level call's output, or once per file for `writeSystemVerilogFiles()`.
+The configuration is a static setting shared by every module:
 
 ```typescript
 Module.setFormatterConfig({
@@ -433,7 +479,9 @@ Module.setFormatterConfig({
   `--failsafe_success=false`, after any `veribleFlags`, so it exits 1 instead. The diagnostic's
   `stderr:` line has Verible's line, column and token, such as
   `<stdin>:12:9: syntax error at token ";"`. The line counts from the start of the top-level
-  call's unformatted output, which is the text returned under `failOnFormatError: false`. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
+  call's unformatted output, which is the text returned under `failOnFormatError: false`. For
+  `writeSystemVerilogFiles()`, it counts from the start of that file's definition, before the
+  guard is added. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
   Few syntax errors get that far, though. The module check above parses each module's SV first,
   and a syntax error there throws whatever `failOnFormatError` says. `addSystemVerilogSubmodule()`
   parses imported SV when it reads the file, and throws on a syntax error there too. That leaves
@@ -460,7 +508,8 @@ instantiates a module from an existing `.sv` file:
 4. Each entry in `params` is marked with `setVerilogParameter` and appears as `#(.P(value))` on
    the instance.
 5. The file's text, unchanged, becomes the module's definition in the output. It is written
-   once per module name, like any other definition.
+   once per module name, like any other definition. `writeSystemVerilogFiles()` (§7) writes it
+   to `<moduleName>.sv` inside an include guard, unless the text already defines that guard.
 
 What this means in practice:
 
