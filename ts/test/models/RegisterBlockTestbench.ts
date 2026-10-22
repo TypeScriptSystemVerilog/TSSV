@@ -314,25 +314,26 @@ export class RegisterBlockTestbench {
   /**
    * Addresses that probe the address decode, from the definition: each register's and window's
    * address with one bit flipped, for every bit of the bus address (the bits below the word make
-   * unaligned addresses); each window's edges (the byte before it, its first two and last two
-   * bytes, the byte after it and the word after that); and the top word of the address space.
-   * A decode that ignores an address bit, or misplaces a window's edge, hits the wrong register at
-   * one of them.
+   * unaligned addresses); the words either side of each register; each window's edges (the byte
+   * before it, its first two and last two bytes, the byte after it, and the last byte and the
+   * start of the word after that); and the top word of the address space. A decode that ignores
+   * an address bit, or misplaces a window's edge, hits the wrong register at one of them.
    */
   probes (): bigint[] {
     const top = ones(this.AW)
+    const B = BigInt(this.B)
     const probes = new Set<bigint>()
     for (const r of this.names) {
       const base = this.def.addrMap[r]
       for (let bit = 0; bit < this.AW; bit++) probes.add(base ^ (1n << BigInt(bit)))
       const reg = this.reg(r)
-      if (!isWindow(reg)) continue
-      const end = base + (reg.size ?? 1n) * BigInt(this.B)
-      for (const a of [base - 1n, base, base + 1n, end - 2n, end - 1n, end, end + BigInt(this.B)]) {
-        if (a >= 0n && a <= top) probes.add(a)
-      }
+      const end = base + (reg.size ?? 1n) * B
+      const edges = isWindow(reg)
+        ? [base - 1n, base, base + 1n, end - 2n, end - 1n, end, end + B - 1n, end + B]
+        : [base - B, base + B]
+      for (const a of edges) if (a >= 0n && a <= top) probes.add(a)
     }
-    probes.add(top + 1n - BigInt(this.B))
+    probes.add(top + 1n - B)
     return [...probes]
   }
 
