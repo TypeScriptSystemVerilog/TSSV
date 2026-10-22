@@ -101,6 +101,20 @@ regblock_types_sim: tsc
 	  (cd obj_dir/$$b && ./Vtb_$$b); \
 	done
 
+# The example RegisterBlock (TSSV#130): ts/test/testRegisters.ts generates the block and a
+# self-checking testbench from one RegisterBlockDef. This lints the block with -Wall, then builds
+# and runs the testbench. No waivers beyond the common ones.
+REGISTERS_DIR = ../sv-examples/Core/Registers
+
+registers_sim: tsc
+	cd ..; node out/test/testRegisters.js > /dev/null
+	verilator --lint-only -Wall $(COMMON_WAIVERS) -F $(REGISTERS_DIR)/testRegBlock_lint_top.f
+	@echo "lint -Wall clean: testRegBlock"
+	mkdir -p obj_dir
+	verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/testRegBlock -o Vtb_testRegBlock -F $(REGISTERS_DIR)/tb_testRegBlock.f \
+	  > obj_dir/testRegBlock.build.log 2>&1 || { cat obj_dir/testRegBlock.build.log; exit 1; }
+	cd obj_dir/testRegBlock && ./Vtb_testRegBlock
+
 # TSSV#116: ts/test/test_APB_to_Memory.ts writes a RegisterBlock with an APB port, so its
 # APB_to_Memory submodule drives the block's Memory bus. This lints the block with -Wall and runs
 # a self-checking APB testbench against it, each from the filelist the test writes. No waivers
@@ -249,7 +263,7 @@ clean:
 	rm -rf obj_dir
 	rm -f *.vcd
 
-.PHONY: sfifo_sim sram_sim regblock_read_sim regblock_types_sim apb_to_memory_sim twoclockregfile_sim \
+.PHONY: sfifo_sim sram_sim regblock_read_sim regblock_types_sim registers_sim apb_to_memory_sim twoclockregfile_sim \
   cdcsynchronizer_sim graypointer_sim afifo_sim
 .FORCE:
 tsc: .FORCE
