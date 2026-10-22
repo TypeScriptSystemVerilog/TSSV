@@ -988,8 +988,10 @@ write the generated SystemVerilog code to a string
 Each module it emits is checked against the SV guide first: `verible-verilog-syntax`
 parses the module's SV, and every always block in it is checked, whether a builder or raw
 SV ([addBody](#addbody)) wrote it. A syntax error or a broken rule throws, and the error lists
-every violation in the module. The module's signal table says which signals are resets
-(`isReset`), of which kind, and which are constants. The rules:
+every violation in the module. The check runs before formatting, and throws whatever the
+formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
+module's signal table says which signals are resets (`isReset`), of which kind, and which
+are constants. The rules:
 - COMB-2: a local declared with an initializer must be `automatic`.
 - COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
   or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
@@ -1191,13 +1193,13 @@ defines what it references.
 
 #### Properties
 
-| Property | Type |
-| ------ | ------ |
-| <a id="engine"></a> `engine` | `"internal"` \| `"off"` \| `"verible"` |
-| <a id="veriblepath"></a> `veriblePath?` | `string` |
-| <a id="veribleflags"></a> `veribleFlags?` | `string`[] |
-| <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` |
-| <a id="formattimeoutms"></a> `formatTimeoutMs?` | `number` |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="engine"></a> `engine` | `"internal"` \| `"off"` \| `"verible"` | - |
+| <a id="veriblepath"></a> `veriblePath?` | `string` | - |
+| <a id="veribleflags"></a> `veribleFlags?` | `string`[] | - |
+| <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` | on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather than warn and return the text unformatted. It covers only the formatter: a syntax error in a module fails `writeSystemVerilog()`'s check of that module first, whatever this says. |
+| <a id="formattimeoutms"></a> `formatTimeoutMs?` | `number` | - |
 
 ## Type Aliases
 

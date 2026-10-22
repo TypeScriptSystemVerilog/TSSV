@@ -371,7 +371,7 @@ Marks a parameter for emission as a SV `#(parameter ...)` override, enabling par
 
 Renders the module to a SV string. Recursively includes all submodule definitions. Safe to call multiple times (idempotent after the fix in `Base.ts`).
 
-It checks each module it emits against the SV guide first (`ts/src/core/ModuleCheck.ts`). `verible-verilog-syntax` parses the module's SV, and every always block in it is checked, whether a builder or raw SV (`addBody()`, a constructor `body`) wrote it. A syntax error or a broken rule throws, and the error lists every violation in the module. The signal table says which signals are resets (`isReset`), of which kind, and which are constants:
+It checks each module it emits against the SV guide first (`ts/src/core/ModuleCheck.ts`). `verible-verilog-syntax` parses the module's SV, and every always block in it is checked, whether a builder or raw SV (`addBody()`, a constructor `body`) wrote it. A syntax error or a broken rule throws, and the error lists every violation in the module. The check runs before formatting, so it throws whatever the formatter configuration says: `failOnFormatError: false` makes only the formatter's own failures warnings. The signal table says which signals are resets (`isReset`), of which kind, and which are constants:
 
 | Rule | What it rejects |
 |---|---|
