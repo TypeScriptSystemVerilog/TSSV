@@ -12,7 +12,7 @@ ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRA
 ts/src/interfaces/    Signal-bundle definitions — AMBA 2–5 (100+ specs), TileLink, Memory
 ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_convert
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
-ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), lint wrappers and filelists, one-module-per-file emission, two-clock WaveDrom replay vectors, the testbench marker
+ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers and filelists, one-module-per-file emission, two-clock WaveDrom replay vectors, the testbench marker
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
@@ -181,7 +181,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`); SV-guide check of each emitted module (`ts/src/core/ModuleBody.ts` reads it, `ts/src/core/ModuleCheck.ts` checks it) |
 | API reference (`doc/reference/`) | Core only | Markdown generated from the core's JSDoc by `npm run docs`; CI fails a PR whose reference is stale. Modules, interfaces and tools aren't covered yet |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
-| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `fir_sim`, `lzc_sim`, `shift_sim`, `apb_to_memory_sim`, `rom_sim`). Runs on PRs and on pushes to `main` |
+| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `registers_sim`, `fir_sim`, `lzc_sim`, `shift_sim`, `apb_to_memory_sim`, `rom_sim`). Runs on PRs and on pushes to `main` |
 
 ## Common Tasks — Where to Start
 

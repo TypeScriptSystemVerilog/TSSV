@@ -1,80 +1,36 @@
+// The example RegisterBlock from doc/framework/registers.md, with one register of each kind it
+// uses: RW (REG0), RO from an input (REG1), RW with fields (REG2), a RAM (MEM0) and a ROM (MEM1).
+// This script checks that serialize() and deserialize() round-trip its definition, then writes,
+// under sv-examples/Core/Registers/:
+// - testRegBlock.sv, and memory_<type>_32_32.sv for each Memory interface it has as a port
+// - testRegBlock_lint_top.sv: a lint wrapper (ts/test/models/lintWrapper.ts), and its filelist
+// - tb_testRegBlock.sv: a self-checking testbench generated from the same definition
+//   (ts/test/models/RegisterBlockTestbench.ts, TSSV#130), with the Memory master BFM and slave
+//   models it uses, one per file, and tb_testRegBlock.f, which lints and builds it
+//
+// The testbench checks every output and every register after reset. Then REG1 reads its input,
+// zero-extended. REG0 and REG2 take a write, then one write per byte lane, and read back what
+// they hold. MEM0 takes a write to every word and returns it, and MEM1 returns its preloaded
+// words, each with 0, 1 and 2 slave wait states. Writes to REG1 and MEM1 change nothing. Last,
+// every probe address of the decode (unaligned, unmapped and out-of-window addresses, and the
+// register addresses with one bit flipped) is written and read, and every output and slave word
+// checked against the model.
+//
+// `make -C verilatorTB registers_sim` runs this, lints the block with -Wall and runs the testbench.
 import { type RegisterBlockDef, RegisterBlock } from 'tssv/lib/core/Registers'
-import { Module, serialize, deserialize, RegisterType } from 'tssv/lib/core/TSSV'
+import { serialize, deserialize, RegisterType } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { inspect } from 'util'
 import diff from 'deep-diff'
-import { markTestbench } from 'tssv/test/models/testbench'
+import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
+import { pattern, RegisterBlockTestbench } from 'tssv/test/models/RegisterBlockTestbench'
 
-const ramModule = markTestbench(new Module(
-  { name: 'ram_32x32' },
-  {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' },
-    addr: { direction: 'input', width: 32 },
-    we: { direction: 'input' },
-    re: { direction: 'input' },
-    wdata: { direction: 'input', width: 32 },
-    rdata: { direction: 'output', width: 32 },
-    ready: { direction: 'output' }
-  },
-  {},
-`
-  logic [31:0] mem [0:31];
+const OUT_DIR = 'sv-examples/Core/Registers'
+const GENERATOR = 'ts/test/testRegisters.ts'
 
-  always_ff @(posedge clk or negedge rst_b) begin
-      if (!rst_b) begin
-          rdata <= 32'd0;
-          ready <= 1'b0;
-      end else if (we) begin
-          mem[addr] <= wdata;
-          ready <= 1'b1;
-      end else if (re) begin
-          rdata <= mem[addr];
-          ready <= 1'b1;
-      end else begin
-          ready <= 1'b0;
-      end
-  end
-`
-))
-
-const romModule = markTestbench(new Module(
-  { name: 'rom_32x32' },
-  {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' },
-    addr: { direction: 'input', width: 32 },
-    re: { direction: 'input' },
-    rdata: { direction: 'output', width: 32 },
-    ready: { direction: 'output' }
-  },
-  {},
-`
-  logic [31:0] mem [0:31];
-
-  initial begin
-      // Initialize ROM with some values
-      mem[0] = 32'h00000001;
-      mem[1] = 32'h00000002;
-      mem[2] = 32'h00000003;
-      mem[3] = 32'h00000004;
-      // ...
-  end
-
-  always_ff @(posedge clk or negedge rst_b) begin
-      if (!rst_b) begin
-          rdata <= 32'd0;
-          ready <= 1'b0;
-      end else if (re) begin
-          rdata <= mem[addr];
-          ready <= 1'b1;
-      end else begin
-          ready <= 1'b0;
-      end
-  end
-`
-))
+/** Slave wait states each window is tested with */
+const SLAVE_WAITS = [0, 1, 2]
 
 const myRegMap = {
   REG0: BigInt('0x00000000'),
@@ -148,406 +104,82 @@ const testRegBlock = new RegisterBlock<typeof myRegs.addrMap>(
   new Memory()
 )
 
-const tbBody =
-`
-    logic [15:0] count;
+const tb = new RegisterBlockTestbench(testRegBlock, myRegs, GENERATOR, 'TSSV#130')
+const W = myRegs.wordSize
+const B = BigInt(W / 8)
+const regNames = Object.keys(myRegMap) as Array<keyof typeof myRegMap>
+const isWindow = (r: keyof typeof myRegMap): boolean => tb.reg(r).type === RegisterType.RAM || tb.reg(r).type === RegisterType.ROM
 
-    always @(posedge clk or negedge rst_b) begin
-      if (!rst_b) begin
-         count <= 'd0;
-      end else begin
-         count <= count + 1'b1;
+tb.comment('After reset: every output and slave word, and a read of every register')
+tb.checkState('after reset')
+for (const r of regNames) if (!isWindow(r)) tb.read(myRegMap[r], `${r} after reset`)
 
-         case (count)
-            'd0: begin
-               regs.ADDR <= 32'h00000000;
-               regs.DATA_WR <= 32'h12345678;
-               regs.WE <= 1;
-            end
-            'd1: begin
-               regs.WE <= 0;
-               regs.RE <= 1;
-            end
-            'd2: begin
-               regs.RE <= 0;
-            end
-            'd3: begin
-               regs.ADDR <= 32'h00000008;
-               regs.DATA_WR <= 32'h87654321;
-               regs.WE <= 1;
-            end
-            'd4: begin
-               regs.WE <= 0;
-               regs.RE <= 1;
-            end
-            'd5: begin
-               regs.RE <= 0;
-            end
-            'd6: begin
-               regs.ADDR <= 32'h00000020;
-               regs.DATA_WR <= 32'hAABBCCDD;
-               regs.WE <= 1;
-            end
-            'd7: begin
-               regs.WE <= 0;
-               MEM0.DATA_RD <= 32'hAABBCCDD;
-               regs.RE <= 1;
-            end
-            'd8: begin
-               regs.RE <= 0;
-            end
-            'd9: begin
-               // End of test
-               $finish;
-            end
-            default: ;
-         endcase
-      end
-    end
-`
-
-const tb_testRegBlock = markTestbench(new Module(
-  { name: 'tb_testRegBlock' },
-  {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' }
-  },
-  {},
-  tbBody))
-tb_testRegBlock.addSubmodule(
-  'ram_inst',
-  ramModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock.addSubmodule(
-  'rom_inst',
-  romModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock.addSubmodule(
-  'dut',
-  testRegBlock,
-  {},
-  true,
-  true
-)
-// const temp = 'REG0'
-
-// console.log(myRegMap[temp])
-
-mkdirSync('sv-examples/Core/Registers', { recursive: true })
-try {
-  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock.sv', tb_testRegBlock.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+for (const r of regNames) {
+  const reg = tb.reg(r)
+  const a = myRegMap[r]
+  const size = Number(reg.size ?? 1n)
+  switch (reg.type) {
+    case RegisterType.RO: {
+      if (reg.constant === true) break // its read after reset checked it
+      tb.comment(`RO ${r} reads its input, zero-extended, with its sign bit clear and set`)
+      const width = reg.width ?? W
+      for (const value of [pattern(`${r}.a`, width - 1), pattern(`${r}.b`, width) | (1n << BigInt(width - 1))]) {
+        tb.setInput(r, value)
+        tb.read(a, `RO ${r}`)
+      }
+      break
+    }
+    case RegisterType.RW:
+    case RegisterType.WO:
+    case RegisterType.RWU: {
+      tb.comment(`${reg.type} ${r}: a write, then the inverse one byte lane at a time; only the strobed byte changes`)
+      const data = pattern(`${r}.write`, W)
+      tb.write(a, data, `${reg.type} ${r}`)
+      tb.checkState(`${reg.type} ${r} after its write`, [r])
+      tb.read(a, `${reg.type} ${r}`)
+      for (let b = 0n; b < B; b++) {
+        const what = `${reg.type} ${r} with WSTRB bit ${b}`
+        tb.write(a, ~data, what, 1n << b)
+        tb.checkState(what, [r])
+        tb.read(a, what)
+      }
+      break
+    }
+    case RegisterType.RAM:
+      tb.comment(`RAM ${r}: a write to every word, then a read of every word`)
+      for (const waits of SLAVE_WAITS) {
+        const what = `RAM ${r} (slave ${waits} waits)`
+        tb.setSlaveWaits(r, waits)
+        for (let i = 0; i < size; i++) tb.write(a + BigInt(i) * B, pattern(`${r}.${waits}.${i}`, W), what)
+        for (let i = 0; i < size; i++) tb.read(a + BigInt(i) * B, what)
+      }
+      break
+    case RegisterType.ROM:
+      tb.comment(`ROM ${r}: a read of every preloaded word`)
+      tb.preload(r, Array.from({ length: size }, (_, i) => pattern(`${r}.${i}`, W)))
+      for (const waits of SLAVE_WAITS) {
+        tb.setSlaveWaits(r, waits)
+        for (let i = 0; i < size; i++) tb.read(a + BigInt(i) * B, `ROM ${r} (slave ${waits} waits)`)
+      }
+      break
+  }
 }
 
-const tbBody2 =
-`
-  logic [15:0] count;
-
-  always @(posedge clk or negedge rst_b) begin
-  if (!rst_b) begin
-    count <= 'd0;
-  end else begin
-    count <= count + 1'b1;
-
-    case (count)
-        'd0: begin
-          regs.ADDR <= 32'h00000000;
-          regs.DATA_WR <= 32'h12345678;
-          regs.WE <= 1;
-        end
-        'd1: begin
-          regs.ADDR <= 32'h00000008;
-          regs.DATA_WR <= 32'h87654321;
-          regs.WE <= 1;
-        end
-        'd2: begin
-          regs.ADDR <= 32'h00000020;
-          regs.DATA_WR <= 32'hAABBCCDD;
-          regs.WE <= 1;
-        end
-        'd3: begin
-          regs.WE <= 0;
-        end
-        'd4: begin
-          regs.ADDR <= 32'h00000000;
-          regs.RE <= 1;
-        end
-        'd5: begin
-          regs.RE <= 0;
-        end
-        'd6: begin
-          regs.ADDR <= 32'h00000008;
-          regs.RE <= 1;
-        end
-        'd7: begin
-          regs.RE <= 0;
-        end
-        'd8: begin
-          regs.ADDR <= 32'h00000020;
-          regs.RE <= 1;
-        end
-        'd9: begin
-          regs.RE <= 0;
-          // End of test
-          $finish;
-        end
-        default: ;
-    endcase
-  end
-  end
-`
-
-const tb_testRegBlock2 = markTestbench(new Module(
-  { name: 'tb_testRegBlock2' },
-  {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' }
-  },
-  {},
-  tbBody2))
-tb_testRegBlock2.addSubmodule(
-  'ram_inst',
-  ramModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock2.addSubmodule(
-  'rom_inst',
-  romModule,
-  {},
-  true,
-  true
-)
-// const testRegBlock2 = new RegisterBlock<typeof myRegs.addrMap>(
-//   {
-//     name: 'testRegBlock',
-//     busAddressWidth: 32
-//   },
-//   myRegs,
-//   new Memory()
-// )
-tb_testRegBlock2.addSubmodule(
-  'dut',
-  testRegBlock,
-  {},
-  true,
-  true
-)
-
-try {
-  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock2.sv', tb_testRegBlock2.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
+tb.comment('Writes to the RO and ROM registers change nothing, and a ROM never sees them')
+for (const r of regNames) {
+  const reg = tb.reg(r)
+  if (reg.type !== RegisterType.RO && reg.type !== RegisterType.ROM) continue
+  tb.write(myRegMap[r], pattern(`${r}.dropped`, W), `${reg.type} ${r} ignores a write`)
+  tb.read(myRegMap[r], `${reg.type} ${r} after a write`)
 }
+tb.checkState('after the writes to RO and ROM')
 
-const tbBody3 =
-`
-logic [15:0] count;
+tb.comment('Probes of the decode: a write to each, then every output and slave word, then a read of each')
+const probes = tb.probes()
+for (const p of probes) tb.write(p, pattern(`probe.${p}`, W), 'probe')
+tb.checkState('after the probe writes')
+for (const p of probes) tb.read(p, 'probe')
 
-always @(posedge clk or negedge rst_b) begin
-  if (!rst_b) begin
-    count <= 'd0;
-  end else begin
-    count <= count + 1'b1;
-
-    case (count)
-      'd0: begin
-        regs.ADDR <= 32'h00000004;
-        regs.DATA_WR <= 32'hDEADBEEF;
-        regs.WE <= 1;
-      end
-      'd1: begin
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd2: begin
-        regs.RE <= 0;
-        regs.ADDR <= 32'h00000010;
-        regs.DATA_WR <= 32'hCAFEFEED;
-        regs.WE <= 1;
-      end
-      'd3: begin
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd4: begin
-        regs.RE <= 0;
-        regs.ADDR <= 32'h00000020;
-        regs.DATA_WR <= 32'hBADC0DE;
-        regs.WE <= 1;
-      end
-      'd5: begin
-        regs.WE <= 0;
-        MEM1.DATA_RD <= 32'hBADC0DE;
-        regs.RE <= 1;
-      end
-      'd6: begin
-        regs.RE <= 0;
-        regs.ADDR <= 32'h00000000;
-        regs.DATA_WR <= 32'hFEEDBEEF;
-        regs.WE <= 1;
-      end
-      'd7: begin
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd8: begin
-        regs.RE <= 0;
-      end
-      'd9: begin
-        regs.ADDR <= 32'h00000004;
-        regs.RE <= 1;
-      end
-      'd10: begin
-        regs.RE <= 0;
-        // End of test
-        $finish;
-      end
-      default: ;
-    endcase
-  end
-end
-`
-
-const tb_testRegBlock3 = markTestbench(new Module(
-  { name: 'tb_testRegBlock3' },
-  {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' }
-  },
-  {},
-  tbBody3))
-tb_testRegBlock3.addSubmodule(
-  'ram_inst',
-  ramModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock3.addSubmodule(
-  'rom_inst',
-  romModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock3.addSubmodule(
-  'dut',
-  testRegBlock,
-  {},
-  true,
-  true
-)
-
-try {
-  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock3.sv', tb_testRegBlock3.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
-}
-
-const tbBody4 =
-`
-logic [15:0] count;
-
-always @(posedge clk or negedge rst_b) begin
-  if (!rst_b) begin
-    count <= 'd0;
-  end else begin
-    count <= count + 1'b1;
-
-    case (count)
-      'd0: begin
-        regs.ADDR <= 32'h00000000;
-        regs.DATA_WR <= 32'hFADE1819;
-        regs.WE <= 1;
-      end
-      'd1: begin
-        regs.RE <= 0;
-        regs.ADDR <= 32'h00000008;
-        regs.DATA_WR <= 32'h12345678;
-        regs.WE <= 1;
-      end
-      'd2: begin
-        regs.RE <= 0;
-        regs.ADDR <= 32'h00000021;
-        regs.DATA_WR <= 32'h1BADC0DE;
-        regs.WE <= 1;
-      end
-      'd3: begin
-        regs.RE <= 0;
-        regs.ADDR <= 32'h0000005F;
-        regs.DATA_WR <= 32'hACCEDED1;
-        regs.WE <= 1;
-      end
-      'd4: begin
-        regs.ADDR <= 32'h00000000;
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd5: begin
-        regs.ADDR <= 32'h00000008;
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd6: begin
-        regs.ADDR <= 32'h0000003F;
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd7: begin
-        regs.ADDR <= 32'h000000040;
-        regs.WE <= 0;
-        regs.RE <= 1;
-      end
-      'd8: begin
-        $finish;
-      end
-      default: ;
-    endcase
-  end
-end
-`
-
-const tb_testRegBlock4 = markTestbench(new Module(
-  { name: 'tb_testRegBlock4' },
-  {
-    clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' }
-  },
-  {},
-  tbBody4))
-tb_testRegBlock4.addSubmodule(
-  'ram_inst',
-  ramModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock4.addSubmodule(
-  'rom_inst',
-  romModule,
-  {},
-  true,
-  true
-)
-tb_testRegBlock4.addSubmodule(
-  'dut',
-  testRegBlock,
-  {},
-  true,
-  true
-)
-
-try {
-  writeFileSync('sv-examples/Core/Registers/tb_testRegBlock4.sv', tb_testRegBlock4.writeSystemVerilog())
-} catch (err) {
-  console.error(err)
-}
+mkdirSync(OUT_DIR, { recursive: true })
+tb.emit(OUT_DIR, writeLintWrapped(testRegBlock, OUT_DIR, GENERATOR))
+console.log(`wrote ${OUT_DIR}/testRegBlock.sv, testRegBlock_lint_top.sv and ${tb.name}.sv`)

@@ -1,4 +1,5 @@
-// Regression test for RegisterBlock's read path (TSSV#79). Writes, under sv-examples/RegisterBlock_read/:
+// Regression test for RegisterBlock's read path (TSSV#79), with self-checking testbenches generated
+// from the same definitions (TSSV#130). Writes, under sv-examples/RegisterBlock_read/:
 // - regblock_read32.sv: a 32-bit block with a WO register first, a field map with gaps, a
 //   register with no `registers` entry (default RW), a narrow RW, an RWU, a RAM and a ROM whose
 //   windows are smaller than their alignment, and registers at 0x100 and above
@@ -7,23 +8,34 @@
 // - <block>_lint_top.sv for each: a wrapper that drives the block's bus from ports, so the
 //   block can be linted with `verilator --lint-only -Wall`. A module with an interface port
 //   can't be the top on its own: nothing would drive the interface
-// - memory_slave_<type>_<data width>_32.sv: a slave model for each kind of RAM and ROM window
-// - a lint filelist (.f) for each lint top, and one, tb_RegisterBlock_read.f, that lints the
-//   models through the testbench that uses them, for `npm run lint:sv`
+// - tb_<block>.sv for each: a testbench generated from the block's definition
+//   (ts/test/models/RegisterBlockTestbench.ts), with the Memory master BFM and slave models it
+//   uses, one per file
+// - a lint filelist (.f) for each lint top and each testbench; the testbench's is also what
+//   `make -C verilatorTB regblock_read_sim` builds it from
 //
-// `make -C verilatorTB regblock_read_sim` runs this, lints both blocks and simulates
-// verilatorTB/tb_RegisterBlock_read.sv against them, building it from tb_RegisterBlock_read.f.
+// Each testbench sweeps reads over every word address below its SWEEP_LIMIT and every probe
+// address of the decode (RegisterBlockTestbench.probes(): each register address with one bit
+// flipped, so an address that matches a register only in its low bits, and the byte-granular
+// edges of each window). It sweeps after reset, then after a write to every register, every RAM
+// word and every probe address and an RWU hardware update. Every read checks DATA_RD, the wait
+// states (0 for a register, 2 for a window: the default registerRequest and registerResponse,
+// TSSV#80), and that DATA_RD and READY hold a cycle later; each window's <R>_rd_hit is checked on
+// every read. Then a read of each readable register holds through idle cycles while ADDR moves,
+// and each field register takes all-ones and alternating patterns, each field at its own bits.
+// Every expected value comes from the definition.
+//
+// `make -C verilatorTB regblock_read_sim` runs this, lints both blocks and runs both testbenches.
 import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
-import { mkdirSync, writeFileSync } from 'fs'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
+import { mkdirSync } from 'fs'
 import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
-import { memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
+import { type Def, hasFields, pattern, RegisterBlockTestbench } from 'tssv/test/models/RegisterBlockTestbench'
 
 const OUT_DIR = 'sv-examples/RegisterBlock_read'
 const GENERATOR = 'ts/test/test_RegisterBlock_read.ts'
 
-const block32 = new RegisterBlock({ name: 'regblock_read32', busAddressWidth: 32 }, {
+const def32 = {
   wordSize: 32,
   addrMap: {
     CMD: 0x0n, // WO, and first: its case used to emit `regs.READY <= ;`
@@ -53,9 +65,9 @@ const block32 = new RegisterBlock({ name: 'regblock_read32', busAddressWidth: 32
     HI: { type: RegisterType.RW, reset: 0xa5a5a5a5n },
     FAR: { type: RegisterType.RW }
   }
-}, new Memory())
+} satisfies Def
 
-const block64 = new RegisterBlock({ name: 'regblock_read64', busAddressWidth: 32 }, {
+const def64 = {
   wordSize: 64,
   addrMap: {
     CSR: 0x0n,
@@ -67,23 +79,69 @@ const block64 = new RegisterBlock({ name: 'regblock_read64', busAddressWidth: 32
     BUF: { type: RegisterType.RAM, size: 2n },
     HI: { type: RegisterType.RW }
   }
-}, new Memory())
+} satisfies Def
+
+/** The read-path steps, for any block: sweeps of reads, from the definition */
+function readPath (tb: RegisterBlockTestbench, def: Def, sweepLimit: bigint): void {
+  const W = def.wordSize
+  const B = BigInt(W / 8)
+  const names = Object.keys(def.addrMap)
+  const typeOf = (r: string): RegisterType => tb.reg(r).type
+  const probes = tb.probes()
+  const sweep = (what: string): void => {
+    tb.comment(`Sweep ${what}: every word address below 0x${sweepLimit.toString(16)}, then every probe address`)
+    for (let a = 0n; a < sweepLimit; a += B) tb.read(a, `sweep ${what}`)
+    for (const p of probes) tb.read(p, `sweep ${what}`)
+  }
+
+  tb.comment('ROM contents')
+  for (const r of names.filter(r => typeOf(r) === RegisterType.ROM)) {
+    tb.preload(r, Array.from({ length: Number(tb.reg(r).size ?? 1n) }, (_, i) => pattern(`${r}.${i}`, W)))
+  }
+  sweep('after reset')
+
+  tb.comment('A write to every register and every RAM word, then to every probe address, and an RWU hardware update')
+  for (const r of names) {
+    const a = def.addrMap[r]
+    if (typeOf(r) === RegisterType.RAM) {
+      for (let i = 0n; i < (tb.reg(r).size ?? 1n); i++) tb.write(a + i * B, pattern(`${r}.${i}`, W), `RAM ${r}`)
+    } else if (typeOf(r) !== RegisterType.ROM) {
+      tb.write(a, pattern(`${r}.write`, W), `${typeOf(r)} ${r}`)
+    }
+  }
+  for (const p of probes) tb.write(p, pattern(`probe.${p}`, W), 'probe')
+  for (const r of names.filter(r => typeOf(r) === RegisterType.RWU)) tb.hwUpdate(r, pattern(`${r}.hw`, W))
+  tb.checkState('after the writes')
+  sweep('after the writes')
+
+  tb.comment('A read holds through idle cycles, whatever ADDR does, until the next request')
+  const readable = names.filter(r => typeOf(r) !== RegisterType.WO)
+  for (const r of readable) {
+    tb.read(def.addrMap[r], `${r}, before idle cycles`)
+    tb.idleHold(names.filter(n => n !== r).slice(0, 3).map(n => def.addrMap[n]))
+  }
+
+  tb.comment('Field patterns: each field takes its own bits of DATA_WR, and reads back at them')
+  for (const r of names.filter(r => hasFields(tb.reg(r)) && typeOf(r) !== RegisterType.RO)) {
+    const all = (1n << BigInt(W)) - 1n
+    for (const data of [all, all / 3n, (all / 3n) << 1n]) { // all ones, 0x5555..., 0xaaaa...
+      const what = `${typeOf(r)} ${r} after 0x${data.toString(16)}`
+      tb.write(def.addrMap[r], data, what)
+      tb.checkState(what, [r])
+      if (typeOf(r) !== RegisterType.WO) tb.read(def.addrMap[r], what)
+    }
+  }
+}
+
+const blocks = [
+  { block: new RegisterBlock({ name: 'regblock_read32', busAddressWidth: 32 }, def32, new Memory()), def: def32 as Def, sweepLimit: 0x200n },
+  { block: new RegisterBlock({ name: 'regblock_read64', busAddressWidth: 32 }, def64, new Memory()), def: def64 as Def, sweepLimit: 0x40n }
+]
 
 mkdirSync(OUT_DIR, { recursive: true })
-const design = new Set<string>()
-for (const block of [block32, block64]) {
-  for (const file of writeLintWrapped(block, OUT_DIR, GENERATOR)) design.add(file)
-  console.log(`wrote ${OUT_DIR}/${block.name}.sv and ${block.name}_lint_top.sv`)
+for (const { block, def, sweepLimit } of blocks) {
+  const tb = new RegisterBlockTestbench(block, def, GENERATOR, 'TSSV#79, TSSV#130')
+  readPath(tb, def, sweepLimit)
+  tb.emit(OUT_DIR, writeLintWrapped(block, OUT_DIR, GENERATOR))
+  console.log(`wrote ${OUT_DIR}/${block.name}.sv, ${block.name}_lint_top.sv and ${tb.name}.sv`)
 }
-// Slave models for the RAM and ROM windows (TSSV#80), each in a file named after it
-const models: MemoryModelOptions[] = [
-  { type: 'bidi', dataWidth: 32 },
-  { type: 'rd_only', dataWidth: 32 },
-  { type: 'bidi', dataWidth: 64 }
-]
-for (const opts of models) writeFileSync(`${OUT_DIR}/${memorySlaveName(opts)}.sv`, memorySlaveModel(opts))
-console.log(`wrote ${OUT_DIR}/${models.map(o => memorySlaveName(o)).join('.sv, ')}.sv`)
-// verilatorTB/Makefile's regblock_read_sim builds the testbench from this filelist too
-writeLintFilelist(OUT_DIR, 'tb_RegisterBlock_read', [
-  '../../verilatorTB/tb_RegisterBlock_read.sv', ...design, ...models.map(o => `${memorySlaveName(o)}.sv`)
-], GENERATOR)
