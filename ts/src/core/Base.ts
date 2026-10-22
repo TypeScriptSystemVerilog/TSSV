@@ -1,7 +1,7 @@
 /** @module Base */
 import { readFileSync } from 'fs'
 import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
-import { type AlwaysBody, type AlwaysReset, readAlwaysBody } from './AlwaysBody.js'
+import { type ModuleTable, checkModule } from './ModuleCheck.js'
 import { runVerible } from '../tools/formatters/verible.js'
 
 /**
@@ -225,6 +225,11 @@ export interface FormatterConfig {
   engine: 'verible' | 'internal' | 'off'
   veriblePath?: string
   veribleFlags?: string[]
+  /**
+   * on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather
+   * than warn and return the text unformatted. It covers only the formatter: a syntax error in a
+   * module fails `writeSystemVerilog()`'s check of that module first, whatever this says.
+   */
   failOnFormatError?: boolean
   formatTimeoutMs?: number
 }
@@ -671,8 +676,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
-     * (SV guide SEQ-6), and `reset` must be the same kind (`isReset`) as every other reset in the
-     * module (RST-2).
+     * (SV guide SEQ-6). `writeSystemVerilog()` checks the `always_ff` block the register goes in,
+     * as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
+     * reset in the module (RST-2).
      * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
      * written as `'0`, or as a literal sized to q
      * @returns return the q output signal
@@ -727,7 +733,6 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     if (io.reset) {
       const rstSig = this.findSignal(io.reset, true, this.addRegister, true)
       if (!rstSig.isReset) throw Error(`${io.reset.toString()} is not a reset signal`)
-      this.useResetKind(`addRegister(${qName.toString()})`, io.reset.toString(), rstSig.isReset)
       switch (rstSig.isReset) {
         case 'highasync' :
           resetSensitivity = ` or posedge ${io.reset.toString()}`
@@ -938,15 +943,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   /**
    * Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
    * <reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
-   * The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
-   * on a body that breaks these rules of the SV guide:
-   * - COMB-2: a local declared with an initializer must be `automatic`.
-   * - SEQ-1: `=` only for the block's own locals; every other assignment uses `<=`.
-   * - SEQ-6: in a reset branch, no assignment reads one of the module's signals or ports.
-   *   Constants, parameters and enum values are fine. A reset branch is the `if` branch of
-   *   `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of `if (rst)`
-   *   or `if (!rst)`.
-   * - RST-2: `reset` must be the same kind (`isReset`) as every other reset in the module.
+   * {@link writeSystemVerilog} checks the block against the SV guide, as it checks every always
+   * block in the module: COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
    * @param io the block's clock, its reset if it has one, and the signals it assigns, which
    * become `logic`
    * @param body the block's statements, usually `begin : <name> ... end`
@@ -975,15 +973,10 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
     const clkSig = this.findSignal(io.clk, true, this.addRegister, true)
     if (!clkSig.isClock) throw Error(`${io.clk.toString()} is not a clock signal`)
-    const where = `addSequentialAlways(${io.outputs.join(', ')})`
     let resetSensitivity = ''
-    let reset: AlwaysReset | undefined
-    let resetKind = ''
     if (io.reset) {
       const rstSig = this.findSignal(io.reset, true, this.addRegister, true)
       if (!rstSig.isReset) throw Error(`${io.reset.toString()} is not a reset signal`)
-      resetKind = rstSig.isReset
-      reset = { name: io.reset.toString(), activeLow: rstSig.isReset === 'lowasync' || rstSig.isReset === 'lowsync' }
       switch (rstSig.isReset) {
         case 'highasync' :
           resetSensitivity = `or posedge ${io.reset.toString()}`
@@ -996,27 +989,6 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
     const sensitivityList = `@( ${clkSig.isClock} ${io.clk.toString()} ${resetSensitivity} )`
     const header = body.includes('always_ff') ? '' : `always_ff ${sensitivityList}\n`
-    const block = readAlwaysBody(where, header, body, reset)
-    this.checkStaticLocals(where, block)
-    // SEQ-1: = only for the block's own locals
-    for (const write of block.writes) {
-      if (write.kind === 'blocking' && write.names.some((name) => !block.locals.has(name))) {
-        throw Error(`${where}: blocking assignment to ${write.target} (SEQ-1: use <= for every variable visible outside the block, and = only for its automatic locals)`)
-      }
-    }
-    if (reset !== undefined) {
-      this.useResetKind(where, reset.name, resetKind)
-      // SEQ-6: the reset branch assigns constants, not the module's signals
-      for (const write of block.resetWrites) {
-        const signal = write.reads.find((id) => {
-          const sig = this.IOs[id] ?? this.signals[id]
-          return sig !== undefined && sig.type !== 'const logic'
-        })
-        if (signal !== undefined) {
-          throw Error(`${where}: ${write.target} resets to ${signal}, a signal (SEQ-6: reset values must be constants)`)
-        }
-      }
-    }
     if (header === '') {
       const clkSenseMatch = body.replace(/\s+/g, ' ').includes(`${clkSig.isClock} ${io.clk.toString()}`)
       const resetSenseMatch = (resetSensitivity === '') || body.replace(/\s+/g, ' ').includes(resetSensitivity)
@@ -1029,10 +1001,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
    * Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
-   * The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
-   * on a body that breaks these rules of the SV guide:
-   * - COMB-2: a local declared with an initializer must be `automatic`.
-   * - COMB-3: no nonblocking assignments. `<=` as a comparison, as in `if (a <= b)`, is fine.
+   * {@link writeSystemVerilog} checks the block against the SV guide, as it checks every always
+   * block in the module: COMB-2 and COMB-3 apply to this one.
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_comb`
    * @param body the block's statements, usually `begin : <name> ... end`
@@ -1066,13 +1036,6 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       sensitivityList = `@( ${io.inputs.join(' or ')} )`
     }
     const header = body.includes('always') ? '' : sensitivityList ? `always ${sensitivityList}\n` : 'always_comb\n'
-    const where = `addCombAlways(${io.outputs.join(', ')})`
-    const block = readAlwaysBody(where, header, body)
-    this.checkStaticLocals(where, block)
-    const nonblocking = block.writes.find((write) => write.kind === 'nonblocking')
-    if (nonblocking !== undefined) {
-      throw Error(`${where}: nonblocking assignment to ${nonblocking.target} (COMB-3: use blocking assignments, =, in combinational logic)`)
-    }
     if (header === '' && !body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)) {
       throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
     }
@@ -1080,9 +1043,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }
 
   /**
-   * Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5). The builder
-   * parses the block with `verible-verilog-syntax`. It throws on a syntax error, and on a local
-   * declared with an initializer that isn't `automatic` (SV guide COMB-2).
+   * Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5).
+   * {@link writeSystemVerilog} checks the block against the SV guide, as it checks every always
+   * block in the module: COMB-2 applies to this one.
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_latch`
    * @param body the block's statements, usually `begin : <name> ... end`
@@ -1116,28 +1079,10 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       sensitivityList = `@( ${io.inputs.join(' or ')} )`
     }
     const header = body.includes('always') ? '' : sensitivityList ? `always ${sensitivityList}\n` : 'always_latch\n'
-    const where = `addLatchAlways(${io.outputs.join(', ')})`
-    this.checkStaticLocals(where, readAlwaysBody(where, header, body))
     if (header === '' && !body.replace(/\s+/g, ' ').includes(`${sensitivityList}`)) {
       throw Error(`Sensitivity mismatch: ${sensitivityList} : ${body}`)
     }
     this.body += header + body
-  }
-
-  // COMB-2: a local declared with an initializer is static unless it's automatic
-  protected checkStaticLocals (where: string, block: AlwaysBody): void {
-    const decl = block.initialized.find((d) => !d.automatic)
-    if (decl !== undefined) {
-      throw Error(`${where}: ${decl.names.join(', ')} is declared with an initializer but isn't automatic, so it's static: the initializer runs once, and the value carries over (COMB-2: declare it automatic, or assign it instead)`)
-    }
-  }
-
-  // RST-2: every register and sequential block in a module uses the same kind of reset
-  protected useResetKind (where: string, reset: string, kind: string): void {
-    if (this.resetKind !== undefined && this.resetKind.kind !== kind) {
-      throw Error(`${where}: reset ${reset} is ${kind}, but ${this.name} already uses ${this.resetKind.reset}, which is ${this.resetKind.kind} (RST-2: use one reset kind per module)`)
-    }
-    this.resetKind ??= { reset, kind }
   }
 
   protected addOperation (
@@ -1586,6 +1531,31 @@ ${caseAssignments}
 
   /**
      * write the generated SystemVerilog code to a string
+     *
+     * Each module it emits is checked against the SV guide first: `verible-verilog-syntax`
+     * parses the module's SV, and every always block in it is checked, whether a builder or raw
+     * SV ({@link addBody}) wrote it. A syntax error or a broken rule throws, and the error lists
+     * every violation in the module. The check runs before formatting, and throws whatever the
+     * formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
+     * module's signal table says which signals are resets (`isReset`), of which kind, and which
+     * are constants. The rules:
+     * - COMB-2: a local declared with an initializer must be `automatic`.
+     * - COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
+     *   or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
+     * - SEQ-1: in a sequential block (`always_ff`, or `always` with an edge), `=` only for the
+     *   block's own locals; every other assignment uses `<=`.
+     * - SEQ-4: a sequential block has one clock, on `posedge` or `negedge`. Every term of its
+     *   event control that isn't a reset is a clock.
+     * - SEQ-5: an async reset is in the event control, on its active edge; a sync reset isn't.
+     * - SEQ-6: in a reset branch, no assignment reads one of the module's signals, ports or
+     *   interfaces. Constants, parameters and enum values are fine. A reset branch is the `if`
+     *   branch of `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of
+     *   `if (rst)` or `if (!rst)`.
+     * - RST-2: the module's sequential blocks use one reset kind.
+     * - RST-4: a reset isn't generated in logic. This covers each reset that isn't an input port,
+     *   and each signal bound to a submodule's reset port. Each must be driven by a submodule
+     *   output or a sequential block, or be assigned one of those or an input: as it is, one bit
+     *   of it, or inverted (`!r`, `~r`).
      * @param options controls emission across several files - see {@link SVEmitOptions}. Applies
      *   to a top-level call only; the recursion into submodules passes nothing.
      * @returns string containing the generated SystemVerilog code for this module
@@ -1834,8 +1804,8 @@ ${bindingsArray.join(',\n')}
 `
     const waiverOn = this.widthWaiverIssue === undefined ? '' : '/* verilator lint_on WIDTH */\n'
 
-    const verilog: string =
-`${opt(interfacesString)}${opt(subModulesString)}${waiverOff}module ${this.name} ${paramsString}
+    const moduleString: string =
+`${waiverOff}module ${this.name} ${paramsString}
    (
 ${IOString}
    );
@@ -1844,14 +1814,22 @@ ${opt(this.body)}${opt(generatedBody)}
 endmodule
 ${waiverOn}`
 
-    return verilog
+    // the SV guide's rules, on this module's SV; each submodule checked its own
+    const resetBindings: ModuleTable['resetBindings'] = []
+    for (const instance in this.submodules) {
+      const { module, bindings } = this.submodules[instance]
+      for (const port in bindings) {
+        if (module.IOs[port]?.isReset) resetBindings.push({ instance, port, binding: bindings[port].toString() })
+      }
+    }
+    checkModule({ name: this.name, signals: { ...this.IOs, ...this.signals }, interfaces: Object.keys(this.interfaces), resetBindings }, moduleString)
+
+    return `${opt(interfacesString)}${opt(subModulesString)}${moduleString}`
   }
 
   protected body: string
   // set by waiveWidthWarnings(): the issue that removes this module's WIDTH waiver
   protected widthWaiverIssue?: string
-  // the reset kind this module's registers use, from its first register or sequential block (RST-2)
-  protected resetKind?: { reset: string, kind: string }
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
   protected static printedInterfaces: Record<string, boolean> = {}

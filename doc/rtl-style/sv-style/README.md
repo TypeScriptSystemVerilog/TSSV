@@ -29,14 +29,14 @@ doc/rtl-style/sv-style/
     lint-style-examples.mjs     lints the guide's inline SV examples as annotated
     check-rules.mjs             rule coverage, simulation examples, doc/file consistency
     check-width-examples.mjs    width examples: lint and exact arithmetic at 5 widths
-    check-builder-examples.mjs  builder checks for both guides, and the SV they generate
+    check-builder-examples.mjs  builder and module checks for both guides, and the SV they generate
     check-builder-widths.mjs    the expression builders' SV: lint with only the common waivers, exact arithmetic
     sv-scans.mjs                text checks on generated SV (SYN-1, LINT-3)
     check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/, against the baseline
 doc/rtl-style/tools/
   check-rtl-style.mjs   runs every check of both guides
   verilator.mjs         shared helpers: Verilator pin, lint, simulate
-ts/test/rtl_style/      the builder checks, the builder width cases and the testbench-marker test
+ts/test/rtl_style/      the builder and module checks, the builder width cases and the testbench-marker test
                         (TypeScript has to live under ts/)
 ```
 
@@ -61,6 +61,7 @@ Each `rules.json` entry lists one or more checks:
 | `sim` | The rule's RTL files lint clean and each testbench prints `PASS` | `check-rules.mjs` |
 | `width` | Every example output the rule cites exists in `width_examples.sv`, which lints clean and matches exact arithmetic | `check-rules.mjs`, `check-width-examples.mjs` |
 | `builder` | A check in `ts/test/rtl_style/` confirms what the builder emits or rejects. The TSSV guide's rules use this too | `check-builder-examples.mjs` |
+| `module` | `writeSystemVerilog()` rejects a module that breaks the rule, in SV a builder wrote or in raw SV (`ts/src/core/ModuleCheck.ts`). A check in `ts/test/rtl_style/` confirms it | `check-builder-examples.mjs` |
 | `generated` | The SV the builders generate lints clean (LINT-1) and passes the text checks in `sv-scans.mjs`. So does the SV the test scripts generate, but for the findings in the baseline | `check-builder-examples.mjs`; `check-generated-sv.mjs` for the test scripts' SV |
 | `review` | Design judgment, or no automated check yet; the entry's `reason` says which | `check-rules.mjs` (checks a reason is given) |
 
@@ -85,7 +86,8 @@ Other fields:
 3. If lint can't prove the rule, add an example that can:
    - a simulation example under `sv/<section>/`, one module per file, with a testbench that
      prints `PASS` or `FAIL`;
-   - a builder check in `ts/test/rtl_style/`;
+   - a builder check in `ts/test/rtl_style/`, or a module check in `ts/src/core/ModuleCheck.ts`
+     with one there;
    - or a scan in `tools/sv-scans.mjs`.
 4. Run `npm run check:rtl-style`.
 

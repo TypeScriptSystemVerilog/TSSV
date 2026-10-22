@@ -120,8 +120,56 @@ check(
   `got: ${JSON.stringify(timeoutMsg)}`
 )
 
-// --- Tests 6 and 7: a syntax error in a module's body, through writeSystemVerilog() ---
+// --- Tests 6 and 7: a syntax error, in the formatter ---
 // Neither writes its SV: lint:sv would reject the syntax error
+const BAD_SV = SAMPLE_SV.replace("out <= 8'd0;", 'out <= ;')
+if (veribleAvailable) {
+  // where Verible reports the error: 1-based, at the ';' after '<= '
+  const lines = BAD_SV.split('\n')
+  const errorLine = lines.findIndex((l) => l.includes('<= ;'))
+  const errorColumn = (lines[errorLine] ?? '').indexOf('<= ;') + 4
+  const location = `<stdin>:${errorLine + 1}:${errorColumn}: syntax error at token ";"`
+
+  // Test 6: failOnFormatError=true throws, with Verible's line, column and token
+  let syntaxMsg = ''
+  try {
+    runVerible(BAD_SV, { failOnFormatError: true })
+  } catch (e) {
+    syntaxMsg = (e as Error).message
+  }
+  check(
+    'syntax error with failOnFormatError=true throws with its location',
+    syntaxMsg.includes(location),
+    `expected ${JSON.stringify(location)}, got: ${JSON.stringify(syntaxMsg)}`
+  )
+
+  // Test 7: failOnFormatError=false warns with the location and returns the SV unformatted
+  const warnings: string[] = []
+  const warn = console.warn
+  console.warn = (msg: string) => { warnings.push(msg) }
+  let warned = ''
+  try {
+    warned = runVerible(BAD_SV, { failOnFormatError: false })
+  } finally {
+    console.warn = warn
+  }
+  check(
+    'syntax error with failOnFormatError=false warns with its location',
+    warnings.length === 1 && (warnings[0] ?? '').includes(location),
+    `expected one warning with ${JSON.stringify(location)}, got: ${JSON.stringify(warnings)}`
+  )
+  check(
+    'syntax error with failOnFormatError=false returns the SV unformatted',
+    warned === BAD_SV
+  )
+} else {
+  skip('syntax error in the formatter (verible-verilog-format not found on PATH)')
+}
+
+// --- Test 8: a syntax error in a module, through writeSystemVerilog() ---
+// writeSystemVerilog() checks each module's SV before it formats the output, so the check finds
+// the syntax error first, and throws whatever the formatter configuration says: the formatter
+// never runs, and failOnFormatError=false doesn't make the error a warning
 if (veribleAvailable) {
   const bad = new Module({ name: 'syntax_error' }, {
     clk: { direction: 'input', isClock: 'posedge' },
@@ -132,49 +180,32 @@ if (veribleAvailable) {
       q <= ;
     end
   `)
-  Module.setFormatterConfig({ engine: 'off' })
-  const unformatted = bad.writeSystemVerilog()
-  // where Verible reports the error: 1-based, at the ';' after '<= '
-  const lines = unformatted.split('\n')
-  const errorLine = lines.findIndex((l) => l.includes('<= ;'))
-  const errorColumn = (lines[errorLine] ?? '').indexOf('<= ;') + 4
-  const location = `<stdin>:${errorLine + 1}:${errorColumn}: syntax error at token ";"`
-
-  // Test 6: the default configuration throws, with Verible's line, column and token
-  Module.setFormatterConfig({ engine: 'verible', failOnFormatError: true })
-  let syntaxMsg = ''
-  try {
-    bad.writeSystemVerilog()
-  } catch (e) {
-    syntaxMsg = (e as Error).message
+  const checkError = /^syntax_error: SystemVerilog syntax error at line \d+, column \d+, near ';': q <= ;$/
+  const configs = [
+    { engine: 'verible', failOnFormatError: true },
+    { engine: 'verible', failOnFormatError: false },
+    { engine: 'off' }
+  ] as const
+  for (const config of configs) {
+    Module.setFormatterConfig(config)
+    const warnings: string[] = []
+    const warn = console.warn
+    console.warn = (msg: string) => { warnings.push(msg) }
+    let msg = ''
+    try {
+      bad.writeSystemVerilog()
+    } catch (e) {
+      msg = (e as Error).message
+    } finally {
+      console.warn = warn
+      Module.setFormatterConfig({ engine: 'verible', failOnFormatError: true })
+    }
+    check(
+      `syntax error in a module with ${JSON.stringify(config)} throws from the module check, before formatting`,
+      checkError.test(msg) && warnings.length === 0,
+      `got: ${JSON.stringify(msg)}, warnings: ${JSON.stringify(warnings)}`
+    )
   }
-  check(
-    'syntax error with failOnFormatError=true throws with its location',
-    syntaxMsg.includes(location),
-    `expected ${JSON.stringify(location)}, got: ${JSON.stringify(syntaxMsg)}`
-  )
-
-  // Test 7: failOnFormatError=false warns with the location and returns the unformatted SV
-  Module.setFormatterConfig({ engine: 'verible', failOnFormatError: false })
-  const warnings: string[] = []
-  const warn = console.warn
-  console.warn = (msg: string) => { warnings.push(msg) }
-  let warned = ''
-  try {
-    warned = bad.writeSystemVerilog()
-  } finally {
-    console.warn = warn
-    Module.setFormatterConfig({ engine: 'verible', failOnFormatError: true })
-  }
-  check(
-    'syntax error with failOnFormatError=false warns with its location',
-    warnings.length === 1 && (warnings[0] ?? '').includes(location),
-    `expected one warning with ${JSON.stringify(location)}, got: ${JSON.stringify(warnings)}`
-  )
-  check(
-    'syntax error with failOnFormatError=false returns the unformatted SV',
-    warned === unformatted
-  )
 } else {
   skip('syntax error through writeSystemVerilog (verible-verilog-format not found on PATH)')
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Run the TSSV builder checks (ts/test/rtl_style/test_rtl_style_builders.ts), then check
-// the SV they generate: it must lint clean under -Wall and pass the generated-SV rules
-// (SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's
-// rules.json entry must list "builder". Exits 0 if everything passes, 1 otherwise.
+// Run the TSSV builder and module checks (ts/test/rtl_style/test_rtl_style_builders.ts), then
+// check the SV they generate: it must lint clean under -Wall and pass the generated-SV rules
+// (SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's rules.json
+// entry must list "builder", or "module" for a rule writeSystemVerilog() enforces. Exits 0 if
+// everything passes, 1 otherwise.
 //
 // Known framework violations (rules.json "known") are reported but don't fail the run.
 // Each one should be tracked by an issue and removed from rules.json when it's fixed.
@@ -36,16 +37,16 @@ if (tsc.status !== 0) {
 const run = spawnSync('node', [TEST], { encoding: 'utf8' })
 if (run.status !== 0) fail(`${TEST} exited ${run.status}\n${run.stdout}${run.stderr}`)
 
-// Builder checks.
+// Builder and module checks.
 const results = run.stdout.split('\n').filter((l) => l.startsWith('RESULT ')).map((l) => JSON.parse(l.slice(7)))
-const builderRules = Object.keys(ALL_RULES).filter((r) => ALL_RULES[r].checks?.includes('builder'))
+const builderRules = Object.keys(ALL_RULES).filter((r) => ALL_RULES[r].checks?.some((k) => k === 'builder' || k === 'module'))
 for (const r of results) {
-  if (!builderRules.includes(r.rule)) fail(`${r.rule}: builder check "${r.what}" but rules.json doesn't list "builder" for it`)
+  if (!builderRules.includes(r.rule)) fail(`${r.rule}: builder check "${r.what}" but rules.json doesn't list "builder" or "module" for it`)
   else if (r.pass) console.log(`PASS: ${r.rule} ${r.what}`)
   else fail(`${r.rule} ${r.what}: ${r.msg}`)
 }
 for (const rule of builderRules) {
-  if (!results.some((r) => r.rule === rule)) fail(`${rule}: rules.json lists "builder" but no builder check exists`)
+  if (!results.some((r) => r.rule === rule)) fail(`${rule}: rules.json lists "builder" or "module" but no check exists`)
 }
 
 // Generated SV: lint, then scans.

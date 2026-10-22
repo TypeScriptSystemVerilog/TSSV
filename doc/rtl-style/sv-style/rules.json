@@ -1,7 +1,7 @@
 {
   "COMB-1": { "checks": ["lint"] },
-  "COMB-2": { "checks": ["lint", "builder"] },
-  "COMB-3": { "checks": ["lint", "builder"] },
+  "COMB-2": { "checks": ["lint", "module"] },
+  "COMB-3": { "checks": ["lint", "module"] },
   "COMB-4": { "checks": ["lint"] },
   "COMB-5": { "checks": ["lint"] },
   "COMB-6": { "checks": ["lint"] },
@@ -11,7 +11,7 @@
     "checks": ["lint", "review"],
     "reason": "Verilator doesn't flag an unnamed block, and the builders emit unnamed blocks: for a SHOULD, labelling them isn't worth the retrofit (#145)."
   },
-  "SEQ-1": { "checks": ["lint", "builder"] },
+  "SEQ-1": { "checks": ["lint", "module"] },
   "SEQ-2": {
     "checks": ["lint", "sim"],
     "sim": [{ "top": "seq2_styles_tb", "files": ["sv/seq/seq2_styles_tb.sv", "sv/seq/seq2_inblock.sv", "sv/seq/seq2_split.sv"] }],
@@ -19,32 +19,29 @@
     "docVerbatim": { "Also fine": "sv/seq/seq2_inblock.sv" }
   },
   "SEQ-3": { "movedTo": "BUILD-3" },
-  "SEQ-4": {
-    "checks": ["lint", "review"],
-    "reason": "Verilator doesn't flag a block sensitive to two clocks, so review has to catch the Don't."
-  },
+  "SEQ-4": { "checks": ["lint", "module"] },
   "SEQ-5": {
-    "checks": ["lint", "sim", "builder"],
+    "checks": ["lint", "sim", "builder", "module"],
     "sim": [{ "top": "seq5_reset_tb", "files": ["sv/seq/seq5_reset_tb.sv", "sv/seq/seq5_dont.sv", "sv/seq/seq5_do.sv"] }],
     "lintClean": ["sv/seq/seq5_dont.sv", "sv/seq/seq5_do.sv"],
     "docVerbatim": { "Don't": "sv/seq/seq5_dont.sv", "Do": "sv/seq/seq5_do.sv" }
   },
   "SEQ-6": {
-    "checks": ["lint", "builder", "review"],
-    "reason": "Verilator doesn't flag a reset to a non-constant value. addSequentialAlways rejects a reset to one of the module's signals, and addRegister takes only constants; review has to catch the rest, such as raw SV added with addBody()."
+    "checks": ["lint", "builder", "module", "review"],
+    "reason": "Verilator doesn't flag a reset to a non-constant value. writeSystemVerilog() rejects a reset branch that reads one of the module's signals, and addRegister takes only constants. Review has to catch a reset branch the check can't find: one under a case, one under a condition other than a plain test of the reset, or one whose reset isn't marked isReset."
   },
   "RST-1": { "movedTo": "MOD-4" },
   "RST-2": {
-    "checks": ["builder", "review"],
-    "reason": "addRegister and addSequentialAlways reject a second reset kind in a module; review has to catch one in raw SV added with addBody()."
+    "checks": ["module", "review"],
+    "reason": "writeSystemVerilog() rejects a module whose sequential blocks use resets of two kinds. Review has to catch a reset that isn't marked isReset: a sync reset looks like any other if."
   },
   "RST-3": {
     "checks": ["review"],
     "reason": "Whether a register needs a reset is a design judgment."
   },
   "RST-4": {
-    "checks": ["review"],
-    "reason": "No automated check yet for a reset driven by logic."
+    "checks": ["module", "review"],
+    "reason": "writeSystemVerilog() rejects a reset assigned an expression or assigned in a combinational block, in the module that generates it. Review has to catch a reset that isn't marked isReset or bound to a submodule's reset port, one generated in imported SV, and one carried in an interface."
   },
   "LATCH-1": { "movedTo": "BUILD-5" },
   "WIDTH-1": { "checks": ["width"] },

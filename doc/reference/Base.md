@@ -267,9 +267,6 @@ base constructor
 | `bindingRules.inout` | `public` | `string`[] | `undefined` | - |
 | <a id="body"></a> `body` | `protected` | `string` | `undefined` | - |
 | <a id="widthwaiverissue"></a> `widthWaiverIssue?` | `protected` | `string` | `undefined` | - |
-| <a id="resetkind"></a> `resetKind?` | `protected` | `object` | `undefined` | - |
-| `resetKind.reset` | `public` | `string` | `undefined` | - |
-| `resetKind.kind` | `public` | `string` | `undefined` | - |
 | <a id="registerblocks"></a> `registerBlocks` | `protected` | `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, \{ `d`: `string`; `resetVal?`: `bigint`; \}\>\>\>\> | `{}` | - |
 | <a id="printedinterfaces"></a> `printedInterfaces` | `static` | `Record`\<`string`, `boolean`\> | `{}` | - |
 | <a id="verilogparams"></a> `verilogParams` | `protected` | `Record`\<`string`, `boolean`\> | `undefined` | - |
@@ -484,8 +481,9 @@ addRegister(io): Sig;
 ```
 
 add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
-(SV guide SEQ-6), and `reset` must be the same kind (`isReset`) as every other reset in the
-module (RST-2).
+(SV guide SEQ-6). `writeSystemVerilog()` checks the `always_ff` block the register goes in,
+as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
+reset in the module (RST-2).
 
 ###### Parameters
 
@@ -582,15 +580,8 @@ addSequentialAlways(io, body): void;
 
 Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
 <reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
-The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
-on a body that breaks these rules of the SV guide:
-- COMB-2: a local declared with an initializer must be `automatic`.
-- SEQ-1: `=` only for the block's own locals; every other assignment uses `<=`.
-- SEQ-6: in a reset branch, no assignment reads one of the module's signals or ports.
-  Constants, parameters and enum values are fine. A reset branch is the `if` branch of
-  `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of `if (rst)`
-  or `if (!rst)`.
-- RST-2: `reset` must be the same kind (`isReset`) as every other reset in the module.
+[writeSystemVerilog](#writesystemverilog-1) checks the block against the SV guide, as it checks every always
+block in the module: COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
 
 ###### Parameters
 
@@ -613,10 +604,8 @@ addCombAlways(io, body): void;
 ```
 
 Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
-The builder parses the block with `verible-verilog-syntax`. It throws on a syntax error, and
-on a body that breaks these rules of the SV guide:
-- COMB-2: a local declared with an initializer must be `automatic`.
-- COMB-3: no nonblocking assignments. `<=` as a comparison, as in `if (a <= b)`, is fine.
+[writeSystemVerilog](#writesystemverilog-1) checks the block against the SV guide, as it checks every always
+block in the module: COMB-2 and COMB-3 apply to this one.
 
 ###### Parameters
 
@@ -637,9 +626,9 @@ on a body that breaks these rules of the SV guide:
 addLatchAlways(io, body): void;
 ```
 
-Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5). The builder
-parses the block with `verible-verilog-syntax`. It throws on a syntax error, and on a local
-declared with an initializer that isn't `automatic` (SV guide COMB-2).
+Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5).
+[writeSystemVerilog](#writesystemverilog-1) checks the block against the SV guide, as it checks every always
+block in the module: COMB-2 applies to this one.
 
 ###### Parameters
 
@@ -649,45 +638,6 @@ declared with an initializer that isn't `automatic` (SV guide COMB-2).
 | `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
 | `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
 | `body` | `string` | the block's statements, usually `begin : <name> ... end` |
-
-###### Returns
-
-`void`
-
-##### checkStaticLocals()
-
-```ts
-protected checkStaticLocals(where, block): void;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `where` | `string` |
-| `block` | [`AlwaysBody`](#alwaysbody) |
-
-###### Returns
-
-`void`
-
-##### useResetKind()
-
-```ts
-protected useResetKind(
-   where, 
-   reset, 
-   kind
-): void;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `where` | `string` |
-| `reset` | `string` |
-| `kind` | `string` |
 
 ###### Returns
 
@@ -1035,6 +985,31 @@ writeSystemVerilog(options?): string;
 
 write the generated SystemVerilog code to a string
 
+Each module it emits is checked against the SV guide first: `verible-verilog-syntax`
+parses the module's SV, and every always block in it is checked, whether a builder or raw
+SV ([addBody](#addbody)) wrote it. A syntax error or a broken rule throws, and the error lists
+every violation in the module. The check runs before formatting, and throws whatever the
+formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
+module's signal table says which signals are resets (`isReset`), of which kind, and which
+are constants. The rules:
+- COMB-2: a local declared with an initializer must be `automatic`.
+- COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
+  or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
+- SEQ-1: in a sequential block (`always_ff`, or `always` with an edge), `=` only for the
+  block's own locals; every other assignment uses `<=`.
+- SEQ-4: a sequential block has one clock, on `posedge` or `negedge`. Every term of its
+  event control that isn't a reset is a clock.
+- SEQ-5: an async reset is in the event control, on its active edge; a sync reset isn't.
+- SEQ-6: in a reset branch, no assignment reads one of the module's signals, ports or
+  interfaces. Constants, parameters and enum values are fine. A reset branch is the `if`
+  branch of `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of
+  `if (rst)` or `if (!rst)`.
+- RST-2: the module's sequential blocks use one reset kind.
+- RST-4: a reset isn't generated in logic. This covers each reset that isn't an input port,
+  and each signal bound to a submodule's reset port. Each must be driven by a submodule
+  output or a sequential block, or be assigned one of those or an input: as it is, one bit
+  of it, or inverted (`!r`, `~r`).
+
 ###### Parameters
 
 | Parameter | Type | Description |
@@ -1048,36 +1023,6 @@ write the generated SystemVerilog code to a string
 string containing the generated SystemVerilog code for this module
 
 ## Interfaces
-
-### Write
-
-An assignment in an always block.
-
-#### Properties
-
-| Property | Type | Description |
-| ------ | ------ | ------ |
-| <a id="kind"></a> `kind` | `"blocking"` \| `"nonblocking"` | `<=`, or blocking: `=`, `+=`, `++`, and the assignments in a `for` loop header |
-| <a id="target"></a> `target` | `string` | the target as written, such as `q[3:0]` or `{a, b}` |
-| <a id="names"></a> `names` | `string`[] | the variables the target names: `q` for `q[3:0]` or `q.f`, `a` and `b` for `{a, b}` |
-| <a id="reads"></a> `reads` | `string`[] | the identifiers the assignment reads; for `+=` and `++`, the target's too |
-
-***
-
-### AlwaysBody
-
-What an always block declares and assigns.
-
-#### Properties
-
-| Property | Type | Description |
-| ------ | ------ | ------ |
-| <a id="writes"></a> `writes` | [`Write`](#write)[] | every assignment in the block |
-| <a id="resetwrites"></a> `resetWrites` | [`Write`](#write)[] | the assignments in the block's reset branches, when a reset is given |
-| <a id="locals"></a> `locals` | `Set`\<`string`\> | the variables the block declares, in its body or in a `for` loop header |
-| <a id="initialized"></a> `initialized` | `object`[] | each declaration with an initializer: the names it initializes, and whether it's `automatic` |
-
-***
 
 ### TSSVParameters
 
@@ -1125,7 +1070,7 @@ signal parameters
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="type"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | - |
+| <a id="type"></a> `type?` | `"const logic"` \| `"wire"` \| `"reg"` \| `"logic"` \| `"enum"` | - |
 | <a id="width-1"></a> `width?` | `number` | - |
 | <a id="isclock"></a> `isClock?` | `"posedge"` \| `"negedge"` | - |
 | <a id="isreset"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | - |
@@ -1149,7 +1094,7 @@ defines an IO signal (a.k.a port of the the TSSV module)
 
 | Property | Type | Description | Inherited from |
 | ------ | ------ | ------ | ------ |
-| <a id="type-1"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | - | [`baseSignal`](#basesignal).[`type`](#type) |
+| <a id="type-1"></a> `type?` | `"const logic"` \| `"wire"` \| `"reg"` \| `"logic"` \| `"enum"` | - | [`baseSignal`](#basesignal).[`type`](#type) |
 | <a id="width-2"></a> `width?` | `number` | - | [`baseSignal`](#basesignal).[`width`](#width-1) |
 | <a id="isclock-1"></a> `isClock?` | `"posedge"` \| `"negedge"` | - | [`baseSignal`](#basesignal).[`isClock`](#isclock) |
 | <a id="isreset-1"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | - | [`baseSignal`](#basesignal).[`isReset`](#isreset) |
@@ -1187,7 +1132,7 @@ signal parameters
 
 | Property | Type | Description | Inherited from |
 | ------ | ------ | ------ | ------ |
-| <a id="type-4"></a> `type?` | `"wire"` \| `"reg"` \| `"const logic"` \| `"logic"` \| `"enum"` | - | [`baseSignal`](#basesignal).[`type`](#type) |
+| <a id="type-4"></a> `type?` | `"const logic"` \| `"wire"` \| `"reg"` \| `"logic"` \| `"enum"` | - | [`baseSignal`](#basesignal).[`type`](#type) |
 | <a id="width-3"></a> `width?` | `number` | - | [`baseSignal`](#basesignal).[`width`](#width-1) |
 | <a id="isclock-2"></a> `isClock?` | `"posedge"` \| `"negedge"` | - | [`baseSignal`](#basesignal).[`isClock`](#isclock) |
 | <a id="isreset-2"></a> `isReset?` | `"lowasync"` \| `"highasync"` \| `"lowsync"` \| `"highsync"` | - | [`baseSignal`](#basesignal).[`isReset`](#isreset) |
@@ -1248,13 +1193,13 @@ defines what it references.
 
 #### Properties
 
-| Property | Type |
-| ------ | ------ |
-| <a id="engine"></a> `engine` | `"internal"` \| `"off"` \| `"verible"` |
-| <a id="veriblepath"></a> `veriblePath?` | `string` |
-| <a id="veribleflags"></a> `veribleFlags?` | `string`[] |
-| <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` |
-| <a id="formattimeoutms"></a> `formatTimeoutMs?` | `number` |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="engine"></a> `engine` | `"internal"` \| `"off"` \| `"verible"` | - |
+| <a id="veriblepath"></a> `veriblePath?` | `string` | - |
+| <a id="veribleflags"></a> `veribleFlags?` | `string`[] | - |
+| <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` | on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather than warn and return the text unformatted. It covers only the formatter: a syntax error in a module fails `writeSystemVerilog()`'s check of that module first, whatever this says. |
+| <a id="formattimeoutms"></a> `formatTimeoutMs?` | `number` | - |
 
 ## Type Aliases
 

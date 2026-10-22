@@ -1,6 +1,6 @@
 // Runs `verible-verilog-syntax` and reads the concrete syntax tree it exports as JSON.
-// SVModuleHeader.ts reads module headers from the tree, and AlwaysBody.ts reads the always
-// blocks the builders take. Verible (https://github.com/chipsalliance/verible) must be installed.
+// SVModuleHeader.ts reads module headers from the tree, and ModuleBody.ts reads the modules
+// writeSystemVerilog() emits. Verible (https://github.com/chipsalliance/verible) must be installed.
 import { spawnSync } from 'node:child_process'
 
 export interface VeribleSyntaxOpts {
