@@ -546,9 +546,7 @@ becomes `${w + 1}'(c)` in the template and `17'(c)` in the SV. The rules are the
 way.
 
 Lint misses the most common width bugs, so WIDTH-4, WIDTH-5 and WIDTH-6 apply even when lint
-is clean. Until #59 brings them in line, a few TSSV modules and test scripts still call
-`waiveWidthWarnings()`, which wraps the module in `/* verilator lint_off WIDTH */` and hides
-Verilator's `WIDTH*` warnings in it.
+is clean.
 
 Every lint run passes the common waivers file, [`common_waivers.vlt`](common_waivers.vlt)
 (section 8). It waives `WIDTHEXPAND` on the operands of `+` and `-`, which lets arithmetic be

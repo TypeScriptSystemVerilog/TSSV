@@ -136,10 +136,6 @@ It prints each entry it added or removed. Commit the baseline with the fix. Its 
 only remove entries or lower their counts; an entry it adds is a new finding. A #59 subtask is
 done for a file when the baseline has no entries left for it.
 
-A module that still calls `waiveWidthWarnings()` keeps a module-wide `lint_off WIDTH`, so its
-file has a `LINT-3 waiver "lint_off WIDTH" covers the whole module` entry. The #59 subtask that
-fixes the module's width warnings removes the call, and the entry with it.
-
 **Linting through the top.** Each emission is linted through its top module, with the files it
 depends on. A test script writes a Verilator filelist, `<top>.f`, for an emission that can't be
 linted alone (`writeLintFilelist`, `ts/test/models/lintFilelist.ts`):
