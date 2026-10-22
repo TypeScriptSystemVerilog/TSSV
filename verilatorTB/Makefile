@@ -68,22 +68,22 @@ sram_sim: tsc
 	  echo "PASS: $$check: $$assertion fires"; \
 	done < $(SRAM_DIR)/tb/assert_checks.txt
 
-# RegisterBlock read path (TSSV#79): lint both regression blocks with -Wall, then run the
-# self-checking testbench against them. regblock_read_waivers.vlt holds the only waivers,
-# each for a signal owned by another open bug.
+# RegisterBlock read path (TSSV#79): ts/test/test_RegisterBlock_read.ts generates both regression
+# blocks and a self-checking testbench for each from its RegisterBlockDef (TSSV#130). This lints
+# each block with -Wall, then builds and runs its testbench. regblock_read_waivers.vlt holds the
+# only waivers, each for a signal owned by another open bug.
 REGBLOCK_DIR = ../sv-examples/RegisterBlock_read
 
 regblock_read_sim: tsc
 	cd ..; node out/test/test_RegisterBlock_read.js
+	mkdir -p obj_dir
 	set -e; for b in regblock_read32 regblock_read64; do \
 	  verilator --lint-only -Wall $(COMMON_WAIVERS) regblock_read_waivers.vlt -F $(REGBLOCK_DIR)/$${b}_lint_top.f; \
 	  echo "lint -Wall clean: $$b"; \
+	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/$$b -o Vtb_$$b -F $(REGBLOCK_DIR)/tb_$$b.f \
+	    > obj_dir/$$b.build.log 2>&1 || { cat obj_dir/$$b.build.log; exit 1; }; \
+	  (cd obj_dir/$$b && ./Vtb_$$b); \
 	done
-	mkdir -p obj_dir
-	verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/regblock_read -o Vtb_RegisterBlock_read \
-	  -F $(REGBLOCK_DIR)/tb_RegisterBlock_read.f \
-	  > obj_dir/regblock_read.build.log 2>&1 || { cat obj_dir/regblock_read.build.log; exit 1; }
-	cd obj_dir/regblock_read && ./Vtb_RegisterBlock_read
 
 # RegisterBlock register types (TSSV#80): ts/test/test_RegisterBlock_types.ts generates each block
 # and its self-checking testbench from one RegisterBlockDef. This lints each block with -Wall,
