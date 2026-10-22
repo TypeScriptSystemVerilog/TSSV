@@ -1,8 +1,8 @@
-import { Module, type TSSVParameters } from 'tssv/lib/core/TSSV'
+import { Module, type Sig, type TSSVParameters } from 'tssv/lib/core/TSSV'
 import { XMLParser } from 'fast-xml-parser'
 import * as amba from 'tssv/lib/tools/index'
 import * as fs from 'fs'
-import { parseSVModules, selectSVModule } from 'tssv/lib/core/SVModuleHeader'
+import { parseSVModules, selectSVModule, type SVModuleHeader } from 'tssv/lib/core/SVModuleHeader'
 
 export interface ComponentData {
   version: string
@@ -18,7 +18,9 @@ interface ParameterData {
 }
 
 export interface IpXactComponent_Parameters extends TSSVParameters {
+  /** path to the SystemVerilog file that defines the component's module; it is instantiated as is */
   svFilePath: string
+  /** path to the component's IP-XACT XML: its bus interfaces, their parameters and its ports */
   xmlDataPath: string
 }
 
@@ -119,52 +121,103 @@ export class IpXactComponent extends Module {
       xmlDataPath: params.xmlDataPath,
       svFilePath: params.svFilePath
     })
-    // keeps the module-wide WIDTH waiver until #154 fixes IpXactComponent's width warnings
-    this.waiveWidthWarnings('#154')
     const xmlData = fs.readFileSync(params.xmlDataPath, 'utf-8')
     const interfaceData = this.createDictionary(xmlData)
     const paramData = this.parseParameters(xmlData)
+    const portWidths = this.parsePortWidths(xmlData)
 
     this.addInterfaces(interfaceData, paramData)
 
-    this.addSystemVerilogSubmoduleWithBindings(interfaceData)
+    this.addSystemVerilogSubmoduleWithBindings(interfaceData, portWidths)
   }
 
-  protected addSystemVerilogSubmoduleWithBindings (componentDataRecord: Record<string, ComponentData>): Module {
+  protected addSystemVerilogSubmoduleWithBindings (componentDataRecord: Record<string, ComponentData>, portWidths: Record<string, number>): Module {
     const SVFilePath = this.params.svFilePath
+    const header = this.readSVModuleHeader(SVFilePath)
+    const bindings: Record<string, string | Sig> = {}
 
-    const vModuleName = `verilog${this.params.name}`
-    const bindings: Record<string, string> = {}
-
-    // Iterate through each component and build the bindings
+    // Bind each port the XML maps to a bus signal, after checking that the two are the same width
+    // where the XML's <model><ports> gives the port's width
     for (const [interfaceName, componentData] of Object.entries(componentDataRecord)) {
       for (const [logicalPort, physicalPort] of Object.entries(componentData.ports)) {
+        const busSignal = this.interfaces[interfaceName]?.signals[logicalPort]
+        const width = portWidths[physicalPort]
+        if (busSignal !== undefined && width !== undefined) {
+          const busWidth = Number(busSignal.width ?? 1)
+          if (width !== busWidth) {
+            throw Error(`IpXactComponent ${this.name}: ${this.params.xmlDataPath} maps port ${physicalPort} (${width} bits) to ${interfaceName}.${logicalPort} (${busWidth} bits)`)
+          }
+        }
         bindings[physicalPort] = `${interfaceName}.${logicalPort}`
       }
     }
 
-    // Parse the Verilog file to get the input signals
-    const inputSignals = this.extractInputSignalsFromVerilog(SVFilePath)
-    let sigNotAdded = true
-    // Add bindings for input signals not listed in componentData
-    inputSignals.forEach(signal => {
-      if (!Object.values(componentDataRecord).some(componentData =>
-        Object.values(componentData.ports).includes(signal))) {
-        if (sigNotAdded) {
-          sigNotAdded = false
-          this.addSignal('unbound', {})
-        }
-        bindings[signal] = 'unbound' // Bind to constant value of 0
-      }
-    })
+    // Tie each input of the SV module that the XML maps to no bus signal to 0
+    const tied = Object.keys(header.ports).filter(port => header.ports[port] === 'input' && bindings[port] === undefined)
+    for (const port of tied) {
+      bindings[port] = this.addConstSignal(undefined, 0n, false, this.portWidth(port, header, portWidths))
+    }
+    if (tied.length > 0) {
+      this.addBody(`// Inputs of ${header.name} that the XML maps to no bus signal, tied to 0: ${tied.join(', ')}`)
+    }
 
-    return this.addSystemVerilogSubmodule(vModuleName, SVFilePath, {}, bindings, true)
+    // A bus input that no port reads, because the XML maps it to no port or maps its port to
+    // another bus signal as well (as it does a clock that several interfaces share), is read into
+    // a signal that nothing uses, under a waiver for that signal only (LINT-3)
+    const bound = new Set(Object.values(bindings).map(binding => binding.toString()))
+    const ignored: string[] = []
+    for (const [interfaceName, intf] of Object.entries(this.interfaces)) {
+      const modport = intf.role === undefined ? undefined : intf.modports?.[intf.role]
+      for (const [signal, direction] of Object.entries(modport ?? {})) {
+        if (direction === 'input' && !bound.has(`${interfaceName}.${signal}`)) ignored.push(`${interfaceName}.${signal}`)
+      }
+    }
+    if (ignored.length > 0) {
+      this.addBody(`
+        // Bus inputs that no port of ${header.name} reads
+        /* verilator lint_off UNUSEDSIGNAL */
+        logic unused_bus_inputs;
+        /* verilator lint_on UNUSEDSIGNAL */
+        assign unused_bus_inputs = ^{${ignored.join(', ')}};
+      `)
+    }
+
+    // Every input is bound above, so nothing is left to bind by name (MOD-6)
+    return this.addSystemVerilogSubmodule('u_ip', SVFilePath, {}, bindings, false)
   }
 
-  // Input ports of the SystemVerilog module, from its module header
-  private extractInputSignalsFromVerilog (filePath: string): string[] {
-    const header = selectSVModule(parseSVModules(fs.readFileSync(filePath, 'utf-8')), filePath)
-    return Object.keys(header.ports).filter(port => header.ports[port] === 'input')
+  // The module header of the SystemVerilog module, which names its ports and their directions
+  private readSVModuleHeader (filePath: string): SVModuleHeader {
+    return selectSVModule(parseSVModules(fs.readFileSync(filePath, 'utf-8')), filePath)
+  }
+
+  // The width of a port of the SV module, from the XML's <model><ports>, for a port that needs one
+  private portWidth (port: string, header: SVModuleHeader, portWidths: Record<string, number>): number {
+    const width = portWidths[port]
+    if (width === undefined) {
+      throw Error(`IpXactComponent ${this.name}: port ${port} of ${header.name} isn't in the <model><ports> of ${this.params.xmlDataPath}`)
+    }
+    return width
+  }
+
+  // The width of each port of the component's model, from the XML's <model><ports>: the span of
+  // its vector, or 1 for a port with no vector
+  protected parsePortWidths (xmlData: string): Record<string, number> {
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '',
+      textNodeName: 'text'
+    })
+    // A bound with attributes (spirit:format, spirit:resolve) parses to an object holding its text
+    const bound = (value: any): number => Number(typeof value === 'object' ? value.text : value)
+    const widths: Record<string, number> = {}
+    for (const component of list(removePrefix(parser.parse(xmlData)).component)) {
+      for (const port of list(component.model?.ports?.port)) {
+        const vector = port.wire?.vector
+        widths[port.name] = vector === undefined ? 1 : Math.abs(bound(vector.left) - bound(vector.right)) + 1
+      }
+    }
+    return widths
   }
 
   // protected createDictionary (xmlData: string): Record<string, ComponentData> {
@@ -216,29 +269,13 @@ export class IpXactComponent extends Module {
       textNodeName: 'text'
     })
 
-    const removePrefix = (obj: any): any => {
-      if (typeof obj !== 'object' || obj === null) {
-        return obj
-      }
-
-      if (Array.isArray(obj)) {
-        return obj.map(removePrefix)
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return Object.keys(obj).reduce<Record<string, any>>((acc, key) => {
-        const newKey = key.replace(/^[^:]+:/, '')
-        acc[newKey] = removePrefix(obj[key])
-        return acc
-      }, {})
-    }
-
     const jsonObj = removePrefix(parser.parse(xmlData))
     const components = jsonObj.component
     const result: Record<string, ComponentData> = {}
 
     const processComponent = (component: any): void => {
-      const busInterfaces = component.busInterfaces.busInterface
+      // The parser gives a single element as itself and several as an array: list() takes both
+      const busInterfaces = list(component.busInterfaces.busInterface)
       busInterfaces.forEach((busInterface: any) => {
         const interfaceName = busInterface.name
         const abstractionType = busInterface.abstractionType
@@ -247,7 +284,7 @@ export class IpXactComponent extends Module {
         const abstractionLibrary = abstractionType.library
         const busType = busInterface.busType
         const busName = busType.name.replace(/_+$/, '')
-        const portMaps = busInterface.portMaps.portMap
+        const portMaps = list(busInterface.portMaps.portMap)
         const portDictionary: Record<string, string> = {}
 
         portMaps.forEach((portMap: any) => {
@@ -326,10 +363,10 @@ export class IpXactComponent extends Module {
           // Add interface with parameters
           this.addInterface(interfaceName, new InterfaceModule(paramObject, direction)) // eslint-disable-line @typescript-eslint/no-unsafe-argument
         } else {
-          console.warn(`Interface name ${interfaceName} does not indicate outward or inward.`)
+          throw Error(`IpXactComponent ${this.name}: ${this.params.xmlDataPath} has interface ${interfaceName}, whose name doesn't start with Init or Targ, so its direction is unknown`)
         }
       } else {
-        console.error(`Interface for ${interfaceName} with path ${pathString} is not known.`)
+        throw Error(`IpXactComponent ${this.name}: ${this.params.xmlDataPath} has interface ${interfaceName} of bus type ${pathString}, which isn't in IpXactComponent.knownInterfaces`)
       }
     }
   }
@@ -394,13 +431,13 @@ export class IpXactComponent extends Module {
     })
 
     const parsedXml = parser.parse(xmlInput)
-    const busInterfaces = parsedXml['spirit:component']['spirit:busInterfaces']['spirit:busInterface']
+    const busInterfaces = list(parsedXml['spirit:component']['spirit:busInterfaces']['spirit:busInterface'])
 
     const parametersData: Record<string, Record<string, ParameterData>> = {}
 
     busInterfaces.forEach((interfaceData: any) => {
       const interfaceName = interfaceData['spirit:name']
-      const parameters = interfaceData['spirit:parameters']['spirit:parameter']
+      const parameters = list(interfaceData['spirit:parameters']?.['spirit:parameter'])
 
       const interfaceParametersData: Record<string, ParameterData> = {}
 
@@ -419,6 +456,30 @@ export class IpXactComponent extends Module {
 
     return parametersData
   }
+}
+
+// An XML element that may occur more than once, as an array: the parser gives one occurrence as
+// itself, several as an array, and none as undefined
+function list (element: any): any[] {
+  return element === undefined ? [] : [element].flat()
+}
+
+// The parsed XML with each key's namespace prefix (`spirit:`, `ipxact:`) removed
+function removePrefix (obj: any): any {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(removePrefix)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return Object.keys(obj).reduce<Record<string, any>>((acc, key) => {
+    const newKey = key.replace(/^[^:]+:/, '')
+    acc[newKey] = removePrefix(obj[key])
+    return acc
+  }, {})
 }
 
 function transformParameterName (name: string): string {

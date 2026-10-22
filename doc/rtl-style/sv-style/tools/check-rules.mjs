@@ -9,7 +9,7 @@
 //   - docVerbatim: each named doc example appears verbatim in its example file
 //   - "movedTo": a rule that moved to the TSSV guide is only a *moved* note here, naming its new
 //     ID, with no examples (doc/rtl-style/tssv-style/tools/check-rules.mjs checks the new ID exists)
-// "builder" and "generated" are run by check-builder-examples.mjs.
+// "builder", "module" and "generated" are run by check-builder-examples.mjs.
 // Exits 0 if everything passes, 1 otherwise.
 
 import { existsSync, readFileSync } from 'node:fs'
@@ -19,7 +19,7 @@ import { lint, requirePinnedVerilator, simulate } from '../../tools/verilator.mj
 const ROOT = 'doc/rtl-style/sv-style'
 const DOC = `${ROOT}/sv-coding-style.md`
 const WIDTH_EXAMPLES = `${ROOT}/sv/width/width_examples.sv`
-const KINDS = ['lint', 'width', 'sim', 'builder', 'generated', 'review']
+const KINDS = ['lint', 'width', 'sim', 'builder', 'module', 'generated', 'review']
 
 const doc = readFileSync(DOC, 'utf8')
 const rules = JSON.parse(readFileSync(`${ROOT}/rules.json`, 'utf8'))

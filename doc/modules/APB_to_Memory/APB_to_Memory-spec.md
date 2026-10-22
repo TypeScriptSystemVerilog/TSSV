@@ -17,7 +17,7 @@ Defined in `APB_to_Memory_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | `'APB_to_Memory'` | Instance name |
+| `name` | `string` | derived: `APB_to_Memory_<DATA_WIDTH>_<ADDR_WIDTH>` | Module name. The derived name differs for each pair of widths, so bridges of different widths are different modules (PARAM-2) |
 | `DATA_WIDTH` | `32 \| 64 \| 128 \| 256 \| 512 \| 1024` | `32` | Data bus width in bits; must match the attached RegisterBlock's `wordSize` |
 | `ADDR_WIDTH` | `IntRange<16, 64>` | `32` | Address bus width in bits |
 
@@ -27,8 +27,8 @@ Defined in `APB_to_Memory_Parameters extends TSSVParameters`.
 
 | Port | Direction | Width | Clock/Reset | Description |
 |---|---|---|---|---|
-| `clk` | `input` | 1 | `isClock: 'posedge'` | System clock (unused internally; present for interface consistency) |
-| `rst_b` | `input` | 1 | `isReset: 'lowasync'` | Active-low async reset (unused internally; present for interface consistency) |
+| `clk` | `input` | 1 | `isClock: 'posedge'` | System clock. Unused: present for interface consistency |
+| `rst_b` | `input` | 1 | `isReset: 'lowasync'` | Active-low async reset. Unused: present for interface consistency |
 
 ### Interfaces
 
@@ -132,13 +132,15 @@ A read against a slave that inserts three wait states. The APB access phase last
 
 ## Internal Architecture
 
-No sub-blocks. The entire module is eight `addAssign` calls generating eight `assign` statements in the output SV:
+No sub-blocks. The module is eight `addAssign` calls generating eight `assign` statements in the output SV:
 
 - **Address/data passthrough** — `PADDR → ADDR`, `PWDATA → DATA_WR`, `PSTRB → WSTRB`
 - **Read data return** — `DATA_RD → PRDATA`
 - **WE/RE decode** — the APB setup phase (`PSELx & ~PENABLE`) decoded to Memory `WE` or `RE`
 - **PREADY** — passed through from `mem.READY`
 - **PSLVERR** — tied to `1'b0`
+
+Then one `addBody` reads the inputs the bridge ignores, `clk`, `rst_b`, `apb.PCLK`, `apb.PRESETn`, `apb.PPROT` and `apb.PCLKEN`, into `unused_inputs`, a signal that nothing uses. A `lint_off UNUSEDSIGNAL` waiver covers that one declaration (LINT-3), so `-Wall` lint reports none of them, and no lint run needs a waiver of its own for the bridge.
 
 ---
 
@@ -157,7 +159,7 @@ No sub-blocks. The entire module is eight `addAssign` calls generating eight `as
 **Test script:** `ts/test/test_APB_to_Memory.ts`, with the testbench `verilatorTB/tb_APB_to_Memory.sv`
 **Output:** `sv-examples/APB_to_Memory/`
 
-The test script generates a `RegisterBlock` with `busInterface: 'APB'` (a field register, a plain `RW`, an `RWU`, a `WO` and a `RAM` window), so its `APB_to_Memory` submodule drives the block's Memory bus. The make target lints the block with `verilator --lint-only -Wall` (waivers in `verilatorTB/apb_to_memory_waivers.vlt`) and runs the self-checking testbench, which acts as the APB master:
+The test script generates a `RegisterBlock` with `busInterface: 'APB'` (a field register, a plain `RW`, an `RWU`, a `WO` and a `RAM` window), so its `APB_to_Memory` submodule drives the block's Memory bus. It writes one definition per file: the block, the bridge (`APB_to_Memory_32_32.sv`), the `APB4_32_32` and `memory_bidi_32_32` interfaces, a lint wrapper, and the slave model for the `RAM` window (`memory_slave_bidi_32_32.sv`). It also writes two filelists. The make target lints the block with `verilator --lint-only -Wall` and the common waivers only, from `apb_regblock_lint_top.f`, then builds the self-checking testbench from `tb_APB_to_Memory.f` and runs it. The testbench acts as the APB master:
 
 | Test case | Stimulus | Checked |
 |---|---|---|
@@ -179,6 +181,9 @@ make -C verilatorTB apb_to_memory_sim
 
 ## Implementation Notes
 
-- `clk` and `rst_b` are declared as flat ports for interface consistency with the rest of the framework but are not connected to any internal logic.
+- `clk` and `rst_b` are declared as flat ports for interface consistency with the rest of the framework, but no logic uses them. The `RegisterBlock` that instantiates the bridge binds both.
 - The module is intentionally minimal — error conditions are out of scope for a simple register block adapter. APB4 has no bursts.
 - Memory wait states need no counter: `PREADY` follows `mem.READY`, so the slave decides how long the access phase lasts.
+- **Style-guide deviations.** The module follows the [TSSV guide](../../rtl-style/tssv-style/tssv-coding-style.md) and the [SV guide](../../rtl-style/sv-style/sv-coding-style.md), except for these SHOULD rules:
+  - **MOD-4** (TSSV guide): the reset is `rst_b`, not `rst_n`. Renaming reset ports is out of scope for [#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59).
+  - **IDENT-2** (TSSV guide): the parameters are `DATA_WIDTH` and `ADDR_WIDTH`, not camelCase. They take the names of the `APB4` and `Memory` interface parameters they set.

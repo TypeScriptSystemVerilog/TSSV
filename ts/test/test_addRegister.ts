@@ -279,15 +279,15 @@ try {
 
 // test 5 high reset asynchronous with neg clock edge
 
+// The testbench resets like the register it tests, on rst (RST-2), and rst is rst_b inverted:
+// a reset generated in logic is an RST-4 error, but an inversion is wiring
 const tbBody5 =
 `
-    always_comb begin
-        rst = ~rst_b;
-    end
-    
+    assign rst = ~rst_b;
+
     logic [15:0] count;
     always @(negedge clk or posedge rst) begin
-    if(!rst_b)
+    if(rst)
       begin
         count <= 'd0;
       end
@@ -350,12 +350,13 @@ try {
 
 // test 6 low syncronous reset and positive edge clock
 
+// The testbench resets like the register it tests: rst_b is lowsync too (RST-2)
 const tbBody6 =
 `
 
 logic [15:0] count;
-always @(posedge clk or negedge rst_b) begin // remove or negedge rst
-if(!rst_b) // changed to rst_b from rst
+always @(posedge clk) begin
+if(!rst_b)
 begin
   count <= 'd0;
   reset_sync <= 1'b0;
@@ -395,7 +396,7 @@ const regMod6 = markTestbench(new Module(
   { name: 'addRegisterSync_tb' },
   {
     clk: { direction: 'input', isClock: 'posedge' },
-    rst_b: { direction: 'input', isReset: 'lowasync' }
+    rst_b: { direction: 'input', isReset: 'lowsync' }
   },
   {},
   tbBody6
@@ -419,22 +420,27 @@ try {
 
 // test 7 high synchronous reset with positive clk edge
 
+// The testbench resets like the register it tests, on tb_rst, which is rst_b inverted (RST-2,
+// RST-4). rst holds the register in reset throughout, so q keeps its reset value, 1, whatever d is.
 const tbBody7 =
 `
+    assign tb_rst = ~rst_b;
+
     logic [15:0] count;
-    initial begin
-      count = 'd0;
-      rst =1'b1;
+    always @(posedge clk) begin
+    if(tb_rst)
+    begin
+      count <= 'd0;
+      rst <= 1'b1;
     end
-    always @(posedge clk or negedge rst_b) begin // remove or negedge rst
-    if(!rst_b) // changed to rst_b from rst
+    else
     begin
       rst <= 1'b1;
       count <= count + 1'b1;
       case (count)
       'd0: begin
       d <= 0;
-      assert(d_q == 0) else $fatal("Assertion failed: d_q should be 0 at time %0t", $time);
+      assert(d_q == 1) else $fatal("Assertion failed: d_q should be 1 at time %0t", $time);
       end
       'd1: begin
       d <= 1;
@@ -455,10 +461,6 @@ const tbBody7 =
       default: d <= 0;
       endcase
     end
-    else
-    begin
-      rst <= 1'b0;
-      end
     end
 `
 
@@ -473,6 +475,7 @@ const regMod7 = markTestbench(new Module(
 ))
 regMod7.addSignal('d', {})
 regMod7.addSignal('rst', { isReset: 'highsync' })
+regMod7.addSignal('tb_rst', { isReset: 'highsync' })
 regMod7.addRegister(
   {
     d: 'd',

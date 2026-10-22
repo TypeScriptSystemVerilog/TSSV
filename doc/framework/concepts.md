@@ -431,12 +431,35 @@ endmodule
 `ts/test/test_perModuleFiles.ts` lints the files with Verilator both ways, and with both at once
 so that every file is reached twice.
 
+### Checking each module against the SV guide
+
+Before a module's SV joins the output, it's checked against the SV guide's rules on always blocks
+(`ts/src/core/ModuleCheck.ts`). `verible-verilog-syntax` parses the module once, and
+`ts/src/core/ModuleBody.ts` reads its syntax tree: each always block's kind, event control,
+assignments and locals, and the module's continuous assignments and declarations. Every always
+block is checked the same way, whether a builder or raw SV wrote it, so the builders don't check
+their own blocks. A syntax error, or any broken rule, throws. The error lists every violation in
+the module, each with the block's header, such as `always_ff @(posedge clk) begin : q_reg`. A
+syntax error gives the line and column in the module's unformatted SV, and quotes the line. The
+check isn't part of formatting, so it throws even under `failOnFormatError: false` or with the
+formatter off.
+
+The SV alone can't tell a sync reset from an enable, or an async reset from a second clock, so the
+check also reads the module's signal table: which signals are resets (`isReset`), of which kind,
+and which are constants, and which submodule ports are resets. The rules it enforces, COMB-2,
+COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4, are listed in the JSDoc of
+[`writeSystemVerilog()`](../reference/Base.md#module). What it can't see, review still covers
+(each rule's `reason` in `doc/rtl-style/sv-style/rules.json`): a reset not marked `isReset`, a
+reset branch under a `case`, and resets generated in imported SV or carried in an interface.
+
+Each module is checked as it's emitted, submodules first, and SV imported with
+`addSystemVerilogSubmodule()` isn't checked: TSSV didn't generate it.
+
 ### Formatting with Verible
 
 The returned text is passed through `verible-verilog-format` before it is returned. This
 happens once, on the top-level call's output, or once per file for `writeSystemVerilogFiles()`.
-The configuration is a static setting shared by
-every module:
+The configuration is a static setting shared by every module:
 
 ```typescript
 Module.setFormatterConfig({
@@ -449,10 +472,20 @@ Module.setFormatterConfig({
 ```
 
 - The default is `{ engine: 'verible', failOnFormatError: true }`, so generation fails if
-  Verible isn't installed, times out or crashes. The thrown message carries its diagnostic.
-- **A syntax error doesn't fail generation.** On a syntax error `verible-verilog-format` exits
-  with status 0 and returns its input unformatted, and the core discards its error output.
-  Unformatted output is the only sign. Lint generated SV with Verilator to catch these. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
+  Verible isn't installed, times out, crashes or finds a syntax error. The thrown message
+  carries its diagnostic.
+- **A syntax error is a formatter failure.** Left to its defaults, `verible-verilog-format`
+  exits 0 on a syntax error and returns its input unformatted. The core passes
+  `--failsafe_success=false`, after any `veribleFlags`, so it exits 1 instead. The diagnostic's
+  `stderr:` line has Verible's line, column and token, such as
+  `<stdin>:12:9: syntax error at token ";"`. The line counts from the start of the top-level
+  call's unformatted output, which is the text returned under `failOnFormatError: false`. For
+  `writeSystemVerilogFiles()`, it counts from the start of that file's definition, before the
+  guard is added. ([#87](https://github.com/TypeScriptSystemVerilog/TSSV/issues/87))
+  Few syntax errors get that far, though. The module check above parses each module's SV first,
+  and a syntax error there throws whatever `failOnFormatError` says. `addSystemVerilogSubmodule()`
+  parses imported SV when it reads the file, and throws on a syntax error there too. That leaves
+  the formatter to catch one in an interface definition.
 - `setFormatterConfig` **replaces** the whole configuration. Fields you leave out are unset,
   not kept from the default. Leave out `failOnFormatError` and failures become warnings.
 - `'internal'` is accepted, but today it does nothing: it skips formatting, as `'off'` does.
@@ -490,7 +523,8 @@ What this means in practice:
 - **Parameter values must be truthy** (§2): `0`, `''` and `false` throw ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
 
 `IpXactComponent` (`doc/modules/IpXactComponent/IpXactComponent-spec.md`) builds on the same
-header parser to wrap an SV module described by an IP-XACT component file.
+header parser to wrap an SV module described by an IP-XACT component file. It does check widths:
+against the port widths the IP-XACT file gives, not against the SV file.
 
 ## Where to go next
 

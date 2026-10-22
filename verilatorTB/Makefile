@@ -103,17 +103,16 @@ regblock_types_sim: tsc
 
 # TSSV#116: ts/test/test_APB_to_Memory.ts writes a RegisterBlock with an APB port, so its
 # APB_to_Memory submodule drives the block's Memory bus. This lints the block with -Wall and runs
-# a self-checking APB testbench against it. apb_to_memory_waivers.vlt holds the only waivers.
+# a self-checking APB testbench against it, each from the filelist the test writes. No waivers
+# beyond the common ones (TSSV#154).
 APB_DIR = ../sv-examples/APB_to_Memory
 
 apb_to_memory_sim: tsc
 	cd ..; node out/test/test_APB_to_Memory.js
-	verilator --lint-only -Wall --top-module apb_regblock_lint_top $(COMMON_WAIVERS) apb_to_memory_waivers.vlt \
-	  $(APB_DIR)/apb_regblock.sv $(APB_DIR)/apb_regblock_lint_top.sv
+	verilator --lint-only -Wall $(COMMON_WAIVERS) -F $(APB_DIR)/apb_regblock_lint_top.f
 	@echo "lint -Wall clean: apb_regblock"
 	mkdir -p obj_dir
-	verilator --binary --timing -j 0 -Mdir obj_dir/apb_to_memory -o Vtb_APB_to_Memory \
-	  tb_APB_to_Memory.sv $(APB_DIR)/apb_regblock.sv $(APB_DIR)/memory_models.sv \
+	verilator --binary --timing -j 0 -Mdir obj_dir/apb_to_memory -o Vtb_APB_to_Memory -F $(APB_DIR)/tb_APB_to_Memory.f \
 	  > obj_dir/apb_to_memory.build.log 2>&1 || { cat obj_dir/apb_to_memory.build.log; exit 1; }
 	cd obj_dir/apb_to_memory && ./Vtb_APB_to_Memory
 
