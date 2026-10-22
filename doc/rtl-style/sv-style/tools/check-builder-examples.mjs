@@ -4,9 +4,6 @@
 // (SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's rules.json
 // entry must list "builder", or "module" for a rule writeSystemVerilog() enforces. Exits 0 if
 // everything passes, 1 otherwise.
-//
-// Known framework violations (rules.json "known") are reported but don't fail the run.
-// Each one should be tracked by an issue and removed from rules.json when it's fixed.
 
 import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync, rmSync } from 'node:fs'
@@ -19,10 +16,6 @@ const OUT = 'sv-examples/rtl_style'
 const RULES = JSON.parse(readFileSync('doc/rtl-style/sv-style/rules.json', 'utf8'))
 const TSSV_RULES = JSON.parse(readFileSync('doc/rtl-style/tssv-style/rules.json', 'utf8'))
 const ALL_RULES = { ...RULES, ...TSSV_RULES }
-
-function isKnown (rule, finding) {
-  return (RULES[rule]?.known ?? []).some((k) => finding.includes(k.match))
-}
 
 const pin = requirePinnedVerilator()
 let failed = 0
@@ -50,7 +43,6 @@ for (const rule of builderRules) {
 }
 
 // Generated SV: lint, then scans.
-const known = new Map()
 for (const f of readdirSync(OUT).filter((n) => n.endsWith('.sv')).sort()) {
   const file = join(OUT, f)
   const l = lint([file])
@@ -58,21 +50,13 @@ for (const f of readdirSync(OUT).filter((n) => n.endsWith('.sv')).sort()) {
   else console.log(`PASS: ${file} lints clean`)
   const sv = readFileSync(file, 'utf8')
   for (const [rule, scan] of Object.entries(SCANS)) {
-    for (const finding of new Set(scan(sv))) {
-      if (isKnown(rule, finding)) {
-        const k = `${rule}: ${finding}`
-        known.set(k, (known.get(k) ?? 0) + 1)
-      } else {
-        fail(`${file} ${rule}: ${finding}`)
-      }
-    }
+    for (const finding of new Set(scan(sv))) fail(`${file} ${rule}: ${finding}`)
   }
 }
 
-for (const [k, n] of known) console.log(`KNOWN: ${k} (${n} file${n === 1 ? '' : 's'})`)
 for (const rule of Object.keys(RULES).filter((r) => RULES[r].checks?.includes('generated'))) {
   if (!GENERATED_RULES.includes(rule)) fail(`${rule}: rules.json lists "generated" but no generated-SV check exists`)
 }
 
-console.log(`\n${results.length} builder checks, ${failed} failed, ${known.size} known framework violations (Verilator ${pin})`)
+console.log(`\n${results.length} builder checks, ${failed} failed (Verilator ${pin})`)
 process.exit(failed > 0 ? 1 : 0)

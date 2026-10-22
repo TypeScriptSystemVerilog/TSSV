@@ -39,10 +39,6 @@ Each `rules.json` entry lists one or more checks:
 | `repo` | A scan of the repo's TypeScript (`REPO_SCANS` in `check-rules.mjs`) finds no violation in `ts/src/modules/`, `ts/src/interfaces/` or `ts/test/` | `check-rules.mjs` |
 | `review` | Design judgment, or no automated check yet; the entry's `reason` says which | `check-rules.mjs` (checks a reason is given) |
 
-`known` lists repo-scan findings in existing code that don't fail the run yet. They're reported
-as `KNOWN`. Each one names the issue that tracks its fix; remove it from `rules.json` when the
-fix lands. There are none at the moment.
-
 `check-rules.mjs` also checks the two guides against each other: no rule ID or ID prefix is used
 by both, and every rule the SV guide marks `movedTo` exists here.
 

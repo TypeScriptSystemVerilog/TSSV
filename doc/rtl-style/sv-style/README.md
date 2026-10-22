@@ -72,10 +72,6 @@ Other fields:
 - `docVerbatim` maps an example label in the guide (`"Do"`, `"Don't"`, `"Also fine"`) to the
   file that must contain that example verbatim. This keeps a simulated example and the guide
   from drifting apart.
-- `known` lists violations that the framework itself emits. They're reported as `KNOWN` and
-  don't fail the run. Each one names the issue that tracks its fix; remove it from `rules.json`
-  when the fix lands. There are none today. `check-generated-sv.mjs` doesn't read `known`: it
-  has its own baseline.
 
 ## Adding or changing a rule
 
