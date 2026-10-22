@@ -10,7 +10,7 @@
 //
 // Each returns one SV module, named after the interface it connects to:
 // memory_slave_<type>_<DATA_WIDTH>_<ADDR_WIDTH> or memory_master_<type>_<DATA_WIDTH>_<ADDR_WIDTH>.
-// Used by ts/test/test_RegisterBlock_types.ts and ts/test/test_RegisterBlock_read.ts (TSSV#80).
+// Used by ts/test/test_RegisterBlock_types.ts (TSSV#80) and ts/test/models/RegisterBlockTestbench.ts (TSSV#130).
 import { Memory, type Memory_Type } from 'tssv/lib/interfaces/Memory'
 import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
 
@@ -154,6 +154,8 @@ endmodule
  *   first cycle `READY` is high again. `ADDR` and the write data stay as they were until the next
  *   access. `read` returns `DATA_RD` from that cycle.
  * - `waits` is the number of cycles `READY` was low during the last access.
+ * - `set_addr(addr)` waits for `READY`, then changes `ADDR` with no request, as the contract
+ *   allows while the bus is idle.
  */
 export function memoryMasterBfm (opts: MemoryModelOptions = {}): string {
   const { type, dw, aw, iface } = resolve(opts)
@@ -188,6 +190,12 @@ ${reads ? '    bus.RE = 1\'b0;\n' : ''}${writes ? '    bus.WE = 1\'b0;\n    bus.
       @(negedge clk);
       #1;
     end
+  endtask
+
+  // Moves ADDR while the bus is idle: the slave must ignore it until the next request
+  task automatic set_addr (input logic [${aw - 1}:0] addr);
+    idle();
+    bus.ADDR = addr;
   endtask
 ${writes
   ? `
