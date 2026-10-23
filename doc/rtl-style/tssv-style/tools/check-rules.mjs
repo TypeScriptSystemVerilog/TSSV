@@ -8,7 +8,6 @@
 //   - "repo":    a scan of the repo's TypeScript (REPO_SCANS below) finds no violation
 //   - "review":  the entry gives a reason
 // "builder" is run by sv-style/tools/check-builder-examples.mjs.
-// Repo findings that match a "known" entry are reported as KNOWN and don't fail the run.
 // Exits 0 if everything passes, 1 otherwise.
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
@@ -81,7 +80,6 @@ const REPO_SCANS = {
 // ---------------------------------------------------------------- checks
 let passed = 0
 let failed = 0
-const known = []
 const report = (ok, msg) => {
   if (ok) passed++
   else failed++
@@ -133,10 +131,7 @@ for (const [id, rule] of Object.entries(rules)) {
       report(false, `${id}: rules.json lists "repo" but there is no repo scan for it`)
     } else {
       const findings = scan()
-      const isKnown = (f) => (rule.known ?? []).some((k) => f.includes(k.match))
-      for (const f of findings.filter(isKnown)) known.push(`${id}: ${f}`)
-      const real = findings.filter((f) => !isKnown(f))
-      report(real.length === 0, `${id} repo: ${real.length === 0 ? 'no violations' : real.join('; ')}`)
+      report(findings.length === 0, `${id} repo: ${findings.length === 0 ? 'no violations' : findings.join('; ')}`)
     }
   }
 
@@ -148,7 +143,6 @@ for (const id of Object.keys(REPO_SCANS)) {
   if (!rules[id]?.checks?.includes('repo')) report(false, `${id} has a repo scan but rules.json doesn't list "repo" for it`)
 }
 
-for (const k of known) console.log(`KNOWN: ${k}`)
 const covered = Object.keys(sections).filter((id) => rules[id])
-console.log(`\n${passed} passed, ${failed} failed, ${known.length} known; ${covered.length}/${Object.keys(sections).length} rules covered`)
+console.log(`\n${passed} passed, ${failed} failed; ${covered.length}/${Object.keys(sections).length} rules covered`)
 process.exit(failed > 0 ? 1 : 0)

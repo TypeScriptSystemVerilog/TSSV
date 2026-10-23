@@ -24,7 +24,7 @@
 //
 // Without throws or tserror, the example must type-check and run to completion. Every module a
 // "do" example emits must lint clean under -Wall and pass the generated-SV scans of the SV guide
-// (sv-style/tools/sv-scans.mjs), apart from that guide's known framework violations.
+// (sv-style/tools/sv-scans.mjs).
 //
 // Two helpers are in scope in every example: emit(m) writes m's SV for checking and returns it,
 // and expect(cond, msg) throws msg unless cond holds.
@@ -38,7 +38,6 @@ import { SCANS } from '../../sv-style/tools/sv-scans.mjs'
 import { lint, requirePinnedVerilator } from '../../tools/verilator.mjs'
 
 const DOC = 'doc/rtl-style/tssv-style/tssv-coding-style.md'
-const SV_RULES = JSON.parse(readFileSync('doc/rtl-style/sv-style/rules.json', 'utf8'))
 const WORK = 'sv-examples/rtl_style_ts'
 const EXPECTATIONS = ['throws', 'emits', 'lacks', 'lint', 'allow', 'tserror']
 // writeSystemVerilog() puts a module's submodule definitions ahead of it in the same file, so a
@@ -138,10 +137,6 @@ emit(new Example())
 }
 
 // ---------------------------------------------------------------- run
-function isKnown (rule, finding) {
-  return (SV_RULES[rule]?.known ?? []).some((k) => finding.includes(k.match))
-}
-
 function main () {
   const pin = requirePinnedVerilator()
   const { examples, errors } = parseExamples(readFileSync(DOC, 'utf8'))
@@ -226,9 +221,7 @@ function main () {
         const unexpected = l.warnings.filter((w) => !want('allow').includes(w))
         if (unexpected.length > 0) problems.push(`${f} has lint warnings: ${unexpected.join(', ')}\n${l.out.replace(/^/gm, '    ')}`)
         for (const [rule, scan] of Object.entries(SCANS)) {
-          for (const finding of new Set(scan(svs[n]))) {
-            if (!isKnown(rule, finding)) problems.push(`${f} ${rule}: ${finding}`)
-          }
+          for (const finding of new Set(scan(svs[n]))) problems.push(`${f} ${rule}: ${finding}`)
         }
       }
     })

@@ -17,10 +17,9 @@ Verilator version pinned in the top-level `README.md`, and it refuses any other 
 [`tools/`](tools/) holds the runner and the Verilator helpers both guides share.
 
 `npm run check:generated-sv`, run after `bash runAllTests.sh`, holds everything the test scripts
-generate to the SV guide: `-Wall` lint and the generated-SV scans. It fails on any finding that
-isn't in its per-file baseline, and on a baseline entry that no longer occurs.
-[sv-style/README.md](sv-style/README.md#generated-sv-the-baseline) describes the baseline and how
-a fix removes its entries.
+generate to the SV guide: `-Wall` lint and the generated-SV scans. It fails on any finding.
+[sv-style/README.md](sv-style/README.md#generated-sv) describes what it checks and the paths it
+leaves out.
 
-Bringing the framework and the existing modules in line with both guides is tracked in
-[#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59).
+[#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59) brought the framework and the
+existing modules in line with both guides.
