@@ -11,8 +11,7 @@ way the guide says it does.
   and the TSSV guide's. It needs the Verilator version pinned in the top-level `README.md`, and
   it refuses any other version.
 - **Check everything the test scripts generate:** `npm run check:generated-sv`, after
-  `bash runAllTests.sh`. It holds today's findings in a baseline; see
-  [Generated SV: the baseline](#generated-sv-the-baseline).
+  `bash runAllTests.sh`. Any finding fails; see [Generated SV](#generated-sv).
 
 ## Layout
 
@@ -21,7 +20,6 @@ doc/rtl-style/sv-style/
   sv-coding-style.md    the rules, with their short Do/Don't examples inline
   rules.json            how each rule is verified; every rule ID in the guide needs an entry
   common_waivers.vlt    the lint waivers every Verilator lint run passes (the guide's section 8)
-  generated-baseline.json   the findings the test scripts' SV has today, per file
   sv/
     seq/                simulation examples for SEQ-2 and SEQ-5, with their testbenches
     width/              width_examples.sv, the examples for every WIDTH rule, and its testbench
@@ -32,7 +30,7 @@ doc/rtl-style/sv-style/
     check-builder-examples.mjs  builder and module checks for both guides, and the SV they generate
     check-builder-widths.mjs    the expression builders' SV: lint with only the common waivers, exact arithmetic
     sv-scans.mjs                text checks on generated SV (SYN-1, LINT-3)
-    check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/, against the baseline
+    check-generated-sv.mjs      -Wall lint and the scans on all of sv-examples/
 doc/rtl-style/tools/
   check-rtl-style.mjs   runs every check of both guides
   verilator.mjs         shared helpers: Verilator pin, lint, simulate
@@ -62,7 +60,7 @@ Each `rules.json` entry lists one or more checks:
 | `width` | Every example output the rule cites exists in `width_examples.sv`, which lints clean and matches exact arithmetic | `check-rules.mjs`, `check-width-examples.mjs` |
 | `builder` | A check in `ts/test/rtl_style/` confirms what the builder emits or rejects. The TSSV guide's rules use this too | `check-builder-examples.mjs` |
 | `module` | `writeSystemVerilog()` rejects a module that breaks the rule, in SV a builder wrote or in raw SV (`ts/src/core/ModuleCheck.ts`). A check in `ts/test/rtl_style/` confirms it | `check-builder-examples.mjs` |
-| `generated` | The SV the builders generate lints clean (LINT-1) and passes the text checks in `sv-scans.mjs`. So does the SV the test scripts generate, but for the findings in the baseline | `check-builder-examples.mjs`; `check-generated-sv.mjs` for the test scripts' SV |
+| `generated` | The SV the builders generate lints clean (LINT-1) and passes the text checks in `sv-scans.mjs`. So does the SV the test scripts generate | `check-builder-examples.mjs`; `check-generated-sv.mjs` for the test scripts' SV |
 | `review` | Design judgment, or no automated check yet; the entry's `reason` says which | `check-rules.mjs` (checks a reason is given) |
 
 Other fields:
@@ -87,7 +85,7 @@ Other fields:
    - or a scan in `tools/sv-scans.mjs`.
 4. Run `npm run check:rtl-style`.
 
-## Generated SV: the baseline
+## Generated SV
 
 `npm run check:generated-sv` (`tools/check-generated-sv.mjs`) runs the `generated` checks on
 everything the test scripts write under `sv-examples/`: `verilator --lint-only -Wall`
@@ -98,39 +96,11 @@ example writes an SFIFO configuration of its own into `sv-examples/`. Nothing cl
 wrote there. If it reports a file the test scripts don't write, start again from
 `rm -rf sv-examples && bash runAllTests.sh`.
 
-Most of that SV doesn't pass yet.
-[#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59) brings it in line one
-subtask at a time, and `generated-baseline.json` holds what's left: for each file, each
-finding and how many times it occurs. A finding is its rule and message, with no line number,
-so an edit elsewhere in the file doesn't change it:
-
-```json
-"sv-examples/Core/test1/testMem1.sv": {
-  "LINT-1 DECLFILENAME: Filename 'testMem1' does not match MODULE name: 'testMem_8_32'": 1,
-  "LINT-1 UNUSEDSIGNAL: Bits of signal are not used: 'addr'[5]": 1,
-  "LINT-3 waiver \"lint_off WIDTH\" covers the whole module": 1
-}
-```
-
-The check fails on:
-
-- a finding the baseline doesn't list for its file, or more of one than it lists. That's a
-  regression: fix it rather than add it to the baseline.
-- a baseline entry that occurs fewer times than it says, or not at all. The change that fixed
-  it has to remove it.
-- a Verilator error. The baseline can't hold one.
-
-**Removing entries after a fix.** Regenerate the SV, then rewrite the baseline from what the
-check finds:
-
-```bash
-rm -rf sv-examples && bash runAllTests.sh
-npm run check:generated-sv -- --update-baseline
-```
-
-It prints each entry it added or removed. Commit the baseline with the fix. Its diff should
-only remove entries or lower their counts; an entry it adds is a new finding. A #59 subtask is
-done for a file when the baseline has no entries left for it.
+The check fails on any finding, and on a Verilator error. It prints each finding with its
+file, its rule and, for a lint warning, its line. Fix the code that generates the SV, or the
+test script that wrote it. Where a waiver is the right answer, make it narrow and say why
+(LINT-3). Until [#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59) brought every
+file in line, a per-file baseline held the findings that were left; #155 removed it.
 
 **Linting through the top.** Each emission is linted through its top module, with the files it
 depends on. A test script writes a Verilator filelist, `<top>.f`, for an emission that can't be
@@ -161,7 +131,8 @@ the same file. SYN-1 skips a marked module and reports every unmarked one, a des
 file included. The other checks apply to testbenches as well.
 `ts/test/rtl_style/test_testbench_marker.ts` tests both sides.
 
-**What's left out.** The baseline's `exempt` lists the paths the check skips, each with its
-reason. `sv-examples/AXI4XBar/` is the only one: Rocket Chip's generator writes that SV, not
-TSSV's builders. The check also skips `sv-examples/rtl_style_ts/`, which
-`npm run check:rtl-style` writes, not the test scripts.
+**What's left out.** `LEFT_OUT` in `tools/check-generated-sv.mjs` lists the paths the check
+skips, each with its reason. There are two: `sv-examples/AXI4XBar/`, because Rocket Chip's
+generator writes that SV, not TSSV's builders, and `sv-examples/rtl_style_ts/`, which
+`npm run check:rtl-style` writes, not the test scripts. Add a path only when the SV guide
+doesn't apply to what is written there.

@@ -664,7 +664,7 @@ a synthesizable module:
 
 Use `casez` only with intent and a comment. All of these are fine in testbenches. A test
 script marks each testbench it generates, so the checks can tell it from RTL
-([README.md](README.md#generated-sv-the-baseline)).
+([README.md](README.md#generated-sv)).
 
 **SYN-2 (MUST): No gated or generated clocks.** Clock gating goes through a dedicated,
 reviewed clock-gate cell or module.
