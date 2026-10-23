@@ -33,7 +33,7 @@
 //
 // `make -C verilatorTB regblock_types_sim` runs this, lints each block with -Wall and runs each
 // testbench.
-import { RegisterBlock, RegisterType, type RegisterBlockDef } from 'tssv/lib/core/Registers'
+import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
@@ -41,6 +41,7 @@ import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
 import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
+import { type Def, fieldBits, hasFields, lit, pattern, placeFields, type Reg } from 'tssv/test/models/RegisterBlockTestbench'
 
 const OUT_DIR = 'sv-examples/RegisterBlock_types'
 const GENERATOR = 'ts/test/test_RegisterBlock_types.ts'
@@ -98,7 +99,7 @@ const def32 = {
     ROM_REQ_RSP: { type: RegisterType.ROM, size: 4n },
     ROM_NONE: { type: RegisterType.ROM, size: 4n, registerRequest: false, registerResponse: false }
   }
-} satisfies RegisterBlockDef<Record<string, bigint>>
+} satisfies Def
 
 const def64 = {
   wordSize: 64,
@@ -125,39 +126,7 @@ const def64 = {
     BUF: { type: RegisterType.RAM, size: 2n },
     TBL: { type: RegisterType.ROM, size: 2n, registerResponse: false }
   }
-} satisfies RegisterBlockDef<Record<string, bigint>>
-
-type Def = RegisterBlockDef<Record<string, bigint>>
-type Reg = NonNullable<Def['registers'][string]>
-
-/** A deterministic test value of `width` bits, different for each `seed` */
-function pattern (seed: string, width: number): bigint {
-  let h = 0xcbf29ce484222325n
-  for (const c of seed) h = ((h ^ BigInt(c.charCodeAt(0))) * 0x100000001b3n) & ((1n << 64n) - 1n)
-  return h & ((1n << BigInt(width)) - 1n)
-}
-
-function lit (value: bigint, width: number): string {
-  return `${width}'h${value.toString(16)}`
-}
-
-function hasFields (reg: Reg): boolean {
-  return reg.fields !== undefined && Object.keys(reg.fields).length > 0
-}
-
-/** The word a write of `data` leaves in `reg`'s outputs, or a read returns, at its fields' bit ranges */
-function placeFields (reg: Reg, value: (name: string, index: number, width: number) => bigint): bigint {
-  let word = 0n
-  Object.entries(reg.fields ?? {}).forEach(([name, f], index) => {
-    const [hi, lo] = f.bitRange
-    word |= value(name, index, hi - lo + 1) << BigInt(lo)
-  })
-  return word
-}
-
-function fieldBits (data: bigint, hi: number, lo: number): bigint {
-  return (data >> BigInt(lo)) & ((1n << BigInt(hi - lo + 1)) - 1n)
-}
+} satisfies Def
 
 /** The testbench for `block`, generated from `def` */
 function testbench (block: RegisterBlock<Record<string, bigint>>, def: Def): string {
