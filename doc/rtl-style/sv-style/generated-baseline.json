@@ -1,7 +1,0 @@
-{
-  "about": "Findings in the SV the test scripts generate that check-generated-sv.mjs accepts today, per file, with how often each occurs. Fixing one means removing its entry: see README.md, 'Generated SV: the baseline'.",
-  "exempt": {
-    "sv-examples/AXI4XBar/": "Rocket Chip's generator writes this SV, not TSSV's builders, so the SV guide doesn't apply to it. test_AXI4XBar also needs Docker, so runAllTests.sh skips it (scripts/test-skips.sh)."
-  },
-  "findings": {}
-}
