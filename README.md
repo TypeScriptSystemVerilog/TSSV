@@ -265,3 +265,6 @@ A PR whose `doc/reference/` doesn't match the regenerated output fails the `docs
 ### Next Steps
 - [ ] implement Control Register generator
 - [ ] Decide approach to Bus fabrics and standardized interconnect
+
+### License
+TSSV is licensed under the [Apache License 2.0](LICENSE).
