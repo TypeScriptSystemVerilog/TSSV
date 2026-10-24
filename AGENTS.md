@@ -29,7 +29,7 @@ doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, wi
 doc/process/          Repo process specs (issue-workflow.md)
 scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base) and test-skips.sh (tests runAllTests.sh and gen-sv skip)
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
-.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml)
+.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml, dco.yml)
 ```
 
 Docs live under `doc/`, never under `ts/`. A module's spec is always at
