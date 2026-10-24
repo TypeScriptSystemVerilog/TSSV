@@ -1,0 +1,37 @@
+name: dco
+
+# Fails a PR if any of its commits lacks a DCO sign-off: a Signed-off-by
+# trailer whose email matches the commit's author email (CONTRIBUTING.md).
+# scripts/check-dco.sh does the checking; `npm run check:dco` runs it locally.
+#
+# It checks the commits on the PR's branch that aren't on its base branch:
+# origin/<base>..HEAD, where HEAD is the simulated merge. Merge commits are
+# skipped, including that one. A stacked PR's base is its parent's branch, so
+# the parent's commits are left to the parent's PR.
+#
+# Runs on every PR, not behind a path filter: a commit that touches only docs
+# still needs a sign-off. The `dco` job is a required status check on main.
+on:
+  pull_request:
+
+concurrency:
+  group: dco-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dco:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      # fetch-depth 0 fetches every branch, so origin/<base> exists.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check every commit is signed off
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/check-dco.sh "origin/$BASE_REF" HEAD
