@@ -245,6 +245,8 @@ if it's not obvious from the diff. Note any deviation from the
 issue's stated scope.>
 
 Refs #<issue>
+
+Signed-off-by: <your name> <your git email>
 ```
 
 `<type>` is a Conventional-Commits-style tag describing the diff itself: `feat`, `fix`,
@@ -257,9 +259,16 @@ Adds APBBridge with a typed Parameters interface and APB4 slave
 IOs, plus test_APBBridge.ts emitting sv-examples output.
 
 Refs #51
+
+Signed-off-by: Jane Doe <jane@example.com>
 ```
 
 Any agent-attribution footer (e.g. `Co-Authored-By:`) goes after `Refs #<issue>`.
+
+Every commit needs the `Signed-off-by:` line, the DCO sign-off described in
+`CONTRIBUTING.md`: commit with `git commit -s`, which adds it last. The `dco` check fails a
+PR with a commit that lacks it. An agent signs off with the git identity of the person
+running it, never its own.
 
 ## 7. Acceptance Criteria: writing and gating
 
