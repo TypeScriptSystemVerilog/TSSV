@@ -5,6 +5,8 @@ See doc/process/issue-workflow.md for the full spec. In short:
 - Check a box only after verifying it against actual output (a test run, a lint pass,
   a diff review) — never speculatively. Don't merge with any box still unchecked.
 - If it changes generated SV, show that SV in PR comments and link them under Generated SV.
+- Every commit needs a DCO sign-off (`git commit -s`); the `dco` check enforces it.
+  See CONTRIBUTING.md.
 -->
 
 ## Summary
