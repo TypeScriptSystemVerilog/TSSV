@@ -265,3 +265,9 @@ A PR whose `doc/reference/` doesn't match the regenerated output fails the `docs
 ### Next Steps
 - [ ] implement Control Register generator
 - [ ] Decide approach to Bus fabrics and standardized interconnect
+
+### Contributing
+Every commit needs a DCO sign-off (`git commit -s`). [`CONTRIBUTING.md`](CONTRIBUTING.md) explains it, and [`AGENTS.md`](AGENTS.md) describes the issue-driven workflow.
+
+### License
+TSSV is licensed under the [Apache License 2.0](LICENSE).
