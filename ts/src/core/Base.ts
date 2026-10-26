@@ -1,7 +1,9 @@
 /** @module Base */
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { parseSVModules, selectSVModule } from './SVModuleHeader.js'
+import { type SVModuleHeader, parseSVModules, selectSVModule } from './SVModuleHeader.js'
+import { expandSVFiles, guardSVImport } from './SVFileList.js'
+import { expandPath } from './Paths.js'
 import { type ModuleTable, checkModule } from './ModuleCheck.js'
 import { runVerible } from '../tools/formatters/verible.js'
 
@@ -140,10 +142,12 @@ export type IOSignals = Record<string, IOSignal>
  * options for `Module.addSystemVerilogSubmodule()`
  */
 export interface SVImportOptions {
-  /** module to instantiate when the file declares more than one */
+  /**
+   * module to instantiate when the files declare more than one. By default: the only module, or
+   * else the one module named after one of the paths given, so that `foo.sv` or `foo.f` selects
+   * `foo`
+   */
   moduleName?: string
-  /** path to verible-verilog-syntax, used to parse the module header (default: found on PATH) */
-  veribleSyntaxPath?: string
 }
 
 /**
@@ -580,32 +584,55 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }
 
   /**
-   * instantiate a module from an existing SystemVerilog file.  The module name and the
-   * direction of each bound port are taken from the file's module header.
+   * instantiate a module from existing SystemVerilog files.  The module name and the
+   * direction of each bound port are taken from the module's header.
+   *
+   * `SVFilePath` is a path or a list of paths, each an SV file or a `.f` filelist that names
+   * more files (see `expandSVFiles()` in `SVFileList.ts` for the rules). Environment variables in
+   * a path, written `$NAME` or `${NAME}`, are expanded, and the path must then be absolute:
+   * `$TSSV_ROOT/ts/test/leaf.sv`, not `ts/test/leaf.sv`. A path in a `.f` may be relative to the
+   * `.f` file's directory.
+   *
+   * Every file is emitted, in order, each inside its own include guard,
+   * `` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
+   * once, from two imports or from two emitted files compiled together, defines what it holds
+   * once.
    * @param instanceName the name of the instance
-   * @param SVFilePath path to the SystemVerilog source file
+   * @param SVFilePath the SystemVerilog files, and `.f` filelists naming them
    * @param params SV parameter overrides for the instance
    * @param bindings map of submodule port name to parent signal
    * @param autoBind automatically bind unbound ports to same-named parent signals
-   * @param options `moduleName` selects the module to instantiate when the file declares
-   * more than one (default: the only module in the file, or the one named after the file);
-   * `veribleSyntaxPath` locates verible-verilog-syntax, which parses the module header
+   * @param options `moduleName` selects the module to instantiate when the files declare
+   * more than one (default: the only module, or the one named after one of the paths)
    * @returns the imported submodule
    */
   addSystemVerilogSubmodule (
     instanceName: string,
-    SVFilePath: string,
+    SVFilePath: string | readonly string[],
     params: TSSVParameters,
     bindings: Record<string, string | Sig>,
     autoBind: boolean = true,
     options: SVImportOptions = {}): Module {
-    const { moduleName, veribleSyntaxPath } = options
-    const SVString = readFileSync(SVFilePath, { encoding: 'utf8', flag: 'r' }).toString()
-    const header = selectSVModule(parseSVModules(SVString, { veribleSyntaxPath }), SVFilePath, moduleName)
+    const { moduleName } = options
+    const sources = expandSVFiles(SVFilePath, 'SVFilePath').map(path => ({ path, text: readFileSync(path, 'utf8') }))
+    // Each file is parsed on its own, so a syntax error names its file
+    const fileOf = new Map<SVModuleHeader, string>()
+    for (const { path, text } of sources) {
+      let headers: SVModuleHeader[]
+      try {
+        headers = parseSVModules(text)
+      } catch (e) {
+        throw Error(`${path}: ${(e as Error).message}`)
+      }
+      for (const h of headers) fileOf.set(h, path)
+    }
+    const givenPaths = (typeof SVFilePath === 'string' ? [SVFilePath] : SVFilePath).map(p => expandPath(p))
+    const header = selectSVModule([...fileOf.keys()], givenPaths, moduleName)
+    const SVString = sources.map(({ path, text }) => guardSVImport(path, text)).join('')
     const vIOs: IOSignals = {}
     for (const port in bindings) {
       const kind = header.ports[port]
-      if (kind === undefined) throw Error(`${port} is not a port of module ${header.name} in ${SVFilePath}`)
+      if (kind === undefined) throw Error(`${port} is not a port of module ${header.name} in ${fileOf.get(header)}`)
       if (kind === 'interface' || kind === 'ref') throw Error(`${kind} port ${port} of module ${header.name} is not supported by addSystemVerilogSubmodule`)
       const thisSignal = this.findSignal(bindings[port])
       vIOs[port] = { ...thisSignal, direction: kind }

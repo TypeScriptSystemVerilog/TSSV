@@ -3,9 +3,8 @@
 // writeSystemVerilog() emits. Verible (https://github.com/chipsalliance/verible) must be installed.
 import { spawnSync } from 'node:child_process'
 
+/** options for a verible-verilog-syntax run */
 export interface VeribleSyntaxOpts {
-  /** path to verible-verilog-syntax (default: found on PATH) */
-  veribleSyntaxPath?: string
   /** timeout for the verible-verilog-syntax run (default 10000 ms) */
   timeoutMs?: number
 }
@@ -33,11 +32,11 @@ const identifierTags = ['SymbolIdentifier', 'EscapedIdentifier']
 /**
  * parse SystemVerilog with verible-verilog-syntax
  * @param src SystemVerilog source text
- * @param opts location of the Verible binary and timeout
+ * @param opts the timeout for the run. verible-verilog-syntax must be on `PATH`
  * @returns the syntax tree, and the syntax errors (empty when the source parses)
  */
 export function parseSyntax (src: string, opts: VeribleSyntaxOpts = {}): { tree?: CSTNode, errors: VeribleError[] } {
-  const binary = opts.veribleSyntaxPath ?? 'verible-verilog-syntax'
+  const binary = 'verible-verilog-syntax'
   const result = spawnSync(binary, ['--export_json', '--printtree', '-'], {
     input: src,
     timeout: opts.timeoutMs ?? 10000,

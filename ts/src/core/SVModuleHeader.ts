@@ -6,7 +6,7 @@
  *
  * @module SVModuleHeader
  */
-import { basename } from 'node:path'
+import { parse } from 'node:path'
 import { type CSTNode, type VeribleSyntaxOpts, child, findAll, identifier, kids, parseSyntax } from './VeribleSyntax.js'
 
 export type { VeribleSyntaxOpts } from './VeribleSyntax.js'
@@ -81,7 +81,7 @@ function nonAnsiPorts (module: CSTNode, portList: CSTNode | undefined): Record<s
  * find every module declared in a SystemVerilog source, with its port directions.
  * Handles ANSI (`input logic signed [N-1:0] a,`) and non-ANSI (`input a; ...`) port styles.
  * @param src SystemVerilog source text
- * @param opts location of the Verible binary and timeout
+ * @param opts the timeout for the verible-verilog-syntax run, which must be on `PATH`
  * @returns one entry per module declaration, in source order
  */
 export function parseSVModules (src: string, opts: VeribleSyntaxOpts = {}): SVModuleHeader[] {
@@ -104,25 +104,30 @@ export function parseSVModules (src: string, opts: VeribleSyntaxOpts = {}): SVMo
 }
 
 /**
- * pick the module to use from the headers parsed out of an SV file
- * @param headers result of `parseSVModules()` for the file
- * @param filePath path of the file, used for the default choice and in error messages
- * @param moduleName module to select; by default the file's only module, or the one named after the file
+ * pick the module to use from the headers parsed out of one or more SV files
+ * @param headers result of `parseSVModules()` for the files, together
+ * @param filePath the path, or paths, the caller gave: used for the default choice and in error
+ * messages
+ * @param moduleName module to select. By default: the only module, or else the one module named
+ * after one of the paths without its extension, so that `foo.sv` or `foo.f` selects `foo`
  * @returns the selected module header
  */
-export function selectSVModule (headers: SVModuleHeader[], filePath: string, moduleName?: string): SVModuleHeader {
+export function selectSVModule (headers: SVModuleHeader[], filePath: string | readonly string[], moduleName?: string): SVModuleHeader {
+  const paths = typeof filePath === 'string' ? [filePath] : filePath
+  const source = paths.join(', ')
   if (moduleName !== undefined) {
     const header = headers.find(h => h.name === moduleName)
-    if (header === undefined) throw Error(`module ${moduleName} not found in ${filePath}`)
+    if (header === undefined) throw Error(`module ${moduleName} not found in ${source}`)
     return header
   }
   if (headers.length === 1 && headers[0] !== undefined) return headers[0]
-  const fileModule = basename(filePath).replace(/\.s?v$/, '')
-  const header = headers.find(h => h.name === fileModule)
-  if (header === undefined) {
+  const fileModules = paths.map(p => parse(p).name)
+  const named = headers.filter(h => fileModules.includes(h.name))
+  const header = named[0]
+  if (named.length !== 1 || header === undefined) {
     throw Error(headers.length === 0
-      ? `no module declaration found in ${filePath}`
-      : `${filePath} declares several modules (${headers.map(h => h.name).join(', ')}), pass moduleName to select one`)
+      ? `no module declaration found in ${source}`
+      : `${source} declare${paths.length === 1 ? 's' : ''} several modules (${headers.map(h => h.name).join(', ')}), pass moduleName to select one`)
   }
   return header
 }

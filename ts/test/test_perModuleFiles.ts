@@ -9,7 +9,8 @@
  * Test 1: each file defines one module or interface, named after the file, and together they
  *         define what the single-file emission does
  * Test 2: each file has the include guard, and its includes come before it in the returned list
- * Test 3: imported SV is guarded once, and a guarded source is written unchanged
+ * Test 3: imported SV is inside its SVIMPORT guard, and that inside the DEF guard unless the
+ *         source has its own
  * Test 4: parseSVModules still reads a guarded module's header
  * Test 5: Verilator lints the files with USE_INCLUDES naming only the top, without it naming
  *         every file, and with both, so that every file is reached twice
@@ -17,7 +18,7 @@
  * Test 7: names that differ only in case, and names that aren't identifiers, throw before
  *         anything is written
  */
-import { Module, Expr, type TSSVParameters } from 'tssv/lib/core/TSSV'
+import { Module, Expr, type TSSVParameters, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
 import { existsSync, readFileSync, rmSync } from 'fs'
@@ -26,7 +27,7 @@ import { spawnSync } from 'child_process'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 const OUT = 'sv-examples/Core/perModuleFiles'
-const FIXTURES = 'ts/test/perModuleFiles'
+const FIXTURES = `${TSSV_ROOT}/ts/test/perModuleFiles`
 // A stale file from an earlier run would otherwise be linted with the new ones
 rmSync(OUT, { recursive: true, force: true })
 
@@ -185,6 +186,8 @@ check('the top file is returned last', files[files.length - 1] === `${OUT}/Top.s
 
 // ---- Test 2: guards, includes and order ---------------------------------------------------
 for (const [name, sv] of text) {
+  // guarded_import's source has its own DEF guard, which stays inside its SVIMPORT guard (Test 3)
+  if (name === 'guarded_import') continue
   check(`${name}.sv is inside its include guard`,
     sv.startsWith(`\`ifndef DEF__${name}__\n\`define DEF__${name}__\n`) && sv.endsWith(`\n\`endif //!DEF__${name}__\n`))
 }
@@ -204,12 +207,15 @@ names.forEach((name, i) => {
 })
 
 // ---- Test 3: imported SV ------------------------------------------------------------------
+// A source inside its SVIMPORT guard, as addSystemVerilogSubmodule() emits it
+const importGuarded = (name: string, source: string): string =>
+  `\`ifndef SVIMPORT__${name}__\n\`define SVIMPORT__${name}__\n${source}${source.endsWith('\n') ? '' : '\n'}\`endif //!SVIMPORT__${name}__\n`
 const plainSource = readFileSync(`${FIXTURES}/plain_import.sv`, 'utf8')
-check('an imported file is written inside the guard, otherwise unchanged',
+check('an imported file is written inside its SVIMPORT guard, and that inside the DEF guard',
   text.get('plain_import') ===
-    `\`ifndef DEF__plain_import__\n\`define DEF__plain_import__\n\n${plainSource.trimEnd()}\n\n\`endif //!DEF__plain_import__\n`)
-check('an imported file that already has the guard is written unchanged',
-  text.get('guarded_import') === readFileSync(`${FIXTURES}/guarded_import.sv`, 'utf8'))
+    `\`ifndef DEF__plain_import__\n\`define DEF__plain_import__\n\n${importGuarded('plain_import', plainSource).trimEnd()}\n\n\`endif //!DEF__plain_import__\n`)
+check('an imported file that already has the DEF guard gets only its SVIMPORT guard',
+  text.get('guarded_import') === importGuarded('guarded_import', readFileSync(`${FIXTURES}/guarded_import.sv`, 'utf8')))
 
 // ---- Test 4: a guarded file's header still parses -----------------------------------------
 const [midHeader] = parseSVModules(text.get('MidA') ?? '')
@@ -223,7 +229,7 @@ check('parseSVModules reads MidA\'s header from its guarded file',
 const probe = spawnSync('verilator', ['--version'], { encoding: 'utf8' })
 if (probe.status === 0) {
   const lint = (label: string, args: string[]): void => {
-    const run = spawnSync('verilator', ['--lint-only', '-Wall', 'doc/rtl-style/sv-style/common_waivers.vlt',
+    const run = spawnSync('verilator', ['--lint-only', '-Wall', `${TSSV_ROOT}/doc/rtl-style/sv-style/common_waivers.vlt`,
       '--top-module', 'Top', ...args], { encoding: 'utf8' })
     check(label, run.status === 0, `${run.stdout}${run.stderr}`)
   }
@@ -238,10 +244,14 @@ if (probe.status === 0) {
 
 // ---- Test 6: single-file emission is unaffected -------------------------------------------
 check('writeSystemVerilog() is unchanged by writeSystemVerilogFiles()', top.writeSystemVerilog() === singleFile)
-// guarded_import's source is emitted verbatim, so its own guard is the only one. The regex
-// captures the macro of every line that is exactly `ifndef <macro> ('m': ^ and $ match per line).
+// Each imported file has its SVIMPORT guard, and guarded_import's source is emitted unchanged
+// inside it, so its own DEF guard is the only DEF guard. The regex captures the macro of every
+// line that is exactly `ifndef <macro> ('m': ^ and $ match per line).
 const guards = [...singleFile.matchAll(/^`ifndef (\S+)$/gm)].map(m => m[1])
-check('writeSystemVerilog() adds no include guard', guards.join(' ') === 'DEF__guarded_import__', `guards: ${guards.join(' ')}`)
+check('writeSystemVerilog() adds no DEF guard, and guards each imported file',
+  sorted(new Set(guards)) === sorted(new Set(['DEF__guarded_import__', 'SVIMPORT__guarded_import__', 'SVIMPORT__plain_import__'])) &&
+    guards.length === 3,
+  `guards: ${guards.join(' ')}`)
 
 // ---- Test 7: names that can't be files ----------------------------------------------------
 class Named extends Module {

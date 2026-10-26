@@ -1,4 +1,4 @@
-import TSSV from 'tssv/lib/core/TSSV'
+import TSSV, { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { inspect } from 'util'
 import { exec } from 'child_process'
 import { AXI4, type AXI4_inward, type AXI4_outward } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4'
@@ -133,7 +133,7 @@ export class AXI4XBar extends TSSV.Module {
 
     this.addSystemVerilogSubmodule(
       'inner',
-      `third-party/rocket-chip-component-gen/componentgen/compile.dest/${innerParams.moduleName}.sv`,
+      path.join(TSSV_ROOT, 'third-party/rocket-chip-component-gen/componentgen/compile.dest', `${innerParams.moduleName}.sv`),
       {},
       bindings,
       true
