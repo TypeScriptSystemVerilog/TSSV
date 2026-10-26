@@ -1,6 +1,7 @@
 /**
  * The SystemVerilog files `Module.addSystemVerilogSubmodule()` reads, from the paths and `.f`
- * filelists it is given, and the include guard each file is emitted in.
+ * filelists it is given, and the include guard `Module.writeSystemVerilogFiles()` writes each one
+ * in.
  *
  * @module SVFileList
  */
@@ -69,11 +70,20 @@ export function expandSVFileList (paths: string | readonly string[], what: strin
   return files
 }
 
-// The file each SVIMPORT guard macro has guarded, and its text, since this process started
-const guarded = new Map<string, { path: string, text: string }>()
+/**
+ * the include guard macro of an imported file: `SVIMPORT__<leaf>__`, where `<leaf>` is the file's
+ * name without its extension, with each character that can't be in a macro name replaced by `_`
+ * @param path the file's path
+ * @returns the macro
+ */
+export function importGuard (path: string): string {
+  // Each character other than a letter, digit or underscore: none of them can be in a macro name
+  return `SVIMPORT__${parse(path).name.replace(/[^A-Za-z0-9_]/g, '_')}__`
+}
 
 /**
- * wrap an imported file's text in its include guard, so that SV which reaches the file more than
+ * wrap an imported file's text, otherwise untouched, in its include guard ({@link importGuard}),
+ * as `Module.writeSystemVerilogFiles()` writes it, so that SV which reaches the file more than
  * once defines what it holds once:
  *
  * ```systemverilog
@@ -82,24 +92,11 @@ const guarded = new Map<string, { path: string, text: string }>()
  * // the file's text, unchanged
  * `endif //!SVIMPORT__<leaf>__
  * ```
- *
- * `<leaf>` is the file's name without its extension, with each character that can't be in a
- * macro name replaced by `_`.
  * @param path the file's path
  * @param text the file's text
  * @returns the text inside its guard
- * @throws if another file with different text already took the same guard, because the
- * preprocessor would silently drop whichever of the two came second
  */
 export function guardSVImport (path: string, text: string): string {
-  // Each character other than a letter, digit or underscore: none of them can be in a macro name
-  const guard = `SVIMPORT__${parse(path).name.replace(/[^A-Za-z0-9_]/g, '_')}__`
-  const other = guarded.get(guard)
-  if (other === undefined) {
-    guarded.set(guard, { path, text })
-  } else if (other.path !== path && other.text !== text) {
-    throw Error(`${other.path} and ${path} would both be guarded by ${guard}, so the second would be ` +
-      'dropped wherever both are compiled. Rename one of them')
-  }
+  const guard = importGuard(path)
   return `\`ifndef ${guard}\n\`define ${guard}\n${text}${text.endsWith('\n') ? '' : '\n'}\`endif //!${guard}\n`
 }

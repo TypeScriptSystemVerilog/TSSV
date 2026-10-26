@@ -136,7 +136,8 @@ export class AXI4XBar extends TSSV.Module {
       path.join(TSSV_ROOT, 'third-party/rocket-chip-component-gen/componentgen/compile.dest', `${innerParams.moduleName}.sv`),
       {},
       bindings,
-      true
+      true,
+      { moduleName: innerParams.moduleName }
     )
   }
 }

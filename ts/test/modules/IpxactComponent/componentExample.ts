@@ -23,7 +23,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, posix } from 'path'
 import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
-import { parseSVModules, selectSVModule } from 'tssv/lib/core/SVModuleHeader'
 import { expandPath } from 'tssv/lib/core/TSSV'
 import { writePortInterfaces } from 'tssv/test/models/emitSplit'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
@@ -35,9 +34,9 @@ const OUT = 'sv-examples/IpXactComponent'
 
 // `tied`: the inputs of the sample's module that its XML maps to no bus signal
 const samples = [
-  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv`, tied: ['tm'] },
-  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv`, tied: ['tm'] },
-  { name: 'adderComponent', xmlDataPath: `${SAMPLES}/Adder/adder.xml`, svFilePath: `${SAMPLES}/Adder/apb_adder.sv`, tied: [] }
+  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv`, moduleName: 'Specification_Architecture_Structure', tied: ['tm'] },
+  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv`, moduleName: 'Specification_Architecture_Structure', tied: ['tm'] },
+  { name: 'adderComponent', xmlDataPath: `${SAMPLES}/Adder/adder.xml`, svFilePath: `${SAMPLES}/Adder/apb_adder.sv`, moduleName: 'apb_adder', tied: [] }
 ]
 
 for (const { tied, ...params } of samples) {
@@ -46,7 +45,7 @@ for (const { tied, ...params } of samples) {
   mkdirSync(dir, { recursive: true })
   // The sample's module, which the wrapper instantiates, is left out of the wrapper's file
   const svFilePath = expandPath(params.svFilePath)
-  const sample = selectSVModule(parseSVModules(readFileSync(svFilePath, 'utf8')), svFilePath).name
+  const sample = params.moduleName
   const defined = new Set<string>()
   const interfaces = writePortInterfaces(component, dir, defined)
   writeFileSync(`${dir}/${component.name}.sv`, component.writeSystemVerilog({ exclude: new Set([...defined, sample]) }))
@@ -73,7 +72,7 @@ function expectThrow (what: string, edit: (xml: string) => string, expected: str
     if (edited === xml) throw Error(`${what}: the edit didn't change the AXI sample's XML`)
     const xmlDataPath = join(tmp, 'axiSample.xml')
     writeFileSync(xmlDataPath, edited)
-    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath })
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, moduleName: axi.moduleName, xmlDataPath })
   } catch (err) {
     message = (err as Error).message
   } finally {
@@ -102,10 +101,23 @@ for (const what of ['svFilePath', 'xmlDataPath'] as const) {
   const relative = `ts/test/modules/IpxactComponent/AXI/${what === 'svFilePath' ? 'architectureSample.sv' : 'axiSample.xml'}`
   let message = ''
   try {
-    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath: axi.xmlDataPath, [what]: relative })
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath: axi.xmlDataPath, moduleName: axi.moduleName, [what]: relative })
   } catch (err) {
     message = (err as Error).message
   }
   if (!message.includes(`${what} '${relative}' is a relative path`)) throw Error(`a relative ${what}: expected a throw naming it, got "${message}"`)
   console.log(`PASS: a relative ${what} throws`)
+}
+
+// The module to wrap is never inferred: one that the SV file doesn't declare throws, naming it
+{
+  const axi = samples[0]
+  let message = ''
+  try {
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath: axi.xmlDataPath, moduleName: 'nope' })
+  } catch (err) {
+    message = (err as Error).message
+  }
+  if (!message.includes('module nope not found')) throw Error(`a moduleName the file doesn't declare: expected a throw naming it, got "${message}"`)
+  console.log('PASS: a moduleName the file doesn\'t declare throws')
 }

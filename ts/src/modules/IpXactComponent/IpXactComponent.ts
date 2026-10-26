@@ -29,6 +29,8 @@ export interface IpXactComponent_Parameters extends TSSVParameters {
    * Expanded and checked as `svFilePath` is
    */
   xmlDataPath: string
+  /** the module in `svFilePath` that the component wraps. Required: it's never inferred */
+  moduleName: string
 }
 
 /**
@@ -126,7 +128,8 @@ export class IpXactComponent extends Module {
     super({
       name: params.name,
       xmlDataPath: params.xmlDataPath,
-      svFilePath: params.svFilePath
+      svFilePath: params.svFilePath,
+      moduleName: params.moduleName
     })
     // svFilePath is checked first, so a relative one throws before anything is read
     absolutePath(params.svFilePath, 'svFilePath')
@@ -192,13 +195,13 @@ export class IpXactComponent extends Module {
     }
 
     // Every input is bound above, so nothing is left to bind by name (MOD-6)
-    return this.addSystemVerilogSubmodule('u_ip', SVFilePath, {}, bindings, false)
+    return this.addSystemVerilogSubmodule('u_ip', SVFilePath, {}, bindings, false, { moduleName: this.params.moduleName })
   }
 
   // The module header of the SystemVerilog module, which names its ports and their directions
   private readSVModuleHeader (filePath: string): SVModuleHeader {
     const path = absolutePath(filePath, 'svFilePath')
-    return selectSVModule(parseSVModules(fs.readFileSync(path, 'utf-8')), path)
+    return selectSVModule(parseSVModules(fs.readFileSync(path, 'utf-8')), path, this.params.moduleName)
   }
 
   // The width of a port of the SV module, from the XML's <model><ports>, for a port that needs one

@@ -1,4 +1,4 @@
-import { Module, TSSV_ROOT } from 'tssv/lib/core/TSSV'
+import { Module, type SVImportOptions, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
 import { writeFileSync, mkdirSync, readFileSync } from 'fs'
 import { posix } from 'path'
@@ -54,7 +54,8 @@ const ansiLeaf = ansiTop.addSystemVerilogSubmodule(
   '$TSSV_ROOT/ts/test/importParse/leaf.sv',
   { W: 8, N: 4 },
   { s: 'ss', a: 'sa', en: 'sen', b: 'sb', c: 'sc', y: 'y', sy: 'ssy' },
-  false
+  false,
+  { moduleName: 'leaf' }
 )
 check('ANSI module name', ansiLeaf.name, 'leaf')
 check('ANSI directions', directions(ansiLeaf),
@@ -67,7 +68,7 @@ const mixedTop = new Module({ name: 'importParse_mixed' }, {
   en: { direction: 'input' },
   y: { direction: 'output', width: 8 }
 })
-const mixedLeaf = mixedTop.addSystemVerilogSubmodule('u_leaf', '$TSSV_ROOT/ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false)
+const mixedLeaf = mixedTop.addSystemVerilogSubmodule('u_leaf', '$TSSV_ROOT/ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false, { moduleName: 'leaf' })
 check('parent output bound to child input', directions(mixedLeaf), { a: 'input', en: 'input', y: 'output' })
 
 // non-ANSI port declarations, with a function whose arguments must be ignored
@@ -82,7 +83,8 @@ const nonAnsiLeaf = nonAnsiTop.addSystemVerilogSubmodule(
   '$TSSV_ROOT/ts/test/importParse/leaf_nonansi.sv',
   { W: 8 },
   { a: 'na', en: 'nen', y: 'ny', sy: 'nsy' },
-  false
+  false,
+  { moduleName: 'leaf_nonansi' }
 )
 check('non-ANSI module name', nonAnsiLeaf.name, 'leaf_nonansi')
 check('non-ANSI directions', directions(nonAnsiLeaf), { a: 'input', en: 'input', y: 'output', sy: 'output' })
@@ -92,9 +94,10 @@ const multiTop = new Module({ name: 'importParse_multi' }, {
   a: { direction: 'input' },
   y: { direction: 'output' }
 })
-checkThrows('ambiguous multi-module file',
-  () => multiTop.addSystemVerilogSubmodule('u_x', '$TSSV_ROOT/ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true),
-  /several modules \(helper, two_top\)/)
+// The module is never inferred, so a JavaScript caller that leaves moduleName out gets an error
+checkThrows('missing moduleName',
+  () => multiTop.addSystemVerilogSubmodule('u_x', '$TSSV_ROOT/ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true, {} as SVImportOptions),
+  /options\.moduleName is required/)
 const multiLeaf = multiTop.addSystemVerilogSubmodule('u_top', '$TSSV_ROOT/ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true, { moduleName: 'two_top' })
 check('selected module name', multiLeaf.name, 'two_top')
 check('selected module directions', directions(multiLeaf), { a: 'input', y: 'output' })
@@ -104,7 +107,7 @@ checkThrows('missing selected module',
 
 // binding a name that is not a port
 checkThrows('unknown port',
-  () => mixedTop.addSystemVerilogSubmodule('u_bad', '$TSSV_ROOT/ts/test/importParse/leaf.sv', {}, { a: 'a', bogus: 'en' }, false),
+  () => mixedTop.addSystemVerilogSubmodule('u_bad', '$TSSV_ROOT/ts/test/importParse/leaf.sv', {}, { a: 'a', bogus: 'en' }, false, { moduleName: 'leaf' }),
   /bogus is not a port of module leaf/)
 
 const edgeCases = [

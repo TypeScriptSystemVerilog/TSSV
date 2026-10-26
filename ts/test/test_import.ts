@@ -73,7 +73,8 @@ import_tb.addSystemVerilogSubmodule(
   '$TSSV_ROOT/ts/test/testImport.sv',
   { aWidth: 8, bWidth: 9, sumWidth: 10 },
   { a: 'a', b: 'b', sum: 'out' },
-  true // autobind doesn't change anything here
+  true, // autobind doesn't change anything here
+  { moduleName: 'testImport' }
 )
 
 try {

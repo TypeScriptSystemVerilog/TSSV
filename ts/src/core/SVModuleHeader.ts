@@ -6,7 +6,6 @@
  *
  * @module SVModuleHeader
  */
-import { parse } from 'node:path'
 import { type CSTNode, type VeribleSyntaxOpts, child, findAll, identifier, kids, parseSyntax } from './VeribleSyntax.js'
 
 export type { VeribleSyntaxOpts } from './VeribleSyntax.js'
@@ -106,28 +105,17 @@ export function parseSVModules (src: string, opts: VeribleSyntaxOpts = {}): SVMo
 /**
  * pick the module to use from the headers parsed out of one or more SV files
  * @param headers result of `parseSVModules()` for the files, together
- * @param filePath the path, or paths, the caller gave: used for the default choice and in error
- * messages
- * @param moduleName module to select. By default: the only module, or else the one module named
- * after one of the paths without its extension, so that `foo.sv` or `foo.f` selects `foo`
+ * @param filePath the path, or paths, the module was looked for in, for the error message
+ * @param moduleName the module to select. It is never inferred
  * @returns the selected module header
+ * @throws if no file declares `moduleName`
  */
-export function selectSVModule (headers: SVModuleHeader[], filePath: string | readonly string[], moduleName?: string): SVModuleHeader {
-  const paths = typeof filePath === 'string' ? [filePath] : filePath
-  const source = paths.join(', ')
-  if (moduleName !== undefined) {
-    const header = headers.find(h => h.name === moduleName)
-    if (header === undefined) throw Error(`module ${moduleName} not found in ${source}`)
-    return header
-  }
-  if (headers.length === 1 && headers[0] !== undefined) return headers[0]
-  const fileModules = paths.map(p => parse(p).name)
-  const named = headers.filter(h => fileModules.includes(h.name))
-  const header = named[0]
-  if (named.length !== 1 || header === undefined) {
-    throw Error(headers.length === 0
-      ? `no module declaration found in ${source}`
-      : `${source} declare${paths.length === 1 ? 's' : ''} several modules (${headers.map(h => h.name).join(', ')}), pass moduleName to select one`)
+export function selectSVModule (headers: SVModuleHeader[], filePath: string | readonly string[], moduleName: string): SVModuleHeader {
+  const header = headers.find(h => h.name === moduleName)
+  if (header === undefined) {
+    const paths = typeof filePath === 'string' ? [filePath] : filePath
+    const declared = headers.length === 0 ? 'no module' : headers.map(h => h.name).join(', ')
+    throw Error(`module ${moduleName} not found in ${paths.join(', ')}, which declare${paths.length === 1 ? 's' : ''} ${declared}`)
   }
   return header
 }
