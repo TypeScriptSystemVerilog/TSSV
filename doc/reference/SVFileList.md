@@ -7,7 +7,8 @@
 # SVFileList
 
 The SystemVerilog files `Module.addSystemVerilogSubmodule()` reads, from the paths and `.f`
-filelists it is given, and the include guard each file is emitted in.
+filelists it is given, and the include guard `Module.writeSystemVerilogFiles()` writes each one
+in.
 
 ## Functions
 
@@ -52,13 +53,37 @@ reads itself, or the paths name no file
 
 ***
 
+### importGuard()
+
+```ts
+function importGuard(path): string;
+```
+
+the include guard macro of an imported file: `SVIMPORT__<leaf>__`, where `<leaf>` is the file's
+name without its extension, with each character that can't be in a macro name replaced by `_`
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `path` | `string` | the file's path |
+
+#### Returns
+
+`string`
+
+the macro
+
+***
+
 ### guardSVImport()
 
 ```ts
 function guardSVImport(path, text): string;
 ```
 
-wrap an imported file's text in its include guard, so that SV which reaches the file more than
+wrap an imported file's text, otherwise untouched, in its include guard ([importGuard](#importguard)),
+as `Module.writeSystemVerilogFiles()` writes it, so that SV which reaches the file more than
 once defines what it holds once:
 
 ```systemverilog
@@ -67,9 +92,6 @@ once defines what it holds once:
 // the file's text, unchanged
 `endif //!SVIMPORT__<leaf>__
 ```
-
-`<leaf>` is the file's name without its extension, with each character that can't be in a
-macro name replaced by `_`.
 
 #### Parameters
 
@@ -83,8 +105,3 @@ macro name replaced by `_`.
 `string`
 
 the text inside its guard
-
-#### Throws
-
-if another file with different text already took the same guard, because the
-preprocessor would silently drop whichever of the two came second

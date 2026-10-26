@@ -341,13 +341,13 @@ this.addSubmodule(
 - Parent instance and child port must be the same SV interface type: `interfaceName()`, the class name plus its parameter values, must match. Two `Memory` instances with different `DATA_WIDTH` are different types and throw `<port> interface type mismatch on <submodule>: <parent type> vs <child type>`.
 - If the parent's interface has a role (it is itself a port), the child's role must be the same. A role-less parent instance (a local bundle) binds to any role.
 
-### `addSystemVerilogSubmodule(instanceName, svFilePath, params, bindings, autoBind?, options?): Module`
+### `addSystemVerilogSubmodule(instanceName, svFilePath, params, bindings, autoBind, options): Module`
 
-Includes pre-existing SV files as a black-box submodule. `svFilePath` is a path or an array of paths, each an `.sv` file or a `.f` filelist that names more files, one per line, relative to the `.f`. Environment variables in a path (`$NAME`, `${NAME}`) are expanded, and the path must then be absolute: a relative one throws. Each file is included verbatim, inside its own `` `ifndef SVIMPORT__<file name>__ `` guard, so a file two imports share is defined once. `params` sets Verilog `#(...)` parameter overrides; `bindings` maps ports to parent signals; `options.moduleName` picks the module when the files declare several and none is named after a path given. Details in `concepts.md` §8.
+Includes pre-existing SV files as a black-box submodule. `svFilePath` is a path or an array of paths, each an `.sv` file or a `.f` filelist that names more files, one per line, relative to the `.f`. Environment variables in a path (`$NAME`, `${NAME}`) are expanded, and the path must then be absolute: a relative one throws. `options.moduleName`, the module to instantiate, is required: it's never inferred. `params` sets Verilog `#(...)` parameter overrides; `bindings` maps ports to parent signals. The files are emitted untouched: `writeSystemVerilogFiles()` writes each one once, under its own name, inside its `` `ifndef SVIMPORT__<file name>__ `` guard, so a file two imports share is defined once. Details in `concepts.md` §8.
 
 ```typescript
-this.addSystemVerilogSubmodule('inner', '$TSSV_ROOT/path/to/inner.sv', {}, bindings, true)
-this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings)
+this.addSystemVerilogSubmodule('inner', '$TSSV_ROOT/path/to/inner.sv', {}, bindings, true, { moduleName: 'inner' })
+this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings, false, { moduleName: 'my_ip' })
 ```
 
 ### `TSSV_ROOT`, `expandPath(path)`, `absolutePath(path, what)`, `projectRoot(envVar, importMetaUrl)`

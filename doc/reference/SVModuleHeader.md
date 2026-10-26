@@ -78,7 +78,7 @@ one entry per module declaration, in source order
 function selectSVModule(
    headers, 
    filePath, 
-   moduleName?
+   moduleName
 ): SVModuleHeader;
 ```
 
@@ -89,11 +89,15 @@ pick the module to use from the headers parsed out of one or more SV files
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `headers` | [`SVModuleHeader`](#svmoduleheader)[] | result of `parseSVModules()` for the files, together |
-| `filePath` | `string` \| readonly `string`[] | the path, or paths, the caller gave: used for the default choice and in error messages |
-| `moduleName?` | `string` | module to select. By default: the only module, or else the one module named after one of the paths without its extension, so that `foo.sv` or `foo.f` selects `foo` |
+| `filePath` | `string` \| readonly `string`[] | the path, or paths, the module was looked for in, for the error message |
+| `moduleName` | `string` | the module to select. It is never inferred |
 
 #### Returns
 
 [`SVModuleHeader`](#svmoduleheader)
 
 the selected module header
+
+#### Throws
+
+if no file declares `moduleName`

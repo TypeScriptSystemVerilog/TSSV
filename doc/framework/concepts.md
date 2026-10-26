@@ -414,19 +414,18 @@ endmodule
   `verilator --lint-only +define+USE_INCLUDES +incdir+<outDir> <outDir>/top.sv`. Without it,
   name every file, on the command line or in a filelist, using the returned paths.
 - An interface's file, and a module's with no interfaces and no submodules, have the guard only.
-- **Imported SV** (§8) is written to `<moduleName>.sv` as its source files, each in its own
-  `SVIMPORT__` guard, inside the `DEF__` guard. A source that already defines its own
-  `DEF__<moduleName>__` guard macro gets no second one, because a second guard on the same macro
-  would hide the module.
+- **Imported SV** (§8) isn't a generated file, so it never gets a `DEF__` guard. Each file an
+  import reads is written once, untouched, under its own name, inside its `SVIMPORT__` guard and
+  nothing else. A module that instantiates an imported one includes all of that import's files,
+  in order.
 - **Names** become file names and macro names, so emission throws, naming the modules involved,
-  when a name isn't a legal SystemVerilog identifier, or when two names differ only in case
-  (one file on macOS and Windows). Two different modules with the same name are still written as
-  one, as in a single-file emission (#122).
+  when a generated name isn't a legal SystemVerilog identifier, or when two files' names differ
+  only in case (one file on macOS and Windows). Two different modules with the same name are
+  still written as one, as in a single-file emission (#122).
 - Verible formats each file's definition on its own, before the guard is added.
 - Files already in `outDir` that the call doesn't write are left in place.
 
-`writeSystemVerilog()` is unchanged: its single-string output has no `DEF__` guards. Imported SV
-carries its `SVIMPORT__` guards in both (§8).
+`writeSystemVerilog()` is unchanged: its single-string output has no guards.
 `ts/test/test_perModuleFiles.ts` lints the files with Verilator both ways, and with both at once
 so that every file is reached twice.
 
@@ -496,8 +495,9 @@ instantiates a module from existing SV files. `path` is a path or an array of pa
 `.sv` file or a `.f` filelist:
 
 ```typescript
-this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings)
-this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/rtl/leaf.sv'], {}, bindings)
+this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings, false, { moduleName: 'my_ip' })
+this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/rtl/leaf.sv'], {}, bindings, false,
+  { moduleName: 'leaf' })
 ```
 
 1. It lists the files (`expandSVFileList()` in [`SVFileList.ts`](../reference/SVFileList.md)).
@@ -516,32 +516,32 @@ this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/r
    directions from the syntax tree. It handles ANSI headers (`input logic [7:0] a,`), where a
    port without a direction inherits the previous one, and non-ANSI headers (`input a;` in the
    module body). A syntax error throws with the file, line and column.
-3. It picks the module: `options.moduleName` if given; otherwise the only module in the files, or
-   the one module named after one of the paths given (`my_ip.f` or `my_ip.sv` picks `my_ip`).
+3. It picks the module `options.moduleName` names, from any of the files. `moduleName` is
+   required, even when the files declare one module: TSSV never infers it. A name the files
+   don't declare throws, listing the modules they do.
 4. It builds a stand-in `Module` named after the SV module, with one port for each **bound**
    port. Its direction comes from the module's header. Its width and sign are copied from the
    parent signal bound to it.
 5. Each entry in `params` is marked with `setVerilogParameter` and appears as `#(.P(value))` on
    the instance.
-6. The files' text, unchanged and in order, becomes the module's definition in the output, each
-   file inside its own include guard:
+6. The files are emitted untouched.
+   - `writeSystemVerilogFiles()` (§7) writes each file once, under its own name, inside one
+     include guard and nothing else:
 
-   ```systemverilog
-   `ifndef SVIMPORT__pkg__
-   `define SVIMPORT__pkg__
-   // pkg.sv, unchanged
-   `endif //!SVIMPORT__pkg__
-   ```
+     ```systemverilog
+     `ifndef SVIMPORT__pkg__
+     `define SVIMPORT__pkg__
+     // pkg.sv, unchanged
+     `endif //!SVIMPORT__pkg__
+     ```
 
-   The macro is the file's name without its extension, with each character that can't be in a
-   macro name made `_`. Two imports often share a file, such as a package, and two emitted files
-   compiled together can both carry it: the guard defines what it holds once. Two different
-   files with the same name and different contents would share a guard, and the preprocessor
-   would drop the second, so that throws, naming both.
-
-   The definition is written once per module name, like any other. `writeSystemVerilogFiles()`
-   (§7) writes it to `<moduleName>.sv` inside a `DEF__` guard as well, unless the text already
-   defines that guard.
+     The macro is the file's name without its extension, with each character that can't be in
+     a macro name made `_`. Two imports often share a file, such as a package, and the files of
+     two emissions compiled together can both carry it: the guard defines what it holds once.
+     Two different files with the same name and different contents would share a guard, and the
+     preprocessor would drop the second, so writing them throws, naming both.
+   - `writeSystemVerilog()` puts the files' text, unguarded and in order, in its single string,
+     once per module name, like any other definition.
 
 What this means in practice:
 
@@ -553,9 +553,6 @@ What this means in practice:
 - **Interface and `ref` ports can't be bound.** Binding one throws. A name that isn't a port of
   the module throws too.
 - **Parameter values must be truthy** (§2): `0`, `''` and `false` throw ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
-- **A package in an imported file trips `DECLFILENAME`** under `-Wall`, because the output file
-  is named after a module. Waive it around the package in the source, as
-  `ts/test/importFileList/fl_pkg.sv` does (LINT-3).
 
 `IpXactComponent` (`doc/modules/IpXactComponent/IpXactComponent-spec.md`) builds on the same
 header parser to wrap an SV module described by an IP-XACT component file. It does check widths:
