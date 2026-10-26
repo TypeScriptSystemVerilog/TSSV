@@ -2,7 +2,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { type SVModuleHeader, parseSVModules, selectSVModule } from './SVModuleHeader.js'
-import { expandSVFiles, guardSVImport } from './SVFileList.js'
+import { expandSVFileList, guardSVImport } from './SVFileList.js'
 import { expandPath } from './Paths.js'
 import { type ModuleTable, checkModule } from './ModuleCheck.js'
 import { runVerible } from '../tools/formatters/verible.js'
@@ -588,7 +588,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * direction of each bound port are taken from the module's header.
    *
    * `SVFilePath` is a path or a list of paths, each an SV file or a `.f` filelist that names
-   * more files (see `expandSVFiles()` in `SVFileList.ts` for the rules). Environment variables in
+   * more files (see `expandSVFileList()` in `SVFileList.ts` for the rules). Environment variables in
    * a path, written `$NAME` or `${NAME}`, are expanded, and the path must then be absolute:
    * `$TSSV_ROOT/ts/test/leaf.sv`, not `ts/test/leaf.sv`. A path in a `.f` may be relative to the
    * `.f` file's directory.
@@ -614,7 +614,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     autoBind: boolean = true,
     options: SVImportOptions = {}): Module {
     const { moduleName } = options
-    const sources = expandSVFiles(SVFilePath, 'SVFilePath').map(path => ({ path, text: readFileSync(path, 'utf8') }))
+    const sources = expandSVFileList(SVFilePath, 'SVFilePath').map(path => ({ path, text: readFileSync(path, 'utf8') }))
     // Each file is parsed on its own, so a syntax error names its file
     const fileOf = new Map<SVModuleHeader, string>()
     for (const { path, text } of sources) {

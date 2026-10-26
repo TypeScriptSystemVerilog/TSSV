@@ -374,7 +374,7 @@ instantiate a module from existing SystemVerilog files.  The module name and the
 direction of each bound port are taken from the module's header.
 
 `SVFilePath` is a path or a list of paths, each an SV file or a `.f` filelist that names
-more files (see `expandSVFiles()` in `SVFileList.ts` for the rules). Environment variables in
+more files (see `expandSVFileList()` in `SVFileList.ts` for the rules). Environment variables in
 a path, written `$NAME` or `${NAME}`, are expanded, and the path must then be absolute:
 `$TSSV_ROOT/ts/test/leaf.sv`, not `ts/test/leaf.sv`. A path in a `.f` may be relative to the
 `.f` file's directory.

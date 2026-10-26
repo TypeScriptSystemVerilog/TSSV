@@ -29,7 +29,7 @@ import { absolutePath, expandPath } from './Paths.js'
  * @throws if a variable is unset, a path is relative or names no file, a `.f` holds an option or
  * reads itself, or the paths name no file
  */
-export function expandSVFiles (paths: string | readonly string[], what: string): string[] {
+export function expandSVFileList (paths: string | readonly string[], what: string): string[] {
   const files: string[] = []
   const seen = new Set<string>()
   const add = (file: string, where: string, open: string[]): void => {

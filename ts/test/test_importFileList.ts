@@ -18,7 +18,7 @@
  * Test 7: TSSV_ROOT, projectRoot() from a nested package, and an inherited value
  */
 import { Module, TSSV_ROOT, absolutePath, expandPath, projectRoot } from 'tssv/lib/core/TSSV'
-import { expandSVFiles, guardSVImport } from 'tssv/lib/core/SVFileList'
+import { expandSVFileList, guardSVImport } from 'tssv/lib/core/SVFileList'
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs'
 import { basename, join } from 'path'
 import { tmpdir } from 'os'
@@ -64,12 +64,12 @@ function mentions (message: string, ...parts: string[]): boolean {
 
 // ---- Test 1: a .f and an array list the same files ---------------------------------------
 const listed = [`${DIR}/fl_pkg.sv`, `${DIR}/fl_sub.sv`, `${DIR}/fl_top.sv`]
-const fromFilelist = expandSVFiles(`${IN}/fl_top.f`, 'SVFilePath')
+const fromFilelist = expandSVFileList(`${IN}/fl_top.f`, 'SVFilePath')
 check('fl_top.f lists the package, then fl_sub through the nested .f, then fl_top, each once',
   fromFilelist.join(' ') === listed.join(' '), fromFilelist.join(' '))
 // The braced form, ${TSSV_ROOT}, is what's under test, so it's a plain string
 // eslint-disable-next-line no-template-curly-in-string
-const fromArray = expandSVFiles([`${IN}/fl_pkg.sv`, `${IN}/fl_sub.sv`, '${TSSV_ROOT}/ts/test/importFileList/fl_top.sv'], 'SVFilePath')
+const fromArray = expandSVFileList([`${IN}/fl_pkg.sv`, `${IN}/fl_sub.sv`, '${TSSV_ROOT}/ts/test/importFileList/fl_top.sv'], 'SVFilePath')
 check('an array lists the same files', fromArray.join(' ') === listed.join(' '), fromArray.join(' '))
 
 // ---- Test 2: which module is instantiated -------------------------------------------------

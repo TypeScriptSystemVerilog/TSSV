@@ -500,7 +500,7 @@ this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings)
 this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/rtl/leaf.sv'], {}, bindings)
 ```
 
-1. It lists the files (`expandSVFiles()` in [`SVFileList.ts`](../reference/SVFileList.md)).
+1. It lists the files (`expandSVFileList()` in [`SVFileList.ts`](../reference/SVFileList.md)).
    Each path's environment variables are expanded, and it must then be absolute (below). A `.f`
    is replaced by the files it names:
    - one path per line, relative to the `.f` file's directory unless it's absolute after its

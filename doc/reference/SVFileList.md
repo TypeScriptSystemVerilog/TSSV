@@ -11,10 +11,10 @@ filelists it is given, and the include guard each file is emitted in.
 
 ## Functions
 
-### expandSVFiles()
+### expandSVFileList()
 
 ```ts
-function expandSVFiles(paths, what): string[];
+function expandSVFileList(paths, what): string[];
 ```
 
 list the SystemVerilog files that `paths` name, in order.
