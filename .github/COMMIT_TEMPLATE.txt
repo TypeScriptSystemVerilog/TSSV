@@ -6,5 +6,8 @@
 #
 # Refs #<issue>
 #
+# Commit with `git commit -s`: it adds the required Signed-off-by line
+# (DCO sign-off, see CONTRIBUTING.md).
+#
 # <type> is one of: feat, fix, refactor, docs, test, chore, perf, build
 # See doc/process/issue-workflow.md §6 for the full convention.

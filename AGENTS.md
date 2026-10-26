@@ -29,7 +29,7 @@ doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, wi
 doc/process/          Repo process specs (issue-workflow.md)
 scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base) and test-skips.sh (tests runAllTests.sh and gen-sv skip)
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
-.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml)
+.github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml, dco.yml)
 ```
 
 Docs live under `doc/`, never under `ts/`. A module's spec is always at
@@ -58,6 +58,7 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `doc/ideas/body-formatting-spike-spec.md`, `doc/ideas/body-formatting-spike-implementation-plan.md` | Why and how `addBody()` and the Verible formatter were added (implemented) |
 | `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating |
 | `README.md` | Machine setup (agent-first; pinned Node/Verible/Verilator), quick-start demo, roadmap |
+| `CONTRIBUTING.md` | The license (Apache-2.0) and the DCO sign-off every commit needs, including the rule for commits an agent writes |
 | `CLAUDE.md` | Notes specific to Claude Code as a tool; defers to this file for everything else |
 
 ## GitHub Issue-Driven Workflow
@@ -102,7 +103,9 @@ is the authoritative spec; this section is the operating procedure an agent foll
 3. **Implement**, committing with the template in `.github/COMMIT_TEMPLATE.txt`:
    `<type>(#<issue>): <summary>` where `<type>` is a Conventional-Commits tag (`feat`,
    `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `build`) describing the diff,
-   independent of the issue's Issue Type.
+   independent of the issue's Issue Type. Commit with `git commit -s`: every commit needs a
+   DCO sign-off, and the `dco` check fails a PR without one. The sign-off carries the git
+   identity of the person running the session, never the agent's own (`CONTRIBUTING.md`).
 4. **Narrate progress as issue comments**, not by rewriting the issue body: what was tried,
    decisions/deviations from the original scope.
 5. **Open the PR** with `gh pr create`, following `.github/PULL_REQUEST_TEMPLATE.md`: body
