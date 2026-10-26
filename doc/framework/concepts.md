@@ -414,13 +414,14 @@ endmodule
   `verilator --lint-only +define+USE_INCLUDES +incdir+<outDir> <outDir>/top.sv`. Without it,
   name every file, on the command line or in a filelist, using the returned paths.
 - An interface's file, and a module's with no interfaces and no submodules, have the guard only.
-- **Imported SV** (§8) is written to `<moduleName>.sv` as its source, inside the guard. A source
-  that already defines its own `DEF__<moduleName>__` guard macro is written unchanged, because a
-  second guard on the same macro would hide the module.
+- **Imported SV** (§8) isn't a generated file, so it never gets a `DEF__` guard. Each file an
+  import reads is written once, untouched, under its own name, inside its `SVIMPORT__` guard and
+  nothing else. A module that instantiates an imported one includes all of that import's files,
+  in order.
 - **Names** become file names and macro names, so emission throws, naming the modules involved,
-  when a name isn't a legal SystemVerilog identifier, or when two names differ only in case
-  (one file on macOS and Windows). Two different modules with the same name are still written as
-  one, as in a single-file emission (#122).
+  when a generated name isn't a legal SystemVerilog identifier, or when two files' names differ
+  only in case (one file on macOS and Windows). Two different modules with the same name are
+  still written as one, as in a single-file emission (#122).
 - Verible formats each file's definition on its own, before the guard is added.
 - Files already in `outDir` that the call doesn't write are left in place.
 
@@ -490,23 +491,57 @@ Module.setFormatterConfig({
 ## 8. Importing existing SystemVerilog
 
 [`addSystemVerilogSubmodule(instanceName, path, params, bindings, autoBind, options)`](../reference/Base.md#addsystemverilogsubmodule)
-instantiates a module from an existing `.sv` file:
+instantiates a module from existing SV files. `path` is a path or an array of paths, each an
+`.sv` file or a `.f` filelist:
 
-1. It reads the file and runs `verible-verilog-syntax` on it. The parser in
+```typescript
+this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings, false, { moduleName: 'my_ip' })
+this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/rtl/leaf.sv'], {}, bindings, false,
+  { moduleName: 'leaf' })
+```
+
+1. It lists the files (`expandSVFileList()` in [`SVFileList.ts`](../reference/SVFileList.md)).
+   Each path's environment variables are expanded, and it must then be absolute (below). A `.f`
+   is replaced by the files it names:
+   - one path per line, relative to the `.f` file's directory unless it's absolute after its
+     variables are expanded; blank lines are skipped
+   - `//` and `#` start a comment, on a line of their own or after whitespace
+   - a path ending in `.f` is read the same way, recursively; a `.f` that reads itself throws
+   - a line starting with `+` or `-` (`+incdir+`, `+define+`, `-v`) throws, naming the file and
+     line: the filelist names files, not simulator options
+
+   A file named more than once is read once, where it first appears.
+2. It reads each file and runs `verible-verilog-syntax` on it. The parser in
    [`SVModuleHeader.ts`](../reference/SVModuleHeader.md) reads each module's name and port
    directions from the syntax tree. It handles ANSI headers (`input logic [7:0] a,`), where a
    port without a direction inherits the previous one, and non-ANSI headers (`input a;` in the
-   module body). A syntax error in the file throws with its line and column.
-2. It picks the module: `options.moduleName` if given; otherwise the file's only module, or the
-   module named after the file.
-3. It builds a stand-in `Module` named after the SV module, with one port for each **bound**
-   port. Its direction comes from the file's header. Its width and sign are copied from the
+   module body). A syntax error throws with the file, line and column.
+3. It picks the module `options.moduleName` names, from any of the files. `moduleName` is
+   required, even when the files declare one module: TSSV never infers it. A name the files
+   don't declare throws, listing the modules they do.
+4. It builds a stand-in `Module` named after the SV module, with one port for each **bound**
+   port. Its direction comes from the module's header. Its width and sign are copied from the
    parent signal bound to it.
-4. Each entry in `params` is marked with `setVerilogParameter` and appears as `#(.P(value))` on
+5. Each entry in `params` is marked with `setVerilogParameter` and appears as `#(.P(value))` on
    the instance.
-5. The file's text, unchanged, becomes the module's definition in the output. It is written
-   once per module name, like any other definition. `writeSystemVerilogFiles()` (§7) writes it
-   to `<moduleName>.sv` inside an include guard, unless the text already defines that guard.
+6. The files are emitted untouched.
+   - `writeSystemVerilogFiles()` (§7) writes each file once, under its own name, inside one
+     include guard and nothing else:
+
+     ```systemverilog
+     `ifndef SVIMPORT__pkg__
+     `define SVIMPORT__pkg__
+     // pkg.sv, unchanged
+     `endif //!SVIMPORT__pkg__
+     ```
+
+     The macro is the file's name without its extension, with each character that can't be in
+     a macro name made `_`. Two imports often share a file, such as a package, and the files of
+     two emissions compiled together can both carry it: the guard defines what it holds once.
+     Two different files with the same name and different contents would share a guard, and the
+     preprocessor would drop the second, so writing them throws, naming both.
+   - `writeSystemVerilog()` puts the files' text, unguarded and in order, in its single string,
+     once per module name, like any other definition.
 
 What this means in practice:
 
@@ -522,6 +557,43 @@ What this means in practice:
 `IpXactComponent` (`doc/modules/IpXactComponent/IpXactComponent-spec.md`) builds on the same
 header parser to wrap an SV module described by an IP-XACT component file. It does check widths:
 against the port widths the IP-XACT file gives, not against the SV file.
+
+### Paths: `TSSV_ROOT` and environment variables (#181)
+
+TSSV never resolves a path you give it against the cwd, so what a path names doesn't depend on
+where `node` was started. A path to `addSystemVerilogSubmodule()`, and `IpXactComponent`'s
+`svFilePath` and `xmlDataPath`, must be absolute once its environment variables are expanded. A
+relative one throws. Only a path inside a `.f` may be relative, to the `.f` file's directory.
+
+Node's `fs` doesn't expand variables: `readFileSync('$TSSV_ROOT/x.sv')` looks for a directory
+named `$TSSV_ROOT`. TSSV expands them itself, with
+[`expandPath()`](../reference/Paths.md#expandpath): `$NAME` and `${NAME}` become the variable's
+value, and an unset or empty variable throws. `~`, `$(cmd)`, `${NAME:-default}` and globs aren't
+expanded. Call it, or [`absolutePath()`](../reference/Paths.md#absolutepath), on a path with
+variables before your own `fs` calls.
+
+[`TSSV_ROOT`](../reference/Paths.md#tssv_root) is the root of the TSSV checkout whose code is
+running, and loading TSSV sets `$TSSV_ROOT` to it, for paths, `.f` files and the processes TSSV
+starts. [`projectRoot(envVar, import.meta.url)`](../reference/Paths.md#projectroot) gives a
+project built on TSSV the same for its own root:
+
+```typescript
+export const NOC_ROOT = projectRoot('TSSV_NOC_ROOT', import.meta.url)
+```
+
+- **The root follows the code, not the cwd or the environment.** `import.meta.url` is the
+  location of the compiled `.js` file that is running. `projectRoot()` walks up from it to the
+  nearest `package.json`, so each git worktree, even one nested inside another checkout, finds
+  itself. Node resolves symlinks when it loads a module, so TSSV reached through
+  `node_modules/tssv` finds its real checkout.
+- **A value already in the environment is replaced**, with a warning naming both. An `export
+  TSSV_ROOT=...` in a shell profile would otherwise send every worktree, and both sides of
+  `scripts/gen-sv --base`, to one checkout. Don't set these variables in a shell profile.
+- **Only Node sees them.** They are set in each `node` process, and the processes it starts
+  inherit them. The shell that ran `node`, or a Makefile run on its own, doesn't.
+- **Record the variable, not its value.** A path that ends up in emitted SV, such as
+  `IpXactComponent`'s parameters, which are printed as comments, should be written
+  `'$TSSV_ROOT/...'`. An absolute path there differs on every machine.
 
 ## Where to go next
 

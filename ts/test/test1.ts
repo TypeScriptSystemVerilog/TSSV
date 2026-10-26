@@ -66,9 +66,11 @@ export class Adder3 extends Module {
 
     this.addSystemVerilogSubmodule(
       'add3',
-      'ts/test/testImport.sv',
+      '$TSSV_ROOT/ts/test/testImport.sv',
       { aWidth: 8, bWidth: 9, sumWidth: 10 },
-      { a: 'c', b: 'psum', sum: 'sum_d3' }
+      { a: 'c', b: 'psum', sum: 'sum_d3' },
+      true,
+      { moduleName: 'testImport' }
     )
 
     this.addSubmodule(

@@ -70,10 +70,11 @@ import_tb.addSignal('b', { width: 9, isSigned: true })
 import_tb.addSignal('out', { width: 10, isSigned: true })
 import_tb.addSystemVerilogSubmodule(
   'add3',
-  'ts/test/testImport.sv',
+  '$TSSV_ROOT/ts/test/testImport.sv',
   { aWidth: 8, bWidth: 9, sumWidth: 10 },
   { a: 'a', b: 'b', sum: 'out' },
-  true // autobind doesn't change anything here
+  true, // autobind doesn't change anything here
+  { moduleName: 'testImport' }
 )
 
 try {

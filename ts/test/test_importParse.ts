@@ -1,7 +1,8 @@
-import { Module } from 'tssv/lib/core/TSSV'
+import { Module, type SVImportOptions, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
 import { writeFileSync, mkdirSync, readFileSync } from 'fs'
 import { posix } from 'path'
+import { spawnSync } from 'child_process'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 // Regression test for addSystemVerilogSubmodule header parsing (issue #48)
@@ -50,10 +51,11 @@ const ansiTop = new Module({ name: 'importParse_ansi' }, {
 })
 const ansiLeaf = ansiTop.addSystemVerilogSubmodule(
   'u_leaf',
-  'ts/test/importParse/leaf.sv',
+  '$TSSV_ROOT/ts/test/importParse/leaf.sv',
   { W: 8, N: 4 },
   { s: 'ss', a: 'sa', en: 'sen', b: 'sb', c: 'sc', y: 'y', sy: 'ssy' },
-  false
+  false,
+  { moduleName: 'leaf' }
 )
 check('ANSI module name', ansiLeaf.name, 'leaf')
 check('ANSI directions', directions(ansiLeaf),
@@ -66,7 +68,7 @@ const mixedTop = new Module({ name: 'importParse_mixed' }, {
   en: { direction: 'input' },
   y: { direction: 'output', width: 8 }
 })
-const mixedLeaf = mixedTop.addSystemVerilogSubmodule('u_leaf', 'ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false)
+const mixedLeaf = mixedTop.addSystemVerilogSubmodule('u_leaf', '$TSSV_ROOT/ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false, { moduleName: 'leaf' })
 check('parent output bound to child input', directions(mixedLeaf), { a: 'input', en: 'input', y: 'output' })
 
 // non-ANSI port declarations, with a function whose arguments must be ignored
@@ -78,10 +80,11 @@ const nonAnsiTop = new Module({ name: 'importParse_nonansi' }, {
 })
 const nonAnsiLeaf = nonAnsiTop.addSystemVerilogSubmodule(
   'u_leaf',
-  'ts/test/importParse/leaf_nonansi.sv',
+  '$TSSV_ROOT/ts/test/importParse/leaf_nonansi.sv',
   { W: 8 },
   { a: 'na', en: 'nen', y: 'ny', sy: 'nsy' },
-  false
+  false,
+  { moduleName: 'leaf_nonansi' }
 )
 check('non-ANSI module name', nonAnsiLeaf.name, 'leaf_nonansi')
 check('non-ANSI directions', directions(nonAnsiLeaf), { a: 'input', en: 'input', y: 'output', sy: 'output' })
@@ -91,19 +94,20 @@ const multiTop = new Module({ name: 'importParse_multi' }, {
   a: { direction: 'input' },
   y: { direction: 'output' }
 })
-checkThrows('ambiguous multi-module file',
-  () => multiTop.addSystemVerilogSubmodule('u_x', 'ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true),
-  /several modules \(helper, two_top\)/)
-const multiLeaf = multiTop.addSystemVerilogSubmodule('u_top', 'ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true, { moduleName: 'two_top' })
+// The module is never inferred, so a JavaScript caller that leaves moduleName out gets an error
+checkThrows('missing moduleName',
+  () => multiTop.addSystemVerilogSubmodule('u_x', '$TSSV_ROOT/ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true, {} as SVImportOptions),
+  /options\.moduleName is required/)
+const multiLeaf = multiTop.addSystemVerilogSubmodule('u_top', '$TSSV_ROOT/ts/test/importParse/two_modules.sv', {}, { a: 'a', y: 'y' }, true, { moduleName: 'two_top' })
 check('selected module name', multiLeaf.name, 'two_top')
 check('selected module directions', directions(multiLeaf), { a: 'input', y: 'output' })
 checkThrows('missing selected module',
-  () => multiTop.addSystemVerilogSubmodule('u_x', 'ts/test/importParse/two_modules.sv', {}, { a: 'a' }, true, { moduleName: 'nope' }),
+  () => multiTop.addSystemVerilogSubmodule('u_x', '$TSSV_ROOT/ts/test/importParse/two_modules.sv', {}, { a: 'a' }, true, { moduleName: 'nope' }),
   /module nope not found/)
 
 // binding a name that is not a port
 checkThrows('unknown port',
-  () => mixedTop.addSystemVerilogSubmodule('u_bad', 'ts/test/importParse/leaf.sv', {}, { a: 'a', bogus: 'en' }, false),
+  () => mixedTop.addSystemVerilogSubmodule('u_bad', '$TSSV_ROOT/ts/test/importParse/leaf.sv', {}, { a: 'a', bogus: 'en' }, false, { moduleName: 'leaf' }),
   /bogus is not a port of module leaf/)
 
 const edgeCases = [
@@ -112,15 +116,22 @@ const edgeCases = [
   { name: 'edge_non', ports: { a: 'input', b: 'input', q: 'output', t: 'output' } },
   { name: 'edge_empty', ports: {} }
 ]
-check('edge cases', parseSVModules(readFileSync('ts/test/importParse/edge_cases.sv', 'utf8')), edgeCases)
-check('testImport.sv', parseSVModules(readFileSync('ts/test/testImport.sv', 'utf8')),
+check('edge cases', parseSVModules(readFileSync(`${TSSV_ROOT}/ts/test/importParse/edge_cases.sv`, 'utf8')), edgeCases)
+check('testImport.sv', parseSVModules(readFileSync(`${TSSV_ROOT}/ts/test/testImport.sv`, 'utf8')),
   [{ name: 'testImport', ports: { a: 'input', b: 'input', sum: 'output' } }])
 checkThrows('syntax error',
   () => parseSVModules('module bad(input logic a,, output y);\nendmodule\n'),
   /syntax error at line 1, column 26/)
+// Verible comes from PATH only, so the missing-binary error needs a process whose PATH has none.
+// The child imports the parser by its file URL, so it doesn't depend on the cwd.
+const parserUrl = new URL('../src/core/SVModuleHeader.js', import.meta.url).href
+const noVerible = spawnSync(process.execPath, ['--input-type=module', '-e',
+  `import { parseSVModules } from '${parserUrl}'
+   try { parseSVModules('module m; endmodule') } catch (e) { console.log(e.message) }`],
+{ encoding: 'utf8', env: { ...process.env, PATH: '' } })
 checkThrows('missing verible-verilog-syntax',
-  () => parseSVModules('module m; endmodule', { veribleSyntaxPath: '/nonexistent/verible-verilog-syntax' }),
-  /could not run \/nonexistent\/verible-verilog-syntax/)
+  () => { if (noVerible.stdout !== '') throw Error(noVerible.stdout) },
+  /could not run verible-verilog-syntax \(is Verible installed\?\)/)
 
 // The imported files are this test's inputs, written by hand to hold the cases the parser must
 // handle, not generated SV. So each top is written without the module it imports, and its lint

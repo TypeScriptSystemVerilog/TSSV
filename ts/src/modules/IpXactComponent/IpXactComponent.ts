@@ -1,4 +1,4 @@
-import { Module, type Sig, type TSSVParameters } from 'tssv/lib/core/TSSV'
+import { Module, type Sig, type TSSVParameters, absolutePath } from 'tssv/lib/core/TSSV'
 import { XMLParser } from 'fast-xml-parser'
 import * as amba from 'tssv/lib/tools/index'
 import * as fs from 'fs'
@@ -18,10 +18,19 @@ interface ParameterData {
 }
 
 export interface IpXactComponent_Parameters extends TSSVParameters {
-  /** path to the SystemVerilog file that defines the component's module; it is instantiated as is */
+  /**
+   * path to the SystemVerilog file that defines the component's module; it is instantiated as is.
+   * Environment variables in it are expanded, and it must then be absolute, as in
+   * `$TSSV_ROOT/ts/test/...` (see `absolutePath()`)
+   */
   svFilePath: string
-  /** path to the component's IP-XACT XML: its bus interfaces, their parameters and its ports */
+  /**
+   * path to the component's IP-XACT XML: its bus interfaces, their parameters and its ports.
+   * Expanded and checked as `svFilePath` is
+   */
   xmlDataPath: string
+  /** the module in `svFilePath` that the component wraps. Required: it's never inferred */
+  moduleName: string
 }
 
 /**
@@ -119,9 +128,12 @@ export class IpXactComponent extends Module {
     super({
       name: params.name,
       xmlDataPath: params.xmlDataPath,
-      svFilePath: params.svFilePath
+      svFilePath: params.svFilePath,
+      moduleName: params.moduleName
     })
-    const xmlData = fs.readFileSync(params.xmlDataPath, 'utf-8')
+    // svFilePath is checked first, so a relative one throws before anything is read
+    absolutePath(params.svFilePath, 'svFilePath')
+    const xmlData = fs.readFileSync(absolutePath(params.xmlDataPath, 'xmlDataPath'), 'utf-8')
     const interfaceData = this.createDictionary(xmlData)
     const paramData = this.parseParameters(xmlData)
     const portWidths = this.parsePortWidths(xmlData)
@@ -183,12 +195,13 @@ export class IpXactComponent extends Module {
     }
 
     // Every input is bound above, so nothing is left to bind by name (MOD-6)
-    return this.addSystemVerilogSubmodule('u_ip', SVFilePath, {}, bindings, false)
+    return this.addSystemVerilogSubmodule('u_ip', SVFilePath, {}, bindings, false, { moduleName: this.params.moduleName })
   }
 
   // The module header of the SystemVerilog module, which names its ports and their directions
   private readSVModuleHeader (filePath: string): SVModuleHeader {
-    return selectSVModule(parseSVModules(fs.readFileSync(filePath, 'utf-8')), filePath)
+    const path = absolutePath(filePath, 'svFilePath')
+    return selectSVModule(parseSVModules(fs.readFileSync(path, 'utf-8')), path, this.params.moduleName)
   }
 
   // The width of a port of the SV module, from the XML's <model><ports>, for a port that needs one

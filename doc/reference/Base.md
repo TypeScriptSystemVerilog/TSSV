@@ -266,6 +266,7 @@ base constructor
 | `bindingRules.output` | `public` | `string`[] | `undefined` | - |
 | `bindingRules.inout` | `public` | `string`[] | `undefined` | - |
 | <a id="body"></a> `body` | `protected` | `string` | `undefined` | - |
+| <a id="importedfiles"></a> `importedFiles?` | `protected` | readonly `object`[] | `undefined` | - |
 | <a id="registerblocks"></a> `registerBlocks` | `protected` | `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, \{ `d`: `string`; `resetVal?`: `bigint`; \}\>\>\>\> | `{}` | - |
 | <a id="printedinterfaces"></a> `printedInterfaces` | `static` | `Record`\<`string`, `boolean`\> | `{}` | - |
 | <a id="verilogparams"></a> `verilogParams` | `protected` | `Record`\<`string`, `boolean`\> | `undefined` | - |
@@ -365,24 +366,39 @@ addSystemVerilogSubmodule(
    SVFilePath, 
    params, 
    bindings, 
-   autoBind?, 
-   options?
+   autoBind, 
+   options
 ): Module;
 ```
 
-instantiate a module from an existing SystemVerilog file.  The module name and the
-direction of each bound port are taken from the file's module header.
+instantiate a module from existing SystemVerilog files.  The module name and the
+direction of each bound port are taken from the module's header.
+
+`SVFilePath` is a path or a list of paths, each an SV file or a `.f` filelist that names
+more files (see `expandSVFileList()` in `SVFileList.ts` for the rules). Environment variables in
+a path, written `$NAME` or `${NAME}`, are expanded, and the path must then be absolute:
+`$TSSV_ROOT/ts/test/leaf.sv`, not `ts/test/leaf.sv`. A path in a `.f` may be relative to the
+`.f` file's directory.
+
+`options.moduleName` names the module to instantiate, which one of the files must declare.
+It is required, and never inferred from the files or their names.
+
+The files themselves are emitted untouched. `writeSystemVerilogFiles()` writes each one once,
+to a file of its own name, inside the include guard
+`` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
+once, from two imports or from two emitted files compiled together, defines what it holds
+once. `writeSystemVerilog()` puts their text, unguarded, in its single string.
 
 ###### Parameters
 
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `instanceName` | `string` | `undefined` | the name of the instance |
-| `SVFilePath` | `string` | `undefined` | path to the SystemVerilog source file |
-| `params` | [`TSSVParameters`](#tssvparameters) | `undefined` | SV parameter overrides for the instance |
-| `bindings` | `Record`\<`string`, `string` \| [`Sig`](#sig)\> | `undefined` | map of submodule port name to parent signal |
-| `autoBind` | `boolean` | `true` | automatically bind unbound ports to same-named parent signals |
-| `options` | [`SVImportOptions`](#svimportoptions) | `{}` | `moduleName` selects the module to instantiate when the file declares more than one (default: the only module in the file, or the one named after the file); `veribleSyntaxPath` locates verible-verilog-syntax, which parses the module header |
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `instanceName` | `string` | the name of the instance |
+| `SVFilePath` | `string` \| readonly `string`[] | the SystemVerilog files, and `.f` filelists naming them |
+| `params` | [`TSSVParameters`](#tssvparameters) | SV parameter overrides for the instance |
+| `bindings` | `Record`\<`string`, `string` \| [`Sig`](#sig)\> | map of submodule port name to parent signal |
+| `autoBind` | `boolean` | automatically bind unbound ports to same-named parent signals |
+| `options` | [`SVImportOptions`](#svimportoptions) | `moduleName`, the module to instantiate |
 
 ###### Returns
 
@@ -1038,14 +1054,16 @@ The files can be built two ways:
 - Without it, name every file, on the command line or in a filelist:
   `verilator --lint-only <every path in files>`
 
-A module imported with `addSystemVerilogSubmodule()` is written to `<moduleName>.sv` as its
-source, inside the guard. A source that already defines its own `DEF__<moduleName>__` guard
-macro is written unchanged.
+The files a module imported with `addSystemVerilogSubmodule()` reads are written untouched,
+each once, under its own name, inside its `SVIMPORT__<file name without extension>__` guard
+and nothing else. A generated file never wraps one: the `DEF__` guard is for generated SV
+only. A module that instantiates an imported one includes all of that import's files, in
+order. Two different imported files that would share a guard throw, naming both.
 
-Names must be legal SystemVerilog identifiers, because they name files and macros, and must
-differ in more than case, because two files whose names differ only in case are one file on
-macOS and Windows. Two different modules with the same name are still written as one (#122).
-Files already in `outDir` that this call doesn't write are left in place.
+Generated names must be legal SystemVerilog identifiers, because they name files and macros.
+No two files' names may differ only in case, because they are one file on macOS and Windows.
+Two different modules with the same name are still written as one (#122). Files already in
+`outDir` that this call doesn't write are left in place.
 
 `writeSystemVerilog()` is unaffected: its single-string output carries no guards.
 
@@ -1154,8 +1172,7 @@ options for `Module.addSystemVerilogSubmodule()`
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="modulename"></a> `moduleName?` | `string` | module to instantiate when the file declares more than one |
-| <a id="veriblesyntaxpath"></a> `veribleSyntaxPath?` | `string` | path to verible-verilog-syntax, used to parse the module header (default: found on PATH) |
+| <a id="modulename"></a> `moduleName` | `string` | the module to instantiate, which one of the files must declare. Required: it's never inferred |
 
 ***
 

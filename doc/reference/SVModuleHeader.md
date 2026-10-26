@@ -28,11 +28,12 @@ the name and port directions of one module found in a SystemVerilog source
 
 ### VeribleSyntaxOpts
 
+options for a verible-verilog-syntax run
+
 #### Properties
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="veriblesyntaxpath"></a> `veribleSyntaxPath?` | `string` | path to verible-verilog-syntax (default: found on PATH) |
 | <a id="timeoutms"></a> `timeoutMs?` | `number` | timeout for the verible-verilog-syntax run (default 10000 ms) |
 
 ## Type Aliases
@@ -61,7 +62,7 @@ Handles ANSI (`input logic signed [N-1:0] a,`) and non-ANSI (`input a; ...`) por
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `src` | `string` | SystemVerilog source text |
-| `opts` | [`VeribleSyntaxOpts`](#veriblesyntaxopts) | location of the Verible binary and timeout |
+| `opts` | [`VeribleSyntaxOpts`](#veriblesyntaxopts) | the timeout for the verible-verilog-syntax run, which must be on `PATH` |
 
 #### Returns
 
@@ -77,22 +78,26 @@ one entry per module declaration, in source order
 function selectSVModule(
    headers, 
    filePath, 
-   moduleName?
+   moduleName
 ): SVModuleHeader;
 ```
 
-pick the module to use from the headers parsed out of an SV file
+pick the module to use from the headers parsed out of one or more SV files
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `headers` | [`SVModuleHeader`](#svmoduleheader)[] | result of `parseSVModules()` for the file |
-| `filePath` | `string` | path of the file, used for the default choice and in error messages |
-| `moduleName?` | `string` | module to select; by default the file's only module, or the one named after the file |
+| `headers` | [`SVModuleHeader`](#svmoduleheader)[] | result of `parseSVModules()` for the files, together |
+| `filePath` | `string` \| readonly `string`[] | the path, or paths, the module was looked for in, for the error message |
+| `moduleName` | `string` | the module to select. It is never inferred |
 
 #### Returns
 
 [`SVModuleHeader`](#svmoduleheader)
 
 the selected module header
+
+#### Throws
+
+if no file declares `moduleName`

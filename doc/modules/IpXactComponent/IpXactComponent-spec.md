@@ -16,8 +16,9 @@ Wraps an existing **IP-XACT XML component description** and a pre-existing Syste
 | Parameter | Type | Description |
 |---|---|---|
 | `name` | `string` | Module name. Set it: the name derived from the two paths isn't a legal SV identifier ([#123](https://github.com/TypeScriptSystemVerilog/TSSV/issues/123)) |
-| `svFilePath` | `string` | Path to the SystemVerilog file that defines the component's module |
-| `xmlDataPath` | `string` | Path to the IP-XACT XML component description |
+| `svFilePath` | `string` | Path to the SystemVerilog file that defines the component's module. Environment variables in it are expanded, and it must then be absolute, as in `$TSSV_ROOT/...`: a relative path throws |
+| `xmlDataPath` | `string` | Path to the IP-XACT XML component description, expanded and checked as `svFilePath` is |
+| `moduleName` | `string` | The module in `svFilePath` that the component wraps. Required: it's never inferred, and one the file doesn't declare throws |
 
 ---
 
@@ -164,8 +165,9 @@ import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
 // The wrapper, from the IP's SV file and its IP-XACT description
 const adder = new IpXactComponent({
   name: 'adderComponent',
-  xmlDataPath: 'ts/test/modules/IpxactComponent/Adder/adder.xml',
-  svFilePath: 'ts/test/modules/IpxactComponent/Adder/apb_adder.sv'
+  xmlDataPath: '$TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/adder.xml',
+  svFilePath: '$TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/apb_adder.sv',
+  moduleName: 'apb_adder'
 })
 
 // A design that instantiates it, and passes its own APB port through to the adder's
@@ -205,8 +207,9 @@ module adderComponent (
   // ------------------------------------------------------------------
   // Parameters
   // ------------------------------------------------------------------
-  // svFilePath = ts/test/modules/IpxactComponent/Adder/apb_adder.sv
-  // xmlDataPath = ts/test/modules/IpxactComponent/Adder/adder.xml
+  // moduleName = apb_adder
+  // svFilePath = $TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/apb_adder.sv
+  // xmlDataPath = $TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/adder.xml
   // ------------------------------------------------------------------
 
   // Bus inputs that no port of apb_adder reads
@@ -239,7 +242,7 @@ Each IP port is bound to the bus signal its port map names. The adder has no por
 
 | Import | Source |
 |---|---|
-| `Module`, `Sig`, `TSSVParameters` | `tssv/lib/core/TSSV` |
+| `Module`, `Sig`, `TSSVParameters`, `absolutePath` | `tssv/lib/core/TSSV` |
 | `parseSVModules`, `selectSVModule` | `tssv/lib/core/SVModuleHeader` |
 | AMBA interface classes (`amba.*`) | `tssv/lib/interfaces/AMBA/…` |
 | `fast-xml-parser` | npm dependency |
@@ -268,6 +271,8 @@ Each is instantiated as in the example. For each component, the script writes on
 | One of each | The adder's XML has a single bus interface, port map list and parameter list, which the XML parser returns as an object rather than an array |
 | Port width | The AXI sample, with `Init0_Ar_Len` widened to 8 bits in `<model><ports>`, throws |
 | Unknown bus type | The AXI sample, with its first bus type renamed, throws |
+| Relative path | The AXI sample, with `svFilePath` or `xmlDataPath` given relative to the repo, throws, naming it |
+| Unknown module | The AXI sample, with a `moduleName` its SV file doesn't declare, throws |
 
 **The sample SV files aren't generated SV.** Each one stands in for the vendor's RTL. The AXI and APB ones declare the module's ports and nothing else, so their outputs are undriven and their inputs unused. The script writes the wrapper without the sample's module, and the filelist names the sample file where it is, as `ts/test/test_importParse.ts` does for its imported files. `npm run check:generated-sv` checks only files under `sv-examples/`, so it leaves the sample's findings out. The sample files carry no waivers and no tie-offs. `apb_adder.sv` is a working module, and lints clean with `-Wall`.
 

@@ -16,25 +16,27 @@
 // It also checks that IpXactComponent ties an unmapped input to 0, and rejects a port whose width
 // differs from its bus signal's.
 //
-// Run from the repo root: the sample paths are relative to it.
+// The sample paths start with $TSSV_ROOT, not a path relative to the cwd, so IpXactComponent finds
+// them from any directory, and the paths it records in the wrapper's parameter comments are the
+// same on every machine. Where the test reads a sample itself, it expands the path first.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, posix } from 'path'
 import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
-import { parseSVModules, selectSVModule } from 'tssv/lib/core/SVModuleHeader'
+import { expandPath } from 'tssv/lib/core/TSSV'
 import { writePortInterfaces } from 'tssv/test/models/emitSplit'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 import { lintWrapper } from 'tssv/test/models/lintWrapper'
 
 const GENERATOR = 'ts/test/modules/IpxactComponent/componentExample.ts'
-const SAMPLES = 'ts/test/modules/IpxactComponent'
+const SAMPLES = '$TSSV_ROOT/ts/test/modules/IpxactComponent'
 const OUT = 'sv-examples/IpXactComponent'
 
 // `tied`: the inputs of the sample's module that its XML maps to no bus signal
 const samples = [
-  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv`, tied: ['tm'] },
-  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv`, tied: ['tm'] },
-  { name: 'adderComponent', xmlDataPath: `${SAMPLES}/Adder/adder.xml`, svFilePath: `${SAMPLES}/Adder/apb_adder.sv`, tied: [] }
+  { name: 'axiComponent', xmlDataPath: `${SAMPLES}/AXI/axiSample.xml`, svFilePath: `${SAMPLES}/AXI/architectureSample.sv`, moduleName: 'Specification_Architecture_Structure', tied: ['tm'] },
+  { name: 'apbComponent', xmlDataPath: `${SAMPLES}/APB/apbSample.xml`, svFilePath: `${SAMPLES}/APB/apbArchitecture.sv`, moduleName: 'Specification_Architecture_Structure', tied: ['tm'] },
+  { name: 'adderComponent', xmlDataPath: `${SAMPLES}/Adder/adder.xml`, svFilePath: `${SAMPLES}/Adder/apb_adder.sv`, moduleName: 'apb_adder', tied: [] }
 ]
 
 for (const { tied, ...params } of samples) {
@@ -42,13 +44,14 @@ for (const { tied, ...params } of samples) {
   const dir = `${OUT}/${component.name}`
   mkdirSync(dir, { recursive: true })
   // The sample's module, which the wrapper instantiates, is left out of the wrapper's file
-  const sample = selectSVModule(parseSVModules(readFileSync(params.svFilePath, 'utf8')), params.svFilePath).name
+  const svFilePath = expandPath(params.svFilePath)
+  const sample = params.moduleName
   const defined = new Set<string>()
   const interfaces = writePortInterfaces(component, dir, defined)
   writeFileSync(`${dir}/${component.name}.sv`, component.writeSystemVerilog({ exclude: new Set([...defined, sample]) }))
   writeFileSync(`${dir}/${component.name}_lint_top.sv`, lintWrapper(component, GENERATOR))
   writeLintFilelist(dir, `${component.name}_lint_top`,
-    [posix.relative(dir, params.svFilePath), ...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`], GENERATOR)
+    [posix.relative(dir, svFilePath), ...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`], GENERATOR)
   console.log(`wrote ${dir}/${[...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`].join(', ')}`)
   // Each of them is tied to 0
   const sv = readFileSync(`${dir}/${component.name}.sv`, 'utf8')
@@ -64,12 +67,12 @@ function expectThrow (what: string, edit: (xml: string) => string, expected: str
   const tmp = mkdtempSync(join(tmpdir(), 'ipxact-'))
   let message = ''
   try {
-    const xml = readFileSync(axi.xmlDataPath, 'utf8')
+    const xml = readFileSync(expandPath(axi.xmlDataPath), 'utf8')
     const edited = edit(xml)
     if (edited === xml) throw Error(`${what}: the edit didn't change the AXI sample's XML`)
     const xmlDataPath = join(tmp, 'axiSample.xml')
     writeFileSync(xmlDataPath, edited)
-    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath })
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, moduleName: axi.moduleName, xmlDataPath })
   } catch (err) {
     message = (err as Error).message
   } finally {
@@ -91,3 +94,30 @@ expectThrow('a port wider than its bus signal', xml => {
 // A bus type that isn't in IpXactComponent.knownInterfaces: the first interface's
 expectThrow('an unknown bus type', xml => xml.replace('spirit:name="AXI_"', 'spirit:name="NOPE_"'),
   "of bus type tssv/lib/interfaces/AMBA/AMBA3/NOPE/r2p0_0/NOPE, which isn't in IpXactComponent.knownInterfaces")
+
+// A relative path isn't resolved against the cwd, so either path given relative throws, naming it
+for (const what of ['svFilePath', 'xmlDataPath'] as const) {
+  const axi = samples[0]
+  const relative = `ts/test/modules/IpxactComponent/AXI/${what === 'svFilePath' ? 'architectureSample.sv' : 'axiSample.xml'}`
+  let message = ''
+  try {
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath: axi.xmlDataPath, moduleName: axi.moduleName, [what]: relative })
+  } catch (err) {
+    message = (err as Error).message
+  }
+  if (!message.includes(`${what} '${relative}' is a relative path`)) throw Error(`a relative ${what}: expected a throw naming it, got "${message}"`)
+  console.log(`PASS: a relative ${what} throws`)
+}
+
+// The module to wrap is never inferred: one that the SV file doesn't declare throws, naming it
+{
+  const axi = samples[0]
+  let message = ''
+  try {
+    void new IpXactComponent({ name: axi.name, svFilePath: axi.svFilePath, xmlDataPath: axi.xmlDataPath, moduleName: 'nope' })
+  } catch (err) {
+    message = (err as Error).message
+  }
+  if (!message.includes('module nope not found')) throw Error(`a moduleName the file doesn't declare: expected a throw naming it, got "${message}"`)
+  console.log('PASS: a moduleName the file doesn\'t declare throws')
+}

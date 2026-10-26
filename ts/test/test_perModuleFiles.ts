@@ -9,7 +9,8 @@
  * Test 1: each file defines one module or interface, named after the file, and together they
  *         define what the single-file emission does
  * Test 2: each file has the include guard, and its includes come before it in the returned list
- * Test 3: imported SV is guarded once, and a guarded source is written unchanged
+ * Test 3: each imported file is written as its source inside one SVIMPORT guard, never a DEF
+ *         guard, even a source that has its own
  * Test 4: parseSVModules still reads a guarded module's header
  * Test 5: Verilator lints the files with USE_INCLUDES naming only the top, without it naming
  *         every file, and with both, so that every file is reached twice
@@ -17,7 +18,7 @@
  * Test 7: names that differ only in case, and names that aren't identifiers, throw before
  *         anything is written
  */
-import { Module, Expr, type TSSVParameters } from 'tssv/lib/core/TSSV'
+import { Module, Expr, type TSSVParameters, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
 import { existsSync, readFileSync, rmSync } from 'fs'
@@ -26,7 +27,7 @@ import { spawnSync } from 'child_process'
 import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 const OUT = 'sv-examples/Core/perModuleFiles'
-const FIXTURES = 'ts/test/perModuleFiles'
+const FIXTURES = `${TSSV_ROOT}/ts/test/perModuleFiles`
 // A stale file from an earlier run would otherwise be linted with the new ones
 rmSync(OUT, { recursive: true, force: true })
 
@@ -120,7 +121,7 @@ class MidB extends Module {
     this.addAssign({ in: new Expr('mem.DATA_RD'), out: 'data' })
     this.addAssign({ in: new Expr('mem.READY'), out: 'ready' })
     this.addSubmodule('u_leaf8', new Leaf({ width: 8 }), { clk: 'clk', d: 'c_d', q: 'c_q' }, false)
-    this.addSystemVerilogSubmodule('u_plain', `${FIXTURES}/plain_import.sv`, {}, { clk: 'clk', d: 'p_d', q: 'p_q' })
+    this.addSystemVerilogSubmodule('u_plain', `${FIXTURES}/plain_import.sv`, {}, { clk: 'clk', d: 'p_d', q: 'p_q' }, true, { moduleName: 'plain_import' })
   }
 }
 
@@ -159,7 +160,7 @@ class Top extends Module {
       p_q: 'p_q',
       mem: 'w_mem'
     }, false)
-    this.addSystemVerilogSubmodule('u_guarded', `${FIXTURES}/guarded_import.sv`, {}, { clk: 'clk', d: 'g_d', q: 'g_q' })
+    this.addSystemVerilogSubmodule('u_guarded', `${FIXTURES}/guarded_import.sv`, {}, { clk: 'clk', d: 'g_d', q: 'g_q' }, true, { moduleName: 'guarded_import' })
   }
 }
 
@@ -185,6 +186,8 @@ check('the top file is returned last', files[files.length - 1] === `${OUT}/Top.s
 
 // ---- Test 2: guards, includes and order ---------------------------------------------------
 for (const [name, sv] of text) {
+  // The DEF guard is for generated files only: an imported file has its SVIMPORT guard (Test 3)
+  if (name === 'plain_import' || name === 'guarded_import') continue
   check(`${name}.sv is inside its include guard`,
     sv.startsWith(`\`ifndef DEF__${name}__\n\`define DEF__${name}__\n`) && sv.endsWith(`\n\`endif //!DEF__${name}__\n`))
 }
@@ -204,12 +207,13 @@ names.forEach((name, i) => {
 })
 
 // ---- Test 3: imported SV ------------------------------------------------------------------
-const plainSource = readFileSync(`${FIXTURES}/plain_import.sv`, 'utf8')
-check('an imported file is written inside the guard, otherwise unchanged',
-  text.get('plain_import') ===
-    `\`ifndef DEF__plain_import__\n\`define DEF__plain_import__\n\n${plainSource.trimEnd()}\n\n\`endif //!DEF__plain_import__\n`)
-check('an imported file that already has the guard is written unchanged',
-  text.get('guarded_import') === readFileSync(`${FIXTURES}/guarded_import.sv`, 'utf8'))
+// A source inside its SVIMPORT guard and nothing else, as writeSystemVerilogFiles() writes it
+const importGuarded = (name: string, source: string): string =>
+  `\`ifndef SVIMPORT__${name}__\n\`define SVIMPORT__${name}__\n${source}${source.endsWith('\n') ? '' : '\n'}\`endif //!SVIMPORT__${name}__\n`
+check('an imported file is written as its source inside its SVIMPORT guard, with no DEF guard',
+  text.get('plain_import') === importGuarded('plain_import', readFileSync(`${FIXTURES}/plain_import.sv`, 'utf8')))
+check('an imported file with its own DEF guard is written the same way, its source untouched',
+  text.get('guarded_import') === importGuarded('guarded_import', readFileSync(`${FIXTURES}/guarded_import.sv`, 'utf8')))
 
 // ---- Test 4: a guarded file's header still parses -----------------------------------------
 const [midHeader] = parseSVModules(text.get('MidA') ?? '')
@@ -223,7 +227,7 @@ check('parseSVModules reads MidA\'s header from its guarded file',
 const probe = spawnSync('verilator', ['--version'], { encoding: 'utf8' })
 if (probe.status === 0) {
   const lint = (label: string, args: string[]): void => {
-    const run = spawnSync('verilator', ['--lint-only', '-Wall', 'doc/rtl-style/sv-style/common_waivers.vlt',
+    const run = spawnSync('verilator', ['--lint-only', '-Wall', `${TSSV_ROOT}/doc/rtl-style/sv-style/common_waivers.vlt`,
       '--top-module', 'Top', ...args], { encoding: 'utf8' })
     check(label, run.status === 0, `${run.stdout}${run.stderr}`)
   }

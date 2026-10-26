@@ -1,5 +1,5 @@
-// Imported by ts/test/test_perModuleFiles.ts with addSystemVerilogSubmodule(). It has no include
-// guard, so writeSystemVerilogFiles() wraps it in one.
+// Imported by ts/test/test_perModuleFiles.ts with addSystemVerilogSubmodule().
+// writeSystemVerilogFiles() writes it untouched, inside its SVIMPORT__plain_import__ guard.
 module plain_import
   (
    input  logic       clk,
