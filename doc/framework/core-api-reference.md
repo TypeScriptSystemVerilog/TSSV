@@ -341,12 +341,22 @@ this.addSubmodule(
 - Parent instance and child port must be the same SV interface type: `interfaceName()`, the class name plus its parameter values, must match. Two `Memory` instances with different `DATA_WIDTH` are different types and throw `<port> interface type mismatch on <submodule>: <parent type> vs <child type>`.
 - If the parent's interface has a role (it is itself a port), the child's role must be the same. A role-less parent instance (a local bundle) binds to any role.
 
-### `addSystemVerilogSubmodule(instanceName, svFilePath, params, bindings, autoBind?): void`
+### `addSystemVerilogSubmodule(instanceName, svFilePath, params, bindings, autoBind?, options?): Module`
 
-Includes a pre-existing `.sv` file as a black-box submodule. `svFilePath` is included verbatim; `params` sets Verilog `#(...)` parameter overrides; `bindings` maps ports to parent signals.
+Includes pre-existing SV files as a black-box submodule. `svFilePath` is a path or an array of paths, each an `.sv` file or a `.f` filelist that names more files, one per line, relative to the `.f`. Environment variables in a path (`$NAME`, `${NAME}`) are expanded, and the path must then be absolute: a relative one throws. Each file is included verbatim, inside its own `` `ifndef SVIMPORT__<file name>__ `` guard, so a file two imports share is defined once. `params` sets Verilog `#(...)` parameter overrides; `bindings` maps ports to parent signals; `options.moduleName` picks the module when the files declare several and none is named after a path given. Details in `concepts.md` §8.
 
 ```typescript
-this.addSystemVerilogSubmodule('inner', 'path/to/inner.sv', {}, bindings, true)
+this.addSystemVerilogSubmodule('inner', '$TSSV_ROOT/path/to/inner.sv', {}, bindings, true)
+this.addSystemVerilogSubmodule('u_ip', '$MY_IP/rtl/my_ip.f', {}, bindings)
+```
+
+### `TSSV_ROOT`, `expandPath(path)`, `absolutePath(path, what)`, `projectRoot(envVar, importMetaUrl)`
+
+Paths that don't depend on the cwd (`ts/src/core/Paths.ts`, `concepts.md` §8). `TSSV_ROOT` is the running TSSV checkout's root, also set as `$TSSV_ROOT`. `expandPath()` expands `$NAME` and `${NAME}`, which Node's `fs` takes literally; `absolutePath()` also requires the result to be absolute. `projectRoot()` finds a project's own root from its `import.meta.url` and sets it as an environment variable.
+
+```typescript
+const cfg = readFileSync(expandPath('$TSSV_ROOT/ts/test/cfg.json'), 'utf8')
+export const NOC_ROOT = projectRoot('TSSV_NOC_ROOT', import.meta.url)
 ```
 
 ---

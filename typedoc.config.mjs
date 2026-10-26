@@ -16,6 +16,8 @@ export default {
   entryPoints: [
     'ts/src/core/Registers.ts',
     'ts/src/core/SVModuleHeader.ts',
+    'ts/src/core/SVFileList.ts',
+    'ts/src/core/Paths.ts',
     'ts/src/interfaces/Memory.ts',
     'ts/src/core/Base.ts'
   ],

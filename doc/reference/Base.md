@@ -370,19 +370,30 @@ addSystemVerilogSubmodule(
 ): Module;
 ```
 
-instantiate a module from an existing SystemVerilog file.  The module name and the
-direction of each bound port are taken from the file's module header.
+instantiate a module from existing SystemVerilog files.  The module name and the
+direction of each bound port are taken from the module's header.
+
+`SVFilePath` is a path or a list of paths, each an SV file or a `.f` filelist that names
+more files (see `expandSVFiles()` in `SVFileList.ts` for the rules). Environment variables in
+a path, written `$NAME` or `${NAME}`, are expanded, and the path must then be absolute:
+`$TSSV_ROOT/ts/test/leaf.sv`, not `ts/test/leaf.sv`. A path in a `.f` may be relative to the
+`.f` file's directory.
+
+Every file is emitted, in order, each inside its own include guard,
+`` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
+once, from two imports or from two emitted files compiled together, defines what it holds
+once.
 
 ###### Parameters
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
 | `instanceName` | `string` | `undefined` | the name of the instance |
-| `SVFilePath` | `string` | `undefined` | path to the SystemVerilog source file |
+| `SVFilePath` | `string` \| readonly `string`[] | `undefined` | the SystemVerilog files, and `.f` filelists naming them |
 | `params` | [`TSSVParameters`](#tssvparameters) | `undefined` | SV parameter overrides for the instance |
 | `bindings` | `Record`\<`string`, `string` \| [`Sig`](#sig)\> | `undefined` | map of submodule port name to parent signal |
 | `autoBind` | `boolean` | `true` | automatically bind unbound ports to same-named parent signals |
-| `options` | [`SVImportOptions`](#svimportoptions) | `{}` | `moduleName` selects the module to instantiate when the file declares more than one (default: the only module in the file, or the one named after the file); `veribleSyntaxPath` locates verible-verilog-syntax, which parses the module header |
+| `options` | [`SVImportOptions`](#svimportoptions) | `{}` | `moduleName` selects the module to instantiate when the files declare more than one (default: the only module, or the one named after one of the paths) |
 
 ###### Returns
 
@@ -1154,8 +1165,7 @@ options for `Module.addSystemVerilogSubmodule()`
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="modulename"></a> `moduleName?` | `string` | module to instantiate when the file declares more than one |
-| <a id="veriblesyntaxpath"></a> `veribleSyntaxPath?` | `string` | path to verible-verilog-syntax, used to parse the module header (default: found on PATH) |
+| <a id="modulename"></a> `moduleName?` | `string` | module to instantiate when the files declare more than one. By default: the only module, or else the one module named after one of the paths given, so that `foo.sv` or `foo.f` selects `foo` |
 
 ***
 
