@@ -383,8 +383,8 @@ const expectThrow = (what: string, fn: () => void, match: string): void => {
     en: { direction: 'input' },
     y: { direction: 'output', width: 8 }
   })
-  svParent.addSystemVerilogSubmodule('u_leaf', 'ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false)
+  svParent.addSystemVerilogSubmodule('u_leaf', '$TSSV_ROOT/ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false, { moduleName: 'leaf' })
   expectThrow('repeated instance name through addSystemVerilogSubmodule', () => {
-    svParent.addSystemVerilogSubmodule('u_leaf', 'ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false)
+    svParent.addSystemVerilogSubmodule('u_leaf', '$TSSV_ROOT/ts/test/importParse/leaf.sv', { W: 8 }, { a: 'a', en: 'en', y: 'y' }, false, { moduleName: 'leaf' })
   }, 'submodule with instance name u_leaf already exists')
 }
