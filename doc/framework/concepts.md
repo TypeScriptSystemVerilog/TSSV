@@ -84,33 +84,69 @@ values produces its own SV module.
 The SV module name is fixed in `super()`:
 
 - If `params.name` is a string, it is the module name.
-- Otherwise the name is `<ClassName>_<value>_<value>...`: the class name, then every parameter
-  *value* (not key) in insertion order, joined by `_`. `undefined` values are skipped. Objects
-  and arrays are replaced by a 7-character base-36 hash of their JSON.
+- Otherwise the name is derived: `<ClassName>_`, then one segment per parameter, joined by `_`.
+
+A derived name follows these rules:
+
+- **Order.** Parameters are sorted by *key* with plain string comparison (UTF-16 code units, so
+  upper case sorts before lower case), not by insertion order and not by locale. The same values
+  in a different key order give the same name.
+- **Which keys.** Every key in the parameter object gets a segment, except `name`. A key that is
+  present with the value `undefined` gets the segment `X`, so it keeps its place: `{ a: 1, b:
+  undefined }` and `{ a: undefined, b: 1 }` are `M_1_X` and `M_X_1`. A key missing from the
+  object gets no segment.
+- **Segments.** Each value gives one segment:
+
+  | Value | Segment |
+  |---|---|
+  | Integer, number or bigint, 0 or above | Its decimal value: `8` and `8n` both give `8` |
+  | Negative integer | `m` and its magnitude: `-1` gives `m1` |
+  | Boolean | `true` or `false` |
+  | `undefined` | `X` |
+  | String of 1 to 16 characters from `[A-Za-z0-9_$]` | The string as is. It may start with a digit (`'1rw'`): a segment always follows `<ClassName>_` |
+  | Anything else: a longer string or one with other characters, a non-integer number, an array, an object, a file's contents | A hash, 8 characters of `0-9a-z` |
+
+- **The hash** is 41 bits of the SHA-256 of the value's canonical JSON, written in base 36
+  (`Module.nameHash`). In canonical JSON, object keys are sorted the same way, and bigints are
+  written as integers. Text that refers to a module's hash, such as `ROM`'s parameter comment,
+  uses the same function, so it matches the name.
 
 | Parameters | Module name |
 |---|---|
-| `{ width: 8, mode: 'fast', flag: true, big: 5n, skip: undefined }` on class `Adder` | `Adder_8_fast_true_5` |
-| `{ width: 8, taps: [1n, 2n] }` on class `Adder` | `Adder_8_1p9jptr` |
+| `{ width: 8, mode: 'fast', flag: true, big: 5n, skip: undefined }` on class `Adder` | `Adder_5_true_fast_X_8` |
+| `{ width: 8, taps: [1n, 2n] }` on class `Adder` | `Adder_82ms8xij_8` |
+| `{ width: 8, mode: 'fast-path', offset: -1 }` on class `Adder` | `Adder_i5tu60yu_m1_8` |
+| `{ width: 8, ports: '1r_1w' }` on class `Adder` | `Adder_1r_1w_8` |
 | `{ name: 'my_add', width: 8 }` | `my_add` |
+
+A derived name is always a legal SV identifier. It carries the parameter values but can't be
+parsed back into them, and a few different parameter sets give the same name:
+
+- an appended string keeps its `_`, so `{ p: 'a_b', q: 'c' }` and `{ p: 'a', q: 'b_c' }` are both
+  `M_a_b_c`;
+- `undefined` and the string `'X'` give the same segment;
+- a number and a string with the same text give the same segment: `8` and `'8'`, `-1` and `'m1'`.
+
+These are rare: a module parameter holds one type, so the last needs a parameter typed as both
+a number and a string.
 
 Either way, `this.name` is then written back into `this.params.name`, so after `super()` it is
 always set. Every parameter except `name` is also listed in a comment block at the top of the
 emitted module.
 
 **Emission keeps the first definition for each module name and drops the rest** (§7). Two
-instances with the same name are assumed to be the same module. That makes the name a promise,
-and it is up to you to keep it. Set `name` explicitly when:
+instances with the same name are assumed to be the same module. That makes the name a promise.
+A derived name keeps it as long as the parameters hold everything that shapes the module. So:
 
-- **The module's structure depends on anything other than its parameter values**, such as a
-  constructor argument outside `params` or a global. `RegisterBlock` is the standing example:
-  its register map is a separate argument, so two unnamed blocks with different maps are both
-  named `RegisterBlock_Memory_little`. The second block's definition is silently dropped, and
-  its instance points at the first block's definition.
-- **A value doesn't make a legal SV identifier.** A string value with a hyphen or space, or a
-  negative number, goes into the name as-is.
-- **Something outside TSSV refers to the module by name**: a testbench top, a Makefile's top
-  module, a hand-written instantiation. A derived name changes whenever a parameter is added.
+- **Put everything that shapes the module into the parameters passed to `super()`**, including
+  a constructor argument outside `params`. `RegisterBlock` passes its register map and the bus
+  that its third argument picks. A module that reads a file passes the file's contents, not its
+  path, as `ROM` and `IpXactComponent` do: the same file at two paths then gives one name, and a
+  changed file gives a new one. If something outside the parameters still shapes the module,
+  such as a global, set `name` explicitly.
+- **Set `name` explicitly when something outside TSSV refers to the module by name**: a
+  testbench top, a Makefile's top module, a hand-written instantiation. A derived name changes
+  whenever a parameter is added.
 
 ### SystemVerilog parameters
 

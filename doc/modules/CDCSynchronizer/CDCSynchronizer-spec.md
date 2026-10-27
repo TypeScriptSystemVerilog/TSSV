@@ -21,7 +21,7 @@ Defined in `CDCSynchronizer_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `CDCSynchronizer_3_2` |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, sorted by parameter name, e.g. `CDCSynchronizer_2_3` for 2 stages of 3 bits |
 | `width` | `bigint` (≥ 1) | — | Width of the synchronized signal, in bits. **For `width > 1`, `d` must change at most one bit at a time** (for example, Gray code). The instantiating module guarantees this and constrains the crossing (see [Responsibilities of the instantiating module](#responsibilities-of-the-instantiating-module)). `q` then shows only values `d` held, but it can skip values when `d` changes faster than `clk` |
 | `stages?` | `bigint` (≥ 2) | `2n` | Flops in the chain. Each extra stage lowers the chance that a metastable value reaches `q`, and adds a cycle of latency |
 

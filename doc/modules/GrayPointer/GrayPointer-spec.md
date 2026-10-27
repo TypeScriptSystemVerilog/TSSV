@@ -21,7 +21,7 @@ Defined in `GrayPointer_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `GrayPointer_3_2` |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, sorted by parameter name, e.g. `GrayPointer_2_3` for 2 sync stages of 3 bits |
 | `width` | `bigint` (≥ 1) | — | Pointer width in bits. The pointer counts from 0 to 2^`width` − 1, then wraps to 0 |
 | `syncStages?` | `bigint` (≥ 2) | `2n` | Flops in the `CDCSynchronizer` that carries the pointer into the far domain |
 

@@ -45,8 +45,8 @@ Before you open a PR that adds or changes a module:
 
 A TSSV module is elaborated in TypeScript. The constructor reads the parameter values, decides
 what to build, and calls the builders. Every distinct set of parameter values becomes its own SV
-module, named after those values (`<Class>_<value>_<value>…`, set in the `Module` constructor in
-`ts/src/core/Base.ts`). The emitted SV has no parameters of its own. The rules in this section
+module, named after those values (`<Class>_<value>_<value>…`, sorted by parameter name, set in the
+`Module` constructor in `ts/src/core/Base.ts`). The emitted SV has no parameters of its own. The rules in this section
 keep that model honest.
 
 **PARAM-1 (MUST): Declare a typed parameters interface.**
@@ -120,12 +120,11 @@ The module's name is built from the values passed to `super()`, and emission kee
 first definition of each name ([concepts.md §2](../../framework/concepts.md#2-parameters-and-the-module-name)).
 So a value that changes the SV but isn't in that call gives two different modules the same
 name, and the second one silently becomes a copy of the first. Nothing catches that yet
-([#122](https://github.com/TypeScriptSystemVerilog/TSSV/issues/122)). Some existing modules
-break this rule; [#123](https://github.com/TypeScriptSystemVerilog/TSSV/issues/123) lists them,
-along with the parameter values that don't make legal or unique names.
+([#122](https://github.com/TypeScriptSystemVerilog/TSSV/issues/122)).
 Keep every such value in the parameters object, never in another constructor argument or a
 global. Apply defaults in the `super()` call (`params.stages ?? 1`, as in PARAM-1), so that
-leaving a parameter out and passing its default produce the same module and name.
+leaving a parameter out and passing its default produce the same module and name. A module that
+reads a file passes the file's contents, not its path, so the name follows the contents.
 
 Set `name` explicitly when something outside TSSV refers to the module by name, such as a
 testbench top or a Makefile. A derived name changes whenever a parameter is added.
@@ -172,7 +171,7 @@ interface Invert_Parameters extends TSSVParameters {
   invert?: boolean
 }
 
-// Do: Invert_4_true and Invert_4_false
+// Do: Invert_true_4 and Invert_false_4
 class Invert extends Module {
   declare params: Invert_Parameters
   constructor (params: Invert_Parameters) {

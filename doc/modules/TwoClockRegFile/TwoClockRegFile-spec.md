@@ -21,7 +21,7 @@ Defined in `TwoClockRegFile_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, in the order below: `TwoClockRegFile_<dataWidth>_<depth>`, plus `_<fpgaRamStyle>` when it's set. For example `TwoClockRegFile_1026_32`, or `TwoClockRegFile_1026_32_block` |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, sorted by name: `TwoClockRegFile_<dataWidth>_<depth>_<fpgaRamStyle>`, with `X` for an unset `fpgaRamStyle`. For example `TwoClockRegFile_1026_32_X`, or `TwoClockRegFile_1026_32_block` |
 | `dataWidth` | `bigint` (≥ 1) | — | Word width in bits. There is no upper limit, so NoC flits of 514 or 1026 bits fit |
 | `depth` | `bigint` (2 to 32) | — | Number of words. Doesn't have to be a power of two |
 | `fpgaRamStyle?` | `'distributed' \| 'block'` | unset | How Vivado implements the storage; see [Synthesis mapping](#synthesis-mapping). Unset emits no attribute, so Vivado chooses. It changes only an attribute: the RTL's behavior is the same for every value, and ASIC flows ignore it |

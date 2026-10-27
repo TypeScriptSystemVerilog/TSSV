@@ -17,7 +17,7 @@ Defined in `shift_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | `shift_<dataWidth>_<shift_direct>_<shift_val>_<isSigned>` | Module name. If omitted, TSSV derives it from the other parameters, defaults included. |
+| `name` | `string` | `shift_<dataWidth>_<isSigned>_<shift_direct>_<shift_val>` | Module name. If omitted, TSSV derives it from the other parameters, defaults included. |
 | `dataWidth` | `IntRange<1, 256>` | — | Bit width of `data_in` |
 | `shift_val` | `IntRange<1, 256>` | — | The number of places to shift. A right shift needs it below `dataWidth`. |
 | `shift_direct?` | `'left' \| 'right'` | `'right'` | Shift direction |

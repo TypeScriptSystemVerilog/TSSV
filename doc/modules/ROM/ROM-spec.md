@@ -63,8 +63,8 @@ Defined in `ROM_Parameters extends TSSVParameters`.
 ### Module name
 
 5. The constructor replaces `ROMContents` with its words, one `'h` entry each, such as `'h0A0B0C0D`, before passing it on with the other parameters. So `this.params.ROMContents` holds the words, never a file path, and `new ROM({ ...rom.params, name: undefined })` builds the same ROM again.
-6. Without a `name`, TSSV derives one from the parameter values: `ROM_<dataWidth>_<endianness>_<hash>_<macroConfig>`. `<hash>` is the 7-character, base-36 hash of a 32-bit value that `Module` gives any array parameter, here the words. For example, `ts/test/test_rom_init_file.txt` at 32 bits gives `ROM_32_big_1prb6tp_default`. ROMs with different words get different names. The same words give the same name, whether they come from a file at any path, a string array, a number array or bytes. [#123](https://github.com/TypeScriptSystemVerilog/TSSV/issues/123) will change how every module's derived name is built, including this hash.
-7. The parameter comment at the top of the emitted module gives the contents as their word count and hash, the same hash as in a derived name, such as `// ROMContents = 10 words, hash 1prb6tp, in rom_read`, since the case table lists the words.
+6. Without a `name`, TSSV derives one from the parameter values, sorted by parameter name: `ROM_<hash>_<dataWidth>_<endianness>_<macroConfig>`. `<hash>` is the 8-character hash that `Module` gives any array parameter, here the words ([concepts.md §2](../../framework/concepts.md#2-parameters-and-the-module-name)). For example, `ts/test/test_rom_init_file.txt` at 32 bits gives `ROM_l9e36sjo_32_big_default`. ROMs with different words get different names. The same words give the same name, whether they come from a file at any path, a string array, a number array or bytes.
+7. The parameter comment at the top of the emitted module gives the contents as their word count and hash, the same hash as in a derived name, such as `// ROMContents = 10 words, hash l9e36sjo, in rom_read`, since the case table lists the words.
 
 ### Example contents
 
@@ -247,3 +247,4 @@ The script checks every configuration's ports against [IO Ports](#io-ports), tha
   - Bad contents printed `Error:` and generated anyway, or crashed with a `TypeError` (no entries, a missing file). They now throw. The range check accepted only the signed range, and wrongly flagged -2<sup>n-1</sup>. Now any `n`-bit value, signed or unsigned, fits.
   - Entries were parsed with JavaScript numbers, so bits past the 53rd of a decimal or binary entry were wrong. A `-` before a hex or binary entry was ignored, and a file's final newline added a zero word.
   - The RCF of a packed ROM held one byte per line, and every RCF line was rounded up to a multiple of 4 bits. Lines are now words of `dataWidth` bits.
+- **Changed in #123.** The derived name sorts the parameters by name, so the hash comes first, and the hash is 8 characters of SHA-256 rather than 7 of a 32-bit hash: `ROM_32_big_1prb6tp_default` is now `ROM_l9e36sjo_32_big_default` for the same file. The parameter comment gives the same new hash.

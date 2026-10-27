@@ -23,7 +23,7 @@ Defined in `AFIFO_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `AFIFO_514_8_2_false_false` |
+| `name` | `string` | auto-generated | Instance name. If omitted, TSSV derives it from the other parameters, e.g. `AFIFO_514_8_X_false_false_2`, `X` for an unset `fpgaRamStyle` |
 | `dataWidth` | `bigint` (≥ 1) | — | Word width in bits. There is no upper limit. |
 | `depth?` | `bigint` (4, 8, 16 or 32) | `8n` | Number of words. A power of two; see [Implementation Notes](#implementation-notes) for why. [Throughput and depth](#throughput-and-depth) covers choosing it. |
 | `syncStages?` | `bigint` (≥ 2) | `2n` | Flops in each pointer synchronizer. Each extra stage lowers the chance that a metastable value escapes the synchronizer, and adds a cycle of latency in each direction |

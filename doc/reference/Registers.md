@@ -156,6 +156,34 @@ writeRALF(): string;
 
 `string`
 
+##### formatParametersForComment()
+
+```ts
+protected formatParametersForComment(params?, opts?): string;
+```
+
+The parameter comment, with the register map given only as its register count and its hash,
+the same hash a derived module name holds: the map is the whole block.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`TSSVParameters`](Base.md#tssvparameters) | the parameters to list |
+| `opts?` | \{ `prefix?`: `string`; `skipName?`: `boolean`; \} | as for [Module.formatParametersForComment](Base.md#formatparametersforcomment) |
+| `opts.prefix?` | `string` | - |
+| `opts.skipName?` | `boolean` | - |
+
+###### Returns
+
+`string`
+
+one `// key = value` line per parameter
+
+###### Overrides
+
+[`Module`](Base.md#module).[`formatParametersForComment`](Base.md#formatparametersforcomment)
+
 ## Interfaces
 
 ### Field
@@ -238,10 +266,10 @@ A RAM/ROM window's response, for the read path: when it is ready and what it ret
 
 #### Properties
 
-| Property | Type | Inherited from |
-| ------ | ------ | ------ |
-| <a id="name"></a> `name?` | `string` | [`TSSVParameters`](Base.md#tssvparameters).[`name`](Base.md#name) |
-| <a id="businterface"></a> `busInterface?` | `"Memory"` \| `"TL_UL"` \| `"APB"` | - |
-| <a id="endianess"></a> `endianess?` | `"little"` | - |
-| <a id="busidwidth"></a> `busIDWidth?` | `8` | - |
-| <a id="busaddresswidth"></a> `busAddressWidth?` | `32` | - |
+| Property | Type | Description | Inherited from |
+| ------ | ------ | ------ | ------ |
+| <a id="name"></a> `name?` | `string` | - | [`TSSVParameters`](Base.md#tssvparameters).[`name`](Base.md#name) |
+| <a id="businterface"></a> `busInterface?` | `"Memory"` \| `"TL_UL"` \| `"APB"` | the bus type. The bus interface argument picks it; if this is set, it must agree | - |
+| <a id="endianess"></a> `endianess?` | `"little"` | - | - |
+| <a id="busidwidth"></a> `busIDWidth?` | `8` | - | - |
+| <a id="busaddresswidth"></a> `busAddressWidth?` | `32` | - | - |
