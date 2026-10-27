@@ -19,16 +19,17 @@ This produces various files depending on what it is. The prefix is the beginning
 
 ## PC SPSRAM
 
-If the RTL follows the PC SPSRAM format then the following four files will be produced.
+If the RTL follows the PC SPSRAM format then the following four files and the library directory will be produced.
 ```
 ∟ prefix_info.csv
-∟ prefix_library.sv
+∟ prefix_pc_library.sv
+∟ prefix_pc_library/
 ∟ prefix_pc_top.sv
 ∟ prefix_sram_modules.json
 ```
 The info file is a CSV which will show various parameters and their value if they are filled in.
 
-The library file is a TSSV instantiation of all the various SRAMs in the original file.
+The library is a TSSV wrapper module for each SRAM in the original file, written with `writeSystemVerilogFiles()` to `prefix_pc_library/`, one guarded file per module. `prefix_pc_library.sv` includes each wrapper's file under `USE_INCLUDES` and defines nothing itself, so build it with `+define+USE_INCLUDES +incdir+prefix_pc_library prefix_pc_library.sv`.
 
 The pc_top.sv file is the original file with the SRAM instantiations taken out.
 
@@ -43,19 +44,20 @@ npx tsc
 node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/pc_top.v ts/src/tools/example1
 ```
 
-This will take this example file (`sv-examples/cpu_convert/pc_top.v`) and produce four files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example file (`sv-examples/cpu_convert/pc_top.v`) and produce four files and the library directory in this same tools directory, although it would make more sense to save it in an external directory.
 
 ## RHC SPRAM
 
-This will produce three files which are
+This will produce three files and the library directory, which are
 ```
 ∟ prefix_info_rhc.csv
 ∟ prefix_rhc_library.sv
+∟ prefix_rhc_library/
 ∟ prefix_rhc.json
 ```
 The info_rhc file is a CSV which will show various parameters and their value if they are filled in.
 
-The library file is a TSSV instantiation of all the various SRAMs in the original file.
+The library is a TSSV wrapper module for each SRAM in the original file, written with `writeSystemVerilogFiles()` to `prefix_rhc_library/`, one guarded file per module. `prefix_rhc_library.sv` includes each wrapper's file under `USE_INCLUDES` and defines nothing itself, so build it with `+define+USE_INCLUDES +incdir+prefix_rhc_library prefix_rhc_library.sv`.
 
 The last file is a json which has the same information as the info file but in json form.
 
@@ -67,19 +69,20 @@ npx tsc
 node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/rhcexample.sv ts/src/tools/example3
 ```
 
-This will take this example file (`sv-examples/cpu_convert/rhcexample.sv`) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example file (`sv-examples/cpu_convert/rhcexample.sv`) and produce three files and the library directory in this same tools directory, although it would make more sense to save it in an external directory.
 
 ## UX900 GNRL RAM
 
-This will produce three files which are
+This will produce three files and the library directory, which are
 ```
 ∟ prefix_info_ux900.csv
 ∟ prefix_ux900_library.sv
+∟ prefix_ux900_library/
 ∟ prefix_ux900.json
 ```
 The info_ux900 file is a CSV which will show various parameters and their value if they are filled in.
 
-The library file is a TSSV instantiation of all the various SRAMs in the original file.
+The library is a TSSV wrapper module for each SRAM in the original file, written with `writeSystemVerilogFiles()` to `prefix_ux900_library/`, one guarded file per module. `prefix_ux900_library.sv` includes each wrapper's file under `USE_INCLUDES` and defines nothing itself, so build it with `+define+USE_INCLUDES +incdir+prefix_ux900_library prefix_ux900_library.sv`.
 
 The last file is a json which has the same information as the info file but in json form.
 
@@ -91,4 +94,4 @@ npx tsc
 node out/src/tools/convert/cpu_convert.js sv-examples/cpu_convert/ux900_rams_wrapper.v ts/src/tools/example2
 ```
 
-This will take this example file (`sv-examples/cpu_convert/ux900_rams_wrapper.v`) and produce three files in this same tools directory, although it would make more sense to save it in an external directory.
+This will take this example file (`sv-examples/cpu_convert/ux900_rams_wrapper.v`) and produce three files and the library directory in this same tools directory, although it would make more sense to save it in an external directory.

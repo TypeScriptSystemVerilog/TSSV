@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import { basename } from 'path'
 import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { SRAM } from 'tssv/lib/modules/SRAM'
 
@@ -214,9 +215,12 @@ function removeLastCharacter (str: string): string {
   return str
 }
 
-function createLibrary (sramModules: SramModule[], type: string): string {
-  let libraryCode = ''
-  sramModules.forEach((sram, index) => {
+// Writes a wrapper module for each SRAM to `libDir` with writeSystemVerilogFiles(), one guarded file
+// per module, so an SRAM configuration two wrappers share is written once. Returns the wrappers' own
+// files, by name.
+function createLibrary (sramModules: SramModule[], type: string, libDir: string): string[] {
+  const wrappers = new Set<string>()
+  sramModules.forEach((sram) => {
     const modName = (type === 'pc') ? removeLastCharacter(sram.name) : sram.name
     const module = new Module(
       { name: modName }, // took out removeLastCharacter
@@ -256,10 +260,22 @@ function createLibrary (sramModules: SramModule[], type: string): string {
     module.addSignal('we', {})
     module.addAssign({ in: writeExpr, out: 'we' })
     module.addSubmodule('sram', sramM, { clk: 'clk', a_re: 'cen', a_we: 'we', a_data_in: 'd', a_data_out: 'q', a_addr: 'a', a_wmask: 'wen' })
-    libraryCode += module.writeSystemVerilog() + '\n'
+    wrappers.add(basename(module.writeSystemVerilogFiles(libDir).at(-1) ?? ''))
   })
 
-  return libraryCode
+  return [...wrappers]
+}
+
+// The library's own file, `<libDir>.sv`: an include guard, and an include of each wrapper's file for
+// USE_INCLUDES builds, in the layout Module.writeSystemVerilogFiles() writes (guardSVFile() in
+// ts/src/core/Base.ts). It defines nothing itself, so a build defines USE_INCLUDES and puts libDir on
+// the include path: `+define+USE_INCLUDES +incdir+<libDir> <libDir>.sv`.
+function writeLibraryFile (libDir: string, wrappers: string[]): void {
+  // The guard macro: the file's name, each character that can't be in a macro name made _
+  const guard = `DEF__${basename(libDir).replace(/[^A-Za-z0-9_]/g, '_')}__`
+  const lines = [`\`ifndef ${guard}`, `\`define ${guard}`, '`ifdef USE_INCLUDES',
+    ...wrappers.map(w => `\`include "${w}"`), '`endif //USE_INCLUDES', `\`endif //!${guard}`]
+  fs.writeFileSync(`${libDir}.sv`, lines.join('\n') + '\n')
 }
 
 function jsonToCsv (jsonData: SramModule[]): string {
@@ -363,8 +379,8 @@ function main (): void {
     const csvContent = jsonToCsv(sramModules)
     splitCsvContent(csvContent, `${outputPath}_info_pc`)
 
-    const libString = createLibrary(sramModules, type)
-    fs.writeFileSync(`${outputPath}_pc_library.sv`, libString)
+    const libDir = `${outputPath}_pc_library`
+    writeLibraryFile(libDir, createLibrary(sramModules, type, libDir))
 
     const rest = removeSramInstances(verilogCode)
     fs.writeFileSync(`${outputPath}_pc_top.sv`, rest)
@@ -373,15 +389,15 @@ function main (): void {
     const csvContent = jsonToCsv(sramModules)
     splitCsvContent(csvContent, `${outputPath}_info_ux900`)
 
-    const libStringRHC = createLibrary(sramModules, type)
-    fs.writeFileSync(`${outputPath}_ux900_library.sv`, libStringRHC)
+    const libDir = `${outputPath}_ux900_library`
+    writeLibraryFile(libDir, createLibrary(sramModules, type, libDir))
   } else {
     fs.writeFileSync(`${outputPath}_rhc.json`, sramModulesJson)
     const csvContent = jsonToCsv(sramModules)
     splitCsvContent(csvContent, `${outputPath}_info_rhc`)
 
-    const libStringRHC = createLibrary(sramModules, type)
-    fs.writeFileSync(`${outputPath}_rhc_library.sv`, libStringRHC)
+    const libDir = `${outputPath}_rhc_library`
+    writeLibraryFile(libDir, createLibrary(sramModules, type, libDir))
   }
 }
 
