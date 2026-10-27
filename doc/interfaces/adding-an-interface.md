@@ -156,19 +156,17 @@ every parameter that adds signals, and lint the result:
 ```typescript
 import { Module } from 'tssv/lib/core/TSSV'
 import { AXI4 } from 'tssv/lib/interfaces/AMBA/AMBA4/AXI4/r0p0_0/AXI4'
-import { mkdirSync, writeFileSync } from 'fs'
 
-mkdirSync('sv-examples/AXI4', { recursive: true })
 for (const role of ['outward', 'inward'] as const) {
   const m = new Module({ name: `check_AXI4_${role}` })
   m.addInterface('bus', new AXI4({}, role))
-  writeFileSync(`sv-examples/AXI4/check_AXI4_${role}.sv`, m.writeSystemVerilog())
+  m.writeSystemVerilogFiles('sv-examples/AXI4')   // check_AXI4_<role>.sv, and the interface's file
 }
 ```
 
 ```bash
 npx tsc && node out/test/<your test>.js
-verilator --lint-only sv-examples/AXI4/check_AXI4_outward.sv
+verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/AXI4 sv-examples/AXI4/check_AXI4_outward.sv
 ```
 
 On `main` this check reports the `AWQOS`/`ARQOS` errors from rule 2 for `AXI4`, and nothing for

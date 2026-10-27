@@ -159,7 +159,7 @@ new FIR({ numTaps: 4, coefficients: [1n, 2n, 3n, 4n] })
 new FIR({ numTaps: 64 })  // all coefficients default to 0n
 ```
 
-`writeLintWrapped` writes each definition to its own file, a lint wrapper `myFIR3_lint_top.sv` that instantiates the interface ports, and the filelist `myFIR3_lint_top.f` that lints them.
+`writeLintWrapped` writes the design with `writeSystemVerilogFiles()`, one definition per file, then a lint wrapper `myFIR3_lint_top.sv` that instantiates the interface ports. Each file includes the files it needs under `USE_INCLUDES`, and so does the wrapper, so the wrapper alone is what gets linted: `verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/FIR/myFIR3 sv-examples/FIR/myFIR3/myFIR3_lint_top.sv`.
 
 ---
 
@@ -201,10 +201,10 @@ const tbLpFIR = markTestbench(new Module(
   tbBody
 ))
 tbLpFIR.addSubmodule('dut', myFir3, {}, true, true)
-emitSplit(tbLpFIR, 'sv-examples/FIR/myFIR3', GENERATOR)
+tbLpFIR.writeSystemVerilogFiles('sv-examples/FIR/myFIR3')
 ```
 
-The 5th arg `true` (**createMissing**) gives the testbench a local bundle for each of the DUT's interface ports, `s_axis`, `m_axis` and `regs`, bound to it, making all their signals visible in the waveform. `markTestbench` marks the module as simulation-only for the style checks, and `emitSplit` writes `tb_lpFIR.sv` and the filelist `tb_lpFIR.f` the simulation builds from.
+The 5th arg `true` (**createMissing**) gives the testbench a local bundle for each of the DUT's interface ports, `s_axis`, `m_axis` and `regs`, bound to it, making all their signals visible in the waveform. `markTestbench` marks the module as simulation-only for the style checks, and `writeSystemVerilogFiles` writes `tb_lpFIR.sv`, which includes `myFIR3.sv` and the interfaces, so the simulation builds from it alone.
 
 ---
 
@@ -230,7 +230,7 @@ Writes to `sv-examples/FIR/myFIR3/`, among others:
 | `myFIR3.sv` | 13-tap FIR with AXI4-Stream and `regs` ports and the `u_coeff_regs` submodule |
 | `myFIR3_coeffRegs.sv` | The coefficient register block |
 | `AXI4Stream_32_4_0_4.sv`, `memory_bidi_32_32.sv` | The interfaces |
-| `tb_lpFIR.sv`, `tb_lpFIR.f` | Testbench with chirp stimulus driving `s_axis`, and the filelist that builds it |
+| `tb_lpFIR.sv` | Testbench with chirp stimulus driving `s_axis`; it includes the files above |
 
 ### Step 3: Compile and simulate with Verilator
 
@@ -239,7 +239,7 @@ cd verilatorTB
 make
 ```
 
-Chains: `npx tsc` → `node out/test/test_FIR.js` → `verilator -F tb_lpFIR.f` → C++ build → simulation → `Vtb_lpFIR.vcd`.
+Chains: `npx tsc` → `node out/test/test_FIR.js` → `verilator +define+USE_INCLUDES +incdir+../sv-examples/FIR/myFIR3/ ../sv-examples/FIR/myFIR3/tb_lpFIR.sv` → C++ build → simulation → `Vtb_lpFIR.vcd`.
 
 ### Step 4: View waveforms in GTKWave
 

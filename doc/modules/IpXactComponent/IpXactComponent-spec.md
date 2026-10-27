@@ -7,7 +7,7 @@
 
 ## Overview
 
-Wraps an existing **IP-XACT XML component description** and a pre-existing SystemVerilog file into a TSSV `Module`. At elaboration time it parses the XML to discover the component's bus interfaces, maps them to TSSV AMBA interface types, and wires them up — making a vendor-supplied black-box IP block first-class in a TSSV design. The wrapper is the only RTL it generates. The original `.sv` file is instantiated in it, and included verbatim in `writeSystemVerilog()`'s output.
+Wraps an existing **IP-XACT XML component description** and a pre-existing SystemVerilog file into a TSSV `Module`. At elaboration time it parses the XML to discover the component's bus interfaces, maps them to TSSV AMBA interface types, and wires them up — making a vendor-supplied black-box IP block first-class in a TSSV design. The wrapper is the only RTL it generates. The original `.sv` file is instantiated in it, and `writeSystemVerilogFiles()` writes it untouched beside the wrapper, inside its `SVIMPORT__` guard, for the wrapper to include.
 
 ---
 
@@ -179,10 +179,10 @@ class AdderTop extends Module {
   }
 }
 
-console.log(new AdderTop().writeSystemVerilog())
+new AdderTop().writeSystemVerilogFiles('build/rtl')
 ```
 
-That prints the `APB_16_32` interface, `apb_adder.sv` as is, the wrapper below, and then the parent:
+That writes, to `build/rtl/`, the `APB_16_32` interface, `apb_adder.sv` as is inside its `SVIMPORT__` guard, the wrapper below, and the parent, each in its own guarded file. The parent's definition:
 
 ```systemverilog
 module adder_top (
@@ -197,7 +197,7 @@ endmodule
 
 ### The generated wrapper
 
-The wrapper module, as the test writes it to `sv-examples/IpXactComponent/adderComponent/adderComponent.sv`:
+The wrapper module, as the test writes it to `sv-examples/IpXactComponent/adderComponent/adderComponent.sv`, inside its guard and include block:
 
 ```systemverilog
 module adderComponent (
@@ -262,7 +262,7 @@ The script wraps three sample components. Each pairs an IP-XACT XML file, which 
 | `apbComponent` | `ts/test/modules/IpxactComponent/APB/apbSample.xml` | `ts/test/modules/IpxactComponent/APB/apbArchitecture.sv` | `sv-examples/IpXactComponent/apbComponent/` |
 | `adderComponent` | `ts/test/modules/IpxactComponent/Adder/adder.xml` | `ts/test/modules/IpxactComponent/Adder/apb_adder.sv` | `sv-examples/IpXactComponent/adderComponent/` |
 
-Each is instantiated as in the example. For each component, the script writes one definition per file: the wrapper (`<component>.sv`), the interface its ports use, and a lint wrapper that instantiates the interfaces. It also writes a filelist, `<component>_lint_top.f`, for `verilator --lint-only -Wall`.
+Each is instantiated as in the example. For each component, the script writes one definition per file with `writeSystemVerilogFiles()`: the wrapper (`<component>.sv`), the interface its ports use, and the sample's SV file, copied untouched inside its `SVIMPORT__` guard. It also writes a lint wrapper, `<component>_lint_top.sv`, that instantiates the interfaces and includes `<component>.sv`, for `verilator --lint-only -Wall +define+USE_INCLUDES`.
 
 | Test case | Checked |
 |---|---|
@@ -274,7 +274,7 @@ Each is instantiated as in the example. For each component, the script writes on
 | Relative path | The AXI sample, with `svFilePath` or `xmlDataPath` given relative to the repo, throws, naming it |
 | Unknown module | The AXI sample, with a `moduleName` its SV file doesn't declare, throws |
 
-**The sample SV files aren't generated SV.** Each one stands in for the vendor's RTL. The AXI and APB ones declare the module's ports and nothing else, so their outputs are undriven and their inputs unused. The script writes the wrapper without the sample's module, and the filelist names the sample file where it is, as `ts/test/test_importParse.ts` does for its imported files. `npm run check:generated-sv` checks only files under `sv-examples/`, so it leaves the sample's findings out. The sample files carry no waivers and no tie-offs. `apb_adder.sv` is a working module, and lints clean with `-Wall`.
+**The sample SV files aren't generated SV.** Each one stands in for the vendor's RTL. The AXI and APB ones declare the module's ports and nothing else, so their outputs are undriven and their inputs unused. The copy beside the wrapper opens with its `SVIMPORT__` guard, as every imported file does, and `npm run check:generated-sv` leaves such files out: the SV guide applies to generated SV only. It still lints them, through the wrapper that includes them, so it leaves the sample's findings out, as it does for `ts/test/test_importParse.ts`'s imported files. The sample files carry no waivers and no tie-offs. `apb_adder.sv` is a working module, and lints clean with `-Wall`.
 
 The samples are consistent with the bus interfaces they map to. In the AXI sample, the `Ar_Len` and `Aw_Len` ports are 4 bits, as AMBA3 AXI's `ARLEN` and `AWLEN` are, and its `wLen` parameter is 4. In the APB sample, `<model><ports>` lists the ports its SV file declares, at their widths, reset included.
 
@@ -283,7 +283,7 @@ Run it from the repo root:
 ```bash
 npx tsc
 node out/test/modules/IpxactComponent/componentExample.js
-verilator --lint-only -Wall doc/rtl-style/sv-style/common_waivers.vlt -F sv-examples/IpXactComponent/axiComponent/axiComponent_lint_top.f
+verilator --lint-only -Wall doc/rtl-style/sv-style/common_waivers.vlt +define+USE_INCLUDES +incdir+sv-examples/IpXactComponent/axiComponent sv-examples/IpXactComponent/axiComponent/axiComponent_lint_top.sv
 ```
 
 The last command also reports the sample module's own findings, all of them in `architectureSample.sv`, and none in the wrapper.

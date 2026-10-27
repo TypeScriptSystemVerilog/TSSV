@@ -1,7 +1,7 @@
 # How a TSSV module is elaborated and emitted
 
 This guide explains how the core works as a system: what happens between `new MyModule(...)`
-and the SystemVerilog text that `writeSystemVerilog()` returns. It is for engineers and agents
+and the SystemVerilog files that `writeSystemVerilogFiles()` writes. It is for engineers and agents
 new to TSSV, and for anyone reviewing a change to `ts/src/core/`.
 
 It doesn't list signatures. For those, follow the links into the generated reference in
@@ -20,9 +20,10 @@ two phases.
 1. **Elaboration.** The constructor calls `super(params, ...)` and then `this.add*()` methods.
    Each call checks its arguments against what the module already holds and records the result
    in the module's tables. No SystemVerilog file is written.
-2. **Emission.** `writeSystemVerilog()` walks those tables, the module's own and its
-   submodules', and returns the whole design as one string. Writing it to a file is up to the
-   caller.
+2. **Emission.** `writeSystemVerilogFiles(outDir)` walks those tables, the module's own and its
+   submodules', and writes the design one guarded file per module and interface (§7). The
+   deprecated `writeSystemVerilog()` walks the same tables and returns the whole design as one
+   string instead.
 
 ```typescript
 import { Module, Expr, type TSSVParameters } from 'tssv/lib/core/TSSV'
@@ -47,7 +48,7 @@ class Accum extends Module {
   }
 }
 
-const sv = new Accum({ width: 8 }).writeSystemVerilog()   // emission happens here
+new Accum({ width: 8 }).writeSystemVerilogFiles('build/rtl')   // emission happens here
 ```
 
 What each table holds, and which calls fill it:
@@ -366,63 +367,12 @@ Further rules:
 
 ## 7. Emission
 
-[`writeSystemVerilog()`](../reference/Base.md#module) returns the module and everything it
-instantiates as one string.
-
-### What a file contains, in order
-
-1. The definitions of the interfaces this module has as ports, unless already written.
-2. The definition of every submodule, depth first, each preceded by its own interface and
-   submodule definitions. Each module name is written once.
-3. The module itself:
-   - the header: ports from `IOs`, then interface ports (`type.role name`);
-   - a comment block listing the parameters;
-   - signal declarations, including local interface bundles;
-   - `body`, in call order: `addAssign`, `add*Always`, `addMux`, the arithmetic helpers,
-     `addBody`/`addBodyLine`;
-   - the `always_ff` blocks built from `addRegister` (§6);
-   - the submodule instances, in the order they were added.
-
-Nothing is wrapped in a Verilator waiver. A module that needs one writes it into its own body,
-as narrow as it can be and with a comment saying why (SV guide LINT-3): FIR's `ignoreInputs()`
-waives `UNUSEDSIGNAL` on one signal.
-
-### One definition per name
-
-Definitions are deduplicated **by name** within one top-level `writeSystemVerilog()` call. The
-first instance with a given module name, or interface type name, writes the definition, and
-later ones are only instantiated. That is why the name rules in §2 matter: nothing compares the
-contents of two same-named modules. Each top-level call starts afresh, so calling it twice
-gives the same text twice.
-
-### Several files: `SVEmitOptions` (#46)
-
-By default each top-level call defines everything it reaches. Emit a DUT and then a testbench
-that instantiates it, and the DUT is defined in both files, which the simulator rejects. Pass
-[`SVEmitOptions`](../reference/Base.md#svemitoptions) to split a design across files:
-
-```typescript
-const defined = new Set<string>()
-const dutSV = dut.writeSystemVerilog({ defined })            // defines the DUT hierarchy
-const tbSV = tb.writeSystemVerilog({ exclude: defined })     // references it
-```
-
-- `defined` collects every module and interface name the call wrote, including the top module.
-- `exclude` lists names a previous call already wrote. They are instantiated but not defined
-  again. Pass one set as `defined` to one call and as `exclude` to the next, and it accumulates
-  across any number of files.
-- Whichever call runs first defines anything the files share (a common interface, say).
-- Excluding the module you're emitting throws.
-- The files depend on each other. Give them to the simulator or synthesis tool together.
-
-`ts/test/test_multiFileEmission.ts` checks that the files together define exactly what a
-single-file emission does, with nothing defined twice.
-
-### One file per module: `writeSystemVerilogFiles()` (#172)
-
 [`writeSystemVerilogFiles(outDir)`](../reference/Base.md#writesystemverilogfiles) writes the
 module and everything it reaches to `<outDir>/<name>.sv`, one file for each module and each
-interface. It returns the paths, each one after every file it includes, so the top's is last.
+interface (#172). It returns the paths, each one after every file it includes, so the top's is
+last. It is the way to emit SV; the single-string `writeSystemVerilog()` is deprecated (below).
+
+### What a file contains, in order
 
 Each file sits inside an include guard, `DEF__<name>__` for what it defines. A module's file
 also includes the files of the interfaces it uses, ports and local bundles, and of the modules
@@ -443,27 +393,72 @@ endmodule
 `endif //!DEF__mid__
 ```
 
-- **The guard** lets a file be reached more than once, from two parents or from the command
-  line as well, and still define its module once.
-- **`USE_INCLUDES`** picks how a build finds the files. With it, name only the top file and let
-  the includes find the rest:
-  `verilator --lint-only +define+USE_INCLUDES +incdir+<outDir> <outDir>/top.sv`. Without it,
-  name every file, on the command line or in a filelist, using the returned paths.
-- An interface's file, and a module's with no interfaces and no submodules, have the guard only.
-- **Imported SV** (§8) isn't a generated file, so it never gets a `DEF__` guard. Each file an
-  import reads is written once, untouched, under its own name, inside its `SVIMPORT__` guard and
-  nothing else. A module that instantiates an imported one includes all of that import's files,
-  in order.
-- **Names** become file names and macro names, so emission throws, naming the modules involved,
-  when a generated name isn't a legal SystemVerilog identifier, or when two files' names differ
-  only in case (one file on macOS and Windows). Two different modules with the same name are
-  still written as one, as in a single-file emission (#122).
-- Verible formats each file's definition on its own, before the guard is added.
-- Files already in `outDir` that the call doesn't write are left in place.
+Inside the guard and the include block, the module itself:
 
-`writeSystemVerilog()` is unchanged: its single-string output has no guards.
-`ts/test/test_perModuleFiles.ts` lints the files with Verilator both ways, and with both at once
-so that every file is reached twice.
+- the header: ports from `IOs`, then interface ports (`type.role name`);
+- a comment block listing the parameters;
+- signal declarations, including local interface bundles;
+- `body`, in call order: `addAssign`, `add*Always`, `addMux`, the arithmetic helpers,
+  `addBody`/`addBodyLine`;
+- the `always_ff` blocks built from `addRegister` (§6);
+- the submodule instances, in the order they were added.
+
+An interface's file, and a module's with no interfaces and no submodules, have the guard only.
+Verible formats each file's definition on its own, before the guard is added.
+
+Nothing is wrapped in a Verilator waiver. A module that needs one writes it into its own body,
+as narrow as it can be and with a comment saying why (SV guide LINT-3): FIR's `ignoreInputs()`
+waives `UNUSEDSIGNAL` on one signal.
+
+### One definition per name
+
+Definitions are deduplicated **by name**: the first instance with a given module name, or
+interface type name, writes the file, and later ones are only instantiated and included. That is
+why the name rules in §2 matter: nothing compares the contents of two same-named modules, so two
+different modules with the same name are still written as one (#122). The same holds across
+calls into one directory: emit a DUT and then a testbench that instantiates it, and the second
+call writes the DUT's files again with the same text. Files already in `outDir` that a call
+doesn't write are left in place.
+
+Names become file names and macro names, so emission throws, naming the modules involved, when a
+generated name isn't a legal SystemVerilog identifier, or when two files' names differ only in
+case (one file on macOS and Windows). It generates every file before it writes any, so a call
+that throws writes nothing.
+
+### Building the files: `USE_INCLUDES`
+
+The guard lets a file be reached more than once, from two parents or from the command line as
+well, and still define its module once. `USE_INCLUDES` picks how a build finds the files:
+
+- **With it**, name only the top file and let the includes find the rest:
+  `verilator --lint-only +define+USE_INCLUDES +incdir+<outDir> <outDir>/top.sv`. This is how
+  TSSV's own tests, lint scripts and `verilatorTB/` targets build generated SV.
+- **Without it**, name every file, on the command line or in a filelist, using the returned
+  paths.
+
+SV written by hand that instantiates a generated design, such as a test's lint wrapper or
+testbench, uses the same layout: its file includes the design's top file under `USE_INCLUDES`
+(`ts/test/models/guardSV.ts`), so it is built the same way. `scripts/lint-sv.sh` and
+`npm run check:generated-sv` lint each file under `sv-examples/` that no other file includes,
+with `USE_INCLUDES` defined. `ts/test/test_perModuleFiles.ts` lints the files with Verilator
+both ways, and with both at once so that every file is reached twice.
+
+**Imported SV** (§8) isn't a generated file, so it never gets a `DEF__` guard. Each file an
+import reads is written once, untouched, under its own name, inside its `SVIMPORT__` guard and
+nothing else. A module that instantiates an imported one includes all of that import's files, in
+order.
+
+### Deprecated: one string, `writeSystemVerilog()`
+
+[`writeSystemVerilog()`](../reference/Base.md#writesystemverilog) returns the module and
+everything it instantiates as one string, with no guards: each interface a module has as a
+port, then every submodule, depth first, then the module itself. Definitions are deduplicated
+by name within one call, and each call starts afresh.
+[`SVEmitOptions`](../reference/Base.md#svemitoptions) (#46) split such a design across files by
+hand: `defined` collected the names one call wrote, and `exclude` kept the next call from
+defining them again. Both are deprecated in favor of `writeSystemVerilogFiles()`. Nothing in
+TSSV calls them any more, and they will be removed. `writeSystemVerilogFiles()` still calls
+`writeSystemVerilog({ exclude })` internally, once per module.
 
 ### Checking each module against the SV guide
 
@@ -482,7 +477,7 @@ The SV alone can't tell a sync reset from an enable, or an async reset from a se
 check also reads the module's signal table: which signals are resets (`isReset`), of which kind,
 and which are constants, and which submodule ports are resets. The rules it enforces, COMB-2,
 COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4, are listed in the JSDoc of
-[`writeSystemVerilog()`](../reference/Base.md#module). What it can't see, review still covers
+[`writeSystemVerilogFiles()`](../reference/Base.md#writesystemverilogfiles). What it can't see, review still covers
 (each rule's `reason` in `doc/rtl-style/sv-style/rules.json`): a reset not marked `isReset`, a
 reset branch under a `case`, and resets generated in imported SV or carried in an interface.
 
@@ -491,9 +486,9 @@ Each module is checked as it's emitted, submodules first, and SV imported with
 
 ### Formatting with Verible
 
-The returned text is passed through `verible-verilog-format` before it is returned. This
-happens once, on the top-level call's output, or once per file for `writeSystemVerilogFiles()`.
-The configuration is a static setting shared by every module:
+Each file's definition is passed through `verible-verilog-format` before its guard is added.
+The deprecated `writeSystemVerilog()` formats its whole string once instead. The configuration
+is a static setting shared by every module:
 
 ```typescript
 Module.setFormatterConfig({
@@ -576,8 +571,8 @@ this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/r
      two emissions compiled together can both carry it: the guard defines what it holds once.
      Two different files with the same name and different contents would share a guard, and the
      preprocessor would drop the second, so writing them throws, naming both.
-   - `writeSystemVerilog()` puts the files' text, unguarded and in order, in its single string,
-     once per module name, like any other definition.
+   - The deprecated `writeSystemVerilog()` puts the files' text, unguarded and in order, in its
+     single string, once per module name, like any other definition.
 
 What this means in practice:
 

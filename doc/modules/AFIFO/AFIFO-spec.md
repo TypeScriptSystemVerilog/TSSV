@@ -390,7 +390,7 @@ Each cover counts its hits in its action block. At the end of a configuration's 
 - It checks that AFIFOs differing in any parameter get different module names, that depths 4, 8, 16 and 32 generate, and that `dataWidth = 1026n` generates.
 - It checks that every flop in each synchronizer carries `ASYNC_REG`.
 - It checks that each invalid parameter in [Parameters](#parameters) throws: `depth` 2, 6 and 64, `dataWidth` 0, `syncStages` 1, and an unlisted `fpgaRamStyle`.
-- It emits each submodule in its own file (#46), so every generated file lints clean under `-Wall` with no `DECLFILENAME` waiver.
+- It emits each submodule in its own file (`writeSystemVerilogFiles()`), so every generated file lints clean under `-Wall` with no `DECLFILENAME` waiver.
 - Finally, it generates the testbench configurations below. `runAllTests.sh` runs it.
 
 **Testbench:** `verilatorTB/tb_AFIFO.sv`, built once per configuration. It takes its DUT name from the configuration list that `test_AFIFO.ts` writes, as `tb_SFIFO.sv` does, so no module name is typed by hand.

@@ -183,8 +183,8 @@ For macOS (Verible's macOS release is an Apple silicon (arm64) build only; there
 verible-verilog-format --version   # expect: Version v0.0-4296-g0f262651
 ```
 
-To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilog()`.
-`writeSystemVerilog()` and importing SystemVerilog still require `verible-verilog-syntax`.
+To emit unformatted SV instead, call `Module.setFormatterConfig({ engine: 'off' })` before `writeSystemVerilogFiles()`.
+`writeSystemVerilogFiles()` and importing SystemVerilog still require `verible-verilog-syntax`.
 
 **Verilator** is an open-source Verilog/SystemVerilog simulator, also used as a lint check. Use
 the pinned version below. Older releases miss real RTL bugs (for example, latches that Verilator
@@ -239,7 +239,7 @@ npm install
 npx tsc
 node out/test/test_FIR.js
 cat sv-examples/FIR/myFIR3/myFIR3.sv
-verilator --lint-only sv-examples/FIR/myFIR3/myFIR3.sv
+verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/FIR/myFIR3 sv-examples/FIR/myFIR3/myFIR3_lint_top.sv
 ```
 
 If all of these succeed, setup is done.

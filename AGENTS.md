@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesizable SystemVerilog from TypeScript. Designers write TypeScript classes that extend `Module`, then call `writeSystemVerilog()` to emit `.sv` files — similar to Chisel for Scala, but targeting SystemVerilog designers. Out of scope: simulation, formal verification, synthesis, and place-and-route.
+TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesizable SystemVerilog from TypeScript. Designers write TypeScript classes that extend `Module`, then call `writeSystemVerilogFiles()` to emit `.sv` files — similar to Chisel for Scala, but targeting SystemVerilog designers. Out of scope: simulation, formal verification, synthesis, and place-and-route.
 
 ## Repo Structure
 
@@ -12,7 +12,7 @@ ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRA
 ts/src/interfaces/    Signal-bundle definitions — AMBA 2–5 (100+ specs), TileLink, Memory
 ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_convert
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
-ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers and filelists, one-module-per-file emission, two-clock WaveDrom replay vectors, the testbench marker
+ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers, the include guard for hand-written SV (`guardSV`), reading back emitted SV (`emitted`), the one filelist for a testbench outside `sv-examples/`, two-clock WaveDrom replay vectors, the testbench marker
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
@@ -44,7 +44,7 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `ts/src/core/Base.ts` | All builder APIs: `addSignal`, `addRegister`, `addSubmodule`, `addCombAlways`, etc. |
 | `doc/reference/README.md` | The core's API reference (`Base.ts`, `Registers.ts`, `SVModuleHeader.ts`, `SVFileList.ts`, `Paths.ts`): one markdown page per file, generated from the JSDoc by `npm run docs`. Never hand-edit |
 | `doc/framework/core-api-reference.md` | Quick reference for the builders, with examples. A stopgap: #71 moves it into the core's JSDoc and deletes it |
-| `doc/framework/concepts.md` | How a module is elaborated and emitted: parameters and module naming, `Sig`/`Expr` and signal metadata, interfaces and binding checks, submodule binding (`autoBind`, `createMissing`, `autoWidthExtension`), `addRegister` grouping, single- and multi-file emission, one guarded file per module (`writeSystemVerilogFiles`), the Verible formatter, importing SV. Read before changing `ts/src/core/` |
+| `doc/framework/concepts.md` | How a module is elaborated and emitted: parameters and module naming, `Sig`/`Expr` and signal metadata, interfaces and binding checks, submodule binding (`autoBind`, `createMissing`, `autoWidthExtension`), `addRegister` grouping, emission one guarded file per module (`writeSystemVerilogFiles`) and building it with `USE_INCLUDES`, the deprecated single string, the Verible formatter, importing SV. Read before changing `ts/src/core/` |
 | `doc/framework/registers.md` | `RegisterBlock`: register types and the logic they generate, the YAML → `scripts/gen_regblock.sh` flow, RALF output (`writeRALF`), current limitations |
 | `doc/interfaces/adding-an-interface.md` | Writing an interface class: the signal/modport pattern (`AXI4.ts`), AMBA file naming, generating a draft from IP-XACT XML with `xml_interface_build` |
 | `doc/framework/simulation.md` | The `verilatorTB/` flow: TS → SV → Verilator → VCD → GTKWave, Makefile variables, driver macros |
@@ -141,7 +141,7 @@ Every TSSV component extends `Module`. A module is constructed with:
 - `signals` — internal wire declarations
 - `body` — optional raw SV string
 
-Builder methods add logic inside the constructor. Nothing is emitted until `writeSystemVerilog()`:
+Builder methods add logic inside the constructor. Nothing is emitted until `writeSystemVerilogFiles()`:
 
 | Method | Purpose |
 |---|---|
@@ -153,7 +153,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | `addMultiplier()`, `addAdder()`, `addMux()`, etc. | Arithmetic/logic primitives |
 | `addInterface()` | Add an `Interface` bundle to the module |
 | `addBody()` / `addBodyLine()` | Append raw SV to the module body |
-| `writeSystemVerilog()` | Render the module and its submodules to SV |
+| `writeSystemVerilogFiles()` | Write the module and everything it reaches, one guarded file per module and interface; build with `+define+USE_INCLUDES +incdir+<dir> <dir>/<top>.sv`. The single-string `writeSystemVerilog()` is deprecated |
 
 ### Interface (`ts/src/core/Base.ts`)
 `Interface` wraps a group of signals with modports. An instance's role picks one of its modports (`inward` or `outward`; the generated AMBA5 `*_rtl.ts` classes use `master`/`slave`). An instance without a role is a local bundle, not a port. Interfaces in `ts/src/interfaces/` follow this pattern: each file defines a class with `signals` and `modports`. How roles, SV type names and binding checks work is in `doc/framework/concepts.md` §4; how to write a new one is in `doc/interfaces/adding-an-interface.md`.
@@ -167,23 +167,23 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 2. Define a typed `Parameters` interface
 3. Declare IOs as a port map
 4. In the constructor, build logic with `add*()` methods
-5. Add a test in `ts/test/modules/test_<Module>.ts` that instantiates the class and writes its SV under `sv-examples/<Module>/<instance>/`
+5. Add a test in `ts/test/modules/test_<Module>.ts` that instantiates the class and writes its SV under `sv-examples/<Module>/<instance>/` with `writeSystemVerilogFiles()`
 6. `npx tsc && node out/test/modules/test_<Module>.js` to generate and inspect the SV output
-7. Follow `doc/rtl-style/tssv-style/tssv-coding-style.md` for the TypeScript and `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall`
+7. Follow `doc/rtl-style/tssv-style/tssv-coding-style.md` for the TypeScript and `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall +define+USE_INCLUDES +incdir+<dir> <dir>/<top>.sv`
 8. Write its spec from `doc/templates/module-spec-template.md` at `doc/modules/<Module>/<Module>-spec.md`, and add `@see doc/modules/<Module>/<Module>-spec.md` to the class's JSDoc
 
 ## Current Implementation State
 
 | Area | Status | Notes |
 |---|---|---|
-| Core framework (`Base.ts`, `Registers.ts`) | Complete | `Module` base class with the full builder API. Emits SV as one string (`writeSystemVerilog()`), split across files by hand (`SVEmitOptions`), or one guarded file per module and interface with `USE_INCLUDES` submodule includes (`writeSystemVerilogFiles()`, #172) |
+| Core framework (`Base.ts`, `Registers.ts`) | Complete | `Module` base class with the full builder API. Emits SV one guarded file per module and interface with `USE_INCLUDES` submodule includes (`writeSystemVerilogFiles()`, #172). The single string (`writeSystemVerilog()`) and splitting it by hand (`SVEmitOptions`) are deprecated (#187); nothing in TSSV calls them |
 | AMBA 2–5 interfaces | Complete | 100+ files across AHB, APB, ATB, AXI, AXI4, ACE, CHI, CXS, LPI, GFB, LTI, P/Q-Channel |
 | TileLink + Memory interfaces | Complete | |
 | Built-in modules | Complete | FIR, SRAM, SFIFO, AFIFO, TwoClockRegFile, GrayPointer, CDCSynchronizer, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
 | CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`); SV-guide check of each emitted module (`ts/src/core/ModuleBody.ts` reads it, `ts/src/core/ModuleCheck.ts` checks it) |
-| RTL style guides (`doc/rtl-style/`) | Complete | SV guide and TSSV guide, each with its checks (`npm run check:rtl-style`). The core and every module follow both (#59): `writeSystemVerilog()` checks each module it emits, and `npm run check:generated-sv` fails on any finding in the SV the test scripts generate. CI runs both |
+| RTL style guides (`doc/rtl-style/`) | Complete | SV guide and TSSV guide, each with its checks (`npm run check:rtl-style`). The core and every module follow both (#59): `writeSystemVerilogFiles()` checks each module it emits, and `npm run check:generated-sv` fails on any finding in the SV the test scripts generate. CI runs both |
 | API reference (`doc/reference/`) | Core only | Markdown generated from the core's JSDoc by `npm run docs`; CI fails a PR whose reference is stale. Modules, interfaces and tools aren't covered yet |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
 | CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `registers_sim`, `fir_sim`, `lzc_sim`, `shift_sim`, `apb_to_memory_sim`, `rom_sim`). Runs on PRs and on pushes to `main` |
@@ -197,8 +197,8 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed with the reason in `scripts/test-skips.sh`)
 - **Seeing what a change does to the generated SV**: `scripts/gen-sv --base origin/main [test ...]` regenerates `sv-examples/` here and on the base, and diffs the two; without `--base` it only regenerates. A PR that changes generated SV shows it ([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv) §5)
 - **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in the workflow after publishing a new one. Add a new self-checking `verilatorTB/` target to `test.yml` as its own step
-- **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers, and `writeSystemVerilog()` parses each module it emits to check it against the SV guide (`ts/src/core/ModuleCheck.ts`), with `verible-verilog-syntax`
-- **Linting generated SV**: `verilator --lint-only sv-examples/<dir>/<file>.sv` for one file; `npm run lint:sv` (`scripts/lint-sv.sh`) for everything the test scripts wrote, after `bash runAllTests.sh`. SV that can't be linted alone, such as a testbench emitted apart from its DUT, is linted through the `<top>.f` filelist its test script writes with `ts/test/models/lintFilelist.ts`; a new multi-file emission needs one, and so does a module with interface ports, through a `lintWrapper`. So does `writeSystemVerilogFiles()` output: a `<top>.f` naming every returned file, without `USE_INCLUDES`, so that no file is linted alone (`ts/test/test_perModuleFiles.ts`). `npm run check:generated-sv` runs `-Wall` and the SV guide's scans on the same files, and fails on any finding ([`doc/rtl-style/sv-style/README.md`](doc/rtl-style/sv-style/README.md#generated-sv)). Mark a generated testbench with `markTestbench()` (`ts/test/models/testbench.ts`) so SYN-1 skips it
+- **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers, and `writeSystemVerilogFiles()` parses each module it emits to check it against the SV guide (`ts/src/core/ModuleCheck.ts`), with `verible-verilog-syntax`
+- **Linting generated SV**: `verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/<dir> sv-examples/<dir>/<top>.sv` for one design; `npm run lint:sv` (`scripts/lint-sv.sh`) for everything the test scripts wrote, after `bash runAllTests.sh`. Test scripts write SV with `writeSystemVerilogFiles()`, and each file includes the files it needs under `USE_INCLUDES`, so the scripts lint each file that no other file in its directory includes, and its lint reaches the rest. SV a test writes by hand to instantiate a design includes it the same way (`guardSV`, `ts/test/models/guardSV.ts`): a testbench, or the `lintWrapper` a module with interface ports needs as its lint top. A testbench outside `sv-examples/`, such as `verilatorTB/tb_APB_to_Memory.sv`, is tied to the design by a `<top>.f` filelist (`ts/test/models/lintFilelist.ts`). A file imported with `addSystemVerilogSubmodule()` is copied in inside its `SVIMPORT__` guard and is linted through its parent, but isn't generated SV. `npm run check:generated-sv` runs `-Wall` and the SV guide's scans on the same files, and fails on any finding ([`doc/rtl-style/sv-style/README.md`](doc/rtl-style/sv-style/README.md#generated-sv)). Mark a generated testbench with `markTestbench()` (`ts/test/models/testbench.ts`) so SYN-1 skips it
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`; details in `doc/framework/simulation.md`
 - **Timing diagrams in markdown docs**: GitHub doesn't render WaveDrom, so put the JSON in a `<!-- wavedrom <file>.svg ... -->` comment followed by `![...](<file>.svg)`, then run `npm run render:wavedrom` to write the SVG next to the doc. Never hand-edit the SVG. `npm run check:wavedrom` fails if any SVG is missing, stale or unlinked, and the `docs-reference` workflow runs it on every PR. Example: `doc/modules/SFIFO/SFIFO-spec.md`
 - **Learning the framework end to end**: `doc/framework/concepts.md`, then `doc/tutorials/fir.md`

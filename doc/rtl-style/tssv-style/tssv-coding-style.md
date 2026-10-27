@@ -386,10 +386,11 @@ export class EventCounter extends Module {
 ```
 
 **MOD-3 (MUST): Mark each clock `isClock` and each reset `isReset` where you declare it.**
-`addRegister` and `addSequentialAlways` read those fields to build the sensitivity list and
-the reset condition. They refuse a clock or reset signal that isn't marked. `writeSystemVerilog()`
-reads `isReset` too, to check the SV guide's reset rules in every always block, raw SV
-included. It takes an async reset that isn't marked for a second clock (SV guide SEQ-4).
+`addRegister` and `addSequentialAlways` read those fields to build the sensitivity list and the
+reset condition. They refuse a clock or reset signal that isn't marked.
+`writeSystemVerilogFiles()` reads `isReset` too, to check the SV guide's reset rules in every
+always block, raw SV included. It takes an async reset that isn't marked for a second clock (SV
+guide SEQ-4).
 
 <!-- ts: dont body throws "rst_n is not a reset signal"
 clk: { direction: 'input', isClock: 'posedge' }
@@ -805,22 +806,21 @@ this.addAssign({ in: new Expr(vldQ.toString()), out: 'vld_out' })
 ## 5. Tests
 
 **TEST-1 (MUST): Every module needs a `ts/test/` script** that builds it and writes its SV
-under `sv-examples/<Module>/`. The generated SV is the evidence for the SV guide's LINT-1: it
-is what gets linted and simulated. Put a new script at `ts/test/modules/test_<Module>.ts`. A
-module that only makes sense inside another one can be built through its parent, as
-`ts/test/test_APB_to_Memory.ts` does through `RegisterBlock`.
+under `sv-examples/<Module>/`, with `writeSystemVerilogFiles()`: one guarded file per module and
+interface, each including the files it needs under `USE_INCLUDES`. The generated SV is the
+evidence for the SV guide's LINT-1: it is what gets linted and simulated, by naming the top file
+with `+define+USE_INCLUDES +incdir+<dir>`. Put a new script at
+`ts/test/modules/test_<Module>.ts`. A module that only makes sense inside another one can be
+built through its parent, as `ts/test/test_APB_to_Memory.ts` does through `RegisterBlock`.
 
 <!-- ts: do file
 -->
 ```ts
-import { mkdirSync, writeFileSync } from 'fs'
 import { SFIFO } from 'tssv/lib/modules/SFIFO'
 
 for (const simultPushPop of [true, false]) {
   const fifo = new SFIFO({ dataWidth: 8n, depth: 4n, simultPushPop })
-  const dir = `sv-examples/SFIFO/${fifo.name}`
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(`${dir}/${fifo.name}.sv`, fifo.writeSystemVerilog())
+  fifo.writeSystemVerilogFiles(`sv-examples/SFIFO/${fifo.name}`)
 }
 ```
 
