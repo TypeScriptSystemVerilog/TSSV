@@ -38,6 +38,23 @@ function readVerilogFile (filePath: string): string {
   return fs.readFileSync(filePath, 'utf-8')
 }
 
+// The name of a wrapper for an SRAM the RTL instantiates with parameters: the instantiated module,
+// its shape, and whether it writes per bit (bw) or the whole word (nobw), as the pc macros' names do
+function shapeName (moduleName: string, depth: number, dataWidth: number, sw: number): string {
+  return `${moduleName}_${depth}x${dataWidth}_${sw === 0 ? 'nobw' : 'bw'}`
+}
+
+// Adds `sram` unless the same SRAM is already there. Two different SRAMs with one name would be
+// written as one module, so that throws.
+function addSram (sramModules: SramModule[], sram: SramModule): void {
+  const same = sramModules.find(m => m.name === sram.name)
+  if (same === undefined) {
+    sramModules.push(sram)
+  } else if (JSON.stringify(same) !== JSON.stringify(sram)) {
+    throw Error(`cpu_convert: two different SRAMs are both named ${sram.name}: ${JSON.stringify(same)}, ${JSON.stringify(sram)}`)
+  }
+}
+
 function extractSramModules (verilogCode: string): [string, SramModule[]] {
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   const rhcRegex = /rhc./
@@ -67,28 +84,18 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
         const [, paramName, paramValue] = paramMatch
         params[paramName] = parseInt(paramValue, 10)
       }
+      const sw = params.WREN_W === 1 ? 0 : 1
       const sramModule: SramModule = {
-        name: '',
+        name: shapeName(moduleName, params.DEPTH || 0, params.DATA_W || 0, sw),
         dataWidth: params.DATA_W || 0,
         addressWidth: params.ADDR_W || 0,
         depth: params.DEPTH || 0,
         port,
-        sw: params.WREN_W === 1 ? 0 : 1
+        sw
         // Add other fields as needed, with defaults or parsed values.
       }
 
-      const isDuplicate = sramModules.some(module =>
-        module.name === sramModule.name &&
-        module.dataWidth === sramModule.dataWidth &&
-        module.addressWidth === sramModule.addressWidth &&
-        module.depth === sramModule.depth &&
-        module.port === sramModule.port &&
-        module.sw === sramModule.sw
-      )
-
-      if (!isDuplicate) {
-        sramModules.push(sramModule)
-      }
+      addSram(sramModules, sramModule)
     }
     return ['rhc', sramModules]
   } else if (uxRegex.test(verilogCode)) {
@@ -99,30 +106,20 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
     let match: RegExpExecArray | null
 
     while ((match = regex.exec(verilogCode)) !== null) {
-      const [, , dp, dw, mw, aw] = match
+      const [, moduleName, dp, dw, mw, aw] = match
 
+      const sw = parseInt(mw, 10) === 1 ? 0 : 1
       const sramModule: SramModule = {
-        name: '',
+        name: shapeName(moduleName, parseInt(dp, 10), parseInt(dw, 10), sw),
         dataWidth: parseInt(dw, 10),
         addressWidth: parseInt(aw, 10),
         depth: parseInt(dp, 10),
         port: '1p11',
-        sw: parseInt(mw, 10) === 1 ? 0 : 1
+        sw
         // sw: parseInt(dw, 10) / parseInt(mw, 10)
       }
 
-      const isDuplicate = sramModules.some(module =>
-        module.name === sramModule.name &&
-        module.dataWidth === sramModule.dataWidth &&
-        module.addressWidth === sramModule.addressWidth &&
-        module.depth === sramModule.depth &&
-        module.port === sramModule.port &&
-        module.sw === sramModule.sw
-      )
-
-      if (!isDuplicate) {
-        sramModules.push(sramModule)
-      }
+      addSram(sramModules, sramModule)
     }
 
     return ['ux900', sramModules]
@@ -134,7 +131,8 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
 
     for (const match of matches) {
       const moduleDeclaration = match[0]
-      const moduleNamePattern = /module\s+(pc_spsram_\d+x\d+_?[^;\s]*)/
+      // The module's name: pc_spsram_<depth>x<width>, then anything up to a space, ';' or '('
+      const moduleNamePattern = /module\s+(pc_spsram_\d+x\d+_?[^;\s(]*)/
       const moduleNameMatch = moduleDeclaration.match(moduleNamePattern)
       const moduleName = moduleNameMatch ? moduleNameMatch[1] : 'Unknown'
 
@@ -171,8 +169,9 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
       if (moduleName.startsWith('pc_tpsram')) {
         port = '2p11'
       }
+      // The wrapper replaces this module in the RTL, so it keeps its name
       const sramModule: SramModule = {
-        name: '',
+        name: moduleName,
         depth: parseInt(depth, 10),
         dataWidth: parseInt(dataWidthMatch ? dataWidthMatch[1] : dataWidth, 10),
         addressWidth: parseInt(addressWidthMatch ? addressWidthMatch[1] : '0', 10),
@@ -180,18 +179,7 @@ function extractSramModules (verilogCode: string): [string, SramModule[]] {
         sw: singleWrite
         // code: moduleDeclaration.trim()
       }
-      const isDuplicate = sramModules.some(module =>
-        module.name === sramModule.name &&
-        module.dataWidth === sramModule.dataWidth &&
-        module.addressWidth === sramModule.addressWidth &&
-        module.depth === sramModule.depth &&
-        module.port === sramModule.port &&
-        module.sw === sramModule.sw
-      )
-
-      if (!isDuplicate) {
-        sramModules.push(sramModule)
-      }
+      addSram(sramModules, sramModule)
     }
 
     return ['pc', sramModules]
@@ -208,47 +196,33 @@ function removeSramInstances (verilogCode: string): string {
   return cleanedCode
 }
 
-function removeLastCharacter (str: string): string {
-  if (str.endsWith('(')) {
-    return str.slice(0, -1)
-  }
-  return str
-}
-
 // Writes a wrapper module for each SRAM to `libDir` with writeSystemVerilogFiles(), one guarded file
 // per module, so an SRAM configuration two wrappers share is written once. Returns the wrappers' own
 // files, by name.
 function createLibrary (sramModules: SramModule[], type: string, libDir: string): string[] {
   const wrappers = new Set<string>()
   sramModules.forEach((sram) => {
-    const modName = (type === 'pc') ? removeLastCharacter(sram.name) : sram.name
+    // The macro's ports, by the names and widths the RTL connects them with, so the wrapper can
+    // replace it. CEN, GWEN and WEN are active low, as on the TSMC macros: CEN selects the macro,
+    // GWEN writes, and WEN[i] writes bit i
     const module = new Module(
-      { name: modName }, // took out removeLastCharacter
+      { name: sram.name },
       {
-        a: { direction: 'input', width: sram.addressWidth },
-        cen: { direction: 'input' },
-        clk: { direction: 'input', isClock: 'posedge' },
-        d: { direction: 'input', width: sram.dataWidth },
-        gwen: { direction: 'input' },
-        wen: { direction: 'input', width: sram.dataWidth },
-        q: { direction: 'output', width: sram.dataWidth }
+        A: { direction: 'input', width: sram.addressWidth },
+        CEN: { direction: 'input' },
+        CLK: { direction: 'input', isClock: 'posedge' },
+        D: { direction: 'input', width: sram.dataWidth },
+        GWEN: { direction: 'input' },
+        WEN: { direction: 'input', width: sram.dataWidth },
+        Q: { direction: 'output', width: sram.dataWidth }
       }
     )
-    let sramMName = ''
-    // Extract the part of the name after the second underscore
-    if (type === 'pc') {
-      const nameParts = sram.name.split('_')
-      const sramSuffix = nameParts.slice(2).join('_')
-      sramMName = `sram_${sramSuffix}`
-    } else {
-      const nameParts = sram.name.split('_')
-      const sramSuffix = nameParts.slice(1).join('_')
-      sramMName = `sram_${sramSuffix}`
-    }
-
+    // The storage is named after the part of the wrapper's name past the macro family:
+    // pc_spsram_128x26_13bw gives sram_128x26_13bw, and rhc_spram_1024x32_nobw sram_spram_1024x32_nobw
+    const nameParts = sram.name.split('_')
     const sramM = new SRAM(
       {
-        name: `${sramMName}`, // took out removeLastCharacter
+        name: `sram_${nameParts.slice(type === 'pc' ? 2 : 1).join('_')}`,
         depth: BigInt(sram.depth),
         dataWidth: BigInt(sram.dataWidth),
         ports: '1rw',
@@ -256,10 +230,15 @@ function createLibrary (sramModules: SramModule[], type: string, libDir: string)
       }
     )
 
-    const writeExpr = new Expr('cen | wen & gwen')
+    // A 1rw SRAM must not read and write in one cycle, so it reads only when the macro doesn't
+    // write. Its write mask is active high
+    module.addSignal('re', {})
     module.addSignal('we', {})
-    module.addAssign({ in: writeExpr, out: 'we' })
-    module.addSubmodule('sram', sramM, { clk: 'clk', a_re: 'cen', a_we: 'we', a_data_in: 'd', a_data_out: 'q', a_addr: 'a', a_wmask: 'wen' })
+    module.addSignal('wmask', { width: sram.dataWidth })
+    module.addAssign({ in: new Expr('!CEN && GWEN'), out: 're' })
+    module.addAssign({ in: new Expr('!CEN && !GWEN'), out: 'we' })
+    module.addAssign({ in: new Expr('~WEN'), out: 'wmask' })
+    module.addSubmodule('sram', sramM, { clk: 'CLK', a_re: 're', a_we: 'we', a_data_in: 'D', a_data_out: 'Q', a_addr: 'A', a_wmask: 'wmask' })
     wrappers.add(basename(module.writeSystemVerilogFiles(libDir).at(-1) ?? ''))
   })
 
@@ -308,7 +287,7 @@ function jsonToCsv (jsonData: SramModule[]): string {
   // Add each sramModule row
   jsonData.forEach(sram => {
     const row = [
-      removeLastCharacter(sram.name) || '',
+      sram.name,
 
       sram.frequency !== undefined ? sram.frequency : 1200,
       sram.port || '',

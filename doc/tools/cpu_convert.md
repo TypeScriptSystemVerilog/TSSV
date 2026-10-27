@@ -17,6 +17,14 @@ This produces various files depending on what it is. The prefix is the beginning
 > `sv-examples/` stopped being tracked. To run one, restore its input from history first, for
 > example `mkdir -p sv-examples/cpu_convert && git show a44e841^:sv-examples/cpu_convert/pc_top.v > sv-examples/cpu_convert/pc_top.v`.
 
+## The SRAM wrappers
+
+Each mode writes one wrapper module per distinct SRAM, each around a TSSV `SRAM` (`1rw`, bit write mask).
+
+- **Names.** In PC mode a wrapper has the name of the `pc_spsram_*` module it replaces, such as `pc_spsram_128x26_13bw`. In RHC and UX900 mode the RTL instantiates parameterized modules, so a wrapper is named after the module and the instance's shape: `<module>_<depth>x<width>_<bw|nobw>`, such as `rhc_spram_1024x32_nobw`, where `bw` means a per-bit write enable. Two instances with the same name and shape share one wrapper. Two different SRAMs that would get the same name make the tool throw.
+- **Ports.** Every wrapper has the PC macros' ports: `A`, `CEN`, `CLK`, `D`, `GWEN`, `WEN` and `Q`. `CEN`, `GWEN` and `WEN` are active low, as on the TSMC macros: with `CEN` low, the macro writes the bits whose `WEN` bit is low when `GWEN` is low, and reads otherwise. In PC mode these match the `pc_spsram_*` modules, by name and width. In RHC and UX900 mode they don't match the modules the RTL instantiates yet ([#192](https://github.com/TypeScriptSystemVerilog/TSSV/issues/192)).
+- **Lint.** Every wrapper lints clean with `verilator --lint-only -Wall +define+USE_INCLUDES +incdir+<library dir> <library dir>/<wrapper>.sv`.
+
 ## PC SPSRAM
 
 If the RTL follows the PC SPSRAM format then the following four files and the library directory will be produced.
@@ -31,7 +39,7 @@ The info file is a CSV which will show various parameters and their value if the
 
 The library is a TSSV wrapper module for each SRAM in the original file, written with `writeSystemVerilogFiles()` to `prefix_pc_library/`, one guarded file per module. `prefix_pc_library.sv` includes each wrapper's file under `USE_INCLUDES` and defines nothing itself, so build it with `+define+USE_INCLUDES +incdir+prefix_pc_library prefix_pc_library.sv`.
 
-The pc_top.sv file is the original file with the SRAM instantiations taken out.
+The pc_top.sv file is the original file with the `pc_spsram_*` module definitions taken out. The library's wrappers, which have the same names and ports, replace them.
 
 The sram modules is a json which has the same information as the info file but in json form.
 
