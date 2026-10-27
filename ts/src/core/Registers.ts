@@ -73,6 +73,7 @@ export interface RegisterBlockDef<T extends Record<string, bigint>> {
 }
 
 export interface RegisterBlockParameters extends TSSVParameters {
+  /** the bus type. The bus interface argument picks it; if this is set, it must agree */
   busInterface?: 'Memory' | 'TL_UL' | 'APB'
   endianess?: 'little'
   busIDWidth?: 8
@@ -126,10 +127,19 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   regDefs: RegisterBlockDef<T>
 
   constructor (params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface) {
+    // The third argument picks the bus, so it is what the parameters, and the name, record
+    const bus = busInterface instanceof Memory ? 'Memory' : busInterface instanceof APB4 ? 'APB' : undefined
+    if (bus === undefined) throw Error('Unsupported interface')
+    if (params.busInterface !== undefined && params.busInterface !== bus) {
+      throw Error(`RegisterBlock: params.busInterface is '${params.busInterface}', but the bus interface argument is ${bus === 'APB' ? 'an APB4' : 'a Memory'}`)
+    }
+    // Everything that shapes the block goes into the parameters, so a derived name reflects it
     super({
       name: params.name,
-      busInterface: params.busInterface || 'Memory',
-      endianess: params.endianess || 'little'
+      busAddressWidth: params.busAddressWidth ?? 32,
+      busInterface: bus,
+      endianess: params.endianess || 'little',
+      regDefs
     })
     this.regDefs = regDefs
 
@@ -139,12 +149,12 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
       rst_b: { direction: 'input', isReset: 'lowasync' }
     }
 
-    if (busInterface instanceof Memory) {
+    if (bus === 'Memory') {
       this.addInterface('regs', new Memory({
         DATA_WIDTH: regDefs.wordSize || 32,
         ADDR_WIDTH: params.busAddressWidth
       }, 'inward'))
-    } else if (busInterface instanceof APB4) {
+    } else {
       this.addInterface('apb', new APB4({
         DATA_WIDTH: regDefs.wordSize || 32,
         ADDR_WIDTH: params.busAddressWidth
@@ -162,8 +172,6 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         apb: 'apb',
         mem: 'regs'
       }, false)
-    } else {
-      throw Error('Unsupported interface')
     }
 
     // Create signals and logic for registers
@@ -625,5 +633,24 @@ ${selects.join('\n')}
 
     lines.push(`}`)
     return lines.join('\n') + '\n'
+  }
+
+  /**
+   * The parameter comment, with the register map given only as its register count and its hash,
+   * the same hash a derived module name holds: the map is the whole block.
+   * @param params the parameters to list
+   * @param opts as for {@link Module.formatParametersForComment}
+   * @returns one `// key = value` line per parameter
+   */
+  protected override formatParametersForComment (
+    params: TSSVParameters = this.params,
+    opts?: { prefix?: string, skipName?: boolean }
+  ): string {
+    const regDefs = params.regDefs as RegisterBlockDef<T> | undefined
+    const count = regDefs === undefined ? 0 : Object.keys(regDefs.addrMap).length
+    const summary = regDefs === undefined
+      ? params
+      : { ...params, regDefs: `${count} register${count === 1 ? '' : 's'}, hash ${this.nameHash(regDefs)}` }
+    return super.formatParametersForComment(summary, opts)
   }
 }

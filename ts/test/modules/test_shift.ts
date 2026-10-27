@@ -95,7 +95,7 @@ console.log(`${configList.length} testbench configurations written to ${TB_DIR}/
 // ============================================ the defaults and the names
 const byDefault = new shift({ dataWidth: 16, shift_val: 5 }).name
 check(`the defaults are a right shift, unsigned (${byDefault})`,
-  byDefault === 'shift_16_right_5_unsigned' &&
+  byDefault === 'shift_16_unsigned_right_5' &&
   byDefault === new shift({ dataWidth: 16, shift_val: 5, shift_direct: 'right', isSigned: 'unsigned' }).name)
 
 // ============================================ the invalid parameters
