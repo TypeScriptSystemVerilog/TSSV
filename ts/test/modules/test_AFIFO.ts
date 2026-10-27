@@ -80,19 +80,19 @@ const variants: AFIFO_Parameters[] = [
 ]
 const names = variants.map(p => new AFIFO(p).name)
 check(`AFIFOs that differ in any parameter get different names (${names.join(', ')})`, new Set(names).size === names.length)
-check('the default name is AFIFO_<dataWidth>_<depth>_<syncStages>_<inclAlmostFull>_<inclAlmostEmpty>',
-  names[0] === 'AFIFO_8_4_2_false_false' &&
+check('the default name is AFIFO_<dataWidth>_<depth>_<fpgaRamStyle>_<inclAlmostEmpty>_<inclAlmostFull>_<syncStages>',
+  names[0] === 'AFIFO_8_4_X_false_false_2' &&
   new AFIFO({ dataWidth: 8n, depth: 4n, syncStages: 2n, inclAlmostFull: false, inclAlmostEmpty: false }).name === names[0])
-check('depth defaults to 8, and the name shows it', new AFIFO({ dataWidth: 8n }).name === 'AFIFO_8_8_2_false_false')
+check('depth defaults to 8, and the name shows it', new AFIFO({ dataWidth: 8n }).name === 'AFIFO_8_8_X_false_false_2')
 
 for (const depth of [4n, 8n, 16n, 32n]) {
   for (const syncStages of [2n, 3n]) {
     const f = new AFIFO({ dataWidth: 8n, depth, syncStages })
     const files = emit(f)
     const ptrWidth = depth.toString(2).length
-    const cdc = `CDCSynchronizer_${ptrWidth}_${syncStages}`
-    const gp = `GrayPointer_${ptrWidth}_${syncStages}`
-    const rf = `TwoClockRegFile_8_${depth}`
+    const cdc = `CDCSynchronizer_${syncStages}_${ptrWidth}`
+    const gp = `GrayPointer_${syncStages}_${ptrWidth}`
+    const rf = `TwoClockRegFile_8_${depth}_X`
     const want = [cdc, gp, rf, f.name].map(m => `${m}.sv`).sort().join(' ')
     const got = files.map(p => p.split('/').pop() ?? '').sort().join(' ')
     check(`${f.name}: depth ${depth} generates, one module per file`, got === want, `got: ${got}\n  want: ${want}`)

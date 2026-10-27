@@ -100,7 +100,7 @@ export class ROM extends Module {
   ): string {
     const contents = params.ROMContents
     const summary = Array.isArray(contents)
-      ? { ...params, ROMContents: `${contents.length} words, hash ${this.simpleHash(JSON.stringify(contents))}, in rom_read` }
+      ? { ...params, ROMContents: `${contents.length} words, hash ${this.nameHash(contents)}, in rom_read` }
       : params
     return super.formatParametersForComment(summary, opts)
   }

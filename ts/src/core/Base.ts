@@ -1,4 +1,5 @@
 /** @module Base */
+import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { basename, join } from 'path'
 import { type SVModuleHeader, parseSVModules, selectSVModule } from './SVModuleHeader.js'
@@ -337,11 +338,32 @@ endinterface
 export type Interfaces = Record<string, Interface>
 
 /**
+ * A parameter value as canonical JSON, the text a derived module name hashes. Object keys are
+ * sorted by plain string comparison, so key order doesn't matter. Bigints are written as integers,
+ * so `8n` and `8` match and neither matches `'8'`. `undefined` is dropped from objects and written
+ * as `null` in arrays, as JSON does, and a number JSON can't write (`NaN`, `Infinity`) as its text.
+ */
+function canonicalJSON (value: unknown): string {
+  if (typeof value === 'bigint') return value.toString()
+  if (typeof value === 'number' && !Number.isFinite(value)) return String(value)
+  if (Array.isArray(value)) {
+    return '[' + value.map((v) => (v === undefined ? 'null' : canonicalJSON(v))).join(',') + ']'
+  }
+  if (typeof value === 'object' && value !== null) {
+    const rec = value as Record<string, unknown>
+    const keys = Object.keys(rec).filter((key) => rec[key] !== undefined).sort()
+    return '{' + keys.map((key) => JSON.stringify(key) + ':' + canonicalJSON(rec[key])).join(',') + '}'
+  }
+  return JSON.stringify(value) ?? 'null'
+}
+
+/**
 * The Module class is the base class for all TSSV modules.
 */
 export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSignals = IOSignals> {
   /**
-    * name contains the resulting SystemVerilog module name
+    * name contains the resulting SystemVerilog module name: `params.name` if it is set, otherwise
+    * one derived from the class name and the parameter values (`doc/framework/concepts.md` §2)
     */
   readonly name: string
 
@@ -358,7 +380,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * base constructor
-     * @param params parameter value bundle
+     * @param params parameter value bundle. Without a `name`, the module name is `<ClassName>_`
+     * followed by one segment per other key, sorted by key (`doc/framework/concepts.md` §2)
      * @param IOs IO port bundle
      * @param signals signal bundle
      * @param body SystemVerilog body text
@@ -368,18 +391,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     if (typeof params.name === 'string') {
       this.name = params.name
     } else {
-      const mapFunc = (p: ParameterValue | undefined): (ParameterValue | undefined) => {
-        if (typeof p === 'object') {
-          return this.simpleHash(JSON.stringify(p, function (key, value) {
-            if (typeof value === 'bigint') {
-              return value.toString()
-            }
-            return value
-          }))
-        }
-        return p
-      }
-      this.name = this.constructor.name + '_' + Object.values(params).filter((p) => (p !== undefined)).map(mapFunc).join('_')
+      // Every key but name, in plain string order, so the key order of params doesn't matter
+      const keys = Object.keys(params).filter((key) => key !== 'name').sort()
+      this.name = this.constructor.name + '_' + keys.map((key) => this.nameSegment(params[key])).join('_')
     }
     this.params.name = this.name
     this.IOs = IOs
@@ -647,14 +661,31 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return this.addSubmodule(instanceName, vModule, bindings, autoBind)
   }
 
-  protected simpleHash (str: string): string {
-    let hash = 0
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i)
-      hash = (hash << 5) - hash + char
+  /**
+   * The hash a derived module name holds for a value that can't go into it as is: 41 bits of the
+   * SHA-256 of the value's canonical JSON, as 8 lowercase base-36 characters (2^41 < 36^8). Text
+   * that refers to the hash in a module's name, such as a parameter comment, should use it too.
+   * @param value the parameter value
+   * @returns 8 characters from `0-9a-z`
+   */
+  protected nameHash (value: unknown): string {
+    const digest = createHash('sha256').update(canonicalJSON(value)).digest('hex')
+    // The digest's first 44 bits, less the lowest 3
+    return (BigInt('0x' + digest.slice(0, 11)) >> 3n).toString(36).padStart(8, '0')
+  }
+
+  // One parameter value's segment in a derived module name (doc/framework/concepts.md §2)
+  private nameSegment (value: ParameterValue | undefined): string {
+    if (value === undefined) return 'X'
+    if (typeof value === 'boolean') return String(value)
+    if (typeof value === 'bigint' || (typeof value === 'number' && Number.isInteger(value))) {
+      const n = BigInt(value)
+      return n < 0n ? 'm' + (-n).toString() : n.toString()
     }
-    // Convert to 32bit unsigned integer in base 36 and pad with "0" to ensure length is 7.
-    return (hash >>> 0).toString(36).padStart(7, '0')
+    // 1 to 16 letters, digits, '_' or '$'. A segment always follows '<ClassName>_', so it may start
+    // with a digit and the name is still a legal SV identifier
+    if (typeof value === 'string' && /^[A-Za-z0-9_$]{1,16}$/.test(value)) return value
+    return this.nameHash(value)
   }
 
   protected bigintToSigName (value: bigint, isSigned?: boolean, width?: number): string {

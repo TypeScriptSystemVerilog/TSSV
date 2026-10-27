@@ -76,8 +76,8 @@ const names = [
 ].map(p => new CDCSynchronizer(p).name)
 check(`synchronizers that differ in any parameter get different names (${names.join(', ')})`,
   new Set(names).size === names.length)
-check('the default name is CDCSynchronizer_<width>_<stages>, with stages defaulting to 2',
-  names[0] === 'CDCSynchronizer_1_2' && new CDCSynchronizer({ width: 1n, stages: 2n }).name === names[0])
+check('the default name is CDCSynchronizer_<stages>_<width>, with stages defaulting to 2',
+  names[0] === 'CDCSynchronizer_2_1' && new CDCSynchronizer({ width: 1n, stages: 2n }).name === names[0])
 
 expectThrow('width 0 throws', () => new CDCSynchronizer({ width: 0n }), 'CDCSynchronizer: width must be at least 1, got 0')
 expectThrow('stages 1 throws', () => new CDCSynchronizer({ width: 4n, stages: 1n }), 'CDCSynchronizer: stages must be at least 2, got 1')

@@ -87,7 +87,7 @@ const names = [
 ].map(p => new TwoClockRegFile(p).name)
 check(`register files that differ in any parameter get different names (${names.join(', ')})`,
   new Set(names).size === names.length)
-check('the default name is TwoClockRegFile_<dataWidth>_<depth>', names[0] === 'TwoClockRegFile_8_4')
+check('the default name is TwoClockRegFile_<dataWidth>_<depth>_<fpgaRamStyle>, X when unset', names[0] === 'TwoClockRegFile_8_4_X')
 
 const wide = new TwoClockRegFile({ dataWidth: 1026n, depth: 32n })
 check('dataWidth 1026, depth 32 generates', emit(wide).sv.includes('logic [1025:0] mem[0:31];'))

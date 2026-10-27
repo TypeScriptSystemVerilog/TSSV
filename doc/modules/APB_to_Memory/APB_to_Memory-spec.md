@@ -17,7 +17,7 @@ Defined in `APB_to_Memory_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | derived: `APB_to_Memory_<DATA_WIDTH>_<ADDR_WIDTH>` | Module name. The derived name differs for each pair of widths, so bridges of different widths are different modules (PARAM-2) |
+| `name` | `string` | derived: `APB_to_Memory_<ADDR_WIDTH>_<DATA_WIDTH>` | Module name. The derived name differs for each pair of widths, so bridges of different widths are different modules (PARAM-2) |
 | `DATA_WIDTH` | `32 \| 64 \| 128 \| 256 \| 512 \| 1024` | `32` | Data bus width in bits; must match the attached RegisterBlock's `wordSize` |
 | `ADDR_WIDTH` | `IntRange<16, 64>` | `32` | Address bus width in bits |
 

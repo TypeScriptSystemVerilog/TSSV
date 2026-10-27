@@ -15,7 +15,7 @@ Wraps an existing **IP-XACT XML component description** and a pre-existing Syste
 
 | Parameter | Type | Description |
 |---|---|---|
-| `name` | `string` | Module name. Set it: the name derived from the two paths isn't a legal SV identifier ([#123](https://github.com/TypeScriptSystemVerilog/TSSV/issues/123)) |
+| `name` | `string` | Module name. If omitted, TSSV derives it from `moduleName` and a hash of each file's contents, not of its path, so the same files at two paths give one name |
 | `svFilePath` | `string` | Path to the SystemVerilog file that defines the component's module. Environment variables in it are expanded, and it must then be absolute, as in `$TSSV_ROOT/...`: a relative path throws |
 | `xmlDataPath` | `string` | Path to the IP-XACT XML component description, expanded and checked as `svFilePath` is |
 | `moduleName` | `string` | The module in `svFilePath` that the component wraps. Required: it's never inferred, and one the file doesn't declare throws |
@@ -208,8 +208,8 @@ module adderComponent (
   // Parameters
   // ------------------------------------------------------------------
   // moduleName = apb_adder
-  // svFilePath = $TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/apb_adder.sv
-  // xmlDataPath = $TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/adder.xml
+  // svContents = 1187 bytes, hash ekyus0p4, from $TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/apb_adder.sv
+  // xmlContents = 5572 bytes, hash 9ktbcuxy, from $TSSV_ROOT/ts/test/modules/IpxactComponent/Adder/adder.xml
   // ------------------------------------------------------------------
 
   // Bus inputs that no port of apb_adder reads

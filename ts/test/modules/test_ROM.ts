@@ -110,7 +110,7 @@ const uint8Bytes17 = Array.from(new Uint8Array(bytes17))
 console.log('test 1')
 mkdirSync(`${OUT}/rcf`, { recursive: true })
 const testMem1 = new ROM({ dataWidth: 32, ROMContents: 'ts/test/test_rom_init_file.txt' }, `${OUT}/rcf`)
-check(`${testMem1.name}: the derived name holds a hash of the contents`, /^ROM_32_big_[0-9a-z]{7}_default$/.test(testMem1.name))
+check(`${testMem1.name}: the derived name holds a hash of the contents`, /^ROM_[0-9a-z]{8}_32_big_default$/.test(testMem1.name))
 emitRom(testMem1, 32, initFileWords)
 const rcf1 = readFileSync(`${OUT}/rcf/${testMem1.name}.rcf`, 'utf8')
 check(`${testMem1.name}: the RCF holds each word in binary, one per line`,
@@ -201,15 +201,15 @@ check('a derived name is a legal SV identifier, without the file path',
   [named({}), testMem1.name].every(n => /^[A-Za-z_][A-Za-z0-9_$]*$/.test(n)))
 check('every ROM above has its own derived name, with a hash of its contents',
   new Set(tbConfigs.map(c => c.name)).size === tbConfigs.length &&
-  tbConfigs.every(c => /^ROM_\d+_(big|little)_[0-9a-z]{7}_default$/.test(c.name)))
+  tbConfigs.every(c => /^ROM_[0-9a-z]{8}_\d+_(big|little)_default$/.test(c.name)))
 check('an explicit name is used as given', new ROM({ name: 'my_rom', dataWidth: 8, ROMContents: [1, 2] }).name === 'my_rom')
 const rebuilt = new ROM({ ...testMem1.params, name: undefined })
 check('a ROM rebuilt from its params gets the same name and SV',
   rebuilt.name === testMem1.name && rebuilt.writeSystemVerilog() === testMem1.writeSystemVerilog())
 const svHd = new ROM({ name: 'ROM_hd', dataWidth: 8, ROMContents: [1, 2, 3], macroConfig: 'hd' }).writeSystemVerilog()
 check('the parameter comment gives macroConfig, and the word count for the contents',
-  svHd.includes('// macroConfig = hd') && /\/\/ ROMContents = 3 words, hash [0-9a-z]{7}, in rom_read/.test(svHd))
-const hash1 = testMem1.name.split('_')[3] ?? ''
+  svHd.includes('// macroConfig = hd') && /\/\/ ROMContents = 3 words, hash [0-9a-z]{8}, in rom_read/.test(svHd))
+const hash1 = testMem1.name.split('_')[1] ?? ''
 check(`${testMem1.name}: the parameter comment gives the hash in the derived name`,
   testMem1.writeSystemVerilog().includes(`// ROMContents = 10 words, hash ${hash1}, in rom_read`))
 

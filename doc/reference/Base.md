@@ -241,7 +241,7 @@ base constructor
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `params` | `P` | `...` | parameter value bundle |
+| `params` | `P` | `...` | parameter value bundle. Without a `name`, the module name is `<ClassName>_` followed by one segment per other key, sorted by key (`doc/framework/concepts.md` §2) |
 | `IOs` | `IO` | `...` | IO port bundle |
 | `signals` | \{ \} | `{}` | signal bundle |
 | `body` | `string` | `''` | SystemVerilog body text |
@@ -254,7 +254,7 @@ base constructor
 
 | Property | Modifier | Type | Default value | Description |
 | ------ | ------ | ------ | ------ | ------ |
-| <a id="name-3"></a> `name` | `readonly` | `string` | `undefined` | name contains the resulting SystemVerilog module name |
+| <a id="name-3"></a> `name` | `readonly` | `string` | `undefined` | name contains the resulting SystemVerilog module name: `params.name` if it is set, otherwise one derived from the class name and the parameter values (`doc/framework/concepts.md` §2) |
 | <a id="params-2"></a> `params` | `protected` | `P` | `undefined` | - |
 | <a id="ios"></a> `IOs` | `protected` | `IO` | `undefined` | - |
 | <a id="formatterconfig-1"></a> `formatterConfig` | `static` | [`FormatterConfig`](#formatterconfig) | `undefined` | - |
@@ -406,21 +406,27 @@ once. `writeSystemVerilog()` puts their text, unguarded, in its single string.
 
 the imported submodule
 
-##### simpleHash()
+##### nameHash()
 
 ```ts
-protected simpleHash(str): string;
+protected nameHash(value): string;
 ```
+
+The hash a derived module name holds for a value that can't go into it as is: 41 bits of the
+SHA-256 of the value's canonical JSON, as 8 lowercase base-36 characters (2^41 < 36^8). Text
+that refers to the hash in a module's name, such as a parameter comment, should use it too.
 
 ###### Parameters
 
-| Parameter | Type |
-| ------ | ------ |
-| `str` | `string` |
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `value` | `unknown` | the parameter value |
 
 ###### Returns
 
 `string`
+
+8 characters from `0-9a-z`
 
 ##### bigintToSigName()
 

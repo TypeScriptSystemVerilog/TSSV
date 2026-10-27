@@ -83,16 +83,20 @@ not write them: `const a = new RegAddr(0n, 32)`, then `a.next()` returns `0x0`, 
 
 `new RegisterBlock(params, regDefs, busInterface)`:
 
-- **`params.name`**: always set it. The module name is derived from `params` alone, which
-  don't include the register map, so two unnamed blocks get the same name and only the first
-  one's definition is emitted (see [concepts.md §2](concepts.md#2-parameters-and-the-module-name)).
+- **`params.name`**: optional. The derived name holds the bus address width, the bus, the
+  endianness and a hash of the register map, so blocks with different maps get different names
+  (see [concepts.md §2](concepts.md#2-parameters-and-the-module-name)). Set it when something
+  outside TSSV refers to the block by name.
 - **`params.busAddressWidth`**: the bus address width (default 32).
 - **`busInterface`**: an instance that only selects the bus type. A `Memory` gives the block a
   `Memory` port; an `APB4` gives it an `APB4` port and an `APB_to_Memory` bridge inside. Any
   other interface throws `Unsupported interface`. The instance's own parameters are ignored:
   the port is built from `wordSize` and `busAddressWidth`.
-- `params.busInterface` and `params.endianess` only appear in the parameter comment and the
-  module name. The third argument picks the bus.
+- `params.busInterface` can be left out: the third argument picks the bus, and the parameters
+  record it as `'Memory'` or `'APB'`. If it is set and disagrees, the constructor throws.
+  `params.endianess` only appears in the parameter comment and the module name.
+- The parameter comment gives the register map as its register count and its hash, the same
+  hash as in a derived name: `// regDefs = 3 registers, hash <hash>`.
 
 ## 2. The generated module
 

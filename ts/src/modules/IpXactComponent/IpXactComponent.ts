@@ -33,11 +33,22 @@ export interface IpXactComponent_Parameters extends TSSVParameters {
   moduleName: string
 }
 
+// The parameters the module holds: the files' contents rather than their paths, so the same files
+// at two paths give one derived name, and a changed file gives a new one
+interface IpXactComponent_ModuleParameters extends TSSVParameters {
+  moduleName: string
+  svContents: string
+  xmlContents: string
+}
+
 /**
  * @see doc/modules/IpXactComponent/IpXactComponent-spec.md
  */
 export class IpXactComponent extends Module {
-  declare params: IpXactComponent_Parameters
+  declare params: IpXactComponent_ModuleParameters
+  // The paths as given, for messages, the parameter comment and the import of the SV file
+  private readonly svFilePath: string
+  private readonly xmlDataPath: string
 
   static knownInterfaces: Record<string, any> = {
     'tssv/lib/interfaces/AMBA/AMBA2/AHB/r3p0_1/AHB': amba.AHB,
@@ -125,15 +136,17 @@ export class IpXactComponent extends Module {
   }
 
   constructor (params: IpXactComponent_Parameters) {
+    // svFilePath is checked first, so a relative one throws before anything is read
+    const svFile = absolutePath(params.svFilePath, 'svFilePath')
+    const xmlData = fs.readFileSync(absolutePath(params.xmlDataPath, 'xmlDataPath'), 'utf-8')
     super({
       name: params.name,
-      xmlDataPath: params.xmlDataPath,
-      svFilePath: params.svFilePath,
-      moduleName: params.moduleName
+      moduleName: params.moduleName,
+      svContents: fs.readFileSync(svFile, 'utf-8'),
+      xmlContents: xmlData
     })
-    // svFilePath is checked first, so a relative one throws before anything is read
-    absolutePath(params.svFilePath, 'svFilePath')
-    const xmlData = fs.readFileSync(absolutePath(params.xmlDataPath, 'xmlDataPath'), 'utf-8')
+    this.svFilePath = params.svFilePath
+    this.xmlDataPath = params.xmlDataPath
     const interfaceData = this.createDictionary(xmlData)
     const paramData = this.parseParameters(xmlData)
     const portWidths = this.parsePortWidths(xmlData)
@@ -144,7 +157,7 @@ export class IpXactComponent extends Module {
   }
 
   protected addSystemVerilogSubmoduleWithBindings (componentDataRecord: Record<string, ComponentData>, portWidths: Record<string, number>): Module {
-    const SVFilePath = this.params.svFilePath
+    const SVFilePath = this.svFilePath
     const header = this.readSVModuleHeader(SVFilePath)
     const bindings: Record<string, string | Sig> = {}
 
@@ -157,7 +170,7 @@ export class IpXactComponent extends Module {
         if (busSignal !== undefined && width !== undefined) {
           const busWidth = Number(busSignal.width ?? 1)
           if (width !== busWidth) {
-            throw Error(`IpXactComponent ${this.name}: ${this.params.xmlDataPath} maps port ${physicalPort} (${width} bits) to ${interfaceName}.${logicalPort} (${busWidth} bits)`)
+            throw Error(`IpXactComponent ${this.name}: ${this.xmlDataPath} maps port ${physicalPort} (${width} bits) to ${interfaceName}.${logicalPort} (${busWidth} bits)`)
           }
         }
         bindings[physicalPort] = `${interfaceName}.${logicalPort}`
@@ -200,15 +213,29 @@ export class IpXactComponent extends Module {
 
   // The module header of the SystemVerilog module, which names its ports and their directions
   private readSVModuleHeader (filePath: string): SVModuleHeader {
-    const path = absolutePath(filePath, 'svFilePath')
-    return selectSVModule(parseSVModules(fs.readFileSync(path, 'utf-8')), path, this.params.moduleName)
+    return selectSVModule(parseSVModules(this.params.svContents), absolutePath(filePath, 'svFilePath'), this.params.moduleName)
+  }
+
+  // The files' contents are long, so the SV's parameter comment gives each one's size, its hash (the
+  // same one a derived module name holds) and the path it was read from
+  protected override formatParametersForComment (
+    params: TSSVParameters = this.params,
+    opts?: { prefix?: string, skipName?: boolean }
+  ): string {
+    const summary = (text: unknown, path: string): string | undefined =>
+      typeof text === 'string' ? `${Buffer.byteLength(text)} bytes, hash ${this.nameHash(text)}, from ${path}` : undefined
+    return super.formatParametersForComment({
+      ...params,
+      svContents: summary(params.svContents, this.svFilePath),
+      xmlContents: summary(params.xmlContents, this.xmlDataPath)
+    }, opts)
   }
 
   // The width of a port of the SV module, from the XML's <model><ports>, for a port that needs one
   private portWidth (port: string, header: SVModuleHeader, portWidths: Record<string, number>): number {
     const width = portWidths[port]
     if (width === undefined) {
-      throw Error(`IpXactComponent ${this.name}: port ${port} of ${header.name} isn't in the <model><ports> of ${this.params.xmlDataPath}`)
+      throw Error(`IpXactComponent ${this.name}: port ${port} of ${header.name} isn't in the <model><ports> of ${this.xmlDataPath}`)
     }
     return width
   }
@@ -376,10 +403,10 @@ export class IpXactComponent extends Module {
           // Add interface with parameters
           this.addInterface(interfaceName, new InterfaceModule(paramObject, direction)) // eslint-disable-line @typescript-eslint/no-unsafe-argument
         } else {
-          throw Error(`IpXactComponent ${this.name}: ${this.params.xmlDataPath} has interface ${interfaceName}, whose name doesn't start with Init or Targ, so its direction is unknown`)
+          throw Error(`IpXactComponent ${this.name}: ${this.xmlDataPath} has interface ${interfaceName}, whose name doesn't start with Init or Targ, so its direction is unknown`)
         }
       } else {
-        throw Error(`IpXactComponent ${this.name}: ${this.params.xmlDataPath} has interface ${interfaceName} of bus type ${pathString}, which isn't in IpXactComponent.knownInterfaces`)
+        throw Error(`IpXactComponent ${this.name}: ${this.xmlDataPath} has interface ${interfaceName} of bus type ${pathString}, which isn't in IpXactComponent.knownInterfaces`)
       }
     }
   }

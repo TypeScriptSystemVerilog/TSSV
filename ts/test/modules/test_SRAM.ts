@@ -293,7 +293,7 @@ for (const ports of ['1rw', '1r_1w'] as const) {
 const hasRamStyle = (mem: SRAM): boolean => mem.writeSystemVerilog().includes('ram_style')
 const at = (minMacroBits: bigint | undefined, dataWidth = 8n, depth = 4n): SRAM => new SRAM({ dataWidth, depth, ports: '1rw', minMacroBits })
 check('no ram_style below minMacroBits (32 bits, 1024) or at it (1024 bits, 1024)', !hasRamStyle(at(undefined)) && !hasRamStyle(at(undefined, 8n, 128n)))
-check('the module name includes minMacroBits', at(undefined).name === 'SRAM_8_4_1rw_none_undefOnWrite_default_1024' && at(64n).name.endsWith('_64'),
+check('the module name includes minMacroBits', at(undefined).name === 'SRAM_8_4_default_1024_1rw_undefOnWrite_none' && at(64n).name.includes('_default_64_'),
   `got ${at(undefined).name} and ${at(64n).name}`)
 
 // ============================================ parameter checks (TSSV guide PARAM-5)
@@ -306,7 +306,7 @@ expectThrow('readBeforeWrite at minMacroBits bits is rejected', () => new SRAM({
   'SRAM: readBeforeWrite is built from flip-flops, so depth * dataWidth must be below minMacroBits (1024), got 32 * 32 = 1024')
 check('readBeforeWrite one bit below minMacroBits is accepted', (() => {
   try {
-    return new SRAM({ dataWidth: 8n, depth: 4n, ports: '1rw', readBehavior: 'readBeforeWrite', minMacroBits: 33n }).name.endsWith('_33')
+    return new SRAM({ dataWidth: 8n, depth: 4n, ports: '1rw', readBehavior: 'readBeforeWrite', minMacroBits: 33n }).name.includes('_default_33_')
   } catch {
     return false
   }

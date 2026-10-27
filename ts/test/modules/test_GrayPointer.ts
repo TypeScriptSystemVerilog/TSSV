@@ -55,8 +55,8 @@ const names = [
 ].map(p => new GrayPointer(p).name)
 check(`pointers that differ in any parameter get different names (${names.join(', ')})`,
   new Set(names).size === names.length)
-check('the default name is GrayPointer_<width>_<syncStages>, with syncStages defaulting to 2',
-  names[0] === 'GrayPointer_3_2' && new GrayPointer({ width: 3n, syncStages: 2n }).name === names[0])
+check('the default name is GrayPointer_<syncStages>_<width>, with syncStages defaulting to 2',
+  names[0] === 'GrayPointer_2_3' && new GrayPointer({ width: 3n, syncStages: 2n }).name === names[0])
 
 expectThrow('width 0 throws', () => new GrayPointer({ width: 0n }), 'GrayPointer: width must be at least 1, got 0')
 expectThrow('syncStages 1 throws', () => new GrayPointer({ width: 3n, syncStages: 1n }), 'GrayPointer: syncStages must be at least 2, got 1')
