@@ -16,6 +16,7 @@ import { Module, type TSSVParameters } from 'tssv/lib/core/TSSV'
 import { RegisterBlock, type RegisterBlockDef } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { APB4 } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4'
+import { moduleSV } from 'tssv/test/models/emitted'
 import { APB_to_Memory } from 'tssv/lib/modules/APB_to_Memory'
 import { ROM } from 'tssv/lib/modules/ROM'
 import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
@@ -117,7 +118,7 @@ check('RegisterBlocks with different register maps get different names', one.nam
 check('a RegisterBlock\'s name holds its bus', one.name.includes('_Memory_') &&
   block({ A: 0n }, new APB4({ DATA_WIDTH: 32, ADDR_WIDTH: 32 })).name.includes('_APB_'))
 check('RegisterBlock: the parameter comment gives the hash in the name',
-  one.writeSystemVerilog().includes(`// regDefs = 1 register, hash ${one.name.split('_').pop() ?? ''}`))
+  moduleSV(one).includes(`// regDefs = 1 register, hash ${one.name.split('_').pop() ?? ''}`))
 let mismatch = ''
 try {
   void new RegisterBlock({ busInterface: 'APB' }, { wordSize: 32, addrMap: { A: 0n }, registers: {} }, new Memory())

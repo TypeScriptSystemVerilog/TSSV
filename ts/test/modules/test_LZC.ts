@@ -12,7 +12,7 @@
 // check each one against a reference model.
 
 import { LZC, type LZC_Parameters } from 'tssv/lib/modules/LZC'
-import { mkdirSync, writeFileSync } from 'fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 
 const OUT = 'sv-examples/LZC'
 const TB_DIR = `${OUT}/tb`
@@ -40,13 +40,10 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write an LZC's SV to sv-examples/LZC/<name>/<name>.sv and return it and its path */
+/** write an LZC's SV under sv-examples/LZC/<name>/ and return its own file's text and path */
 function emit (lzc: LZC): { sv: string, path: string } {
-  const dir = `${OUT}/${lzc.name}`
-  mkdirSync(dir, { recursive: true })
-  const sv = lzc.writeSystemVerilog()
-  writeFileSync(`${dir}/${lzc.name}.sv`, sv)
-  return { sv, path: `${dir}/${lzc.name}.sv` }
+  const path = lzc.writeSystemVerilogFiles(`${OUT}/${lzc.name}`).at(-1) ?? ''
+  return { sv: readFileSync(path, 'utf8'), path }
 }
 
 /** the spec's IO table for a width: "<port>:<width>", sorted. zero_num holds 0 to dataWidth */

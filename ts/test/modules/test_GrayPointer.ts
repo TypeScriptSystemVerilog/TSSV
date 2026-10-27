@@ -2,18 +2,17 @@
 //
 // 1. Self-checks against the spec: ports, distinct module names, each module in its own file,
 //    and the invalid parameters that throw.
-// 2. The testbench configurations (TB_CONFIGS), each emitted one module per file with a lint
-//    filelist (emitSplit), plus sv-examples/GrayPointer/tb/:
+// 2. The testbench configurations (TB_CONFIGS), each emitted one module per file
+//    (writeSystemVerilogFiles()), plus sv-examples/GrayPointer/tb/:
 //    - GrayPointer_tb_configs.svh: per-configuration DUT name, width and syncStages
 //    - GrayPointer_tb_vectors.svh: one task per timing diagram in the spec
-//    - configs.txt: "<config> <.sv paths>" per line, read by `make graypointer_sim`
+//    - configs.txt: "<config> <top .sv path>" per line, read by `make graypointer_sim`
 //
 // Run `make -C verilatorTB graypointer_sim` to generate everything, lint each variant with
 // -Wall and simulate each configuration.
 
 import { GrayPointer } from 'tssv/lib/modules/GrayPointer'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { emitSplit } from '../models/emitSplit.js'
 import { diagramTasks } from '../models/wavedromVectors.js'
 
 const SPEC = 'doc/modules/GrayPointer/GrayPointer-spec.md'
@@ -83,14 +82,14 @@ let configs = header
 const configList: string[] = []
 TB_CONFIGS.forEach((c, i) => {
   const p = new GrayPointer({ width: c.width, syncStages: c.syncStages })
-  const files = emitSplit(p, `${OUT}/${p.name}`, GENERATOR)
+  const files = p.writeSystemVerilogFiles(`${OUT}/${p.name}`)
   const ports = Object.keys((p as unknown as { IOs: Record<string, unknown> }).IOs).sort().join(' ')
   check(`${p.name}: ports match the spec`, ports === SPEC_PORTS, `got: ${ports}\n  spec: ${SPEC_PORTS}`)
   const top = readFileSync(files[files.length - 1] ?? '', 'utf8')
   check(`${p.name}: its file defines only GrayPointer, and its CDCSynchronizer is in a file of its own`,
     files.length === 2 && (top.match(/^module /gm) ?? []).length === 1 && !top.includes('module CDCSynchronizer'),
     `files: ${files.join(', ')}`)
-  configList.push(`${c.cfg} ${files.join(' ')}`)
+  configList.push(`${c.cfg} ${files[files.length - 1] ?? ''}`)
   configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${c.cfg}\n`
   configs += `  \`define CFG_NAME "${c.cfg}"\n`
   configs += `  \`define GP_DUT ${p.name}\n`

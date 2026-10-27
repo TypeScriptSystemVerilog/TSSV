@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -60,7 +60,7 @@ round_tb.addSignal('rounded', { width: 7, isSigned: false })
 round_tb.addRound({ in: 'in', out: 'rounded', rShift: 1 })
 
 try {
-  writeFileSync('sv-examples/Core/addRound/round_tb.sv', round_tb.writeSystemVerilog())
+  round_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -119,7 +119,7 @@ roundS_tb.addSignal('rounded', { width: 8, isSigned: true })
 roundS_tb.addRound({ in: 'in', out: 'rounded', rShift: 0 })
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundS_tb.sv', roundS_tb.writeSystemVerilog())
+  roundS_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -187,7 +187,7 @@ roundRS_tb.addSignal('shift', { width: 4 })
 roundRS_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rp')
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundRS_tb.sv', roundRS_tb.writeSystemVerilog())
+  roundRS_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -255,7 +255,7 @@ roundD_tb.addSignal('shift', { width: 4 })
 roundD_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rm')
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundD_tb.sv', roundD_tb.writeSystemVerilog())
+  roundD_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -323,7 +323,7 @@ roundZ_tb.addSignal('shift', { width: 4 })
 roundZ_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rz')
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundZ_tb.sv', roundZ_tb.writeSystemVerilog())
+  roundZ_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -391,7 +391,7 @@ roundU_tb.addSignal('shift', { width: 4 })
 roundU_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rp')
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundU_tb.sv', roundU_tb.writeSystemVerilog())
+  roundU_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -468,7 +468,7 @@ roundE_tb.addSignal('shift', { width: 3 })
 roundE_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rn')
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundE_tb.sv', roundE_tb.writeSystemVerilog())
+  roundE_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }
@@ -546,7 +546,7 @@ roundA_tb.addSignal('shift', { width: 4 })
 roundA_tb.addRound({ in: 'in', out: 'rounded', rShift: 'shift' }, 'rna')
 
 try {
-  writeFileSync('sv-examples/Core/addRound/roundA_tb.sv', roundA_tb.writeSystemVerilog())
+  roundA_tb.writeSystemVerilogFiles('sv-examples/Core/addRound')
 } catch (err) {
   console.error(err)
 }

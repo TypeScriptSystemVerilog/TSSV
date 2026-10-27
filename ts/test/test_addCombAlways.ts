@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -77,7 +77,7 @@ out = a + b;
 comb_tb.addCombAlways({ inputs: inArr, outputs: outArr }, body)
 
 try {
-  writeFileSync('sv-examples/Core/addCombAlways/comb_tb.sv', comb_tb.writeSystemVerilog())
+  comb_tb.writeSystemVerilogFiles('sv-examples/Core/addCombAlways')
 } catch (err) {
   console.error(err)
 }
@@ -111,7 +111,7 @@ out = 9'd42;
 combN_tb.addCombAlways({ outputs: outArrN }, bodyN)
 
 try {
-  writeFileSync('sv-examples/Core/addCombAlways/combN_tb.sv', combN_tb.writeSystemVerilog())
+  combN_tb.writeSystemVerilogFiles('sv-examples/Core/addCombAlways')
 } catch (err) {
   console.error(err)
 }

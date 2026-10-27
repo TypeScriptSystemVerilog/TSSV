@@ -181,5 +181,6 @@ tb.checkState('after the probe writes')
 for (const p of probes) tb.read(p, 'probe')
 
 mkdirSync(OUT_DIR, { recursive: true })
-tb.emit(OUT_DIR, writeLintWrapped(testRegBlock, OUT_DIR, GENERATOR))
+writeLintWrapped(testRegBlock, OUT_DIR, GENERATOR)
+tb.emit(OUT_DIR)
 console.log(`wrote ${OUT_DIR}/testRegBlock.sv, testRegBlock_lint_top.sv and ${tb.name}.sv`)

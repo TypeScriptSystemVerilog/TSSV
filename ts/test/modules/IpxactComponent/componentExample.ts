@@ -1,14 +1,13 @@
 // Wraps three sample components with IpXactComponent, and writes each under
-// sv-examples/IpXactComponent/<component>/, one definition per file:
+// sv-examples/IpXactComponent/<component>/ with writeSystemVerilogFiles(), one definition per file:
 // - <component>.sv: the wrapper, with each bus interface as a port
 // - <interface>.sv: the interface those ports use
-// - <component>_lint_top.sv: a wrapper that instantiates the interfaces, so the component can be
-//   linted with `verilator --lint-only -Wall`
-// - <component>_lint_top.f: the lint filelist
-//
-// Each sample's SystemVerilog file stands in for the vendor's RTL. It is this test's input,
-// written by hand, not generated SV, so it isn't written out with the wrapper: the filelist names
-// it where it is (doc/modules/IpXactComponent/IpXactComponent-spec.md).
+// - the sample's SystemVerilog file, under its own name, copied untouched inside its
+//   SVIMPORT__ guard. It stands in for the vendor's RTL: this test's input, written by hand, not
+//   generated SV (doc/modules/IpXactComponent/IpXactComponent-spec.md)
+// - <component>_lint_top.sv: a wrapper that instantiates the interfaces and includes
+//   <component>.sv, so the component can be linted with
+//   `verilator --lint-only -Wall +define+USE_INCLUDES`
 //
 // The AXI and APB samples come from a NoC generator. The adder is the spec's worked example: one
 // APB port, so its XML has one bus interface, one parameter list and so on.
@@ -19,14 +18,12 @@
 // The sample paths start with $TSSV_ROOT, not a path relative to the cwd, so IpXactComponent finds
 // them from any directory, and the paths it records in the wrapper's parameter comments are the
 // same on every machine. Where the test reads a sample itself, it expands the path first.
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { join, posix } from 'path'
+import { join } from 'path'
 import { IpXactComponent } from 'tssv/lib/modules/IpXactComponent'
 import { expandPath } from 'tssv/lib/core/TSSV'
-import { writePortInterfaces } from 'tssv/test/models/emitSplit'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
-import { lintWrapper } from 'tssv/test/models/lintWrapper'
+import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
 
 const GENERATOR = 'ts/test/modules/IpxactComponent/componentExample.ts'
 const SAMPLES = '$TSSV_ROOT/ts/test/modules/IpxactComponent'
@@ -42,17 +39,8 @@ const samples = [
 for (const { tied, ...params } of samples) {
   const component = new IpXactComponent(params)
   const dir = `${OUT}/${component.name}`
-  mkdirSync(dir, { recursive: true })
-  // The sample's module, which the wrapper instantiates, is left out of the wrapper's file
-  const svFilePath = expandPath(params.svFilePath)
-  const sample = params.moduleName
-  const defined = new Set<string>()
-  const interfaces = writePortInterfaces(component, dir, defined)
-  writeFileSync(`${dir}/${component.name}.sv`, component.writeSystemVerilog({ exclude: new Set([...defined, sample]) }))
-  writeFileSync(`${dir}/${component.name}_lint_top.sv`, lintWrapper(component, GENERATOR))
-  writeLintFilelist(dir, `${component.name}_lint_top`,
-    [posix.relative(dir, svFilePath), ...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`], GENERATOR)
-  console.log(`wrote ${dir}/${[...interfaces, `${component.name}.sv`, `${component.name}_lint_top.sv`].join(', ')}`)
+  const files = writeLintWrapped(component, dir, GENERATOR)
+  console.log(`wrote ${[...files, `${dir}/${component.name}_lint_top.sv`].join(', ')}`)
   // Each of them is tied to 0
   const sv = readFileSync(`${dir}/${component.name}.sv`, 'utf8')
   for (const port of tied) {

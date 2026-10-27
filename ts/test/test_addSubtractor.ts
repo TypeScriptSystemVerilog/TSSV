@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -68,7 +68,7 @@ sub_tb.addSignal('b', { width: 4, isSigned: false })
 sub_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addSubtractor/sub_tb.sv', sub_tb.writeSystemVerilog())
+  sub_tb.writeSystemVerilogFiles('sv-examples/Core/addSubtractor')
 } catch (err) {
   console.error(err)
 }
@@ -135,7 +135,7 @@ subS_tb.addSignal('b', { width: 8, isSigned: true })
 subS_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addSubtractor/subS_tb.sv', subS_tb.writeSystemVerilog())
+  subS_tb.writeSystemVerilogFiles('sv-examples/Core/addSubtractor')
 } catch (err) {
   console.error(err)
 }
@@ -202,7 +202,7 @@ subUS_tb.addSignal('b', { width: 8, isSigned: true })
 subUS_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addSubtractor/subUS_tb.sv', subUS_tb.writeSystemVerilog())
+  subUS_tb.writeSystemVerilogFiles('sv-examples/Core/addSubtractor')
 } catch (err) {
   console.error(err)
 }
@@ -269,7 +269,7 @@ subSU_tb.addSignal('b', { width: 8, isSigned: false })
 subSU_tb.addSubtractor({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addSubtractor/subSU_tb.sv', subSU_tb.writeSystemVerilog())
+  subSU_tb.writeSystemVerilogFiles('sv-examples/Core/addSubtractor')
 } catch (err) {
   console.error(err)
 }

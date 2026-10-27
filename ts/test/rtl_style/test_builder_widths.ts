@@ -4,14 +4,16 @@
 //
 //   node out/test/rtl_style/test_builder_widths.js            builds every case and exits
 //   node out/test/rtl_style/test_builder_widths.js <dir>      also writes, for each case,
-//                                                             <dir>/<case>.sv and the case's
-//                                                             test vectors to <dir>/cases.json
+//                                                             its files to <dir>/<case>/ and the
+//                                                             case's test vectors to
+//                                                             <dir>/cases.json
 //
 // doc/rtl-style/sv-style/tools/check-builder-widths.mjs runs the second form. It lints each
 // module under -Wall with the common waivers file, and simulates every vector.
 
 import { Module, Expr, type IOSignals } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
+import { moduleSV } from 'tssv/test/models/emitted'
 
 interface Port { width: number, signed?: boolean }
 type Values = Record<string, bigint>
@@ -359,7 +361,9 @@ for (const c of cases) {
     c.build(m)
     // An auto-sized result (width 0 above) is sized by the builder: read it back.
     for (const [k, p] of Object.entries(c.outputs)) if (p.width === 0) c.outputs[k] = m.port(k)
-    const sv = m.writeSystemVerilog()
+    // Emission checks the module. With an output directory, the case's files go to <dir>/<case>/
+    if (outDir === undefined) moduleSV(m)
+    else m.writeSystemVerilogFiles(`${outDir}/${c.name}`)
     const vecs = c.ref === undefined
       ? []
       : vectors(c.inputs).flatMap((v) => {
@@ -367,11 +371,10 @@ for (const c of cases) {
         return exp === null || exp === undefined ? [] : [{ in: v, out: exp }]
       })
     if (outDir !== undefined) {
-      writeFileSync(`${outDir}/${c.name}.sv`, sv)
       written.push({
         name: c.name,
         top: m.name,
-        file: `${c.name}.sv`,
+        file: `${c.name}/${m.name}.sv`,
         clocked: c.clocked === true,
         unused: c.unused,
         inputs: Object.entries(c.inputs).map(([k, p]) => ({ name: k, width: p.width })),

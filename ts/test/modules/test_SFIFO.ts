@@ -6,29 +6,23 @@
 //    - SFIFO_tb_configs.svh: per-configuration DUT name, depth and port options
 //    - SFIFO_tb_vectors.svh: one task per timing diagram in the spec, built from the
 //      diagram's WaveDrom JSON so the testbench checks exactly what the spec shows
-//    - configs.txt: "<config> <.sv paths>" per line, read by `make sfifo_sim`
+//    - configs.txt: "<config> <top .sv path>" per line, read by `make sfifo_sim`
 //
-// Each FIFO is emitted one module per file with a lint filelist (emitSplit).
+// Each FIFO is emitted one module per file (writeSystemVerilogFiles()); its own file includes the
+// SRAM's under USE_INCLUDES.
 // Run `make -C verilatorTB sfifo_sim` to generate everything, lint each variant with -Wall and
 // simulate each configuration.
 
 import { SFIFO } from 'tssv/lib/modules/SFIFO'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { emitSplit } from '../models/emitSplit.js'
-import { writeLintFilelist } from '../models/lintFilelist.js'
 
 const SPEC = 'doc/modules/SFIFO/SFIFO-spec.md'
 const TB_DIR = 'sv-examples/SFIFO/tb'
-const GENERATOR = 'ts/test/modules/test_SFIFO.ts'
 const DATA_WIDTH = 8n
 
-/** write a FIFO one module per file under sv-examples/SFIFO/<name>/ and return the paths, the FIFO's last */
-function emit (fifo: SFIFO): string[] {
-  const dir = `sv-examples/SFIFO/${fifo.name}`
-  const files = emitSplit(fifo, dir, GENERATOR)
-  // a depth-1 FIFO has no SRAM, so emitSplit writes it no filelist; sfifo_sim lints every variant through one
-  if (files.length === 1) writeLintFilelist(dir, fifo.name, [`${fifo.name}.sv`], GENERATOR)
-  return files
+/** write a FIFO one module per file under sv-examples/SFIFO/<name>/ and return the path of its own file */
+function emit (fifo: SFIFO): string {
+  return fifo.writeSystemVerilogFiles(`sv-examples/SFIFO/${fifo.name}`).at(-1) ?? ''
 }
 
 /** the port list the spec's IO tables give for a configuration */
@@ -59,7 +53,9 @@ for (const simult of [true, false]) {
 // depth-1 FIFO, which builds no SRAM, still rejects a minMacroBits the SRAM would
 {
   const fifo = new SFIFO({ dataWidth: DATA_WIDTH, depth: 4n, macroConfig: 'hd', minMacroBits: 2048n })
-  const sv = fifo.writeSystemVerilog()
+  emit(fifo)
+  const { submodules } = fifo as unknown as { submodules: Record<string, { module: { name: string } }> }
+  const sv = readFileSync(`sv-examples/SFIFO/${fifo.name}/${submodules.u_sram?.module.name ?? ''}.sv`, 'utf8')
   for (const want of ['// macroConfig = hd', '// minMacroBits = 2048n']) {
     if (!sv.includes(want)) throw Error(`${fifo.name}: its SRAM's parameters don't include "${want}"`)
   }
@@ -102,7 +98,7 @@ let configs = header
 const configList: string[] = []
 TB_CONFIGS.forEach((c, i) => {
   const fifo = new SFIFO({ dataWidth: c.dataWidth, depth: c.depth, simultPushPop: c.simultPushPop, inclAlmostFull: c.inclAlmostFull, inclAlmostEmpty: c.inclAlmostEmpty })
-  configList.push(`${c.cfg} ${emit(fifo).join(' ')}`)
+  configList.push(`${c.cfg} ${emit(fifo)}`)
   configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${c.cfg}\n`
   configs += `  \`define CFG_NAME "${c.cfg}"\n`
   configs += `  \`define SFIFO_DUT ${fifo.name}\n`

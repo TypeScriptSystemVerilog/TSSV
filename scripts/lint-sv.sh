@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
-# Run verilator --lint-only on every .sv file under sv-examples/.
+# Run verilator --lint-only on the SV under sv-examples/.
 #
-# A test script that emits SV which can't be linted alone (a testbench emitted apart from its
-# DUT, a module whose interface definitions are in another file, a library of models with no
-# top of its own) writes a Verilator filelist, <top>.f, next to it
+# Module.writeSystemVerilogFiles() writes one guarded file per module and interface, and each
+# file includes the files it needs inside `ifdef USE_INCLUDES. SV a test script writes by hand to
+# instantiate a design (a lint wrapper, a testbench) includes the design the same way
+# (ts/test/models/guardSV.ts). So every lint defines USE_INCLUDES and puts the unit's directory on
+# the include path, and each .sv that no other file in its directory includes is a top, linted on
+# its own: its lint reaches everything it includes. An included file is never linted alone, since
+# one with interface ports can't be a top.
+#
+# A Verilator filelist, <top>.f, ties generated SV to a testbench outside sv-examples/
 # (ts/test/models/lintFilelist.ts). Each filelist is linted with -F, and the .sv files it names
-# aren't linted alone. Every other .sv file is linted alone.
+# aren't tops.
 #
 # sv-examples/rtl_style_ts/ is left out. `npm run check:rtl-style` writes it, not the test
 # scripts, from the TSSV guide's examples, and lints each one against what the example expects:
@@ -49,13 +55,27 @@ while IFS= read -r -d '' filelist; do
   while IFS= read -r line; do
     [[ $line == *.sv ]] && grouped[$(realpath -m --relative-to=. "$dir/$line")]=1
   done < <(grep -v -e '^[[:space:]]*//' -e '^[[:space:]]*-' "$filelist")
-  lint "$filelist" -F "$filelist"
+  lint "$filelist" +define+USE_INCLUDES "+incdir+$dir" -F "$filelist"
 done < <(find sv-examples -path sv-examples/rtl_style_ts -prune -o -name "*.f" -print0 | sort -z)
 
-while IFS= read -r -d '' file; do
-  [[ -n ${grouped[$file]} ]] && continue
-  lint "$file" "$file"
-done < <(find sv-examples -path sv-examples/rtl_style_ts -prune -o -name "*.sv" -print0 | sort -z)
+svfiles=()
+while IFS= read -r -d '' file; do svfiles+=("$file"); done \
+  < <(find sv-examples -path sv-examples/rtl_style_ts -prune -o -name "*.sv" -print0 | sort -z)
+
+# The files another file includes, each from the including file's directory
+declare -A included
+for file in "${svfiles[@]}"; do
+  dir=$(dirname "$file")
+  # sed prints <file> from each include line, `include "<file>"
+  while IFS= read -r inc; do
+    included[$(realpath -m --relative-to=. "$dir/$inc")]=1
+  done < <(sed -n 's/^[[:space:]]*`include[[:space:]]*"\([^"]*\)".*/\1/p' "$file")
+done
+
+for file in "${svfiles[@]}"; do
+  [[ -n ${grouped[$file]} || -n ${included[$file]} ]] && continue
+  lint "$file" +define+USE_INCLUDES "+incdir+$(dirname "$file")" "$file"
+done
 
 echo ""
 echo "$passed passed, ${#failures[@]} failed"

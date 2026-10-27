@@ -4,13 +4,16 @@
 // ../../tools/verilator.mjs) and the scans in sv-scans.mjs (SYN-1, LINT-3) on
 // everything under sv-examples/. Every finding fails.
 //
-// Lint groups files as scripts/lint-sv.sh does. A test script writes a Verilator filelist,
-// <top>.f, for an emission that has to be linted through a top: a testbench emitted apart from
-// its DUT, or a module with interface ports, through a wrapper that instantiates the interfaces
-// (ts/test/models/lintFilelist.ts, lintWrapper.ts). Each filelist is linted with -F, and the .sv
-// files it names aren't linted alone. Every other .sv file is linted alone. A warning is a
-// finding against the file it points at. One in a file outside sv-examples/, such as a
-// hand-written testbench in verilatorTB/, isn't generated SV and isn't checked.
+// Lint groups files as scripts/lint-sv.sh does, with USE_INCLUDES defined and the unit's
+// directory on the include path. Each file Module.writeSystemVerilogFiles() writes includes the
+// files it needs, and so does SV a test script writes by hand to instantiate a design (a lint
+// wrapper for a module with interface ports, a testbench: ts/test/models/guardSV.ts). So each
+// .sv that no other file in its directory includes is a top, linted on its own, and its lint
+// reaches everything it includes. A Verilator filelist, <top>.f, ties generated SV to a
+// testbench outside sv-examples/ (ts/test/models/lintFilelist.ts). It is linted with -F, and the
+// .sv files it names aren't tops. A warning is a finding against the file it points at. One in a
+// file outside sv-examples/, such as a hand-written testbench in verilatorTB/, isn't generated SV
+// and isn't checked.
 //
 // The scans run on each .sv file. SYN-1 skips the modules a test script marked as testbenches
 // (ts/test/models/testbench.ts).
@@ -21,9 +24,9 @@
 //
 // Exits 0 if there are no findings and no Verilator errors, 1 otherwise.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
-import { lint, requirePinnedVerilator } from '../../tools/verilator.mjs'
+import { lint, lintTops, requirePinnedVerilator } from '../../tools/verilator.mjs'
 import { scanFile } from './sv-scans.mjs'
 
 const OUT = 'sv-examples'
@@ -41,7 +44,12 @@ if (!existsSync(OUT)) {
 }
 
 const repoPath = (p) => relative('.', resolve(p))
-const inScope = (p) => p.startsWith(`${OUT}/`) && !Object.keys(LEFT_OUT).some((e) => p.startsWith(e))
+// A file imported with addSystemVerilogSubmodule() is copied in untouched, inside its SVIMPORT__
+// guard (writeSystemVerilogFiles()). It is hand-written input, not generated SV, so the SV guide
+// doesn't apply to it, as it doesn't to a file outside sv-examples/. It is still linted, through
+// the parent that includes it.
+const imported = (p) => statSync(p).isFile() && readFileSync(p, 'utf8').startsWith('`ifndef SVIMPORT__')
+const inScope = (p) => p.startsWith(`${OUT}/`) && !Object.keys(LEFT_OUT).some((e) => p.startsWith(e)) && !imported(p)
 
 const generated = readdirSync(OUT, { recursive: true }).map((p) => join(OUT, p)).filter(inScope).sort()
 const svFiles = generated.filter((p) => p.endsWith('.sv'))
@@ -64,9 +72,11 @@ for (const filelist of filelists) {
   for (const line of readFileSync(filelist, 'utf8').split('\n').map((l) => l.trim())) {
     if (line.endsWith('.sv') && !line.startsWith('//') && !line.startsWith('-')) grouped.add(repoPath(join(dirname(filelist), line)))
   }
-  units.push({ label: filelist, files: [], flags: ['-F', filelist] })
+  units.push({ label: filelist, files: [], flags: [`+incdir+${dirname(filelist)}`, '-F', filelist] })
 }
-for (const file of svFiles.filter((f) => !grouped.has(f))) units.push({ label: file, files: [file], flags: [] })
+for (const file of lintTops(svFiles).filter((f) => !grouped.has(f))) {
+  units.push({ label: file, files: [file], flags: [`+incdir+${dirname(file)}`] })
+}
 
 const seen = new Set() // a file in two units reports the same warning twice
 for (const unit of units) {

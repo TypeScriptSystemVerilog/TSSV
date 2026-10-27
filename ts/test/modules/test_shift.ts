@@ -40,12 +40,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write a shift's SV to sv-examples/shift/<name>/<name>.sv and return its path */
+/** write a shift's SV under sv-examples/shift/<name>/ and return the path of its own file */
 function emit (s: shift): string {
-  const dir = `${OUT}/${s.name}`
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(`${dir}/${s.name}.sv`, s.writeSystemVerilog())
-  return `${dir}/${s.name}.sv`
+  return s.writeSystemVerilogFiles(`${OUT}/${s.name}`).at(-1) ?? ''
 }
 
 /** the spec's IO table for a configuration: "<port>:<width>", sorted */

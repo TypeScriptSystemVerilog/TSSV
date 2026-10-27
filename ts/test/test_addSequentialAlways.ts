@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -71,7 +71,7 @@ const outArr: string[] = ['count', 'doubleCount']
 seq_tb.addSequentialAlways({ clk: 'clk', reset: 'rst_b', outputs: outArr }, body)
 
 try {
-  writeFileSync('sv-examples/Core/addSequentialAlways/seq_tb.sv', seq_tb.writeSystemVerilog())
+  seq_tb.writeSystemVerilogFiles('sv-examples/Core/addSequentialAlways')
 } catch (err) {
   console.error(err)
 }

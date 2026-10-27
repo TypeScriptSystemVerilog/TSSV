@@ -35,15 +35,11 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SCANS } from '../../sv-style/tools/sv-scans.mjs'
-import { lint, requirePinnedVerilator } from '../../tools/verilator.mjs'
+import { lint, lintTops, requirePinnedVerilator } from '../../tools/verilator.mjs'
 
 const DOC = 'doc/rtl-style/tssv-style/tssv-coding-style.md'
 const WORK = 'sv-examples/rtl_style_ts'
 const EXPECTATIONS = ['throws', 'emits', 'lacks', 'lint', 'allow', 'tserror']
-// writeSystemVerilog() puts a module's submodule definitions ahead of it in the same file, so a
-// file named after the module starts with another module. That is the emission layout, not
-// something an example can change.
-const LINT_FLAGS = ['-Wno-DECLFILENAME']
 
 // ---------------------------------------------------------------- parse the doc
 export function parseExamples (doc) {
@@ -92,16 +88,14 @@ export function parseExamples (doc) {
 }
 
 // ---------------------------------------------------------------- generate the sources
-const PRELUDE = `import { mkdirSync, writeFileSync } from 'fs'
+const PRELUDE = `import { readFileSync } from 'fs'
 import { type Module } from 'tssv/lib/core/TSSV'
 
 const OUT = process.env.EXAMPLE_OUT ?? '${WORK}/sv'
 
+// Writes m one module per file, and returns m's own file
 export function emit (m: Module): string {
-  mkdirSync(OUT, { recursive: true })
-  const sv = m.writeSystemVerilog()
-  writeFileSync(\`\${OUT}/\${m.name}.sv\`, sv)
-  return sv
+  return readFileSync(m.writeSystemVerilogFiles(OUT).at(-1) ?? '', 'utf8')
 }
 
 export function expect (cond: boolean, msg: string): void {
@@ -212,14 +206,18 @@ function main () {
       problems.push('emitted no module to check')
     }
 
+    // Lint each top, a file no other file includes: its lint reaches what it includes (USE_INCLUDES)
     const warnings = new Set()
+    const tops = new Set(lintTops(files))
     files.forEach((f, n) => {
-      const l = lint([f], LINT_FLAGS)
-      if (l.errors.length > 0) problems.push(`${f} does not elaborate: ${l.errors.join('; ')}`)
-      for (const w of l.warnings) warnings.add(w)
-      if (ex.kind === 'do') {
+      if (tops.has(f)) {
+        const l = lint([f], [`+incdir+${out}`])
+        if (l.errors.length > 0) problems.push(`${f} does not elaborate: ${l.errors.join('; ')}`)
+        for (const w of l.warnings) warnings.add(w)
         const unexpected = l.warnings.filter((w) => !want('allow').includes(w))
-        if (unexpected.length > 0) problems.push(`${f} has lint warnings: ${unexpected.join(', ')}\n${l.out.replace(/^/gm, '    ')}`)
+        if (ex.kind === 'do' && unexpected.length > 0) problems.push(`${f} has lint warnings: ${unexpected.join(', ')}\n${l.out.replace(/^/gm, '    ')}`)
+      }
+      if (ex.kind === 'do') {
         for (const [rule, scan] of Object.entries(SCANS)) {
           for (const finding of new Set(scan(svs[n]))) problems.push(`${f} ${rule}: ${finding}`)
         }

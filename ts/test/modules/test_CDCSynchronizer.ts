@@ -11,7 +11,7 @@
 // -Wall and simulate each configuration.
 
 import { CDCSynchronizer } from 'tssv/lib/modules/CDCSynchronizer'
-import { mkdirSync, writeFileSync } from 'fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { diagramTasks } from '../models/wavedromVectors.js'
 
 const SPEC = 'doc/modules/CDCSynchronizer/CDCSynchronizer-spec.md'
@@ -41,13 +41,10 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write a synchronizer's SV to sv-examples/CDCSynchronizer/<name>/<name>.sv and return it and its path */
+/** write a synchronizer's SV under sv-examples/CDCSynchronizer/<name>/ and return its own file's text and path */
 function emit (s: CDCSynchronizer): { sv: string, path: string } {
-  const dir = `${OUT}/${s.name}`
-  mkdirSync(dir, { recursive: true })
-  const sv = s.writeSystemVerilog()
-  writeFileSync(`${dir}/${s.name}.sv`, sv)
-  return { sv, path: `${dir}/${s.name}.sv` }
+  const path = s.writeSystemVerilogFiles(`${OUT}/${s.name}`).at(-1) ?? ''
+  return { sv: readFileSync(path, 'utf8'), path }
 }
 
 // ============================================ 1. checks against the spec

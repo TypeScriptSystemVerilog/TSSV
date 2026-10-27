@@ -1,14 +1,12 @@
 import { Module, type SVImportOptions, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
-import { writeFileSync, mkdirSync, readFileSync } from 'fs'
-import { posix } from 'path'
+import { mkdirSync, readFileSync } from 'fs'
 import { spawnSync } from 'child_process'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
+import { moduleSV } from 'tssv/test/models/emitted'
 
 // Regression test for addSystemVerilogSubmodule header parsing (issue #48)
 
 const OUT = 'sv-examples/Core/importParse'
-const GENERATOR = 'ts/test/test_importParse.ts'
 
 try {
   mkdirSync(OUT, { recursive: true })
@@ -60,7 +58,7 @@ const ansiLeaf = ansiTop.addSystemVerilogSubmodule(
 check('ANSI module name', ansiLeaf.name, 'leaf')
 check('ANSI directions', directions(ansiLeaf),
   { s: 'input', a: 'input', en: 'input', b: 'input', c: 'input', y: 'output', sy: 'output' })
-check('ANSI instance', ansiTop.writeSystemVerilog().replace(/\s+/g, '').includes('leaf#(.W(8),.N(4))u_leaf('), true)
+check('ANSI instance', moduleSV(ansiTop).replace(/\s+/g, '').includes('leaf#(.W(8),.N(4))u_leaf('), true)
 
 // child direction does not depend on the parent signal's direction
 const mixedTop = new Module({ name: 'importParse_mixed' }, {
@@ -134,17 +132,10 @@ checkThrows('missing verible-verilog-syntax',
   /could not run verible-verilog-syntax \(is Verible installed\?\)/)
 
 // The imported files are this test's inputs, written by hand to hold the cases the parser must
-// handle, not generated SV. So each top is written without the module it imports, and its lint
-// filelist names the imported file where it is.
-function writeTop (top: Module, child: Module, imported: string): void {
-  writeFileSync(`${OUT}/${top.name}.sv`, top.writeSystemVerilog({ exclude: new Set([child.name]) }))
-  writeLintFilelist(OUT, top.name, [posix.relative(OUT, imported), `${top.name}.sv`], GENERATOR)
-}
-
+// handle, not generated SV. writeSystemVerilogFiles() copies each next to its top untouched,
+// inside its SVIMPORT__ guard, and the top includes it.
 try {
-  writeTop(ansiTop, ansiLeaf, 'ts/test/importParse/leaf.sv')
-  writeTop(nonAnsiTop, nonAnsiLeaf, 'ts/test/importParse/leaf_nonansi.sv')
-  writeTop(multiTop, multiLeaf, 'ts/test/importParse/two_modules.sv')
+  for (const top of [ansiTop, nonAnsiTop, multiTop]) top.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }

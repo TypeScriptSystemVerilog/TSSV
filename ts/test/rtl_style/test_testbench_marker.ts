@@ -7,7 +7,7 @@
  * works per module: it skips a module marked as a testbench, and still reports a design module
  * in the same file.
  *
- * Test 1: one emission holds the marked testbench and the unmarked design
+ * Test 1: the emitted files, joined, hold the marked testbench and the unmarked design
  * Test 2: SYN-1 reports the design's `initial` and `$display`, and nothing in the testbench
  * Test 3: without its marker, the testbench is reported too
  *
@@ -15,6 +15,7 @@
  * check-generated-sv.mjs checks everything there.
  */
 import { Module } from 'tssv/lib/core/TSSV'
+import { emittedFiles } from 'tssv/test/models/emitted'
 import { markTestbench, TESTBENCH_MARKER } from 'tssv/test/models/testbench'
 
 interface Scans {
@@ -72,11 +73,13 @@ const tb = markTestbench(new Module(
   end
 `))
 tb.addSubmodule('dut', design, { clk: 'clk', q: 'q' })
-const sv = tb.writeSystemVerilog()
+// One text with both modules: each file writeSystemVerilogFiles() writes, joined in the order it
+// returns them, as a build that names every file reads them
+const sv = [...emittedFiles(tb).values()].join('\n')
 
 // ---- Test 1 ---------------------------------------------------------------------------------
 const modules = scans.svModules(sv).map((m) => `${m.name}${m.testbench ? ' (testbench)' : ''}`)
-check('one emission holds the marked testbench and the unmarked design',
+check('the emitted files hold the marked testbench and the unmarked design',
   modules.join(', ') === 'syn1_design, syn1_tb (testbench)', `modules: ${modules.join(', ')}`)
 
 // ---- Test 2 ---------------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'fs'
 import { Module } from 'tssv/lib/core/TSSV'
 import { runVerible } from 'tssv/lib/tools/formatters/verible'
+import { moduleSV } from 'tssv/test/models/emitted'
 
 const OUT = 'sv-examples/Core/verible'
 
@@ -166,8 +167,8 @@ if (veribleAvailable) {
   skip('syntax error in the formatter (verible-verilog-format not found on PATH)')
 }
 
-// --- Test 8: a syntax error in a module, through writeSystemVerilog() ---
-// writeSystemVerilog() checks each module's SV before it formats the output, so the check finds
+// --- Test 8: a syntax error in a module, through writeSystemVerilogFiles() ---
+// writeSystemVerilogFiles() checks each module's SV before it formats the output, so the check finds
 // the syntax error first, and throws whatever the formatter configuration says: the formatter
 // never runs, and failOnFormatError=false doesn't make the error a warning
 if (veribleAvailable) {
@@ -193,7 +194,7 @@ if (veribleAvailable) {
     console.warn = (msg: string) => { warnings.push(msg) }
     let msg = ''
     try {
-      bad.writeSystemVerilog()
+      moduleSV(bad)
     } catch (e) {
       msg = (e as Error).message
     } finally {

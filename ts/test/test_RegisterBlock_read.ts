@@ -142,6 +142,7 @@ mkdirSync(OUT_DIR, { recursive: true })
 for (const { block, def, sweepLimit } of blocks) {
   const tb = new RegisterBlockTestbench(block, def, GENERATOR, 'TSSV#79, TSSV#130')
   readPath(tb, def, sweepLimit)
-  tb.emit(OUT_DIR, writeLintWrapped(block, OUT_DIR, GENERATOR))
+  writeLintWrapped(block, OUT_DIR, GENERATOR)
+  tb.emit(OUT_DIR)
   console.log(`wrote ${OUT_DIR}/${block.name}.sv, ${block.name}_lint_top.sv and ${tb.name}.sv`)
 }

@@ -1,6 +1,6 @@
 // import { Module, addRegister } from 'tssv/lib/core/TSSV'
 import { Module, Expr } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -65,7 +65,7 @@ regMod.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod.name}.sv`, regMod.writeSystemVerilog())
+  regMod.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -129,7 +129,7 @@ regMod2.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod2.name}.sv`, regMod2.writeSystemVerilog())
+  regMod2.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -194,7 +194,7 @@ regMod3.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod3.name}.sv`, regMod3.writeSystemVerilog())
+  regMod3.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -272,7 +272,7 @@ regMod4.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod4.name}.sv`, regMod4.writeSystemVerilog())
+  regMod4.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -343,7 +343,7 @@ regMod5.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod5.name}.sv`, regMod5.writeSystemVerilog())
+  regMod5.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -413,7 +413,7 @@ regMod6.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod6.name}.sv`, regMod6.writeSystemVerilog())
+  regMod6.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -486,7 +486,7 @@ regMod7.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod7.name}.sv`, regMod7.writeSystemVerilog())
+  regMod7.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }
@@ -555,7 +555,7 @@ regMod8.addRegister(
 )
 
 try {
-  writeFileSync(`sv-examples/Core/addRegister/${regMod8.name}.sv`, regMod8.writeSystemVerilog())
+  regMod8.writeSystemVerilogFiles('sv-examples/Core/addRegister')
 } catch (err) {
   console.error(err)
 }

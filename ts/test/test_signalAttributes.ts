@@ -15,11 +15,10 @@
  * Test 6: attributes on an interface signal throw
  */
 import { Module, Interface, type SVAttributes } from 'tssv/lib/core/TSSV'
-import { mkdirSync, writeFileSync } from 'fs'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
+import { readFileSync } from 'fs'
+import { moduleSV } from 'tssv/test/models/emitted'
 
 const outDir = 'sv-examples/Core/signalAttributes'
-try { mkdirSync(outDir, { recursive: true }) } catch (e) {}
 
 let passed = 0
 let failed = 0
@@ -76,8 +75,7 @@ class AttrDemo extends Module {
   }
 }
 
-const demoSV = new AttrDemo().writeSystemVerilog()
-writeFileSync(`${outDir}/attr_demo.sv`, demoSV)
+const demoSV = readFileSync(new AttrDemo().writeSystemVerilogFiles(outDir).at(-1) ?? '', 'utf8')
 const demoLines = lines(demoSV)
 
 const expected: Array<[string, string]> = [
@@ -106,7 +104,7 @@ class EmptyMap extends Module {
   }
 }
 check('Test 2: attributes: {} emits the same SV as no attributes',
-  new EmptyMap({}).writeSystemVerilog() === new EmptyMap(undefined).writeSystemVerilog())
+  moduleSV(new EmptyMap({})) === moduleSV(new EmptyMap(undefined)))
 
 // ---- Test 3: invalid attributes throw -----------------------------------------------------
 class OneAttr extends Module {
@@ -120,7 +118,7 @@ class OneAttr extends Module {
     this.addBody('assign t = a;\nassign y = t;')
   }
 }
-const emit = (attributes: SVAttributes, onPort = false) => () => new OneAttr(attributes, onPort).writeSystemVerilog()
+const emit = (attributes: SVAttributes, onPort = false) => () => moduleSV(new OneAttr(attributes, onPort))
 
 expectThrow('Test 3: name starting with a digit', emit({ '9lives': true }), 'not a legal SystemVerilog identifier')
 expectThrow('Test 3: name with a hyphen', emit({ 'ram-style': 'block' }), 'not a legal SystemVerilog identifier')
@@ -161,13 +159,8 @@ class Parent extends Module {
     this.addBody("assign din = 8'd5;")
   }
 }
-// One module per file, so each file lints clean of DECLFILENAME
-const defined = new Set<string>()
-const childSV = new Child().writeSystemVerilog({ defined })
-const parentSV = new Parent().writeSystemVerilog({ exclude: defined })
-writeFileSync(`${outDir}/attr_child.sv`, childSV)
-writeFileSync(`${outDir}/attr_parent.sv`, parentSV)
-writeLintFilelist(outDir, 'attr_parent', ['attr_child.sv', 'attr_parent.sv'], 'ts/test/test_signalAttributes.ts')
+// One module per file: the child's, then the parent's, which includes it
+const [childSV = '', parentSV = ''] = new Parent().writeSystemVerilogFiles(outDir).map(f => readFileSync(f, 'utf8'))
 check('Test 5: the child keeps its port attribute',
   lines(childSV).includes('(* mark_debug = "true" *) input logic [7:0] din,'))
 check('Test 5: the created parent signal has no attributes',
@@ -189,7 +182,7 @@ class BusUser extends Module {
     this.addBody('assign y = bus.req;')
   }
 }
-expectThrow('Test 6: attributes on an interface signal throw', () => new BusUser().writeSystemVerilog(),
+expectThrow('Test 6: attributes on an interface signal throw', () => moduleSV(new BusUser()),
   'attr_bus.req: attributes are not supported on interface signals')
 
 console.log(`\n${passed} passed, ${failed} failed`)
