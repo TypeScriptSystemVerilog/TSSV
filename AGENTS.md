@@ -56,7 +56,7 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `doc/rtl-style/sv-style/sv-coding-style.md` | SV guide: rules for the SystemVerilog a module emits (`COMB`, `SEQ`, `RST`, `LATCH`, `WIDTH`, `SYN`, `LINT` rule IDs) |
 | `doc/rtl-style/tssv-style/tssv-coding-style.md` | TSSV guide: rules for the TypeScript that generates it: parameters and widths, module structure, builder choice, naming, tests (`PARAM`, `MOD`, `BUILD`, `IDENT`, `TEST` rule IDs) |
 | `doc/ideas/body-formatting-spike-spec.md`, `doc/ideas/body-formatting-spike-implementation-plan.md` | Why and how `addBody()` and the Verible formatter were added (implemented) |
-| `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating |
+| `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating, the merge method, stacked PRs |
 | `README.md` | Machine setup (agent-first; pinned Node/Verible/Verilator), quick-start demo, roadmap |
 | `CONTRIBUTING.md` | The license (Apache-2.0) and the DCO sign-off every commit needs, including the rule for commits an agent writes |
 | `CLAUDE.md` | Notes specific to Claude Code as a tool; defers to this file for everything else |
@@ -97,9 +97,11 @@ is the authoritative spec; this section is the operating procedure an agent foll
    larger task, link it with `gh issue edit <n> --parent <parent>`.
 2. **Branch.** `git checkout -b <type>/<issue-number>-<kebab-slug> --no-track origin/main`
    (never work on `main` directly). The `--no-track` matters: without it the branch's
-   upstream is `origin/main`, and a push that targets the upstream lands on `main`. Assign
-   the issue (`gh issue edit <n> --add-assignee @me`) and backfill the branch into the
-   issue body's `Links` field (`doc/process/issue-workflow.md` §5).
+   upstream is `origin/main`, and a push that targets the upstream lands on `main`. If the
+   work needs another open PR's branch, start from that branch instead and stack the PR on
+   it (`doc/process/issue-workflow.md` §8). Assign the issue
+   (`gh issue edit <n> --add-assignee @me`) and backfill the branch into the issue body's
+   `Links` field (`doc/process/issue-workflow.md` §5).
 3. **Implement**, committing with the template in `.github/COMMIT_TEMPLATE.txt`:
    `<type>(#<issue>): <summary>` where `<type>` is a Conventional-Commits tag (`feat`,
    `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `build`) describing the diff,
@@ -108,18 +110,21 @@ is the authoritative spec; this section is the operating procedure an agent foll
    identity of the person running the session, never the agent's own (`CONTRIBUTING.md`).
 4. **Narrate progress as issue comments**, not by rewriting the issue body: what was tried,
    decisions/deviations from the original scope.
-5. **Open the PR** with `gh pr create`, following `.github/PULL_REQUEST_TEMPLATE.md`: body
-   has `Closes #<issue-number>`, reproduces the Acceptance Criteria checklist from the
-   issue, and states the test plan (commands actually run). If the PR changes generated SV,
-   post that SV as PR comments and link them from the description; if not, say so
-   (`doc/process/issue-workflow.md` §5, "Showing the generated SV"). Backfill the PR into the
-   issue's `Links` field.
+5. **Open the PR** with `gh pr create` (`--base <parent-branch>` for a stacked PR),
+   following `.github/PULL_REQUEST_TEMPLATE.md`: body has `Closes #<issue-number>`,
+   reproduces the Acceptance Criteria checklist from the issue, and states the test plan
+   (commands actually run). If the PR changes generated SV, post that SV as PR comments and
+   link them from the description; if not, say so (`doc/process/issue-workflow.md` §5,
+   "Showing the generated SV"). Backfill the PR into the issue's `Links` field.
 6. **Verify AC before checking any box.** Run the build/tests/lint the checklist calls for
    (`npx tsc`, `node out/test/test_<Name>.js`, `bash runAllTests.sh`, `npx eslint .`,
    `verilator --lint-only ...`), confirm the actual output, then check boxes in the PR
    description accordingly.
 7. **Hand off for merge — do not merge unilaterally.** Merging is the human's call. Report
-   the PR as ready and wait. Once merged, confirm the issue auto-closed via `Closes #`.
+   the PR as ready and wait. Merge with **Create a merge commit**, not squash or rebase: it
+   keeps each commit as it was reviewed, and a PR stacked on this one keeps showing only its
+   own commits (`doc/process/issue-workflow.md` §8, "Stacked PRs"). Once merged, confirm the
+   issue auto-closed via `Closes #`.
 
 ## Conventions
 
