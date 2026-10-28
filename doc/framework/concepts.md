@@ -295,8 +295,6 @@ Each binding, explicit or automatic, is checked:
 
 ### Things `addSubmodule` doesn't check
 
-- **Repeated instance names.** Adding a second child with an existing instance name replaces
-  the first one silently. ([#84](https://github.com/TypeScriptSystemVerilog/TSSV/issues/84))
 - **Shared bindings objects.** The `bindings` object is stored and then mutated, as autoBind
   and constant/extension handling add or rewrite entries. Pass a fresh object to each call.
 
