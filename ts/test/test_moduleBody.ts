@@ -1,6 +1,6 @@
 import { type AlwaysBlock, type Write, readModuleBody } from 'tssv/lib/core/ModuleBody'
 
-// Unit test of the module reader the SV-guide checks in writeSystemVerilog() use (issues #149,
+// Unit test of the module reader the SV-guide checks in emission use (issues #149,
 // #166): what it reads from Verible's syntax tree, and the syntax errors it reports.
 
 let failures = 0

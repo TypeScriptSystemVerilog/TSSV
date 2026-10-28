@@ -2,14 +2,14 @@
 // each RegisterBlockDef
 // below, this writes, under sv-examples/RegisterBlock_types/:
 // - <block>.sv: the block, and memory_<type>_<data width>_32.sv for each Memory interface it has
-//   as a port
-// - <block>_lint_top.sv: a lint wrapper (ts/test/models/lintWrapper.ts)
+//   (Module.writeSystemVerilogFiles())
+// - <block>_lint_top.sv: a lint wrapper (ts/test/models/lintWrapper.ts) that includes <block>.sv
 // - tb_<block>.sv: a testbench generated from the same definition. Every address, window size,
-//   width, field range, reset value and expected wait-state count it checks comes from there
+//   width, field range, reset value and expected wait-state count it checks comes from there. It
+//   includes <block>.sv and the models it uses, so `npm run lint:sv` lints it as a top, and
+//   `make -C verilatorTB regblock_types_sim` builds it with USE_INCLUDES
 // - memory_master_*.sv, memory_slave_*.sv: the Memory master BFM and slave models the testbenches
 //   use (ts/test/models/MemoryModels.ts), one per file
-// - a lint filelist (.f) for each lint top and each testbench, for `npm run lint:sv`; the
-//   testbench's is also what `make -C verilatorTB regblock_types_sim` builds it from
 //
 // The testbench drives `regs` with the master BFM and serves each RAM/ROM window with a slave
 // model. It checks, for each type:
@@ -37,7 +37,7 @@ import { RegisterBlock, RegisterType } from 'tssv/lib/core/Registers'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
+import { guardSV } from 'tssv/test/models/guardSV'
 import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
 import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
@@ -483,8 +483,7 @@ const blocks = [
 mkdirSync(OUT_DIR, { recursive: true })
 const models = new Map<string, string>()
 for (const { block, def } of blocks) {
-  const design = writeLintWrapped(block, OUT_DIR, GENERATOR)
-  writeFileSync(`${OUT_DIR}/tb_${block.name}.sv`, testbench(block, def))
+  writeLintWrapped(block, OUT_DIR, GENERATOR)
   const dataWidth = def.wordSize as 32 | 64
   const used = [memoryMasterName({ dataWidth })]
   models.set(memoryMasterName({ dataWidth }), memoryMasterBfm({ dataWidth }))
@@ -492,10 +491,10 @@ for (const { block, def } of blocks) {
     used.push(memorySlaveName({ type, dataWidth }))
     models.set(memorySlaveName({ type, dataWidth }), memorySlaveModel({ type, dataWidth }))
   }
-  // verilatorTB/Makefile's regblock_types_sim builds the testbench from this filelist too
-  writeLintFilelist(OUT_DIR, `tb_${block.name}`, [`tb_${block.name}.sv`, ...design, ...used.map(m => `${m}.sv`)], GENERATOR)
+  const includes = [`${block.name}.sv`, ...used.map(m => `${m}.sv`)]
+  writeFileSync(`${OUT_DIR}/tb_${block.name}.sv`, guardSV(`tb_${block.name}`, includes, testbench(block, def)))
   console.log(`wrote ${OUT_DIR}/${block.name}.sv, ${block.name}_lint_top.sv and tb_${block.name}.sv`)
 }
 // The Memory master BFMs and slave models, each in a file named after it
-for (const [name, sv] of models) writeFileSync(`${OUT_DIR}/${name}.sv`, sv)
+for (const [name, sv] of models) writeFileSync(`${OUT_DIR}/${name}.sv`, guardSV(name, [], sv))
 console.log(`wrote ${OUT_DIR}/${[...models.keys()].join('.sv, ')}.sv`)

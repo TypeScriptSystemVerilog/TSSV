@@ -4,18 +4,17 @@
 //    module names, every depth and a 1026-bit width, ASYNC_REG on every synchronizer flop, each
 //    module in its own file, fpgaRamStyle reaching the storage, and the invalid parameters that
 //    throw.
-// 2. The testbench configurations (TB_CONFIGS), each emitted one module per file with a lint
-//    filelist (emitSplit), plus sv-examples/AFIFO/tb/:
+// 2. The testbench configurations (TB_CONFIGS), each emitted one module per file
+//    (writeSystemVerilogFiles()), plus sv-examples/AFIFO/tb/:
 //    - AFIFO_tb_configs.svh: per-configuration DUT name, width, depth, syncStages and flags
 //    - AFIFO_tb_vectors.svh: one task per timing diagram in the spec
-//    - configs.txt: "<config> <.sv paths>" per line, read by `make afifo_sim`
+//    - configs.txt: "<config> <top .sv path>" per line, read by `make afifo_sim`
 //
 // Run `make -C verilatorTB afifo_sim` to generate everything, lint each variant with -Wall and
 // simulate each configuration.
 
 import { AFIFO, type AFIFO_Parameters } from 'tssv/lib/modules/AFIFO'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { emitSplit } from '../models/emitSplit.js'
 import { diagramTasks } from '../models/wavedromVectors.js'
 
 const SPEC = 'doc/modules/AFIFO/AFIFO-spec.md'
@@ -47,7 +46,7 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
 }
 
 /** emit an AFIFO one module per file under sv-examples/AFIFO/<name>/ and return the paths, the AFIFO's last */
-const emit = (f: AFIFO): string[] => emitSplit(f, `${OUT}/${f.name}`, GENERATOR)
+const emit = (f: AFIFO): string[] => f.writeSystemVerilogFiles(`${OUT}/${f.name}`)
 const portsOf = (f: AFIFO): string => Object.keys((f as unknown as { IOs: Record<string, unknown> }).IOs).sort().join(' ')
 const fileOf = (files: string[], module: string): string => {
   const path = files.find(p => p.endsWith(`/${module}.sv`))
@@ -163,7 +162,7 @@ TB_CONFIGS.forEach((c, i) => {
     inclAlmostFull: c.flags,
     inclAlmostEmpty: c.flags
   })
-  configList.push(`${c.cfg} ${emit(f).join(' ')}`)
+  configList.push(`${c.cfg} ${emit(f).at(-1) ?? ''}`)
   configs += `\`${i === 0 ? 'ifdef' : 'elsif'} CFG_${c.cfg}\n`
   configs += `  \`define CFG_NAME "${c.cfg}"\n`
   configs += `  \`define AFIFO_DUT ${f.name}\n`

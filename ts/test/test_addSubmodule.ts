@@ -4,9 +4,7 @@ import { mkdirSync } from 'fs'
 import { Q_Channel } from 'tssv/lib/interfaces/AMBA/AMBA4/Q-Channel/r0p0_0/Q-Channel'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { markTestbench } from 'tssv/test/models/testbench'
-import { emitSplit } from 'tssv/test/models/emitSplit'
 
-const GENERATOR = 'ts/test/test_addSubmodule.ts'
 const OUT = 'sv-examples/Core/addSubmodule'
 
 try {
@@ -99,7 +97,7 @@ sub_tb.addSignal('sum', { width: 18, isSigned: true })
 sub_tb.addSubmodule('add', new Adder({ aWidth: 17, bWidth: 17 }), { a: 'a', b: 'b', sum: 'sum' }, false, false, true)
 
 try {
-  emitSplit(sub_tb, OUT, GENERATOR)
+  sub_tb.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }
@@ -190,7 +188,7 @@ subA_tb.addSignal('b', { width: 8, isSigned: true })
 subA_tb.addSubmodule('subtract', new Subber({ aWidth: 8, bWidth: 8 }), { a: 'a' }, true, true, false)
 
 try {
-  emitSplit(subA_tb, OUT, GENERATOR)
+  subA_tb.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }
@@ -258,7 +256,7 @@ subU_tb.addSignal('b', { width: 8, isSigned: false })
 subU_tb.addSubmodule('sub', new Subber({ aWidth: 9, bWidth: 9 }), {}, true, true, true)
 
 try {
-  emitSplit(subU_tb, OUT, GENERATOR)
+  subU_tb.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }
@@ -307,7 +305,7 @@ const subI_tb = markTestbench(new Module(
 subI_tb.addSubmodule('device', qDevice, {}, true, true, true)
 
 try {
-  emitSplit(subI_tb, OUT, GENERATOR)
+  subI_tb.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }

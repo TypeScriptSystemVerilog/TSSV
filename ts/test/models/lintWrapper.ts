@@ -2,11 +2,11 @@
 // A module with an interface port can't be the top on its own: nothing would drive the
 // interface, and Verilator reports its signals as UNDRIVEN/UNUSED. The wrapper instantiates each
 // interface port's interface and brings every signal of it, and every plain port, out to a port
-// of its own.
+// of its own. Its file includes the module's (guardSV.ts), so it is the top that lints the
+// module, and the module's file is never linted alone.
 import { type Interface, type Module } from 'tssv/lib/core/TSSV'
 import { writeFileSync } from 'fs'
-import { writeSplit } from './emitSplit.js'
-import { writeLintFilelist } from './lintFilelist.js'
+import { guardSV } from './guardSV.js'
 
 interface PortInfo { direction: string, width?: number, isSigned?: boolean }
 
@@ -58,14 +58,13 @@ endmodule
 }
 
 /**
- * Writes `module` one definition per file, as writeSplit() does (DECLFILENAME), its lint wrapper
- * to `<dir>/<module>_lint_top.sv`, and the filelist `<dir>/<module>_lint_top.f` that lints them.
- * Returns the files that define the module, relative to `dir` and `module`'s last, for another
- * filelist that instantiates it.
+ * Writes `module` with writeSystemVerilogFiles(), then its lint wrapper to
+ * `<dir>/<module>_lint_top.sv`, which includes `<module>.sv`. Returns the paths
+ * writeSystemVerilogFiles() wrote, `module`'s last.
  */
 export function writeLintWrapped (module: Module, dir: string, generator: string): string[] {
-  const design = writeSplit(module, dir)
-  writeFileSync(`${dir}/${module.name}_lint_top.sv`, lintWrapper(module, generator))
-  writeLintFilelist(dir, `${module.name}_lint_top`, [...design, `${module.name}_lint_top.sv`], generator)
+  const design = module.writeSystemVerilogFiles(dir)
+  const top = `${module.name}_lint_top`
+  writeFileSync(`${dir}/${top}.sv`, guardSV(top, [`${module.name}.sv`], lintWrapper(module, generator)))
   return design
 }

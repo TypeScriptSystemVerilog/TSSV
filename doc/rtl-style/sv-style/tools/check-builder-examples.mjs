@@ -2,14 +2,14 @@
 // Run the TSSV builder and module checks (ts/test/rtl_style/test_rtl_style_builders.ts), then
 // check the SV they generate: it must lint clean under -Wall and pass the generated-SV rules
 // (SYN-1, LINT-3). A builder check may belong to a rule in either guide; the rule's rules.json
-// entry must list "builder", or "module" for a rule writeSystemVerilog() enforces. Exits 0 if
+// entry must list "builder", or "module" for a rule writeSystemVerilogFiles() enforces. Exits 0 if
 // everything passes, 1 otherwise.
 
 import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { GENERATED_RULES, SCANS } from './sv-scans.mjs'
-import { lint, requirePinnedVerilator } from '../../tools/verilator.mjs'
+import { lint, lintTops, requirePinnedVerilator } from '../../tools/verilator.mjs'
 
 const TEST = 'out/test/rtl_style/test_rtl_style_builders.js'
 const OUT = 'sv-examples/rtl_style'
@@ -42,12 +42,16 @@ for (const rule of builderRules) {
   if (!results.some((r) => r.rule === rule)) fail(`${rule}: rules.json lists "builder" or "module" but no check exists`)
 }
 
-// Generated SV: lint, then scans.
-for (const f of readdirSync(OUT).filter((n) => n.endsWith('.sv')).sort()) {
-  const file = join(OUT, f)
-  const l = lint([file])
-  if (l.errors.length > 0 || l.warnings.length > 0) fail(`${file}: lint ${[...l.errors, ...l.warnings].join(', ')}`)
-  else console.log(`PASS: ${file} lints clean`)
+// Generated SV: lint each top, a file no other file includes, with USE_INCLUDES (its lint reaches
+// what it includes), then scan every file.
+const files = readdirSync(OUT).filter((n) => n.endsWith('.sv')).sort().map((f) => join(OUT, f))
+const tops = new Set(lintTops(files))
+for (const file of files) {
+  if (tops.has(file)) {
+    const l = lint([file], [`+incdir+${OUT}`])
+    if (l.errors.length > 0 || l.warnings.length > 0) fail(`${file}: lint ${[...l.errors, ...l.warnings].join(', ')}`)
+    else console.log(`PASS: ${file} lints clean`)
+  }
   const sv = readFileSync(file, 'utf8')
   for (const [rule, scan] of Object.entries(SCANS)) {
     for (const finding of new Set(scan(sv))) fail(`${file} ${rule}: ${finding}`)

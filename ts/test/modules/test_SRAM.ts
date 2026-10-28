@@ -18,6 +18,7 @@
 
 import { SRAM, type SRAM_Parameters } from 'tssv/lib/modules/SRAM'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { moduleSV } from '../models/emitted.js'
 import { ABSENT, expandLane, type Lane } from '../models/wavedromVectors.js'
 
 const SPEC = 'doc/modules/SRAM/SRAM-spec.md'
@@ -47,12 +48,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write an SRAM's SV to sv-examples/SRAM/<name>/<name>.sv and return that path */
+/** write an SRAM's SV under sv-examples/SRAM/<name>/ and return the path of its own file */
 function emit (mem: SRAM): string {
-  const dir = `${OUT}/${mem.name}`
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(`${dir}/${mem.name}.sv`, mem.writeSystemVerilog())
-  return `${dir}/${mem.name}.sv`
+  return mem.writeSystemVerilogFiles(`${OUT}/${mem.name}`).at(-1) ?? ''
 }
 
 type Ports = SRAM_Parameters['ports']
@@ -290,7 +288,7 @@ for (const ports of ['1rw', '1r_1w'] as const) {
 
 // ============================================ minMacroBits (spec: Synthesis mapping)
 // Vivado isn't told how to build mem on either side of minMacroBits: no ram_style attribute
-const hasRamStyle = (mem: SRAM): boolean => mem.writeSystemVerilog().includes('ram_style')
+const hasRamStyle = (mem: SRAM): boolean => moduleSV(mem).includes('ram_style')
 const at = (minMacroBits: bigint | undefined, dataWidth = 8n, depth = 4n): SRAM => new SRAM({ dataWidth, depth, ports: '1rw', minMacroBits })
 check('no ram_style below minMacroBits (32 bits, 1024) or at it (1024 bits, 1024)', !hasRamStyle(at(undefined)) && !hasRamStyle(at(undefined, 8n, 128n)))
 check('the module name includes minMacroBits', at(undefined).name === 'SRAM_8_4_default_1024_1rw_undefOnWrite_none' && at(64n).name.includes('_default_64_'),

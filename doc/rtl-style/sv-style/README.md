@@ -47,7 +47,7 @@ reset values. `ts/test/rtl_style/test_builder_widths.ts` builds each one at sign
 mismatched widths, including widths over 32 bits, with test vectors from a reference model in
 exact integer arithmetic. Each module must lint clean under `-Wall` with only the common waivers
 file, `common_waivers.vlt`, and every vector must give the reference result in simulation. It
-works in a temporary directory and writes nothing to `sv-examples/`.
+works in a temporary directory, one subdirectory per case, and writes nothing to `sv-examples/`.
 
 ## How a rule is verified
 
@@ -59,7 +59,7 @@ Each `rules.json` entry lists one or more checks:
 | `sim` | The rule's RTL files lint clean and each testbench prints `PASS` | `check-rules.mjs` |
 | `width` | Every example output the rule cites exists in `width_examples.sv`, which lints clean and matches exact arithmetic | `check-rules.mjs`, `check-width-examples.mjs` |
 | `builder` | A check in `ts/test/rtl_style/` confirms what the builder emits or rejects. The TSSV guide's rules use this too | `check-builder-examples.mjs` |
-| `module` | `writeSystemVerilog()` rejects a module that breaks the rule, in SV a builder wrote or in raw SV (`ts/src/core/ModuleCheck.ts`). A check in `ts/test/rtl_style/` confirms it | `check-builder-examples.mjs` |
+| `module` | `writeSystemVerilogFiles()` rejects a module that breaks the rule, in SV a builder wrote or in raw SV (`ts/src/core/ModuleCheck.ts`). A check in `ts/test/rtl_style/` confirms it | `check-builder-examples.mjs` |
 | `generated` | The SV the builders generate lints clean (LINT-1) and passes the text checks in `sv-scans.mjs`. So does the SV the test scripts generate | `check-builder-examples.mjs`; `check-generated-sv.mjs` for the test scripts' SV |
 | `review` | Design judgment, or no automated check yet; the entry's `reason` says which | `check-rules.mjs` (checks a reason is given) |
 
@@ -102,23 +102,30 @@ test script that wrote it. Where a waiver is the right answer, make it narrow an
 (LINT-3). Until [#59](https://github.com/TypeScriptSystemVerilog/TSSV/issues/59) brought every
 file in line, a per-file baseline held the findings that were left; #155 removed it.
 
-**Linting through the top.** Each emission is linted through its top module, with the files it
-depends on. A test script writes a Verilator filelist, `<top>.f`, for an emission that can't be
-linted alone (`writeLintFilelist`, `ts/test/models/lintFilelist.ts`):
+**Linting through the top.** Each design is linted through its top file, with `USE_INCLUDES`
+defined and the file's directory on the include path. The test scripts write SV with
+`writeSystemVerilogFiles()`, one guarded file per module and interface, and each file includes
+the files it needs. SV a test script writes by hand to instantiate a design includes the design
+the same way (`guardSV`, `ts/test/models/guardSV.ts`):
 
-- a testbench emitted apart from its DUT, or one that needs simulation models from another file;
-- a module whose ports are interfaces. Alone, its interfaces have no instance, and Verilator
-  reports their signals as UNDRIVEN or UNUSEDSIGNAL when they aren't. The test script writes a
-  wrapper that instantiates them (`lintWrapper`, `ts/test/models/lintWrapper.ts`), and the
-  filelist names the wrapper as the top.
+- a testbench, with the simulation models it uses;
+- a lint wrapper for a module whose ports are interfaces. Alone, its interfaces have no instance,
+  and Verilator reports their signals as UNDRIVEN or UNUSEDSIGNAL when they aren't. The wrapper
+  instantiates them (`lintWrapper`, `ts/test/models/lintWrapper.ts`) and includes the module's
+  file, so it is the top.
 
-The check lints each filelist, and each `.sv` file that no filelist names on its own:
-the grouping `npm run lint:sv` uses. A warning is a finding against the file it points at. One
-in a file outside `sv-examples/`, such as a hand-written testbench in `verilatorTB/` that a
-filelist names, isn't generated SV and isn't checked.
+So the check lints each `.sv` file that no other file in its directory includes, on its own: its
+lint reaches everything it includes, and an included file is never linted alone. A Verilator
+filelist, `<top>.f` (`writeLintFilelist`, `ts/test/models/lintFilelist.ts`), ties generated SV to
+a hand-written testbench outside `sv-examples/`. The check lints it with `-F`, and the files it
+names aren't tops. This is the grouping `npm run lint:sv` uses. A warning is a finding against the
+file it points at. One in a file outside `sv-examples/`, such as a hand-written testbench in
+`verilatorTB/` that a filelist names, isn't generated SV and isn't checked. Neither is a file a
+module imported with `addSystemVerilogSubmodule()`: `writeSystemVerilogFiles()` copies it in
+untouched, inside its `SVIMPORT__` guard, and the check leaves such files out.
 
-**Testbenches.** SYN-1's constructs are what testbenches are for, and a generated file often
-holds a testbench and the design it instantiates. So a test script marks each testbench module
+**Testbenches.** SYN-1's constructs are what testbenches are for, and a file can hold a
+testbench and the design it instantiates, as a hand-written one or an imported one can. So a test script marks each testbench module
 it generates, and each simulation model, with this comment inside the module:
 
 ```systemverilog

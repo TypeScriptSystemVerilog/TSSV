@@ -1,5 +1,5 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -60,7 +60,7 @@ assign_tb.addSignal('val', { width: 6 })
 assign_tb.addAssign({ in: new Expr('in[5:0]'), out: 'val' })
 
 try {
-  writeFileSync('sv-examples/Core/addAssign/assign_tb.sv', assign_tb.writeSystemVerilog())
+  assign_tb.writeSystemVerilogFiles('sv-examples/Core/addAssign')
 } catch (err) {
   console.error(err)
 }
@@ -128,7 +128,7 @@ assignAdd_tb.addSignal('val', { width: 5 })
 assignAdd_tb.addAssign({ in: new Expr('a + b'), out: 'val' })
 
 try {
-  writeFileSync('sv-examples/Core/addAssign/assignAdd_tb.sv', assignAdd_tb.writeSystemVerilog())
+  assignAdd_tb.writeSystemVerilogFiles('sv-examples/Core/addAssign')
 } catch (err) {
   console.error(err)
 }
@@ -217,7 +217,7 @@ assignM_tb.addSignal('val', { width: 16, isSigned: true })
 assignM_tb.addAssign({ in: new Expr("$signed(a + b - 16'(c / d) * e)"), out: 'val' })
 
 try {
-  writeFileSync('sv-examples/Core/addAssign/assignM_tb.sv', assignM_tb.writeSystemVerilog())
+  assignM_tb.writeSystemVerilogFiles('sv-examples/Core/addAssign')
 } catch (err) {
   console.error(err)
 }

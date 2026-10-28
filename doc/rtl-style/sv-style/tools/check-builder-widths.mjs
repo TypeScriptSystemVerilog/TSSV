@@ -14,7 +14,7 @@
 // Run from the repo root. Exits 0 if every case passes, 1 otherwise.
 
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { lint, requirePinnedVerilator, simulate } from '../../tools/verilator.mjs'
@@ -40,15 +40,17 @@ try {
   }
   const cases = JSON.parse(readFileSync(join(dir, 'cases.json'), 'utf8'))
 
-  // Lint each case with the common waivers. Each file also holds a submodule's definition where the
-  // case has one, so DECLFILENAME (one module per file, named after it) is off: it's about how the
-  // test lays out its files, not about the builder.
+  // Lint each case with the common waivers. Its files are in <dir>/<case>/, one module per file:
+  // the top's includes bring in a submodule's file where the case has one (USE_INCLUDES).
   const lintFailed = new Set()
   for (const c of cases) {
     const file = join(dir, c.file)
-    if (/lint_off/.test(readFileSync(file, 'utf8'))) fail(`${c.name}: has a lint waiver`)
+    const caseDir = join(dir, c.name)
+    for (const f of readdirSync(caseDir)) {
+      if (/lint_off/.test(readFileSync(join(caseDir, f), 'utf8'))) fail(`${c.name}: ${f} has a lint waiver`)
+    }
     // A case that narrows on purpose leaves input bits unused, and says why
-    const { errors, out } = lint([file], ['--top-module', c.top, '-Wno-DECLFILENAME', ...(c.unused ? ['-Wno-UNUSEDSIGNAL'] : [])])
+    const { errors, out } = lint([file], ['--top-module', c.top, `+incdir+${caseDir}`, ...(c.unused ? ['-Wno-UNUSEDSIGNAL'] : [])])
     const warnings = out.split('\n').filter((l) => l.startsWith('%Warning')).map((l) => l.replace(`${file}:`, ''))
     if (errors.length > 0 || warnings.length > 0) {
       lintFailed.add(c.name)
@@ -99,7 +101,8 @@ try {
 
   let out = ''
   try {
-    out = simulate([...simulated.map((c) => join(dir, c.file)), join(dir, 'builder_widths_tb.sv')], 'builder_widths_tb')
+    out = simulate([...simulated.map((c) => join(dir, c.file)), join(dir, 'builder_widths_tb.sv')], 'builder_widths_tb',
+      simulated.map((c) => `+incdir+${join(dir, c.name)}`))
   } catch (e) {
     fail(`simulation: ${e.message}`)
   }

@@ -1,9 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV'
 import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
-import { emitSplit } from 'tssv/test/models/emitSplit'
 
-const GENERATOR = 'ts/test/test_import.ts'
 const OUT = 'sv-examples/Core/import'
 
 try {
@@ -78,7 +76,7 @@ import_tb.addSystemVerilogSubmodule(
 )
 
 try {
-  emitSplit(import_tb, OUT, GENERATOR)
+  import_tb.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }

@@ -228,6 +228,9 @@ interface OperationIO {
  *
  * Both files must be given to the simulator or synthesis tool together: the second no longer
  * defines what it references.
+ * @deprecated Use {@link Module.writeSystemVerilogFiles}, which writes one guarded file per
+ *   module and interface, so emitting a DUT and then its testbench into one directory defines
+ *   each once without this bookkeeping.
  */
 export interface SVEmitOptions {
   /**
@@ -250,7 +253,8 @@ export interface FormatterConfig {
   /**
    * on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather
    * than warn and return the text unformatted. It covers only the formatter: a syntax error in a
-   * module fails `writeSystemVerilog()`'s check of that module first, whatever this says.
+   * module fails the check `writeSystemVerilogFiles()` runs on that module first, whatever this
+   * says.
    */
   failOnFormatError?: boolean
   formatTimeoutMs?: number
@@ -288,40 +292,46 @@ export class Interface {
     const vName = `${this.name}_${Object.values(this.params).join('_')}`
     return vName
   }
+}
 
-  writeSystemVerilog (): string {
-    const signalArray: string[] = []
-    Object.keys(this.signals).forEach((key) => {
-      const thisSignal = this.signals[key]
-      if (thisSignal) {
-        if (Object.keys(thisSignal.attributes ?? {}).length > 0) {
-          throw Error(`${this.name}.${key}: attributes are not supported on interface signals`)
-        }
-        let rangeString = ''
-        const signString = (thisSignal.isSigned) ? ' signed' : ''
-        if ((thisSignal.width || 0) > 1) {
-          rangeString = `[${Number(thisSignal.width) - 1}:0]`
-        }
-        signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}`)
+/**
+ * The definition of `intf`'s interface, `interface <interfaceName()>; ... endinterface`,
+ * unformatted. Internal to emission: `Module.writeSystemVerilogFiles()` writes it to the
+ * interface's own file.
+ */
+function interfaceSystemVerilog (intf: Interface): string {
+  const signalArray: string[] = []
+  Object.keys(intf.signals).forEach((key) => {
+    const thisSignal = intf.signals[key]
+    if (thisSignal) {
+      if (Object.keys(thisSignal.attributes ?? {}).length > 0) {
+        throw Error(`${intf.name}.${key}: attributes are not supported on interface signals`)
       }
-    })
-    const signalString: string = `   ${signalArray.join(';\n   ')}`
+      let rangeString = ''
+      const signString = (thisSignal.isSigned) ? ' signed' : ''
+      if ((thisSignal.width || 0) > 1) {
+        rangeString = `[${Number(thisSignal.width) - 1}:0]`
+      }
+      signalArray.push(`${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}`)
+    }
+  })
+  const signalString: string = `   ${signalArray.join(';\n   ')}`
 
-    let modportsString: string = ''
-    for (const modport in this.modports) {
-      const thisModport = this.modports[modport]
-      const modportArray: string[] = []
-      Object.keys(thisModport).forEach((name) => {
-        modportArray.push(`      ${thisModport[name]} ${name}`)
-      })
-      modportsString += `
+  let modportsString: string = ''
+  for (const modport in intf.modports) {
+    const thisModport = intf.modports[modport]
+    const modportArray: string[] = []
+    Object.keys(thisModport).forEach((name) => {
+      modportArray.push(`      ${thisModport[name]} ${name}`)
+    })
+    modportsString += `
     modport ${modport} (
 ${modportArray.join(',\n')}
     );           
 `
-    }
-    const verilog = `
-interface ${this.interfaceName()};
+  }
+  const verilog = `
+interface ${intf.interfaceName()};
 
 ${signalString};
 
@@ -331,8 +341,7 @@ endinterface
         
 `
 
-    return verilog
-  }
+  return verilog
 }
 
 export type Interfaces = Record<string, Interface>
@@ -601,7 +610,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * to a file of its own name, inside the include guard
    * `` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
    * once, from two imports or from two emitted files compiled together, defines what it holds
-   * once. `writeSystemVerilog()` puts their text, unguarded, in its single string.
+   * once. The deprecated `writeSystemVerilog()` puts their text, unguarded, in its single string.
    * @param instanceName the name of the instance
    * @param SVFilePath the SystemVerilog files, and `.f` filelists naming them
    * @param params SV parameter overrides for the instance
@@ -760,7 +769,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
      * add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
-     * (SV guide SEQ-6). `writeSystemVerilog()` checks the `always_ff` block the register goes in,
+     * (SV guide SEQ-6). Emission checks the `always_ff` block the register goes in,
      * as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
      * reset in the module (RST-2).
      * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
@@ -1027,7 +1036,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   /**
    * Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
    * <reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
-   * {@link writeSystemVerilog} checks the block against the SV guide, as it checks every always
+   * {@link writeSystemVerilogFiles} checks the block against the SV guide, as it checks every always
    * block in the module: COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
    * @param io the block's clock, its reset if it has one, and the signals it assigns, which
    * become `logic`
@@ -1085,7 +1094,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
    * Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
-   * {@link writeSystemVerilog} checks the block against the SV guide, as it checks every always
+   * {@link writeSystemVerilogFiles} checks the block against the SV guide, as it checks every always
    * block in the module: COMB-2 and COMB-3 apply to this one.
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_comb`
@@ -1128,7 +1137,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   /**
    * Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5).
-   * {@link writeSystemVerilog} checks the block against the SV guide, as it checks every always
+   * {@link writeSystemVerilogFiles} checks the block against the SV guide, as it checks every always
    * block in the module: COMB-2 applies to this one.
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_latch`
@@ -1599,32 +1608,12 @@ ${caseAssignments}
   }
 
   /**
-     * write the generated SystemVerilog code to a string
-     *
-     * Each module it emits is checked against the SV guide first: `verible-verilog-syntax`
-     * parses the module's SV, and every always block in it is checked, whether a builder or raw
-     * SV ({@link addBody}) wrote it. A syntax error or a broken rule throws, and the error lists
-     * every violation in the module. The check runs before formatting, and throws whatever the
-     * formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
-     * module's signal table says which signals are resets (`isReset`), of which kind, and which
-     * are constants. The rules:
-     * - COMB-2: a local declared with an initializer must be `automatic`.
-     * - COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
-     *   or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
-     * - SEQ-1: in a sequential block (`always_ff`, or `always` with an edge), `=` only for the
-     *   block's own locals; every other assignment uses `<=`.
-     * - SEQ-4: a sequential block has one clock, on `posedge` or `negedge`. Every term of its
-     *   event control that isn't a reset is a clock.
-     * - SEQ-5: an async reset is in the event control, on its active edge; a sync reset isn't.
-     * - SEQ-6: in a reset branch, no assignment reads one of the module's signals, ports or
-     *   interfaces. Constants, parameters and enum values are fine. A reset branch is the `if`
-     *   branch of `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of
-     *   `if (rst)` or `if (!rst)`.
-     * - RST-2: the module's sequential blocks use one reset kind.
-     * - RST-4: a reset isn't generated in logic. This covers each reset that isn't an input port,
-     *   and each signal bound to a submodule's reset port. Each must be driven by a submodule
-     *   output or a sequential block, or be assigned one of those or an input: as it is, one bit
-     *   of it, or inverted (`!r`, `~r`).
+     * write the generated SystemVerilog code to a string, with every module and interface it
+     * reaches defined inline, dependencies first. Each module is checked against the SV guide as
+     * {@link writeSystemVerilogFiles} describes.
+     * @deprecated Use {@link writeSystemVerilogFiles}, which writes one guarded file per module and
+     *   interface. Build its output by naming the top file with `+define+USE_INCLUDES` and its
+     *   directory on the include path.
      * @param options controls emission across several files - see {@link SVEmitOptions}. Applies
      *   to a top-level call only; the recursion into submodules passes nothing.
      * @returns string containing the generated SystemVerilog code for this module
@@ -1724,7 +1713,30 @@ ${caseAssignments}
    * Two different modules with the same name are still written as one (#122). Files already in
    * `outDir` that this call doesn't write are left in place.
    *
-   * `writeSystemVerilog()` is unaffected: its single-string output carries no guards.
+   * Each module it writes is checked against the SV guide first: `verible-verilog-syntax`
+   * parses the module's SV, and every always block in it is checked, whether a builder or raw
+   * SV ({@link addBody}) wrote it. A syntax error or a broken rule throws, and the error lists
+   * every violation in the module. The check runs before formatting, and throws whatever the
+   * formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
+   * module's signal table says which signals are resets (`isReset`), of which kind, and which
+   * are constants. The rules:
+   * - COMB-2: a local declared with an initializer must be `automatic`.
+   * - COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
+   *   or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
+   * - SEQ-1: in a sequential block (`always_ff`, or `always` with an edge), `=` only for the
+   *   block's own locals; every other assignment uses `<=`.
+   * - SEQ-4: a sequential block has one clock, on `posedge` or `negedge`. Every term of its
+   *   event control that isn't a reset is a clock.
+   * - SEQ-5: an async reset is in the event control, on its active edge; a sync reset isn't.
+   * - SEQ-6: in a reset branch, no assignment reads one of the module's signals, ports or
+   *   interfaces. Constants, parameters and enum values are fine. A reset branch is the `if`
+   *   branch of `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of
+   *   `if (rst)` or `if (!rst)`.
+   * - RST-2: the module's sequential blocks use one reset kind.
+   * - RST-4: a reset isn't generated in logic. This covers each reset that isn't an input port,
+   *   and each signal bound to a submodule's reset port. Each must be driven by a submodule
+   *   output or a sequential block, or be assigned one of those or an input: as it is, one bit
+   *   of it, or inverted (`!r`, `~r`).
    * @param outDir the directory to write to, created if it doesn't exist
    * @returns the paths written, each after every file it includes, so this module's is last
    */
@@ -1775,7 +1787,7 @@ ${caseAssignments}
         const name = intf.interfaceName()
         if (!seen.has(`interface ${name}`)) {
           seen.add(`interface ${name}`)
-          units.push({ kind: 'interface', name, file: `${name}.sv`, usedBy: m.name, contents: () => guardSVFile(name, [], this.applyFormatter(intf.writeSystemVerilog())) })
+          units.push({ kind: 'interface', name, file: `${name}.sv`, usedBy: m.name, contents: () => guardSVFile(name, [], this.applyFormatter(interfaceSystemVerilog(intf))) })
         }
         if (!interfaceNames.includes(name)) interfaceNames.push(name)
       }
@@ -1863,7 +1875,7 @@ ${caseAssignments}
                     })
                     */
           if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
-            interfacesString += thisInterface.writeSystemVerilog()
+            interfacesString += interfaceSystemVerilog(thisInterface)
             Module.printedInterfaces[thisInterface.interfaceName()] = true
           }
           IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`)

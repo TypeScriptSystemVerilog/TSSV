@@ -7,24 +7,24 @@
  * and two imported SV modules: one plain, one that already has the include guard.
  *
  * Test 1: each file defines one module or interface, named after the file, and together they
- *         define what the single-file emission does
+ *         define every module and interface the design reaches
  * Test 2: each file has the include guard, and its includes come before it in the returned list
  * Test 3: each imported file is written as its source inside one SVIMPORT guard, never a DEF
  *         guard, even a source that has its own
  * Test 4: parseSVModules still reads a guarded module's header
  * Test 5: Verilator lints the files with USE_INCLUDES naming only the top, without it naming
  *         every file, and with both, so that every file is reached twice
- * Test 6: writeSystemVerilog() is unchanged by a writeSystemVerilogFiles() call
+ * Test 6: a DUT and then a testbench that instantiates it, written to one directory, leave one
+ *         file per definition, and the testbench lints with USE_INCLUDES naming only its file
  * Test 7: names that differ only in case, and names that aren't identifiers, throw before
  *         anything is written
  */
 import { Module, Expr, type TSSVParameters, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
 import { parseSVModules } from 'tssv/lib/core/SVModuleHeader'
-import { existsSync, readFileSync, rmSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, rmSync } from 'fs'
 import { basename } from 'path'
 import { spawnSync } from 'child_process'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
 const OUT = 'sv-examples/Core/perModuleFiles'
 const FIXTURES = `${TSSV_ROOT}/ts/test/perModuleFiles`
@@ -165,10 +165,8 @@ class Top extends Module {
 }
 
 const top = new Top()
-const singleFile = top.writeSystemVerilog()
 const files = top.writeSystemVerilogFiles(OUT)
 const text = new Map(files.map(f => [basename(f, '.sv'), readFileSync(f, 'utf8')]))
-writeLintFilelist(OUT, 'Top', files.map(f => basename(f)), 'ts/test/test_perModuleFiles.ts')
 
 // ---- Test 1: one definition per file, and together the whole design ----------------------
 const expected = ['memory_rd_only_32_32', 'Leaf_8', 'Leaf_16', 'MidA', 'plain_import', 'MidB',
@@ -179,9 +177,9 @@ for (const [name, sv] of text) {
   check(`${name}.sv defines ${name} and nothing else`, sorted(definitions(sv)) === name,
     `defines: ${sorted(definitions(sv))}`)
 }
-check('together the files define what the single-file emission does',
-  sorted(definitions(singleFile)) === sorted(new Set(text.keys())),
-  `single file: ${sorted(definitions(singleFile))}`)
+const defined = new Set([...text.values()].flatMap(sv => [...definitions(sv)]))
+check('together the files define every module and interface the design reaches',
+  sorted(defined) === sorted(new Set(expected)), `defined: ${sorted(defined)}`)
 check('the top file is returned last', files[files.length - 1] === `${OUT}/Top.sv`, files.join(', '))
 
 // ---- Test 2: guards, includes and order ---------------------------------------------------
@@ -226,9 +224,9 @@ check('parseSVModules reads MidA\'s header from its guarded file',
 // ---- Test 5: Verilator, three ways --------------------------------------------------------
 const probe = spawnSync('verilator', ['--version'], { encoding: 'utf8' })
 if (probe.status === 0) {
-  const lint = (label: string, args: string[]): void => {
+  const lint = (label: string, args: string[], top = 'Top'): void => {
     const run = spawnSync('verilator', ['--lint-only', '-Wall', `${TSSV_ROOT}/doc/rtl-style/sv-style/common_waivers.vlt`,
-      '--top-module', 'Top', ...args], { encoding: 'utf8' })
+      '--top-module', top, ...args], { encoding: 'utf8' })
     check(label, run.status === 0, `${run.stdout}${run.stderr}`)
   }
   const includeArgs = ['+define+USE_INCLUDES', `+incdir+${OUT}`]
@@ -240,12 +238,24 @@ if (probe.status === 0) {
   console.log('SKIP: Verilator lints (verilator not found)')
 }
 
-// ---- Test 6: single-file emission is unaffected -------------------------------------------
-check('writeSystemVerilog() is unchanged by writeSystemVerilogFiles()', top.writeSystemVerilog() === singleFile)
-// guarded_import's source is emitted verbatim, so its own guard is the only one. The regex
-// captures the macro of every line that is exactly `ifndef <macro> ('m': ^ and $ match per line).
-const guards = [...singleFile.matchAll(/^`ifndef (\S+)$/gm)].map(m => m[1])
-check('writeSystemVerilog() adds no include guard', guards.join(' ') === 'DEF__guarded_import__', `guards: ${guards.join(' ')}`)
+// ---- Test 6: a DUT, then its testbench, in one directory -----------------------------------
+// Emitting a DUT and then a testbench that instantiates it is what SVEmitOptions was for. Here the
+// second call rewrites the DUT's files with the same text, and the testbench's file reaches them
+// through its includes.
+const DUT_TB = `${OUT}/dut_then_tb`
+const dutFiles = new MidA().writeSystemVerilogFiles(DUT_TB)
+const dutText = new Map(dutFiles.map(f => [f, readFileSync(f, 'utf8')]))
+const tbFiles = new Top().writeSystemVerilogFiles(DUT_TB)
+check('the testbench\'s call writes every DUT file again, unchanged',
+  dutFiles.every(f => tbFiles.includes(f) && readFileSync(f, 'utf8') === dutText.get(f)), tbFiles.join(', '))
+check('the directory holds one file per definition, the testbench\'s design',
+  sorted(new Set(readdirSync(DUT_TB).map(f => basename(f, '.sv')))) === sorted(new Set(expected)),
+  readdirSync(DUT_TB).join(', '))
+if (probe.status === 0) {
+  const run = spawnSync('verilator', ['--lint-only', '-Wall', `${TSSV_ROOT}/doc/rtl-style/sv-style/common_waivers.vlt`,
+    '+define+USE_INCLUDES', `+incdir+${DUT_TB}`, `${DUT_TB}/Top.sv`], { encoding: 'utf8' })
+  check('the testbench lints with USE_INCLUDES, naming only its file', run.status === 0, `${run.stdout}${run.stderr}`)
+}
 
 // ---- Test 7: names that can't be files ----------------------------------------------------
 class Named extends Module {

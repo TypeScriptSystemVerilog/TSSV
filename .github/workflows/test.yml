@@ -115,7 +115,8 @@ jobs:
       # check. sfifo_sim, sram_sim, twoclockregfile_sim and the AFIFO targets
       # build one model per configuration in their
       # sv-examples/<module>/tb/configs.txt; every target lints its DUTs with
-      # -Wall first.
+      # -Wall first. Each DUT is named by its top file and built with
+      # +define+USE_INCLUDES, so its includes bring in the rest of its files.
       - name: SFIFO simulation
         run: make -C verilatorTB sfifo_sim
 

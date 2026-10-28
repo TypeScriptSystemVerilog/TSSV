@@ -1,6 +1,6 @@
 // Generate the FIR configurations, the inputs for verilatorTB/tb_FIR.sv, and tb_lpFIR:
 //
-// 1. Each configuration in CONFIGS, one definition per file with a lint wrapper and filelist
+// 1. Each configuration in CONFIGS, one definition per file with a lint wrapper that includes it
 //    (sv-examples/FIR/<name>/), checking its ports against the spec's IO tables and its
 //    accumulator width against the accumulatorWidth default (TEST-2)
 // 2. Parameter values the constructor must reject (PARAM-5), and parameters that must or mustn't
@@ -8,7 +8,7 @@
 // 3. sv-examples/FIR/tb/, the testbench inputs:
 //    - FIR_tb_configs.svh: per-configuration DUT name, widths and reset coefficients
 //    - FIR_tb_vectors.svh: the spec's timing diagram, one row per cycle
-//    - configs.txt: "<config> <.sv files>" per line, read by `make fir_sim`
+//    - configs.txt: "<config> <top .sv path>" per line, read by `make fir_sim`
 // 4. tb_lpFIR in sv-examples/FIR/myFIR3/: the chirp testbench that doc/tutorials/fir.md simulates
 //    and views in GTKWave. It checks nothing; tb_FIR.sv does
 //
@@ -18,7 +18,6 @@
 import { FIR, type FIR_Parameters } from 'tssv/lib/modules/FIR'
 import { Module, type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { emitSplit } from 'tssv/test/models/emitSplit'
 import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
 import { markTestbench } from 'tssv/test/models/testbench'
 
@@ -120,10 +119,9 @@ for (const c of CONFIGS) {
   check(`${c.cfg}: sum_q is ${accWidth} bits`, signals.sum_q?.width === accWidth, `sum_q is ${signals.sum_q?.width} bits`)
 
   const dir = `${OUT}/${fir.name}`
-  mkdirSync(dir, { recursive: true })
-  const design = writeLintWrapped(fir, dir, GENERATOR).map(f => `${dir}/${f}`)
+  const design = writeLintWrapped(fir, dir, GENERATOR)
   check(`${c.cfg}: no WIDTH waiver (LINT-3)`, design.every(f => !readFileSync(f, 'utf8').includes('lint_off WIDTH')))
-  configList.push(`${c.cfg} ${design.join(' ')}`)
+  configList.push(`${c.cfg} ${design[design.length - 1] ?? ''}`)
 
   const p = fir.params
   const literal = (v: bigint): string => `${v < 0n ? '-' : ''}64'sd${v < 0n ? -v : v}`
@@ -300,7 +298,7 @@ const myFir3 = firs.get('lowpass13')
 if (myFir3 === undefined) throw Error('no lowpass13 configuration')
 // createMissing: the testbench gets a local s_axis, m_axis and regs bundle to drive the DUT's
 tbLpFIR.addSubmodule('dut', myFir3, {}, true, true)
-const tbFiles = emitSplit(tbLpFIR, `${OUT}/${myFir3.name}`, GENERATOR)
+const tbFiles = tbLpFIR.writeSystemVerilogFiles(`${OUT}/${myFir3.name}`)
 console.log(`tb_lpFIR: ${tbFiles.join(' ')}`)
 
 console.log(`\n${passed} passed, ${failed} failed`)

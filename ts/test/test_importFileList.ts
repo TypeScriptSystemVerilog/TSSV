@@ -11,8 +11,7 @@
  *         list the same files
  * Test 2: moduleName is required, and finds the module in any of the files
  * Test 3: writeSystemVerilogFiles() writes each imported file once, untouched inside exactly one
- *         SVIMPORT guard; only the generated file has a DEF guard; writeSystemVerilog() is
- *         unchanged, with no guards
+ *         SVIMPORT guard; only the generated file has a DEF guard
  * Test 4: Verilator lints the files three ways, so each shared file is reached more than once
  * Test 5: each error throws, naming its file and line where it has one
  * Test 6: expandPath() and absolutePath()
@@ -25,9 +24,7 @@ import { basename, join } from 'path'
 import { tmpdir } from 'os'
 import { pathToFileURL, fileURLToPath } from 'url'
 import { spawnSync } from 'child_process'
-import { writeLintFilelist } from 'tssv/test/models/lintFilelist'
 
-const GENERATOR = 'ts/test/test_importFileList.ts'
 const OUT = 'sv-examples/Core/importFileList'
 const IN = '$TSSV_ROOT/ts/test/importFileList'
 const DIR = `${TSSV_ROOT}/ts/test/importFileList`
@@ -102,10 +99,7 @@ check('a moduleName the files don\'t declare throws, naming what they do',
   mentions(notFoundError, 'module fl_top not found', 'which declare fl_sub'), notFoundError)
 
 // ---- Test 3: the files and their guards ---------------------------------------------------
-check('writeSystemVerilog() is unchanged: the imported files\' text has no guard',
-  !top.writeSystemVerilog().includes('SVIMPORT__'))
 const files = top.writeSystemVerilogFiles(OUT)
-writeLintFilelist(OUT, top.name, files.map(f => basename(f)), GENERATOR)
 const imports = ['fl_pkg', 'fl_sub', 'fl_top', 'fl_other']
 check('the imported files are written each once, in order, then the top',
   files.map(f => basename(f)).join(' ') === [...imports, top.name].map(n => `${n}.sv`).join(' '), files.join(' '))

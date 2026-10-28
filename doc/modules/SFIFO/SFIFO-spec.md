@@ -245,7 +245,7 @@ _In both configurations — write-to-head latency: **1 clock cycle**; pop-to-nex
 
 **Test script:** `ts/test/modules/test_SFIFO.ts` generates every combination of `simultPushPop`, `inclAlmostFull` and `inclAlmostEmpty` (at `depth = 5`), checks each one's ports against the IO tables above, checks that `macroConfig` and `minMacroBits` reach the `SRAM` and that a `depth = 1` FIFO rejects `minMacroBits` 31, and generates the testbench configurations below.
 **Testbench:** `verilatorTB/tb_SFIFO.sv`, built once per configuration. Every cycle, a queue reference model checks `empty`, `full`, `curr_depth`, the almost flags and, while not empty, `pop_data`.
-**Output:** `sv-examples/SFIFO/<module>/`, one module per file (`<module>.sv`, and `<module>_sram.sv` unless `depth = 1`) with a lint filelist, `<module>.f`; and `sv-examples/SFIFO/tb/`
+**Output:** `sv-examples/SFIFO/<module>/`, one module per file (`<module>.sv`, which includes its `SRAM`'s file unless `depth = 1`); and `sv-examples/SFIFO/tb/`
 
 | Configuration | `dataWidth` | `depth` | `simultPushPop` | Almost flags |
 |---|---|---|---|---|
@@ -282,4 +282,4 @@ make -C verilatorTB sfifo_sim    # generates the SV, lints each variant with -Wa
 
 - **Style-guide deviations.** The module follows the [TSSV guide](../../rtl-style/tssv-style/tssv-coding-style.md) and the [SV guide](../../rtl-style/sv-style/sv-coding-style.md), except for one SHOULD rule:
   - **MOD-5** (TSSV guide): the push and pop sides are plain ports, not `Interface`s. They are the module's established IO, which `tb_SFIFO.sv` and the [IO tables](#io-ports) use, and TSSV has no `Interface` for a FIFO handshake.
-- **The `SRAM` is in its own file.** `test_SFIFO.ts` writes each FIFO one module per file, with a filelist that lints it with its `SRAM`. Written to one file, the `SRAM` comes first, and `verilator -Wall` reports `DECLFILENAME` because the file is named after the FIFO.
+- **The `SRAM` is in its own file.** `test_SFIFO.ts` writes each FIFO with `writeSystemVerilogFiles()`, one module per file, and the FIFO's file includes its `SRAM`'s under `USE_INCLUDES`, so the FIFO is linted with its `SRAM`. Written to one file, the `SRAM` would come first, and `verilator -Wall` would report `DECLFILENAME` because the file is named after the FIFO.

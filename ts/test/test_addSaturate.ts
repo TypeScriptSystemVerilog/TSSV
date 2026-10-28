@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -60,7 +60,7 @@ saturate_tb.addSignal('out', { width: 4, isSigned: false })
 saturate_tb.addSaturate({ in: 'in', out: 'out' }) // sat mode defaults to simple
 
 try {
-  writeFileSync('sv-examples/Core/addSaturate/saturate_tb.sv', saturate_tb.writeSystemVerilog())
+  saturate_tb.writeSystemVerilogFiles('sv-examples/Core/addSaturate')
 } catch (err) {
   console.error(err)
 }
@@ -119,7 +119,7 @@ saturateS_tb.addSignal('out', { width: 4, isSigned: true })
 saturateS_tb.addSaturate({ in: 'in', out: 'out' }) // sat mode defaults to simple
 
 try {
-  writeFileSync('sv-examples/Core/addSaturate/saturateS_tb.sv', saturateS_tb.writeSystemVerilog())
+  saturateS_tb.writeSystemVerilogFiles('sv-examples/Core/addSaturate')
 } catch (err) {
   console.error(err)
 }
@@ -179,7 +179,7 @@ saturateN_tb.addSignal('out', { width: 4, isSigned: false })
 saturateN_tb.addSaturate({ in: 'in', out: 'out' }, 'none') // sat mode defaults to simple
 
 try {
-  writeFileSync('sv-examples/Core/addSaturate/saturateN_tb.sv', saturateN_tb.writeSystemVerilog())
+  saturateN_tb.writeSystemVerilogFiles('sv-examples/Core/addSaturate')
 } catch (err) {
   console.error(err)
 }
@@ -238,7 +238,7 @@ saturateNS_tb.addSignal('out', { width: 4, isSigned: true })
 saturateNS_tb.addSaturate({ in: 'in', out: 'out' }, 'none') // sat mode defaults to simple
 
 try {
-  writeFileSync('sv-examples/Core/addSaturate/saturateNS_tb.sv', saturateNS_tb.writeSystemVerilog())
+  saturateNS_tb.writeSystemVerilogFiles('sv-examples/Core/addSaturate')
 } catch (err) {
   console.error(err)
 }
@@ -259,7 +259,7 @@ saturateB_tb.addSignal('out', { width: 4, isSigned: false })
 saturateB_tb.addSaturate({ in: 'in', out: 'out' }, 'balanced') // sat mode defaults to simple
 
 try {
-  writeFileSync('sv-examples/Core/addSaturate/saturateB_tb.sv', saturateB_tb.writeSystemVerilog())
+  saturateB_tb.writeSystemVerilogFiles('sv-examples/Core/addSaturate')
 } catch (err) {
   console.error(err)
 }
@@ -334,7 +334,7 @@ saturateBS_tb.addSignal('out', { width: 4, isSigned: true })
 saturateBS_tb.addSaturate({ in: 'in', out: 'out' }, 'balanced') // sat mode defaults to simple
 
 try {
-  writeFileSync('sv-examples/Core/addSaturate/saturateBS_tb.sv', saturateBS_tb.writeSystemVerilog())
+  saturateBS_tb.writeSystemVerilogFiles('sv-examples/Core/addSaturate')
 } catch (err) {
   console.error(err)
 }

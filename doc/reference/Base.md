@@ -195,16 +195,6 @@ interfaceName(): string;
 
 `string`
 
-##### writeSystemVerilog()
-
-```ts
-writeSystemVerilog(): string;
-```
-
-###### Returns
-
-`string`
-
 ***
 
 ### Module
@@ -387,7 +377,7 @@ The files themselves are emitted untouched. `writeSystemVerilogFiles()` writes e
 to a file of its own name, inside the include guard
 `` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
 once, from two imports or from two emitted files compiled together, defines what it holds
-once. `writeSystemVerilog()` puts their text, unguarded, in its single string.
+once. The deprecated `writeSystemVerilog()` puts their text, unguarded, in its single string.
 
 ###### Parameters
 
@@ -502,7 +492,7 @@ addRegister(io): Sig;
 ```
 
 add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
-(SV guide SEQ-6). `writeSystemVerilog()` checks the `always_ff` block the register goes in,
+(SV guide SEQ-6). Emission checks the `always_ff` block the register goes in,
 as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
 reset in the module (RST-2).
 
@@ -601,7 +591,7 @@ addSequentialAlways(io, body): void;
 
 Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
 <reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
-[writeSystemVerilog](#writesystemverilog-1) checks the block against the SV guide, as it checks every always
+[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
 block in the module: COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
 
 ###### Parameters
@@ -625,7 +615,7 @@ addCombAlways(io, body): void;
 ```
 
 Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
-[writeSystemVerilog](#writesystemverilog-1) checks the block against the SV guide, as it checks every always
+[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
 block in the module: COMB-2 and COMB-3 apply to this one.
 
 ###### Parameters
@@ -648,7 +638,7 @@ addLatchAlways(io, body): void;
 ```
 
 Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5).
-[writeSystemVerilog](#writesystemverilog-1) checks the block against the SV guide, as it checks every always
+[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
 block in the module: COMB-2 applies to this one.
 
 ###### Parameters
@@ -974,38 +964,15 @@ Convenience wrapper that emits a nice comment block.
 
 `string`
 
-##### writeSystemVerilog()
+##### ~~writeSystemVerilog()~~
 
 ```ts
 writeSystemVerilog(options?): string;
 ```
 
-write the generated SystemVerilog code to a string
-
-Each module it emits is checked against the SV guide first: `verible-verilog-syntax`
-parses the module's SV, and every always block in it is checked, whether a builder or raw
-SV ([addBody](#addbody)) wrote it. A syntax error or a broken rule throws, and the error lists
-every violation in the module. The check runs before formatting, and throws whatever the
-formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
-module's signal table says which signals are resets (`isReset`), of which kind, and which
-are constants. The rules:
-- COMB-2: a local declared with an initializer must be `automatic`.
-- COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
-  or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
-- SEQ-1: in a sequential block (`always_ff`, or `always` with an edge), `=` only for the
-  block's own locals; every other assignment uses `<=`.
-- SEQ-4: a sequential block has one clock, on `posedge` or `negedge`. Every term of its
-  event control that isn't a reset is a clock.
-- SEQ-5: an async reset is in the event control, on its active edge; a sync reset isn't.
-- SEQ-6: in a reset branch, no assignment reads one of the module's signals, ports or
-  interfaces. Constants, parameters and enum values are fine. A reset branch is the `if`
-  branch of `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of
-  `if (rst)` or `if (!rst)`.
-- RST-2: the module's sequential blocks use one reset kind.
-- RST-4: a reset isn't generated in logic. This covers each reset that isn't an input port,
-  and each signal bound to a submodule's reset port. Each must be driven by a submodule
-  output or a sequential block, or be assigned one of those or an input: as it is, one bit
-  of it, or inverted (`!r`, `~r`).
+write the generated SystemVerilog code to a string, with every module and interface it
+reaches defined inline, dependencies first. Each module is checked against the SV guide as
+[writeSystemVerilogFiles](#writesystemverilogfiles) describes.
 
 ###### Parameters
 
@@ -1018,6 +985,12 @@ are constants. The rules:
 `string`
 
 string containing the generated SystemVerilog code for this module
+
+###### Deprecated
+
+Use [writeSystemVerilogFiles](#writesystemverilogfiles), which writes one guarded file per module and
+  interface. Build its output by naming the top file with `+define+USE_INCLUDES` and its
+  directory on the include path.
 
 ##### writeSystemVerilogFiles()
 
@@ -1071,7 +1044,30 @@ No two files' names may differ only in case, because they are one file on macOS 
 Two different modules with the same name are still written as one (#122). Files already in
 `outDir` that this call doesn't write are left in place.
 
-`writeSystemVerilog()` is unaffected: its single-string output carries no guards.
+Each module it writes is checked against the SV guide first: `verible-verilog-syntax`
+parses the module's SV, and every always block in it is checked, whether a builder or raw
+SV ([addBody](#addbody)) wrote it. A syntax error or a broken rule throws, and the error lists
+every violation in the module. The check runs before formatting, and throws whatever the
+formatter configuration says, `failOnFormatError: false` and `engine: 'off'` included. The
+module's signal table says which signals are resets (`isReset`), of which kind, and which
+are constants. The rules:
+- COMB-2: a local declared with an initializer must be `automatic`.
+- COMB-3: no nonblocking assignments in a combinational block: `always_comb`, `always @*`,
+  or `always` with a list of levels. `<=` as a comparison, as in `if (a <= b)`, is fine.
+- SEQ-1: in a sequential block (`always_ff`, or `always` with an edge), `=` only for the
+  block's own locals; every other assignment uses `<=`.
+- SEQ-4: a sequential block has one clock, on `posedge` or `negedge`. Every term of its
+  event control that isn't a reset is a clock.
+- SEQ-5: an async reset is in the event control, on its active edge; a sync reset isn't.
+- SEQ-6: in a reset branch, no assignment reads one of the module's signals, ports or
+  interfaces. Constants, parameters and enum values are fine. A reset branch is the `if`
+  branch of `if (!rst_n)` or the `else` branch of `if (rst_n)`; for an active-high reset, of
+  `if (rst)` or `if (!rst)`.
+- RST-2: the module's sequential blocks use one reset kind.
+- RST-4: a reset isn't generated in logic. This covers each reset that isn't an input port,
+  and each signal bound to a submodule's reset port. Each must be driven by a submodule
+  output or a sequential block, or be assigned one of those or an input: as it is, one bit
+  of it, or inverted (`!r`, `~r`).
 
 ###### Parameters
 
@@ -1219,7 +1215,7 @@ signal parameters
 
 ***
 
-### SVEmitOptions
+### ~~SVEmitOptions~~
 
 Options for a top-level `Module.writeSystemVerilog()` call, which is how a design is emitted
 across more than one file.
@@ -1242,12 +1238,18 @@ module to need a definition emits it — extended across calls rather than reset
 Both files must be given to the simulator or synthesis tool together: the second no longer
 defines what it references.
 
+#### Deprecated
+
+Use [Module.writeSystemVerilogFiles](#writesystemverilogfiles), which writes one guarded file per
+  module and interface, so emitting a DUT and then its testbench into one directory defines
+  each once without this bookkeeping.
+
 #### Properties
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="exclude"></a> `exclude?` | `ReadonlySet`\<`string`\> | Module and interface names that a previous emission already defined. They are instantiated and referenced as usual, but not defined again. |
-| <a id="defined"></a> `defined?` | `Set`\<`string`\> | If provided, receives the name of every module and interface this call defined. Names from `exclude` are not added, so passing one set as `defined` and then as `exclude` accumulates across an arbitrary number of files. |
+| <a id="exclude"></a> ~~`exclude?`~~ | `ReadonlySet`\<`string`\> | Module and interface names that a previous emission already defined. They are instantiated and referenced as usual, but not defined again. |
+| <a id="defined"></a> ~~`defined?`~~ | `Set`\<`string`\> | If provided, receives the name of every module and interface this call defined. Names from `exclude` are not added, so passing one set as `defined` and then as `exclude` accumulates across an arbitrary number of files. |
 
 ***
 
@@ -1260,7 +1262,7 @@ defines what it references.
 | <a id="engine"></a> `engine` | `"internal"` \| `"off"` \| `"verible"` | - |
 | <a id="veriblepath"></a> `veriblePath?` | `string` | - |
 | <a id="veribleflags"></a> `veribleFlags?` | `string`[] | - |
-| <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` | on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather than warn and return the text unformatted. It covers only the formatter: a syntax error in a module fails `writeSystemVerilog()`'s check of that module first, whatever this says. |
+| <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` | on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather than warn and return the text unformatted. It covers only the formatter: a syntax error in a module fails the check `writeSystemVerilogFiles()` runs on that module first, whatever this says. |
 | <a id="formattimeoutms"></a> `formatTimeoutMs?` | `number` | - |
 
 ## Type Aliases

@@ -28,12 +28,12 @@
   },
   "SEQ-6": {
     "checks": ["lint", "builder", "module", "review"],
-    "reason": "Verilator doesn't flag a reset to a non-constant value. writeSystemVerilog() rejects a reset branch that reads one of the module's signals, and addRegister takes only constants. Review has to catch a reset branch the check can't find: one under a case, one under a condition other than a plain test of the reset, or one whose reset isn't marked isReset."
+    "reason": "Verilator doesn't flag a reset to a non-constant value. writeSystemVerilogFiles() rejects a reset branch that reads one of the module's signals, and addRegister takes only constants. Review has to catch a reset branch the check can't find: one under a case, one under a condition other than a plain test of the reset, or one whose reset isn't marked isReset."
   },
   "RST-1": { "movedTo": "MOD-4" },
   "RST-2": {
     "checks": ["module", "review"],
-    "reason": "writeSystemVerilog() rejects a module whose sequential blocks use resets of two kinds. Review has to catch a reset that isn't marked isReset: a sync reset looks like any other if."
+    "reason": "writeSystemVerilogFiles() rejects a module whose sequential blocks use resets of two kinds. Review has to catch a reset that isn't marked isReset: a sync reset looks like any other if."
   },
   "RST-3": {
     "checks": ["review"],
@@ -41,7 +41,7 @@
   },
   "RST-4": {
     "checks": ["module", "review"],
-    "reason": "writeSystemVerilog() rejects a reset assigned an expression or assigned in a combinational block, in the module that generates it. Review has to catch a reset that isn't marked isReset or bound to a submodule's reset port, one generated in imported SV, and one carried in an interface."
+    "reason": "writeSystemVerilogFiles() rejects a reset assigned an expression or assigned in a combinational block, in the module that generates it. Review has to catch a reset that isn't marked isReset or bound to a submodule's reset port, one generated in imported SV, and one carried in an interface."
   },
   "LATCH-1": { "movedTo": "BUILD-5" },
   "WIDTH-1": { "checks": ["width"] },

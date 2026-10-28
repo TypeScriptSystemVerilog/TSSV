@@ -1,7 +1,7 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { mkdirSync, writeFileSync } from 'fs'
+import { readFileSync } from 'fs'
 
-try { mkdirSync('sv-examples/Core/addBody', { recursive: true }) } catch (e) {}
+const OUT = 'sv-examples/Core/addBody'
 
 // Expose protected body for assertions
 class TestModule extends Module {
@@ -43,7 +43,7 @@ check(
    end
 `
 )
-writeFileSync('sv-examples/Core/addBody/test_normalize.sv', m1.writeSystemVerilog())
+m1.writeSystemVerilogFiles(OUT)
 
 // --- Test 2: verbatim preserves indent ---
 const m2 = new TestModule({ name: 'test_verbatim' }, {
@@ -56,7 +56,7 @@ check(
   m2.getBody(),
   '  assign out = in;\n'
 )
-writeFileSync('sv-examples/Core/addBody/test_verbatim.sv', m2.writeSystemVerilog())
+m2.writeSystemVerilogFiles(OUT)
 
 // --- Test 3: addBodyLine appends with newline ---
 const m3 = new TestModule({ name: 'test_addBodyLine' }, {
@@ -69,7 +69,7 @@ check(
   m3.getBody(),
   '  assign b = a;\n'
 )
-writeFileSync('sv-examples/Core/addBody/test_addBodyLine.sv', m3.writeSystemVerilog())
+m3.writeSystemVerilogFiles(OUT)
 
 // --- Test 4: addBody normalizes and indents body content ---
 const m4ref = new TestModule({ name: 'test_equiv_ref' }, {
@@ -92,15 +92,14 @@ m4.addBody(`
   end
 `)
 
-const m4refSV = m4ref.writeSystemVerilog()
-const m4SV = m4.writeSystemVerilog().replace('test_equiv_addBody', 'test_equiv_ref')
+const m4refSV = readFileSync(m4ref.writeSystemVerilogFiles(OUT).at(-1) ?? '', 'utf8')
+// the module name, and its file's DEF__<name>__ guard
+const m4SV = readFileSync(m4.writeSystemVerilogFiles(OUT).at(-1) ?? '', 'utf8').split('test_equiv_addBody').join('test_equiv_ref')
 check(
   'addBody normalizes and indents body content',
   m4SV,
   m4refSV
 )
-writeFileSync('sv-examples/Core/addBody/test_equiv_ref.sv', m4ref.writeSystemVerilog())
-writeFileSync('sv-examples/Core/addBody/test_equiv_addBody.sv', m4.writeSystemVerilog())
 
 // --- Test 5: empty addBody call is a no-op ---
 // No ports: with an empty body, any port would go unused or undriven
@@ -111,7 +110,7 @@ check(
   m5.getBody(),
   ''
 )
-writeFileSync('sv-examples/Core/addBody/test_empty.sv', m5.writeSystemVerilog())
+m5.writeSystemVerilogFiles(OUT)
 
 // --- Test 6: default engine is verible (output is verible-verilog-format formatted) ---
 const m6 = new TestModule({ name: 'test_engine_default' }, {
@@ -120,19 +119,18 @@ const m6 = new TestModule({ name: 'test_engine_default' }, {
   in: { direction: 'input', width: 4 }
 })
 m6.addBody('always_ff @(posedge clk) begin\n      out <=    in;\nend\n', { indentMode: 'verbatim' })
-const sv = m6.writeSystemVerilog()
+const sv = readFileSync(m6.writeSystemVerilogFiles(OUT).at(-1) ?? '', 'utf8')
 const hasModule = sv.includes('module test_engine_default')
 const hasEndmodule = sv.includes('endmodule')
 const isFormatted = sv.includes('    out <= in;')
 if (hasModule && hasEndmodule && isFormatted) {
-  console.log('PASS: writeSystemVerilog formats output with default engine=verible')
+  console.log('PASS: writeSystemVerilogFiles formats output with default engine=verible')
   passed++
 } else {
-  console.error('FAIL: writeSystemVerilog output not formatted with default engine=verible')
+  console.error('FAIL: writeSystemVerilogFiles output not formatted with default engine=verible')
   console.error(sv)
   failed++
 }
-writeFileSync('sv-examples/Core/addBody/test_engine_default.sv', sv)
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

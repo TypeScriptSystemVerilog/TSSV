@@ -18,7 +18,7 @@
 import { RegisterType, type RegisterBlock, type RegisterBlockDef } from 'tssv/lib/core/Registers'
 import { type Interface } from 'tssv/lib/core/TSSV'
 import { writeFileSync } from 'fs'
-import { writeLintFilelist } from './lintFilelist.js'
+import { guardSV } from './guardSV.js'
 import { TESTBENCH_MARKER } from './testbench.js'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from './MemoryModels.js'
 
@@ -467,12 +467,11 @@ endmodule
   }
 
   /**
-   * Writes the testbench to `<dir>/tb_<block>.sv`, the Memory models it uses to `<dir>/<model>.sv`,
-   * and `<dir>/tb_<block>.f`, the filelist that lints and builds it. `design` lists the files that
-   * define the block, relative to `dir`, as writeLintWrapped() returns them.
+   * Writes the testbench to `<dir>/tb_<block>.sv` and the Memory models it uses to
+   * `<dir>/<model>.sv`. The testbench includes the block's file, `<dir>/<block>.sv`, and the
+   * models', so it is linted and built by naming it with `+define+USE_INCLUDES +incdir+<dir>`.
    */
-  emit (dir: string, design: string[]): void {
-    writeFileSync(`${dir}/${this.name}.sv`, this.render())
+  emit (dir: string): void {
     const { interfaces } = this.block as unknown as { interfaces: Record<string, Interface> }
     const models = new Map<string, string>()
     for (const [port, intf] of this.ports(interfaces)) {
@@ -480,8 +479,9 @@ endmodule
       if (port === 'regs') models.set(memoryMasterName(opts), memoryMasterBfm(opts))
       else models.set(memorySlaveName(opts), memorySlaveModel(opts))
     }
-    for (const [model, sv] of models) writeFileSync(`${dir}/${model}.sv`, sv)
-    writeLintFilelist(dir, this.name, [`${this.name}.sv`, ...design, ...[...models.keys()].map(m => `${m}.sv`)], this.generator)
+    for (const [model, sv] of models) writeFileSync(`${dir}/${model}.sv`, guardSV(model, [], sv))
+    const includes = [`${this.block.name}.sv`, ...[...models.keys()].map(m => `${m}.sv`)]
+    writeFileSync(`${dir}/${this.name}.sv`, guardSV(this.name, includes, this.render()))
   }
 
   /** The block's interface ports: `regs` and one per RAM/ROM window */

@@ -1,12 +1,12 @@
-// The SV-guide rules writeSystemVerilog() enforces on each module it emits, whether its SV came
-// from a builder or is raw SV: COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4.
+// The SV-guide rules writeSystemVerilogFiles() enforces on each module it emits, whether its SV
+// came from a builder or is raw SV: COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4.
 // ModuleBody.ts reads the module's SV. The module's signal table says which signals are resets,
 // of which kind, and which are constants.
 import { type AlwaysBlock, readModuleBody } from './ModuleBody.js'
 
 type ResetKind = 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
 
-/** What writeSystemVerilog() knows about a module beyond its SV. */
+/** What emission knows about a module beyond its SV. */
 export interface ModuleTable {
   /** the module's name, for error messages */
   name: string

@@ -12,6 +12,7 @@
 
 import { ROM, type ROM_Parameters } from 'tssv/lib/modules/ROM'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { moduleSV } from '../models/emitted.js'
 
 const OUT = 'sv-examples/ROM'
 const TB_DIR = `${OUT}/tb`
@@ -73,15 +74,14 @@ function initFile (name: string, lines: string[]): string {
 interface TbConfig { name: string, dataWidth: number, words: bigint[], file: string }
 const tbConfigs: TbConfig[] = []
 
-// Writes `rom` to sv-examples/ROM/<name>/<name>.sv, checks it against the spec (its ports, its
+// Writes `rom` under sv-examples/ROM/<name>/, checks its file against the spec (its ports, its
 // words in the case table, no `undefined` (#127)), and returns its SV.
 function emitRom (rom: ROM, dataWidth: number, words: bigint[]): string {
-  const file = `${OUT}/${rom.name}/${rom.name}.sv`
+  let file = ''
   let sv = ''
   try {
-    sv = rom.writeSystemVerilog()
-    mkdirSync(`${OUT}/${rom.name}`, { recursive: true })
-    writeFileSync(file, sv)
+    file = rom.writeSystemVerilogFiles(`${OUT}/${rom.name}`).at(-1) ?? ''
+    sv = readFileSync(file, 'utf8')
   } catch (err) {
     console.error(err)
     check(`${rom.name}: emitted`, false)
@@ -205,13 +205,13 @@ check('every ROM above has its own derived name, with a hash of its contents',
 check('an explicit name is used as given', new ROM({ name: 'my_rom', dataWidth: 8, ROMContents: [1, 2] }).name === 'my_rom')
 const rebuilt = new ROM({ ...testMem1.params, name: undefined })
 check('a ROM rebuilt from its params gets the same name and SV',
-  rebuilt.name === testMem1.name && rebuilt.writeSystemVerilog() === testMem1.writeSystemVerilog())
-const svHd = new ROM({ name: 'ROM_hd', dataWidth: 8, ROMContents: [1, 2, 3], macroConfig: 'hd' }).writeSystemVerilog()
+  rebuilt.name === testMem1.name && moduleSV(rebuilt) === moduleSV(testMem1))
+const svHd = moduleSV(new ROM({ name: 'ROM_hd', dataWidth: 8, ROMContents: [1, 2, 3], macroConfig: 'hd' }))
 check('the parameter comment gives macroConfig, and the word count for the contents',
   svHd.includes('// macroConfig = hd') && /\/\/ ROMContents = 3 words, hash [0-9a-z]{8}, in rom_read/.test(svHd))
 const hash1 = testMem1.name.split('_')[1] ?? ''
 check(`${testMem1.name}: the parameter comment gives the hash in the derived name`,
-  testMem1.writeSystemVerilog().includes(`// ROMContents = 10 words, hash ${hash1}, in rom_read`))
+  moduleSV(testMem1).includes(`// ROMContents = 10 words, hash ${hash1}, in rom_read`))
 
 // ============================================ contents the constructor rejects (TSSV guide PARAM-5)
 console.log('rejected contents')

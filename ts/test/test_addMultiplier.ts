@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -68,7 +68,7 @@ mult_tb.addSignal('b', { width: 4, isSigned: false })
 mult_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/mult_tb.sv', mult_tb.writeSystemVerilog())
+  mult_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }
@@ -135,7 +135,7 @@ multS_tb.addSignal('b', { width: 8, isSigned: true })
 multS_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/multS_tb.sv', multS_tb.writeSystemVerilog())
+  multS_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }
@@ -208,7 +208,7 @@ multUS_tb.addSignal('b', { width: 8, isSigned: true })
 multUS_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/multUS_tb.sv', multUS_tb.writeSystemVerilog())
+  multUS_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }
@@ -281,7 +281,7 @@ multSU_tb.addSignal('b', { width: 8, isSigned: false })
 multSU_tb.addMultiplier({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/multSU_tb.sv', multSU_tb.writeSystemVerilog())
+  multSU_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }
@@ -327,7 +327,7 @@ multB_tb.addMultiplier({ a: 57n, b: -23n })
 multB_tb.addMultiplier({ a: -91n, b: 200n })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/multB_tb.sv', multB_tb.writeSystemVerilog())
+  multB_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }
@@ -391,7 +391,7 @@ multUB_tb.addSignal('a', { width: 8, isSigned: false })
 multUB_tb.addMultiplier({ a: 'a', b: 50n })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/multUB_tb.sv', multUB_tb.writeSystemVerilog())
+  multUB_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }
@@ -455,7 +455,7 @@ multSB_tb.addSignal('a', { width: 8, isSigned: true })
 multSB_tb.addMultiplier({ a: 'a', b: -50n })
 
 try {
-  writeFileSync('sv-examples/Core/addMultiplier/multSB_tb.sv', multSB_tb.writeSystemVerilog())
+  multSB_tb.writeSystemVerilogFiles('sv-examples/Core/addMultiplier')
 } catch (err) {
   console.error(err)
 }

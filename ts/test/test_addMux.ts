@@ -1,5 +1,5 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -67,7 +67,7 @@ mux_tb.addSignal('out', { width: 4, isSigned: false })
 mux_tb.addMux({ in: sigs, sel: 'sel', out: 'out' })
 
 try {
-  writeFileSync('sv-examples/Core/addMux/mux_tb.sv', mux_tb.writeSystemVerilog())
+  mux_tb.writeSystemVerilogFiles('sv-examples/Core/addMux')
 } catch (err) {
   console.error(err)
 }
@@ -156,7 +156,7 @@ muxS_tb.addSignal('out', { width: 16, isSigned: true })
 muxS_tb.addMux({ in: sigsS, sel: 'sel', out: 'out' })
 
 try {
-  writeFileSync('sv-examples/Core/addMux/muxS_tb.sv', muxS_tb.writeSystemVerilog())
+  muxS_tb.writeSystemVerilogFiles('sv-examples/Core/addMux')
 } catch (err) {
   console.error(err)
 }
@@ -229,7 +229,7 @@ muxE_tb.addSignal('out', { width: 5, isSigned: true })
 muxE_tb.addMux({ in: expressions, sel: new Expr('~sel'), out: 'out' })
 
 try {
-  writeFileSync('sv-examples/Core/addMux/muxE_tb.sv', muxE_tb.writeSystemVerilog())
+  muxE_tb.writeSystemVerilogFiles('sv-examples/Core/addMux')
 } catch (err) {
   console.error(err)
 }
@@ -305,7 +305,7 @@ muxD_tb.addSignal('out', { width: 5, isSigned: true })
 muxD_tb.addMux({ in: sigsD, sel: 'sel', out: 'out', default: new Expr('5\'d11') })
 
 try {
-  writeFileSync('sv-examples/Core/addMux/muxD_tb.sv', muxD_tb.writeSystemVerilog())
+  muxD_tb.writeSystemVerilogFiles('sv-examples/Core/addMux')
 } catch (err) {
   console.error(err)
 }

@@ -1,6 +1,6 @@
 // Reads the always blocks, continuous assignments and declarations of a module that
-// writeSystemVerilog() emits, for the SV-guide rules ModuleCheck.ts enforces. verible-verilog-syntax
-// parses the module, and the rules read its syntax tree.
+// writeSystemVerilogFiles() emits, for the SV-guide rules ModuleCheck.ts enforces.
+// verible-verilog-syntax parses the module, and the rules read its syntax tree.
 import { type CSTNode, child, findAll, identifier, kids, parseSyntax, sourceText } from './VeribleSyntax.js'
 
 /** An assignment in an always block. */

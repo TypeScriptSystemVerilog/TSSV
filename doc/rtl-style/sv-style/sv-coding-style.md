@@ -1,10 +1,10 @@
 # SystemVerilog Coding Style
 
-Rules for the SystemVerilog that TSSV modules emit. They apply to everything a module
-generates, and most of all to the raw SV strings passed to `addCombAlways()`,
-`addSequentialAlways()`, `addLatchAlways()`, `addBody()` and the constructor `body`. The builders
-type-check signal names, but not those strings. `writeSystemVerilog()` checks the always blocks in
-them against some of the rules, COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4, and
+Rules for the SystemVerilog that TSSV modules emit. They apply to everything a module generates,
+and most of all to the raw SV strings passed to `addCombAlways()`, `addSequentialAlways()`,
+`addLatchAlways()`, `addBody()` and the constructor `body`. The builders type-check signal
+names, but not those strings. `writeSystemVerilogFiles()` checks the always blocks in them
+against some of the rules, COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4, and
 fails generation on a violation (`rules.json` lists each rule's checks).
 
 Rules for the TypeScript that generates the SV, such as which builder to use and how to
@@ -732,7 +732,7 @@ its code fence. The comment doesn't show when the doc is rendered:
 - `<!-- lint: dont CODE ...` marks an example that must trigger each listed warning. List the
   warnings the rule's text cites. Leave the list empty for a mistake Verilator doesn't flag,
   as in COMB-9, SEQ-4, SEQ-5 and SEQ-6. Another check catches it instead, such as
-  `writeSystemVerilog()`'s, or review.
+  `writeSystemVerilogFiles()`'s, or review.
 - Each line after the first declares one port (`input logic [1:0] req`) or one module-scope
   declaration (`logic tmp;`). The script wraps the example in a module with those
   declarations, so every signal the example uses must be declared there.

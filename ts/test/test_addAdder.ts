@@ -1,5 +1,5 @@
 import { Module } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { markTestbench } from 'tssv/test/models/testbench'
 
 try {
@@ -68,7 +68,7 @@ add_tb.addSignal('b', { width: 4, isSigned: false })
 add_tb.addAdder({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addAdder/add_tb.sv', add_tb.writeSystemVerilog())
+  add_tb.writeSystemVerilogFiles('sv-examples/Core/addAdder')
 } catch (err) {
   console.error(err)
 }
@@ -135,7 +135,7 @@ addS_tb.addSignal('b', { width: 8, isSigned: true })
 addS_tb.addAdder({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addAdder/addS_tb.sv', addS_tb.writeSystemVerilog())
+  addS_tb.writeSystemVerilogFiles('sv-examples/Core/addAdder')
 } catch (err) {
   console.error(err)
 }
@@ -202,7 +202,7 @@ addUS_tb.addSignal('b', { width: 8, isSigned: true })
 addUS_tb.addAdder({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addAdder/addUS_tb.sv', addUS_tb.writeSystemVerilog())
+  addUS_tb.writeSystemVerilogFiles('sv-examples/Core/addAdder')
 } catch (err) {
   console.error(err)
 }
@@ -269,7 +269,7 @@ addSU_tb.addSignal('b', { width: 8, isSigned: false })
 addSU_tb.addAdder({ a: 'a', b: 'b' })
 
 try {
-  writeFileSync('sv-examples/Core/addAdder/addSU_tb.sv', addSU_tb.writeSystemVerilog())
+  addSU_tb.writeSystemVerilogFiles('sv-examples/Core/addAdder')
 } catch (err) {
   console.error(err)
 }
@@ -337,7 +337,7 @@ addB_tb.addSignal('sum', { width: 18, isSigned: true })
 addB_tb.addAdder({ a: 'a', b: 'b', result: 'sum' })
 
 try {
-  writeFileSync('sv-examples/Core/addAdder/addB_tb.sv', addB_tb.writeSystemVerilog())
+  addB_tb.writeSystemVerilogFiles('sv-examples/Core/addAdder')
 } catch (err) {
   console.error(err)
 }

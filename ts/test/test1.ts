@@ -1,8 +1,6 @@
 import { Module, type TSSVParameters, type IntRange, type ExprParams, Expr } from 'tssv/lib/core/TSSV'
-import { writeFileSync, mkdirSync } from 'fs'
-import { emitSplit } from 'tssv/test/models/emitSplit'
+import { mkdirSync } from 'fs'
 
-const GENERATOR = 'ts/test/test1.ts'
 const OUT = 'sv-examples/Core/test1'
 
 export interface Adder_Parameters extends TSSVParameters {
@@ -180,22 +178,22 @@ export class testAddrDecode extends Module {
 const test1 = new Adder3({ aWidth: 8, bWidth: 8, cWidth: 8 })
 mkdirSync(OUT, { recursive: true })
 try {
-  // one module per file (DECLFILENAME), with a filelist for the hierarchy
-  emitSplit(test1, OUT, GENERATOR)
+  // one module per file, each including the files it needs under USE_INCLUDES
+  test1.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }
 
 const testMem1 = new testMem({ name: 'testMem1', dataWidth: 8, depth: 32n })
 try {
-  writeFileSync(`${OUT}/testMem1.sv`, testMem1.writeSystemVerilog())
+  testMem1.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }
 
 const testAddrDecode1 = new testAddrDecode({ name: 'testAddrDecode1', numBlocks: 5, blockSize: 16n, addrWidth: 32, baseAddr: BigInt('0xabcdef00') })
 try {
-  writeFileSync(`${OUT}/testAddrDecode1.sv`, testAddrDecode1.writeSystemVerilog())
+  testAddrDecode1.writeSystemVerilogFiles(OUT)
 } catch (err) {
   console.error(err)
 }

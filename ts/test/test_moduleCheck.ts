@@ -1,9 +1,9 @@
 import { type ModuleTable, checkModule } from 'tssv/lib/core/ModuleCheck'
 
-// Unit test of the SV-guide checks writeSystemVerilog() runs on each module (issue #166), for
+// Unit test of the SV-guide checks emission runs on each module (issue #166), for
 // cases a module built with the builders can't easily reach: resets wired through interfaces and
 // chains, a cycle of assignments, and an error that lists several violations.
-// ts/test/rtl_style/test_rtl_style_builders.ts checks each rule through writeSystemVerilog().
+// ts/test/rtl_style/test_rtl_style_builders.ts checks each rule through writeSystemVerilogFiles().
 
 let failures = 0
 function checkPasses (what: string, fn: () => void): void {

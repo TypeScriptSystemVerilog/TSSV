@@ -160,7 +160,7 @@ where `x[n]` is the n-th sample transferred on `s_axis`, and a sample from befor
 **Testbench:** `verilatorTB/tb_FIR.sv`, run by `make -C verilatorTB fir_sim` (and in CI)
 **Output:** `sv-examples/FIR/<name>/`, and the testbench inputs in `sv-examples/FIR/tb/`
 
-`test_FIR.ts` writes each configuration below one definition per file, with a lint wrapper and filelist (`<name>_lint_top.f`). It checks each one's ports against the IO tables above and its accumulator width against the `accumulatorWidth` default (TSSV guide TEST-2). It also checks that each bad value under Parameters throws, and that parameters that make the same module give it the same name: a short `coefficients` list and its zero-padded form, the parameters in any order, and `accumulatorWidth` left out or passed at its default.
+`test_FIR.ts` writes each configuration below one definition per file, with a lint wrapper (`<name>_lint_top.sv`) that includes it. It checks each one's ports against the IO tables above and its accumulator width against the `accumulatorWidth` default (TSSV guide TEST-2). It also checks that each bad value under Parameters throws, and that parameters that make the same module give it the same name: a short `coefficients` list and its zero-padded form, the parameters in any order, and `accumulatorWidth` left out or passed at its default.
 
 | Configuration | `numTaps` | `coefficients` | Widths: coefficients, in, out, accumulator | `rShift` | Covers |
 |---|---|---|---|---|---|
@@ -171,7 +171,7 @@ where `x[n]` is the n-th sample transferred on `s_axis`, and a sample from befor
 | `wide` | 1 | `[-2^31]` | 32, 32, 32, 64 | 31 | Every width at its maximum |
 | `narrowest` | 2 | `[-2,1]` | 2, 1, 2, 4 | 1 | Every width at its minimum |
 
-`make fir_sim` lints each configuration with `verilator --lint-only -Wall` and the common waivers, through its filelist, then builds and runs `tb_FIR.sv` on it. The testbench checks every output on `m_axis` against a reference model of the Functional Description, and that a valid output holds, unchanged, until `m_axis.TREADY` takes it. Its phases:
+`make fir_sim` lints each configuration with `verilator --lint-only -Wall` and the common waivers, through its lint wrapper with `USE_INCLUDES` defined, then builds and runs `tb_FIR.sv` on it. The testbench checks every output on `m_axis` against a reference model of the Functional Description, and that a valid output holds, unchanged, until `m_axis.TREADY` takes it. Its phases:
 
 1. After reset, `m_axis.TVALID` is low and `s_axis.TREADY` high.
 2. `lowpass13` only: the Timing diagram, cycle for cycle, from the spec's own WaveDrom JSON.

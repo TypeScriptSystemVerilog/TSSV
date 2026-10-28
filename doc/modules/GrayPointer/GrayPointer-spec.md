@@ -228,7 +228,7 @@ Each cover counts its hits in its action block. At the end of a configuration's 
 - It generates the testbench configurations below, and checks each one's ports against the IO tables above.
 - It checks that pointers differing in any parameter get different module names.
 - It checks that each invalid parameter in [Parameters](#parameters) throws: `width` 0 and `syncStages` 1.
-- It emits the `CDCSynchronizer` in its own file (#46), so every generated file lints clean under `-Wall` with no `DECLFILENAME` waiver.
+- It emits the `CDCSynchronizer` in its own file (`writeSystemVerilogFiles()`), so every generated file lints clean under `-Wall` with no `DECLFILENAME` waiver.
 - `runAllTests.sh` runs it.
 
 **Testbench:** `verilatorTB/tb_GrayPointer.sv`, built once per configuration.
