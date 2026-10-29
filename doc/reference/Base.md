@@ -258,7 +258,6 @@ base constructor
 | <a id="body"></a> `body` | `protected` | `string` | `undefined` | - |
 | <a id="importedfiles"></a> `importedFiles?` | `protected` | readonly `object`[] | `undefined` | - |
 | <a id="registerblocks"></a> `registerBlocks` | `protected` | `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, \{ `d`: `string`; `resetVal?`: `bigint`; \}\>\>\>\> | `{}` | - |
-| <a id="printedinterfaces"></a> `printedInterfaces` | `static` | `Record`\<`string`, `boolean`\> | `{}` | - |
 | <a id="verilogparams"></a> `verilogParams` | `protected` | `Record`\<`string`, `boolean`\> | `undefined` | - |
 
 #### Methods
@@ -377,7 +376,7 @@ The files themselves are emitted untouched. `writeSystemVerilogFiles()` writes e
 to a file of its own name, inside the include guard
 `` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
 once, from two imports or from two emitted files compiled together, defines what it holds
-once. The deprecated `writeSystemVerilog()` puts their text, unguarded, in its single string.
+once.
 
 ###### Parameters
 
@@ -964,34 +963,6 @@ Convenience wrapper that emits a nice comment block.
 
 `string`
 
-##### ~~writeSystemVerilog()~~
-
-```ts
-writeSystemVerilog(options?): string;
-```
-
-write the generated SystemVerilog code to a string, with every module and interface it
-reaches defined inline, dependencies first. Each module is checked against the SV guide as
-[writeSystemVerilogFiles](#writesystemverilogfiles) describes.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `options?` | [`SVEmitOptions`](#svemitoptions) | controls emission across several files - see [SVEmitOptions](#svemitoptions). Applies to a top-level call only; the recursion into submodules passes nothing. |
-
-###### Returns
-
-`string`
-
-string containing the generated SystemVerilog code for this module
-
-###### Deprecated
-
-Use [writeSystemVerilogFiles](#writesystemverilogfiles), which writes one guarded file per module and
-  interface. Build its output by naming the top file with `+define+USE_INCLUDES` and its
-  directory on the include path.
-
 ##### writeSystemVerilogFiles()
 
 ```ts
@@ -1037,7 +1008,9 @@ The files a module imported with `addSystemVerilogSubmodule()` reads are written
 each once, under its own name, inside its `SVIMPORT__<file name without extension>__` guard
 and nothing else. A generated file never wraps one: the `DEF__` guard is for generated SV
 only. A module that instantiates an imported one includes all of that import's files, in
-order. Two different imported files that would share a guard throw, naming both.
+order. Two different imported files that would share a guard throw, naming both. An imported
+module has no generated SV of its own, so calling this on one throws: write the module that
+instantiates it instead.
 
 Generated names must be legal SystemVerilog identifiers, because they name files and macros.
 No two files' names may differ only in case, because they are one file on macOS and Windows.
@@ -1212,44 +1185,6 @@ signal parameters
 | <a id="a"></a> `a` | `string` \| `bigint` \| [`Sig`](#sig) |
 | <a id="b"></a> `b` | `string` \| `bigint` \| [`Sig`](#sig) |
 | <a id="result"></a> `result?` | `string` \| [`Sig`](#sig) |
-
-***
-
-### ~~SVEmitOptions~~
-
-Options for a top-level `Module.writeSystemVerilog()` call, which is how a design is emitted
-across more than one file.
-
-An emission defines every module and interface it reaches, and by default each top-level call
-starts from nothing — so emitting a DUT and then a testbench that instantiates it produces the
-DUT twice, once per file. `exclude` carries the first emission's definitions into the second,
-which then instantiates and references them instead of defining them again.
-
-```typescript
-const defined = new Set<string>()
-const dutSV = dut.writeSystemVerilog({ defined })            // defines the DUT hierarchy
-const tbSV = tb.writeSystemVerilog({ exclude: defined })     // references it
-```
-
-Whichever call runs first defines anything the two share, so emission order decides where a
-shared interface lands. This is the rule that already governs a single emission — the first
-module to need a definition emits it — extended across calls rather than reset between them.
-
-Both files must be given to the simulator or synthesis tool together: the second no longer
-defines what it references.
-
-#### Deprecated
-
-Use [Module.writeSystemVerilogFiles](#writesystemverilogfiles), which writes one guarded file per
-  module and interface, so emitting a DUT and then its testbench into one directory defines
-  each once without this bookkeeping.
-
-#### Properties
-
-| Property | Type | Description |
-| ------ | ------ | ------ |
-| <a id="exclude"></a> ~~`exclude?`~~ | `ReadonlySet`\<`string`\> | Module and interface names that a previous emission already defined. They are instantiated and referenced as usual, but not defined again. |
-| <a id="defined"></a> ~~`defined?`~~ | `Set`\<`string`\> | If provided, receives the name of every module and interface this call defined. Names from `exclude` are not added, so passing one set as `defined` and then as `exclude` accumulates across an arbitrary number of files. |
 
 ***
 

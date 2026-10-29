@@ -207,45 +207,6 @@ interface OperationIO {
   result?: string | Sig
 }
 
-/**
- * Options for a top-level `Module.writeSystemVerilog()` call, which is how a design is emitted
- * across more than one file.
- *
- * An emission defines every module and interface it reaches, and by default each top-level call
- * starts from nothing — so emitting a DUT and then a testbench that instantiates it produces the
- * DUT twice, once per file. `exclude` carries the first emission's definitions into the second,
- * which then instantiates and references them instead of defining them again.
- *
- * ```typescript
- * const defined = new Set<string>()
- * const dutSV = dut.writeSystemVerilog({ defined })            // defines the DUT hierarchy
- * const tbSV = tb.writeSystemVerilog({ exclude: defined })     // references it
- * ```
- *
- * Whichever call runs first defines anything the two share, so emission order decides where a
- * shared interface lands. This is the rule that already governs a single emission — the first
- * module to need a definition emits it — extended across calls rather than reset between them.
- *
- * Both files must be given to the simulator or synthesis tool together: the second no longer
- * defines what it references.
- * @deprecated Use {@link Module.writeSystemVerilogFiles}, which writes one guarded file per
- *   module and interface, so emitting a DUT and then its testbench into one directory defines
- *   each once without this bookkeeping.
- */
-export interface SVEmitOptions {
-  /**
-   * Module and interface names that a previous emission already defined. They are instantiated
-   * and referenced as usual, but not defined again.
-   */
-  exclude?: ReadonlySet<string>
-  /**
-   * If provided, receives the name of every module and interface this call defined. Names from
-   * `exclude` are not added, so passing one set as `defined` and then as `exclude` accumulates
-   * across an arbitrary number of files.
-   */
-  defined?: Set<string>
-}
-
 export interface FormatterConfig {
   engine: 'verible' | 'internal' | 'off'
   veriblePath?: string
@@ -610,7 +571,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * to a file of its own name, inside the include guard
    * `` `ifndef SVIMPORT__<file name without extension>__ ``, so SV that reaches a file more than
    * once, from two imports or from two emitted files compiled together, defines what it holds
-   * once. The deprecated `writeSystemVerilog()` puts their text, unguarded, in its single string.
+   * once.
    * @param instanceName the name of the instance
    * @param SVFilePath the SystemVerilog files, and `.f` filelists naming them
    * @param params SV parameter overrides for the instance
@@ -644,9 +605,6 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       for (const h of headers) fileOf.set(h, path)
     }
     const header = selectSVModule([...fileOf.keys()], sources.map(s => s.path), moduleName)
-    // The files' text, unchanged, one after the other: a file is the whole of it, as it always was
-    let SVString = ''
-    for (const { text } of sources) SVString += (SVString === '' || SVString.endsWith('\n') ? '' : '\n') + text
     const vIOs: IOSignals = {}
     for (const port in bindings) {
       const kind = header.ports[port]
@@ -658,14 +616,11 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     const vModuleName = header.name
     const vModule = new Module(
       { name: vModuleName, ...params },
-      vIOs,
-      {},
-      SVString
+      vIOs
     )
     for (const p in vModule.params) {
       if (p !== 'name') { vModule.setVerilogParameter(p) }
     }
-    vModule.writeSystemVerilog = (): string => { return SVString }
     vModule.importedFiles = sources
     return this.addSubmodule(instanceName, vModule, bindings, autoBind)
   }
@@ -1607,58 +1562,6 @@ ${caseAssignments}
     ].join('\n')
   }
 
-  /**
-     * write the generated SystemVerilog code to a string, with every module and interface it
-     * reaches defined inline, dependencies first. Each module is checked against the SV guide as
-     * {@link writeSystemVerilogFiles} describes.
-     * @deprecated Use {@link writeSystemVerilogFiles}, which writes one guarded file per module and
-     *   interface. Build its output by naming the top file with `+define+USE_INCLUDES` and its
-     *   directory on the include path.
-     * @param options controls emission across several files - see {@link SVEmitOptions}. Applies
-     *   to a top-level call only; the recursion into submodules passes nothing.
-     * @returns string containing the generated SystemVerilog code for this module
-     */
-  writeSystemVerilog (options?: SVEmitOptions): string {
-    if (Module.svGenDepth === 0) {
-      Module.printedInterfaces = {}
-      Module.printedModules = {}
-      if (options?.exclude !== undefined) {
-        if (options.exclude.has(this.name)) {
-          throw Error(
-            `${this.name} is excluded from its own writeSystemVerilog() call, so this emission ` +
-            'would define a module a previous one already defined')
-        }
-        // A name is either a module or an interface, never both, so seeding both sets keeps
-        // the caller from having to tell them apart.
-        for (const name of options.exclude) {
-          Module.printedInterfaces[name] = true
-          Module.printedModules[name] = true
-        }
-      }
-      // Only submodules were ever recorded, never the module being emitted - so without this a
-      // later emission excluding this one's output would still define this module a second time.
-      Module.printedModules[this.name] = true
-    }
-    Module.svGenDepth++
-    try {
-      const sv = this._writeSystemVerilog()
-      if (Module.svGenDepth === 1) {
-        if (options?.defined !== undefined) {
-          const excluded = options.exclude
-          for (const name of Object.keys(Module.printedModules).concat(Object.keys(Module.printedInterfaces))) {
-            if (excluded?.has(name) !== true) options.defined.add(name)
-          }
-        }
-        if (Module.formatterConfig.engine !== 'off') {
-          return this.applyFormatter(sv)
-        }
-      }
-      return sv
-    } finally {
-      Module.svGenDepth--
-    }
-  }
-
   private applyFormatter (sv: string): string {
     if (Module.formatterConfig.engine === 'verible') {
       return runVerible(sv, Module.formatterConfig)
@@ -1706,7 +1609,9 @@ ${caseAssignments}
    * each once, under its own name, inside its `SVIMPORT__<file name without extension>__` guard
    * and nothing else. A generated file never wraps one: the `DEF__` guard is for generated SV
    * only. A module that instantiates an imported one includes all of that import's files, in
-   * order. Two different imported files that would share a guard throw, naming both.
+   * order. Two different imported files that would share a guard throw, naming both. An imported
+   * module has no generated SV of its own, so calling this on one throws: write the module that
+   * instantiates it instead.
    *
    * Generated names must be legal SystemVerilog identifiers, because they name files and macros.
    * No two files' names may differ only in case, because they are one file on macOS and Windows.
@@ -1741,6 +1646,10 @@ ${caseAssignments}
    * @returns the paths written, each after every file it includes, so this module's is last
    */
   writeSystemVerilogFiles (outDir: string): string[] {
+    if (this.importedFiles !== undefined) {
+      throw Error(`writeSystemVerilogFiles: ${this.name} was imported with addSystemVerilogSubmodule(), so ` +
+        'it has no generated SV to write. Write the module that instantiates it')
+    }
     // A generated module or interface, written to `<name>.sv` inside its DEF guard, or an imported
     // file, named by its path and written under its own name inside its SVIMPORT guard
     interface Unit { kind: 'module' | 'interface' | 'imported file', name: string, file: string, usedBy?: string, contents: () => string }
@@ -1770,10 +1679,8 @@ ${caseAssignments}
     const visit = (m: Module, usedBy?: string): void => {
       if (seen.has(`module ${m.name}`)) return
       seen.add(`module ${m.name}`)
-      const submoduleNames: string[] = []
       const submoduleFiles: string[] = []
       for (const { module } of Object.values(m.submodules)) {
-        if (!submoduleNames.includes(module.name)) submoduleNames.push(module.name)
         let files = [`${module.name}.sv`]
         if (module.importedFiles === undefined) {
           visit(module, m.name)
@@ -1792,9 +1699,7 @@ ${caseAssignments}
         if (!interfaceNames.includes(name)) interfaceNames.push(name)
       }
       const includes = [...interfaceNames.map(name => `${name}.sv`), ...submoduleFiles]
-      // Excluding m's interfaces and submodules leaves m's own definition: nothing below it is reached
-      const exclude = new Set([...interfaceNames, ...submoduleNames])
-      units.push({ kind: 'module', name: m.name, file: `${m.name}.sv`, usedBy, contents: () => guardSVFile(m.name, includes, m.writeSystemVerilog({ exclude })) })
+      units.push({ kind: 'module', name: m.name, file: `${m.name}.sv`, usedBy, contents: () => guardSVFile(m.name, includes, m.applyFormatter(m.moduleSystemVerilog())) })
     }
     visit(this)
 
@@ -1823,7 +1728,12 @@ ${caseAssignments}
     return files.map(f => f.path)
   }
 
-  private _writeSystemVerilog (): string {
+  /**
+   * This module's own definition, `module <name> ... endmodule`, unformatted, after checking it
+   * against the SV guide. It instantiates its submodules and uses its interfaces but defines
+   * neither: `writeSystemVerilogFiles()` writes those to files of their own.
+   */
+  private moduleSystemVerilog (): string {
     // assemble TSSVParameters
     const paramsArray: string[] = []
     if (this.params) {
@@ -1846,7 +1756,6 @@ ${caseAssignments}
     // construct IO definition
     const IOArray: string[] = []
     const signalArray: string[] = []
-    let interfacesString = ''
     Object.keys(this.IOs).forEach((key) => {
       let rangeString = ''
       const signString = (this.IOs[key].isSigned) ? ' signed' : ''
@@ -1874,10 +1783,6 @@ ${caseAssignments}
                         IOArray.push(`${thisModports[name]} ${thisSignal.type || 'logic'}${signString} ${rangeString} ${name}`)
                     })
                     */
-          if (!Module.printedInterfaces[thisInterface.interfaceName()]) {
-            interfacesString += interfaceSystemVerilog(thisInterface)
-            Module.printedInterfaces[thisInterface.interfaceName()] = true
-          }
           IOArray.push(`${thisInterface.interfaceName()}.${thisInterface.role} ${key}`)
         } else {
           throw Error(`${thisInterface.name} has role/modport inconsistency`)
@@ -1968,14 +1873,9 @@ ${functionalAssigments.join('\n')}
       }
     }
 
-    let subModulesString = ''
     for (const moduleInstance in this.submodules) {
       const thisSubmodule = this.submodules[moduleInstance]
       let paramsBind = ''
-      if (!Module.printedModules[thisSubmodule.module.name]) {
-        Module.printedModules[thisSubmodule.module.name] = true
-        subModulesString += thisSubmodule.module.writeSystemVerilog()
-      }
       const bindingsArray: string[] = []
       for (const binding in thisSubmodule.bindings) {
         bindingsArray.push(`        .${binding}(${thisSubmodule.bindings[binding].toString()})`)
@@ -2031,17 +1931,13 @@ endmodule
     }
     checkModule({ name: this.name, signals: { ...this.IOs, ...this.signals }, interfaces: Object.keys(this.interfaces), resetBindings }, moduleString)
 
-    return `${opt(interfacesString)}${opt(subModulesString)}${moduleString}`
+    return moduleString
   }
 
   protected body: string
   // set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
   protected importedFiles?: ReadonlyArray<{ path: string, text: string }>
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
-
-  protected static printedInterfaces: Record<string, boolean> = {}
-  private static printedModules: Record<string, boolean> = {}
-  private static svGenDepth = 0
 
   protected verilogParams: Record<string, boolean>
 }
