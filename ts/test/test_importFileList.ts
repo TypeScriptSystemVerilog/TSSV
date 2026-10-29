@@ -195,6 +195,10 @@ try {
   const copyFiles = copy.writeSystemVerilogFiles(join(tmp, 'copy_out')).map(f => basename(f))
   check('a copy of a file, with the same contents, is written once',
     copyFiles.join(' ') === 'fl_pkg.sv fl_sub.sv copy_top.sv', copyFiles.join(' '))
+  const importedTopError = errorOf(() => top.flTop.writeSystemVerilogFiles(join(tmp, 'imported_out')))
+  check('writing an imported module itself throws, naming it',
+    mentions(importedTopError, 'fl_top was imported with addSystemVerilogSubmodule()'), importedTopError)
+  check('and nothing is written', !existsSync(join(tmp, 'imported_out')))
 } finally {
   rmSync(tmp, { recursive: true, force: true })
 }
