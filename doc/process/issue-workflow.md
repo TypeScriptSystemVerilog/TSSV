@@ -282,16 +282,194 @@ running it, never its own.
   `Closes #N`, or a missing Acceptance Criteria section.
 - Merging is the human's call. An agent opens the PR, verifies and checks off AC, then
   waits for approval — it doesn't merge on its own even when its token could.
+- Merge with **Create a merge commit**, not squash or rebase. The `main` ruleset already
+  refuses a squash merge. A merge commit keeps each commit as it was reviewed, and a PR
+  stacked on this one keeps showing only its own commits (§8).
 
-## 8. Gotchas
+## 8. Stacked PRs
+
+Sometimes new work needs content that only exists on another open PR's branch. Base your
+branch on that branch, and open its PR against that branch, not `main`.
+
+The PR's base is what keeps a stack readable. A PR shows the commits on its branch that
+aren't on its base. Opened against `main`, a stacked PR also shows every commit of the PRs
+below it as its own. Opened against its parent's branch, it shows only its own commits.
+
+### Create the branch
+
+Push the parent first, then start your branch from the parent as pushed:
+
+```bash
+git fetch origin
+git checkout -b <type>/<n>-<slug> --no-track origin/<parent-branch>
+# or, in a worktree of its own:
+git worktree add -b <type>/<n>-<slug> --no-track <path> origin/<parent-branch>
+```
+
+`--no-track` matters for the reason in §4. Without it, the new branch's upstream is the
+parent's branch, and a push that targets the upstream lands your commits on the parent.
+
+### Open the PR
+
+```bash
+gh pr view <parent-PR> --json state --jq .state    # OPEN: stack on it; MERGED: use main
+gh pr create --base <parent-branch> ...
+```
+
+Always pass `--base`: without it, `gh` opens the PR against `main`. If the parent has already
+merged, open the PR against `main`. If the parent was closed without merging, your branch
+still holds its commits, so decide by hand what to do with them.
+
+Start the body with the merge order, for example `**Stacked on #<parent-PR>**: merge that
+first.` Keep `Closes #<N>` in the body as usual. GitHub acts on it only when the PR merges
+into `main`, which it will once everything below it has merged ("Merge from the bottom up",
+below). To show what the PR does to the generated SV (§5), diff against the parent:
+`scripts/gen-sv --base origin/<parent-branch>`.
+
+No `pull_request` trigger under `.github/workflows/` filters on the base branch, so CI runs
+on a stacked PR as on any other.
+
+### Change an open PR's base
+
+On a recent `gh`, run `gh pr edit <PR> --base <branch>`, or use **Edit** next to the PR
+title. On `gh` 2.46.0, every `gh pr edit` fails, whatever it edits, with
+`GraphQL: Projects (classic) is being deprecated …`. Upgrade `gh` (§1), or call the
+`updatePullRequest` mutation directly:
+
+```bash
+id=$(gh pr view <PR> --json id --jq .id)
+gh api graphql -f id="$id" -f base=<branch> -f query='
+mutation($id: ID!, $base: String!) {
+  updatePullRequest(input: {pullRequestId: $id, baseRefName: $base}) {
+    pullRequest { number baseRefName }
+  }
+}'
+```
+
+### Link the PRs into a GitHub stack
+
+Once both PRs are open, make them a GitHub
+[stacked pull request](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs)
+with the `gh stack` extension, bottom PR first:
+
+```bash
+gh extension install github/gh-stack     # once per machine; needs git 2.36 or later
+gh stack link <parent-PR> <your-PR>      # prints "Created stack with 2 PRs (stack #<S>)"
+gh stack link <S> <next-PR>              # add a PR to the top of an existing stack
+```
+
+Pass PR numbers. `gh stack link` then only records the stack on GitHub: it pushes nothing and
+keeps no local state. A branch name passed instead is pushed, and gets a PR opened for it if
+it has none. #78 and #91 became stack #93 this way. A stack is a single linear chain in which
+each PR's base is the branch of the PR below it, so set the bases first, as above.
+
+What the stack adds, per GitHub's documentation:
+
+- Each PR shows a stack icon with its layer number, and the merge box shows a map of the whole
+  stack with every PR's status.
+- The `main` ruleset applies to every PR in the stack: one approving review and the `dco`
+  check. CI that runs for PRs against `main` runs for every PR in the stack.
+- When a PR in the stack merges, GitHub changes the base of the PRs above it to `main` and
+  rebases their branches. Fetch before you work on an upper branch again ("When a lower
+  branch changes during review", below).
+
+Use only `link`, `merge` and `unstack` from `gh stack`. The others (`init`, `add`, `submit`,
+`sync`, `rebase`, `push`) keep their own local record of the stack, and `sync`, `rebase` and
+`push` rebase and force-push every branch in it. That conflicts with the rule below of adding
+commits to a branch that has others stacked on it.
+
+To check a PR's stack without `gh stack`:
+
+```bash
+gh api graphql -f query='{ repository(owner: "TypeScriptSystemVerilog", name: "TSSV") {
+  pullRequest(number: <N>) { baseRefName stack { number size } } } }'
+```
+
+To undo a stack, run `gh stack unstack <S>`. It removes the stack on GitHub and doesn't close
+the PRs.
+
+### Merge from the bottom up
+
+1. Merge the bottom PR, the one whose base is `main`, with **Create a merge commit** (§7).
+2. GitHub changes the base of each PR above it to `main`. In a GitHub stack it also rebases
+   their branches. Outside one, the change of base happens because GitHub deletes the merged
+   branch, so stacking relies on the repository setting **Automatically delete head
+   branches** staying on. Either way, those PRs now show only their own commits.
+3. Merge the next PR up the same way, once it has its own approval.
+
+To check the setting (it prints `true`):
+
+```bash
+gh api repos/TypeScriptSystemVerilog/TSSV --jq .delete_branch_on_merge
+```
+
+Merging one PR at a time is the norm, and every TSSV stack so far has landed that way.
+GitHub's documentation says a PR in a stack can only be merged through its newer,
+asynchronous merge API, which `gh pr merge` on `gh` 2.46.0 predates. Use the merge button on
+the PR page, or `gh stack merge <PR> --merge`. Pass `--merge` every time: without a method,
+`gh stack merge` uses the one you used last.
+
+**Merging a PR in a GitHub stack also merges every PR below it.** On the PR page and with
+`gh stack merge <PR>`, the merge takes everything from the bottom up to that PR in one
+all-or-nothing operation, so every one of them needs its approval first. Merge several at
+once only when every PR up to that one is approved and meant to land.
+
+Outside a GitHub stack, never merge a PR whose base is still another branch. It merges into
+that branch, not `main`, and its `Closes #<N>` closes nothing. Check the base shown under the
+PR title before merging. If a merged branch isn't deleted, GitHub doesn't change the base of
+the PRs above it, so change them to `main` by hand.
+
+### One parent, several children
+
+A GitHub stack is a single chain, so only one child of a parent can join the parent's stack.
+Each other child does one of these:
+
+- **Waits** until the parent merges, then branches from `main`. This is the default.
+- **Stacks by base only**, when the parent's own base is `main`: it branches from the parent
+  and opens its PR against the parent's branch, as above, but stays out of the GitHub stack.
+  When the parent merges, GitHub changes the child's base to `main` (step 2 above); don't
+  merge it before then. A parent that is higher up a stack is a bad base for this: when a PR
+  below it merges, GitHub rebases its branch, and the child shows the parent's old commits as
+  its own.
+
+### If a parent was rebase- or squash-merged anyway
+
+In a GitHub stack, GitHub rebases the PRs above for you whichever merge method was used, so
+skip this subsection. Outside a stack, either method puts new commits on `main` in place of
+the parent's. The `main` ruleset refuses a squash merge but allows a rebase merge. The PR above
+still holds the parent's original commits, so once its base is `main` it shows them again as
+its own. Move only your own commits onto `main`, from your branch:
+
+```bash
+git fetch origin
+old_tip=$(gh pr view <parent-PR> --json headRefOid --jq .headRefOid)
+git rebase --onto origin/main "$old_tip"
+git push --force-with-lease origin HEAD
+```
+
+### When a lower branch changes during review
+
+Add commits to it. Don't rebase or force-push a branch that has others stacked on it.
+
+GitHub is the exception: when a PR in a GitHub stack merges, it rebases the branches above it.
+Before adding commits to such a branch, run `git fetch origin` and `git status -sb`. If your
+branch has diverged from `origin` and you have no unpushed commits, run
+`git reset --hard origin/<your-branch>`. Otherwise run `git rebase origin/<your-branch>`.
+
+New commits on the parent don't disturb the PR above: it still shows only its own commits. If
+your branch needs the parent's new content, merge it in:
+
+```bash
+git fetch origin
+git merge origin/<parent-branch>
+git push origin HEAD
+```
+
+## 9. Gotchas
 
 - **Don't write `#N` as an ordinal.** GitHub turns any bare `#<number>` into a link to that
   issue/PR, including when you meant "the 2nd through 5th item." Spell out real issue
   numbers, or reword.
-- **Stacking on an unmerged branch.** If new work needs content only on another open
-  branch, base on the local branch (`git checkout -b <new> <other-branch>`). The PR will
-  show the other branch's diff until it merges; then `git fetch origin && git rebase
-  origin/main`.
 - **Pending PR reviews are invisible.** Inline review comments in a `PENDING` review are
   visible only to their author until the review is submitted. Check
   `gh api repos/TypeScriptSystemVerilog/TSSV/pulls/<n>/reviews` before treating feedback as
