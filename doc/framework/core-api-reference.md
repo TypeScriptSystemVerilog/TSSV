@@ -394,10 +394,6 @@ It checks each module it writes against the SV guide first (`ts/src/core/ModuleC
 | RST-2 | Sequential blocks that use resets of more than one kind |
 | RST-4 | A reset generated in logic: a reset that isn't an input, or a signal bound to a submodule's reset port, assigned an expression or assigned in a combinational block. A reset may come from an input, a submodule output or a register, plainly, as a bit, or inverted (`!r`, `~r`) |
 
-### `writeSystemVerilog(options?): string` (deprecated)
-
-Renders the module and every definition it reaches to one SV string, with no guards. Deprecated, with its `SVEmitOptions`: use `writeSystemVerilogFiles()`. It runs the same checks.
-
 ---
 
 ## `RegisterBlock` (`ts/src/core/Registers.ts`)
