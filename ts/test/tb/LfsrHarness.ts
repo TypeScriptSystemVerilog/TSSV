@@ -6,18 +6,12 @@ import { VectorChecker } from 'tssv/lib/tb/VectorChecker'
 /** Cycles each Lfsr is checked for */
 const ROWS = 64
 
-/**
- * An Lfsr's parameters, as Lfsr takes them, but each one required: the model below doesn't know
- * Lfsr's defaults
- */
-type LfsrConfig = Required<Pick<Lfsr_Parameters, 'width' | 'seed' | 'outWidth'>>
-
-/** One Lfsr under test: its parameters, and `tag`, which names its instance, check and nets */
-interface LfsrCase extends LfsrConfig { tag: string }
+/** One Lfsr under test: `tag` names its instance, check and nets, and `config` is its parameters */
+interface LfsrCase { tag: string, config: Lfsr_Parameters }
 
 const CASES: LfsrCase[] = [
-  { tag: 'x64', width: 64, seed: 0x0123456789abcdefn, outWidth: 64 },
-  { tag: 'x32_8', width: 32, seed: 0xdeadbeefn, outWidth: 8 }
+  { tag: 'x64', config: { width: 64, seed: 0x0123456789abcdefn, outWidth: 64 } },
+  { tag: 'x32_8', config: { width: 32, seed: 0xdeadbeefn, outWidth: 8 } }
 ]
 
 /**
@@ -25,7 +19,7 @@ const CASES: LfsrCase[] = [
  * the triples (13, 17, 5) for 32 bits and (13, 7, 17) for 64), each cut to its low `outWidth` bits:
  * what an Lfsr stepping every cycle shows on `value`.
  */
-function xorshift ({ width, seed, outWidth }: LfsrConfig, n: number): bigint[] {
+function xorshift (width: 32 | 64, seed: bigint, outWidth: number, n: number): bigint[] {
   const [a, b, c] = width === 32 ? [13n, 17n, 5n] : [13n, 7n, 17n]
   const mask = (1n << BigInt(width)) - 1n
   const out: bigint[] = []
@@ -52,18 +46,21 @@ export class LfsrHarness extends Harness {
     this.addSubmodule('play', new VectorPlayer({ name: `${params.name}_play`, rows: ROWS, lanes: [] }),
       { clk: 'clk', rst_b: 'rst_b', row: 'row', done: 'done' }, false)
 
-    for (const { tag, ...lfsr } of CASES) {
+    for (const { tag, config } of CASES) {
+      // The Lfsr's width and outWidth, with Lfsr's defaults, for the model and the description
+      const width = config.width ?? 64
+      const outWidth = config.outWidth ?? width
       const valueNet = `value_${tag}`
-      this.addSignal(valueNet, { width: lfsr.outWidth })
-      this.addSubmodule(`lfsr_${tag}`, new Lfsr(lfsr),
+      this.addSignal(valueNet, { width: outWidth })
+      this.addSubmodule(`lfsr_${tag}`, new Lfsr(config),
         { clk: 'clk', rst_b: 'rst_b', step: 1n, value: valueNet }, false)
       const failNet = this.check(tag,
-        `a ${lfsr.width}-bit Lfsr from seed 0x${lfsr.seed.toString(16)} gives xorshift${lfsr.width}'s low ${lfsr.outWidth} bits`,
+        `a ${width}-bit Lfsr from seed 0x${config.seed.toString(16)} gives xorshift${width}'s low ${outWidth} bits`,
         VectorChecker.firstError(`chk_${tag}`, 'value', 'cycle'))
       this.addSubmodule(`chk_${tag}`, new VectorChecker({
         name: `${params.name}_chk_${tag}`,
         rows: ROWS,
-        lanes: [{ port: 'value', width: lfsr.outWidth, values: xorshift(lfsr, ROWS) }]
+        lanes: [{ port: 'value', width: outWidth, values: xorshift(width, config.seed, outWidth, ROWS) }]
       }), { clk: 'clk', rst_b: 'rst_b', row: 'row', value: valueNet, fail_value: failNet }, false)
     }
     this.finish()
