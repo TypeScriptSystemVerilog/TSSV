@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesizable SystemVerilog from TypeScript. Designers write TypeScript classes that extend `Module`, then call `writeSystemVerilogFiles()` to emit `.sv` files — similar to Chisel for Scala, but targeting SystemVerilog designers. Out of scope: simulation, formal verification, synthesis, and place-and-route.
+TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesizable SystemVerilog from TypeScript. Designers write TypeScript classes that extend `Module`, then call `writeSystemVerilogFiles()` to emit `.sv` files — similar to Chisel for Scala, but targeting SystemVerilog designers. TSSV also provides a framework for block testbenches whose harness is synthesizable (`ts/src/tb/`, `doc/framework/testbench.md`). Out of scope: a simulator of its own, formal verification, synthesis, and place-and-route.
 
 ## Repo Structure
 
@@ -11,13 +11,15 @@ ts/src/core/          Framework base classes: Module, Sig, Expr, Interface, Regi
 ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRAM, SFIFO, AFIFO, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory, ...)
 ts/src/interfaces/    Signal-bundle definitions — AMBA 2–5 (100+ specs), TileLink, Memory
 ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_convert
+ts/src/tb/            Testbench framework, tier 1 (tssv/lib/tb/...): SimTop, Harness, Lfsr, VectorPlayer, VectorChecker, WaveDrom replay vectors (wavedromVectors), the testbench marker (markTestbench)
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
-ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers, the include guard for hand-written SV (`guardSV`), reading back emitted SV (`emitted`), the one filelist for a testbench outside `sv-examples/`, two-clock WaveDrom replay vectors, the testbench marker
+ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers, the include guard for hand-written SV (`guardSV`), reading back emitted SV (`emitted`), the one filelist for a testbench outside `sv-examples/`
+ts/test/tb/           Example testbenches on the testbench framework: an SFIFO timing-diagram replay and an Lfsr check
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script
 doc/framework/        How the framework works and how to use it: concepts, register blocks,
-                      core API reference, simulation
+                      core API reference, simulation, block testbenches
 doc/interfaces/       Writing interface classes (signal bundles)
 doc/reference/        Generated API reference for the core (npm run docs) — never hand-edit
 doc/modules/          One folder per module: doc/modules/<Module>/<Module>-spec.md
@@ -27,7 +29,7 @@ doc/tools/            CLI tool docs
 doc/ideas/            Design notes and spike specs, each marked with its status
 doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, with their checks
 doc/process/          Repo process specs (issue-workflow.md)
-scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base) and test-skips.sh (tests runAllTests.sh and gen-sv skip)
+scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base), test-skips.sh (tests runAllTests.sh and gen-sv skip), and the testbench checks check-harness.mjs and check-test-structure.mjs, which a project runs through its link to TSSV
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
 .github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml, dco.yml)
 ```
@@ -48,6 +50,7 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `doc/framework/registers.md` | `RegisterBlock`: register types and the logic they generate, the YAML → `scripts/gen_regblock.sh` flow, RALF output (`writeRALF`), current limitations |
 | `doc/interfaces/adding-an-interface.md` | Writing an interface class: the signal/modport pattern (`AXI4.ts`), AMBA file naming, generating a draft from IP-XACT XML with `xml_interface_build` |
 | `doc/framework/simulation.md` | The `verilatorTB/` flow: TS → SV → Verilator → VCD → GTKWave, Makefile variables, driver macros |
+| `doc/framework/testbench.md` | Block testbenches on the framework in `ts/src/tb/`: a synthesizable harness under the sim-only `SimTop`, the three tiers and their import rule, the tier-1 components, pass and fail, the checks `check-harness` and `check-test-structure` and how a project runs them, writing a testbench, the evidence that each check can fail |
 | `doc/modules/<Module>/<Module>-spec.md` | One per module in `ts/src/modules/`: parameters, IOs, behavior, timing, test plan |
 | `doc/templates/module-spec-template.md` | The template for a new module's spec |
 | `doc/tutorials/fir.md` | FIR walkthrough: every construct in the module and its testbench, then compile, generate and simulate |
@@ -187,11 +190,12 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | Built-in modules | Complete | FIR, SRAM, SFIFO, AFIFO, TwoClockRegFile, GrayPointer, CDCSynchronizer, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
 | CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
+| Testbench framework (`ts/src/tb/`) | Tier 1 | `SimTop`, `Harness`, `Lfsr`, `VectorPlayer`, `VectorChecker`, `wavedromVectors`, `markTestbench`, and the checks `check-harness` and `check-test-structure` (#196). Pattern memories, the generic injector and checker, several clock domains, the TB generator and the port-contract check come next (tssv-noc#207) |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`); SV-guide check of each emitted module (`ts/src/core/ModuleBody.ts` reads it, `ts/src/core/ModuleCheck.ts` checks it) |
 | RTL style guides (`doc/rtl-style/`) | Complete | SV guide and TSSV guide, each with its checks (`npm run check:rtl-style`). The core and every module follow both (#59): `writeSystemVerilogFiles()` checks each module it emits, and `npm run check:generated-sv` fails on any finding in the SV the test scripts generate. CI runs both |
 | API reference (`doc/reference/`) | Core only | Markdown generated from the core's JSDoc by `npm run docs`; CI fails a PR whose reference is stale. Modules, interfaces and tools aren't covered yet |
 | Formal test runner | Not implemented | Tests are standalone scripts run via `node out/test/test_<Name>.js`; `runAllTests.sh` runs them all |
-| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `registers_sim`, `fir_sim`, `lzc_sim`, `shift_sim`, `apb_to_memory_sim`, `rom_sim`). Runs on PRs and on pushes to `main` |
+| CI | Complete | `.github/workflows/test.yml`, in the `tssv-ci` image: build, ESLint, `runAllTests.sh`, `npm run lint:sv`, `npm run check:generated-sv`, the RTL-style checks, and the `verilatorTB/` testbenches (`sfifo_sim`, `sram_sim`, `twoclockregfile_sim`, `cdcsynchronizer_sim`, `graypointer_sim`, `afifo_sim`, `regblock_read_sim`, `regblock_types_sim`, `registers_sim`, `fir_sim`, `lzc_sim`, `shift_sim`, `apb_to_memory_sim`, `rom_sim`), `npm run check:test-structure`, and the testbench framework's examples (`tb_examples_sim`). Runs on PRs and on pushes to `main` |
 
 ## Common Tasks — Where to Start
 
@@ -203,8 +207,9 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Seeing what a change does to the generated SV**: `scripts/gen-sv --base origin/main [test ...]` regenerates `sv-examples/` here and on the base, and diffs the two; without `--base` it only regenerates. A PR that changes generated SV shows it ([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv) §5)
 - **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in the workflow after publishing a new one. Add a new self-checking `verilatorTB/` target to `test.yml` as its own step
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers, and `writeSystemVerilogFiles()` parses each module it emits to check it against the SV guide (`ts/src/core/ModuleCheck.ts`), with `verible-verilog-syntax`
-- **Linting generated SV**: `verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/<dir> sv-examples/<dir>/<top>.sv` for one design; `npm run lint:sv` (`scripts/lint-sv.sh`) for everything the test scripts wrote, after `bash runAllTests.sh`. Test scripts write SV with `writeSystemVerilogFiles()`, and each file includes the files it needs under `USE_INCLUDES`, so the scripts lint each file that no other file in its directory includes, and its lint reaches the rest. SV a test writes by hand to instantiate a design includes it the same way (`guardSV`, `ts/test/models/guardSV.ts`): a testbench, or the `lintWrapper` a module with interface ports needs as its lint top. A testbench outside `sv-examples/`, such as `verilatorTB/tb_APB_to_Memory.sv`, is tied to the design by a `<top>.f` filelist (`ts/test/models/lintFilelist.ts`). A file imported with `addSystemVerilogSubmodule()` is copied in inside its `SVIMPORT__` guard and is linted through its parent, but isn't generated SV. `npm run check:generated-sv` runs `-Wall` and the SV guide's scans on the same files, and fails on any finding ([`doc/rtl-style/sv-style/README.md`](doc/rtl-style/sv-style/README.md#generated-sv)). Mark a generated testbench with `markTestbench()` (`ts/test/models/testbench.ts`) so SYN-1 skips it
+- **Linting generated SV**: `verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/<dir> sv-examples/<dir>/<top>.sv` for one design; `npm run lint:sv` (`scripts/lint-sv.sh`) for everything the test scripts wrote, after `bash runAllTests.sh`. Test scripts write SV with `writeSystemVerilogFiles()`, and each file includes the files it needs under `USE_INCLUDES`, so the scripts lint each file that no other file in its directory includes, and its lint reaches the rest. SV a test writes by hand to instantiate a design includes it the same way (`guardSV`, `ts/test/models/guardSV.ts`): a testbench, or the `lintWrapper` a module with interface ports needs as its lint top. A testbench outside `sv-examples/`, such as `verilatorTB/tb_APB_to_Memory.sv`, is tied to the design by a `<top>.f` filelist (`ts/test/models/lintFilelist.ts`). A file imported with `addSystemVerilogSubmodule()` is copied in inside its `SVIMPORT__` guard and is linted through its parent, but isn't generated SV. `npm run check:generated-sv` runs `-Wall` and the SV guide's scans on the same files, and fails on any finding ([`doc/rtl-style/sv-style/README.md`](doc/rtl-style/sv-style/README.md#generated-sv)). Mark a generated testbench with `markTestbench()` (`ts/src/tb/testbench.ts`) so SYN-1 skips it
 - **Simulating**: `cd verilatorTB && make` then `./rungtkwave.sh <name>.vcd`; details in `doc/framework/simulation.md`
+- **Writing a block testbench**: read `doc/framework/testbench.md`, then the examples in `ts/test/tb/`. Build the harness from `ts/src/tb/`, run `check-harness` on it, and show each check failing on a broken DUT in the PR
 - **Timing diagrams in markdown docs**: GitHub doesn't render WaveDrom, so put the JSON in a `<!-- wavedrom <file>.svg ... -->` comment followed by `![...](<file>.svg)`, then run `npm run render:wavedrom` to write the SVG next to the doc. Never hand-edit the SVG. `npm run check:wavedrom` fails if any SVG is missing, stale or unlinked, and the `docs-reference` workflow runs it on every PR. Example: `doc/modules/SFIFO/SFIFO-spec.md`
 - **Learning the framework end to end**: `doc/framework/concepts.md`, then `doc/tutorials/fir.md`
 - **Reviewing a change to the core** (`ts/src/core/`): `doc/framework/concepts.md` states the behavior the change must keep or deliberately alter
