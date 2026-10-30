@@ -51,21 +51,23 @@ export class SimTop extends TSSV.Module {
         : [`      if (fail[${i}]) $display("  ${svString(c.detail.format)}", ${c.detail.args.map(a => `h.${a}`).join(', ')});`])
     ])
 
+    // The reset and the result are one process, so nothing reads rst_b at a clock edge: the
+    // harness's flops use it as an asynchronous reset, and lint -Wall reports a net used both
+    // ways (SYNCASYNCNET)
     this.addBody(`
-// Clock and reset
+// Clock
 initial clk = 1'b0;
 always #5 clk = ~clk;
+
+// Reset, then the result at every rising edge after it: fail first, then done
+int unsigned cycle;
 initial begin
+  cycle = 0;
   rst_b = 1'b0;
   repeat (${params.resetCycles ?? 4}) @(posedge clk);
   @(negedge clk) rst_b = 1'b1;
-end
-
-// The result, at every rising edge after reset: fail first, then done
-int unsigned cycle = 0;
-always @(posedge clk) begin
-  if (rst_b) begin
-    cycle <= cycle + 1;
+  forever begin
+    @(posedge clk);
     if (fail != '0) begin
 ${failLines.join('\n')}
       $fatal(1, "${params.name} failed in cycle %0d", cycle);
@@ -76,6 +78,7 @@ ${failLines.join('\n')}
       $display("FAIL timeout: the harness is not done after ${params.maxCycles} cycles");
       $fatal(1, "${params.name} failed in cycle %0d", cycle);
     end
+    cycle = cycle + 1;
   end
 end
 `, { indentMode: 'relative' })

@@ -302,7 +302,7 @@ A failure reads, for example:
 ```text
 FAIL x64: a 64-bit Lfsr from seed 0x123456789abcdef gives xorshift64's low 64 bits
   first differs in cycle 1: 1e2b7e2ad5623bc2, expected 3f2800d6569e01b4
-[65] %Fatal: tb_Lfsr.sv:48: Assertion failed in tb_Lfsr: tb_Lfsr failed in cycle 2
+[65] %Fatal: tb_Lfsr.sv:47: Assertion failed in tb_Lfsr: tb_Lfsr failed in cycle 2
 ```
 
 ---
