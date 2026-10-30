@@ -165,6 +165,15 @@ jobs:
       - name: ROM simulation
         run: make -C verilatorTB rom_sim
 
+      # The testbench framework (ts/src/tb/, doc/framework/testbench.md):
+      # tier 1 imports nothing above it, and each example testbench's
+      # harness passes check-harness before the testbench is built and run.
+      - name: Testbench tier rule
+        run: npm run check:test-structure
+
+      - name: Testbench framework examples
+        run: make -C verilatorTB tb_examples_sim
+
       - name: Upload simulation build logs and waveforms
         if: failure()
         uses: actions/upload-artifact@v4
