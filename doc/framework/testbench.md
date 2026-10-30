@@ -56,7 +56,7 @@ flowchart LR
   PLAY -- "rst_n, push_en, pop_en, push_data" --> DUT
   PLAY -- "row" --> CHK
   DUT -- "pop_data, empty, full, curr_depth" --> CHK
-  CHK -- "fail_<lane>" --> FAIL
+  CHK -- "fail_‹lane›" --> FAIL
   FAIL -- "fail[]" --> REP
   PLAY -- "done" --> REP
   CHK -. "first-error record (hierarchical read)" .-> REP
