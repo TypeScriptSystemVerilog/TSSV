@@ -703,7 +703,7 @@ assign cfg_word = cfg_in;
 assign mode     = cfg_word[3:0];
 ```
 
-**Waiver files.** Two kinds of Verilator configuration file hold waivers outside the source:
+**Waiver files.** Three kinds of Verilator configuration file hold waivers outside the source:
 
 - **The common waivers file**, [`common_waivers.vlt`](common_waivers.vlt). Every lint run passes
   it: `scripts/lint-sv.sh`, `lint()` in `doc/rtl-style/tools/verilator.mjs` (which
@@ -715,6 +715,10 @@ assign mode     = cfg_word[3:0];
 - **A design-specific waivers file**, passed only when linting that design, such as
   `verilatorTB/regblock_read_waivers.vlt`. Each waiver in it is as narrow as it can be and says
   why, as LINT-3 asks of an in-source waiver. Never add a design's waiver to the common file.
+- **The harness waivers file**, [`harness_waivers.vlt`](harness_waivers.vlt). Only
+  `scripts/check-harness.mjs` passes it, when it lints a testbench harness without its SimTop
+  ([`doc/framework/testbench.md`](../../framework/testbench.md)). It waives `UNUSEDSIGNAL` on a
+  checker's `err_*` first-error registers, which only SimTop reads, by hierarchical reference.
 
 ## Maintaining this document
 
