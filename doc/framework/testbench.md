@@ -31,8 +31,9 @@ Every testbench has the same two layers.
 
 **Diagram 1: the SFIFO example testbench.** It replays a timing diagram from the SFIFO spec
 against the RTL (`ts/test/tb/SFIFOWaveHarness.ts`). Fill color is the tier, and a red dashed
-border marks a sim-only block; everything else is synthesizable. Solid arrows are ports; the
-dotted arrow is a hierarchical read.
+border marks a sim-only block; everything else is synthesizable. A block inside another is
+instantiated in it: SimTop instantiates the harness as `h`. Solid arrows are ports; the dotted
+arrow is a hierarchical read.
 
 ```mermaid
 flowchart LR
@@ -41,14 +42,14 @@ flowchart LR
     direction TB
     CRG["Clock / reset generator<br/>always #5 clk = ~clk · rst_b low 4 cycles"]
     REP["End-of-test reporter<br/>fail ≠ 0 → one named FAIL line per check → $fatal<br/>done → PASS → $finish · maxCycles → $fatal"]
-  end
 
-  subgraph H["SFIFOWaveHarness · TIER 3 · wiring only<br/>extends Harness (TIER 1): ports clk, rst_b → done, fail[]"]
-    direction LR
-    PLAY["VectorPlayer · TIER 1<br/>input lanes, one row per cycle<br/>rst_n from a flop"]
-    DUT(["SFIFO<br/>the DUT"])
-    CHK["VectorChecker · TIER 1<br/>one check per output lane<br/>first mismatch held in err_*"]
-    FAIL["Harness.finish() · TIER 1<br/>fail = { fail_curr_depth, …, fail_pop_data }"]
+    subgraph H["h: SFIFOWaveHarness · TIER 3 · wiring only<br/>extends Harness (TIER 1): ports clk, rst_b → done, fail[]"]
+      direction LR
+      PLAY["VectorPlayer · TIER 1<br/>input lanes, one row per cycle<br/>rst_n from a flop"]
+      DUT(["SFIFO<br/>the DUT"])
+      CHK["VectorChecker · TIER 1<br/>one check per output lane<br/>first mismatch held in err_*"]
+      FAIL["Harness.finish() · TIER 1<br/>fail = { fail_curr_depth, …, fail_pop_data }"]
+    end
   end
 
   SPEC -. "diagramLanes() at generation" .-> H
