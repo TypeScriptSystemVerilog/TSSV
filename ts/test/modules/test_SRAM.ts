@@ -19,7 +19,7 @@
 import { SRAM, type SRAM_Parameters } from 'tssv/lib/modules/SRAM'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { moduleSV } from '../models/emitted.js'
-import { ABSENT, expandLane, type Lane } from '../models/wavedromVectors.js'
+import { ABSENT, expandLane, type Lane } from 'tssv/lib/tb/wavedromVectors'
 
 const SPEC = 'doc/modules/SRAM/SRAM-spec.md'
 const OUT = 'sv-examples/SRAM'

@@ -32,7 +32,7 @@ export const SCANS = {
 export const GENERATED_RULES = [...Object.keys(SCANS), 'LINT-1']
 
 // A test script marks each testbench module it generates with this comment, inside the module
-// (ts/test/models/testbench.ts). SYN-1 bans what testbenches are for, so it skips them.
+// (ts/src/tb/testbench.ts). SYN-1 bans what testbenches are for, so it skips them.
 const TESTBENCH_MARKER = /^[ \t]*\/\/[ \t]*tssv:[ \t]*testbench\b/m
 
 // The module definitions in a file's SV text, in order: { name, text, testbench }.

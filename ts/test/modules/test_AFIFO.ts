@@ -15,9 +15,9 @@
 
 import { AFIFO, type AFIFO_Parameters } from 'tssv/lib/modules/AFIFO'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { diagramTasks } from '../models/wavedromVectors.js'
+import { diagramTasks } from 'tssv/lib/tb/wavedromVectors'
 
-const SPEC = 'doc/modules/AFIFO/AFIFO-spec.md'
+const SPEC = '$TSSV_ROOT/doc/modules/AFIFO/AFIFO-spec.md'
 const OUT = 'sv-examples/AFIFO'
 const TB_DIR = `${OUT}/tb`
 const GENERATOR = 'ts/test/modules/test_AFIFO.ts'

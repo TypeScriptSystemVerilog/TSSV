@@ -12,9 +12,9 @@
 
 import { CDCSynchronizer } from 'tssv/lib/modules/CDCSynchronizer'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { diagramTasks } from '../models/wavedromVectors.js'
+import { diagramTasks } from 'tssv/lib/tb/wavedromVectors'
 
-const SPEC = 'doc/modules/CDCSynchronizer/CDCSynchronizer-spec.md'
+const SPEC = '$TSSV_ROOT/doc/modules/CDCSynchronizer/CDCSynchronizer-spec.md'
 const OUT = 'sv-examples/CDCSynchronizer'
 const TB_DIR = `${OUT}/tb`
 

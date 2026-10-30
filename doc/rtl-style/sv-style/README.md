@@ -132,7 +132,7 @@ it generates, and each simulation model, with this comment inside the module:
 // tssv: testbench (simulation only; SYN-1 does not apply)
 ```
 
-`markTestbench(module)` in `ts/test/models/testbench.ts` adds it to a `Module`. SV written as
+`markTestbench(module)` in `ts/src/tb/testbench.ts` adds it to a `Module`. SV written as
 text, such as the models in `ts/test/models/MemoryModels.ts`, includes `TESTBENCH_MARKER` from
 the same file. SYN-1 skips a marked module and reports every unmarked one, a design in the same
 file included. The other checks apply to testbenches as well.
