@@ -18,7 +18,7 @@
 //        node node_modules/tssv/scripts/check-test-structure.mjs <project root>    (in a project)
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { isBuiltin } from 'node:module'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const TSSV_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -62,7 +62,8 @@ function imports (path) {
 let violations = 0
 const checked = []
 for (const tier of TIERS) {
-  const where = tier.root === TSSV_ROOT ? 'TSSV' : relative(process.cwd(), tier.root) || '.'
+  // The repo, by its folder's name; TSSV's may be a worktree's
+  const where = tier.root === TSSV_ROOT ? 'TSSV' : basename(tier.root)
   if (!existsSync(join(tier.root, tier.dir))) {
     if (tier.root === TSSV_ROOT) throw Error(`${join(tier.root, tier.dir)} is missing`)
     console.log(`${where}: no ${tier.dir}/, so no ${tier.name} to check`)
