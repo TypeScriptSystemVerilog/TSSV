@@ -239,9 +239,9 @@ if (probe.status === 0) {
 }
 
 // ---- Test 6: a DUT, then its testbench, in one directory -----------------------------------
-// Emitting a DUT and then a testbench that instantiates it is what SVEmitOptions was for. Here the
-// second call rewrites the DUT's files with the same text, and the testbench's file reaches them
-// through its includes.
+// Emitting a DUT and then a testbench that instantiates it, into one directory: the second call
+// rewrites the DUT's files with the same text, and the testbench's file reaches them through its
+// includes.
 const DUT_TB = `${OUT}/dut_then_tb`
 const dutFiles = new MidA().writeSystemVerilogFiles(DUT_TB)
 const dutText = new Map(dutFiles.map(f => [f, readFileSync(f, 'utf8')]))

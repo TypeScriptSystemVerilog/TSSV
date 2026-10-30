@@ -44,7 +44,7 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `ts/src/core/Base.ts` | All builder APIs: `addSignal`, `addRegister`, `addSubmodule`, `addCombAlways`, etc. |
 | `doc/reference/README.md` | The core's API reference (`Base.ts`, `Registers.ts`, `SVModuleHeader.ts`, `SVFileList.ts`, `Paths.ts`): one markdown page per file, generated from the JSDoc by `npm run docs`. Never hand-edit |
 | `doc/framework/core-api-reference.md` | Quick reference for the builders, with examples. A stopgap: #71 moves it into the core's JSDoc and deletes it |
-| `doc/framework/concepts.md` | How a module is elaborated and emitted: parameters and module naming, `Sig`/`Expr` and signal metadata, interfaces and binding checks, submodule binding (`autoBind`, `createMissing`, `autoWidthExtension`), `addRegister` grouping, emission one guarded file per module (`writeSystemVerilogFiles`) and building it with `USE_INCLUDES`, the deprecated single string, the Verible formatter, importing SV. Read before changing `ts/src/core/` |
+| `doc/framework/concepts.md` | How a module is elaborated and emitted: parameters and module naming, `Sig`/`Expr` and signal metadata, interfaces and binding checks, submodule binding (`autoBind`, `createMissing`, `autoWidthExtension`), `addRegister` grouping, emission one guarded file per module (`writeSystemVerilogFiles`) and building it with `USE_INCLUDES`, the Verible formatter, importing SV. Read before changing `ts/src/core/` |
 | `doc/framework/registers.md` | `RegisterBlock`: register types and the logic they generate, the YAML → `scripts/gen_regblock.sh` flow, RALF output (`writeRALF`), current limitations |
 | `doc/interfaces/adding-an-interface.md` | Writing an interface class: the signal/modport pattern (`AXI4.ts`), AMBA file naming, generating a draft from IP-XACT XML with `xml_interface_build` |
 | `doc/framework/simulation.md` | The `verilatorTB/` flow: TS → SV → Verilator → VCD → GTKWave, Makefile variables, driver macros |
@@ -158,7 +158,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | `addMultiplier()`, `addAdder()`, `addMux()`, etc. | Arithmetic/logic primitives |
 | `addInterface()` | Add an `Interface` bundle to the module |
 | `addBody()` / `addBodyLine()` | Append raw SV to the module body |
-| `writeSystemVerilogFiles()` | Write the module and everything it reaches, one guarded file per module and interface; build with `+define+USE_INCLUDES +incdir+<dir> <dir>/<top>.sv`. The single-string `writeSystemVerilog()` is deprecated |
+| `writeSystemVerilogFiles()` | Write the module and everything it reaches, one guarded file per module and interface; build with `+define+USE_INCLUDES +incdir+<dir> <dir>/<top>.sv`. It is the only way to emit SV |
 
 ### Interface (`ts/src/core/Base.ts`)
 `Interface` wraps a group of signals with modports. An instance's role picks one of its modports (`inward` or `outward`; the generated AMBA5 `*_rtl.ts` classes use `master`/`slave`). An instance without a role is a local bundle, not a port. Interfaces in `ts/src/interfaces/` follow this pattern: each file defines a class with `signals` and `modports`. How roles, SV type names and binding checks work is in `doc/framework/concepts.md` §4; how to write a new one is in `doc/interfaces/adding-an-interface.md`.
@@ -181,7 +181,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 
 | Area | Status | Notes |
 |---|---|---|
-| Core framework (`Base.ts`, `Registers.ts`) | Complete | `Module` base class with the full builder API. Emits SV one guarded file per module and interface with `USE_INCLUDES` submodule includes (`writeSystemVerilogFiles()`, #172). The single string (`writeSystemVerilog()`) and splitting it by hand (`SVEmitOptions`) are deprecated (#187); nothing in TSSV calls them |
+| Core framework (`Base.ts`, `Registers.ts`) | Complete | `Module` base class with the full builder API. Emits SV one guarded file per module and interface with `USE_INCLUDES` submodule includes (`writeSystemVerilogFiles()`, #172), the only way to emit SV since the single-string API was removed (#188) |
 | AMBA 2–5 interfaces | Complete | 100+ files across AHB, APB, ATB, AXI, AXI4, ACE, CHI, CXS, LPI, GFB, LTI, P/Q-Channel |
 | TileLink + Memory interfaces | Complete | |
 | Built-in modules | Complete | FIR, SRAM, SFIFO, AFIFO, TwoClockRegFile, GrayPointer, CDCSynchronizer, ROM, LZC, AXI4XBar, shift, IpXactComponent, APB_to_Memory |

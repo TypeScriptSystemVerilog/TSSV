@@ -208,7 +208,7 @@ if (veribleAvailable) {
     )
   }
 } else {
-  skip('syntax error through writeSystemVerilog (verible-verilog-format not found on PATH)')
+  skip('syntax error through writeSystemVerilogFiles (verible-verilog-format not found on PATH)')
 }
 
 console.log(`\n${passed} passed, ${failed} failed`)

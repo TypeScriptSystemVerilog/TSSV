@@ -21,9 +21,7 @@ two phases.
    Each call checks its arguments against what the module already holds and records the result
    in the module's tables. No SystemVerilog file is written.
 2. **Emission.** `writeSystemVerilogFiles(outDir)` walks those tables, the module's own and its
-   submodules', and writes the design one guarded file per module and interface (§7). The
-   deprecated `writeSystemVerilog()` walks the same tables and returns the whole design as one
-   string instead.
+   submodules', and writes the design one guarded file per module and interface (§7).
 
 ```typescript
 import { Module, Expr, type TSSVParameters } from 'tssv/lib/core/TSSV'
@@ -368,7 +366,7 @@ Further rules:
 [`writeSystemVerilogFiles(outDir)`](../reference/Base.md#writesystemverilogfiles) writes the
 module and everything it reaches to `<outDir>/<name>.sv`, one file for each module and each
 interface (#172). It returns the paths, each one after every file it includes, so the top's is
-last. It is the way to emit SV; the single-string `writeSystemVerilog()` is deprecated (below).
+last. It is the only way to emit SV.
 
 ### What a file contains, in order
 
@@ -446,18 +444,6 @@ import reads is written once, untouched, under its own name, inside its `SVIMPOR
 nothing else. A module that instantiates an imported one includes all of that import's files, in
 order.
 
-### Deprecated: one string, `writeSystemVerilog()`
-
-[`writeSystemVerilog()`](../reference/Base.md#writesystemverilog) returns the module and
-everything it instantiates as one string, with no guards: each interface a module has as a
-port, then every submodule, depth first, then the module itself. Definitions are deduplicated
-by name within one call, and each call starts afresh.
-[`SVEmitOptions`](../reference/Base.md#svemitoptions) (#46) split such a design across files by
-hand: `defined` collected the names one call wrote, and `exclude` kept the next call from
-defining them again. Both are deprecated in favor of `writeSystemVerilogFiles()`. Nothing in
-TSSV calls them any more, and they will be removed. `writeSystemVerilogFiles()` still calls
-`writeSystemVerilog({ exclude })` internally, once per module.
-
 ### Checking each module against the SV guide
 
 Before a module's SV joins the output, it's checked against the SV guide's rules on always blocks
@@ -485,8 +471,7 @@ Each module is checked as it's emitted, submodules first, and SV imported with
 ### Formatting with Verible
 
 Each file's definition is passed through `verible-verilog-format` before its guard is added.
-The deprecated `writeSystemVerilog()` formats its whole string once instead. The configuration
-is a static setting shared by every module:
+The configuration is a static setting shared by every module:
 
 ```typescript
 Module.setFormatterConfig({
@@ -553,24 +538,23 @@ this.addSystemVerilogSubmodule('u_leaf', ['$TSSV_ROOT/rtl/pkg.sv', '$TSSV_ROOT/r
    parent signal bound to it.
 5. Each entry in `params` is marked with `setVerilogParameter` and appears as `#(.P(value))` on
    the instance.
-6. The files are emitted untouched.
-   - `writeSystemVerilogFiles()` (§7) writes each file once, under its own name, inside one
-     include guard and nothing else:
+6. The files are emitted untouched. `writeSystemVerilogFiles()` (§7) writes each file once,
+   under its own name, inside one include guard and nothing else:
 
-     ```systemverilog
-     `ifndef SVIMPORT__pkg__
-     `define SVIMPORT__pkg__
-     // pkg.sv, unchanged
-     `endif //!SVIMPORT__pkg__
-     ```
+   ```systemverilog
+   `ifndef SVIMPORT__pkg__
+   `define SVIMPORT__pkg__
+   // pkg.sv, unchanged
+   `endif //!SVIMPORT__pkg__
+   ```
 
-     The macro is the file's name without its extension, with each character that can't be in
-     a macro name made `_`. Two imports often share a file, such as a package, and the files of
-     two emissions compiled together can both carry it: the guard defines what it holds once.
-     Two different files with the same name and different contents would share a guard, and the
-     preprocessor would drop the second, so writing them throws, naming both.
-   - The deprecated `writeSystemVerilog()` puts the files' text, unguarded and in order, in its
-     single string, once per module name, like any other definition.
+   The macro is the file's name without its extension, with each character that can't be in a
+   macro name made `_`. Two imports often share a file, such as a package, and the files of two
+   emissions compiled together can both carry it: the guard defines what it holds once. Two
+   different files with the same name and different contents would share a guard, and the
+   preprocessor would drop the second, so writing them throws, naming both. The stand-in has no
+   SV of its own, so calling `writeSystemVerilogFiles()` on it throws: write the module that
+   instantiates it.
 
 What this means in practice:
 
