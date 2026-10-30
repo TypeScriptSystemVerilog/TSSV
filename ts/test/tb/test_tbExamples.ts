@@ -18,8 +18,8 @@ const testbenches = [
       name: 'SFIFOWave_dual_port',
       svg: 'SFIFO-timing-dual-port.svg',
       // As the diagram is drawn: depth 4, and 8 bits for its letter labels
-      dataWidth: 8,
-      depth: 4
+      dataWidth: 8n,
+      depth: 4n
     }),
     maxCycles: 100
   }),
