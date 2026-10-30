@@ -1,11 +1,17 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
 
 /**
- * How a failed check failed, printed under its FAIL line: a `$display` format and the signals it
- * prints, each a path inside the harness (`chk.err_count`).
+ * A check's detail line: how the check failed, as values from inside the harness. SimTop prints it
+ * under the check's FAIL line, as `$display(format, h.<args[0]>, h.<args[1]>, ...)`. A checker that
+ * holds its first mismatch supplies one: `VectorChecker.firstError('chk_x64', 'value', 'cycle')`
+ * is the format `first differs in cycle %0d: %h, expected %h` over `chk_x64.err_row_value`,
+ * `chk_x64.err_got_value` and `chk_x64.err_want_value`, and prints
+ * `first differs in cycle 1: 1e2b7e2ad5623bc2, expected 3f2800d6569e01b4`.
  */
 export interface CheckDetail {
+  /** A `$display` format, with one format specifier per arg */
   format: string
+  /** The signals the format prints, each a path from the harness (`chk.err_row_value`) */
   args: string[]
 }
 
@@ -15,6 +21,7 @@ export interface HarnessCheck {
   name: string
   /** What the check requires. SimTop prints it as `FAIL <name>: <description>`. */
   description: string
+  /** How the check failed, printed under its FAIL line. */
   detail?: CheckDetail
 }
 
@@ -51,7 +58,17 @@ export class Harness extends TSSV.Module {
     }
   }
 
-  /** Adds a check, and returns its fail net, `fail_<name>`, for the component that makes it. */
+  /**
+   * Adds a check: one requirement on the DUT that the run passes or fails on, such as "pop_data
+   * follows the timing diagram". The harness doesn't evaluate it. A component the harness
+   * instantiates does, such as a VectorChecker comparing a DUT output with its expected value
+   * each cycle, and drives the returned net high at the first violation and holds it. `finish()`
+   * gathers the nets into `fail`, and SimTop prints a FAIL line for each one that is high.
+   * @param name names the net, `fail_<name>`, and the check in its FAIL line
+   * @param description what the check requires, printed as `FAIL <name>: <description>`
+   * @param detail how the check failed, printed under the FAIL line (CheckDetail)
+   * @returns the fail net, to bind to the fail output of the component that evaluates the check
+   */
   check (name: string, description: string, detail?: CheckDetail): string {
     const net = `fail_${name}`
     this.addSignal(net, { width: 1 })

@@ -149,8 +149,10 @@ Tier 1, in `ts/src/tb/`:
 
 ## Pass and fail
 
-- **A check is one fail bit.** Each `Harness.check()` call adds one bit to `fail`. The component
-  making the check sets the bit at its first violation and holds it.
+- **A check is one requirement and one fail bit.** Each `Harness.check()` call adds one bit to
+  `fail`. The harness doesn't evaluate the check: a component it instantiates does, such as a
+  VectorChecker comparing a DUT output with its expected value each cycle. That component sets
+  the bit at the first violation and holds it.
 - **A check has a name and a description.** SimTop prints both:
   `FAIL x64: a 64-bit Lfsr from seed 0x123456789abcdef gives xorshift64's low 64 bits`.
 - **A check may have a detail line**, a `$display` format over signals inside the harness. A
