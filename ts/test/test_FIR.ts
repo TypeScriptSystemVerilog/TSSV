@@ -19,7 +19,7 @@ import { FIR, type FIR_Parameters } from 'tssv/lib/modules/FIR'
 import { Module, type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
-import { markTestbench } from 'tssv/test/models/testbench'
+import { markTestbench } from 'tssv/lib/tb/testbench'
 
 const GENERATOR = 'ts/test/test_FIR.ts'
 const SPEC = 'doc/modules/FIR/FIR-spec.md'

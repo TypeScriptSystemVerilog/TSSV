@@ -1,5 +1,5 @@
 /**
- * Self-checking test for the testbench marker (ts/test/models/testbench.ts) and the SYN-1 scan
+ * Self-checking test for the testbench marker (ts/src/tb/testbench.ts) and the SYN-1 scan
  * that honors it (doc/rtl-style/sv-style/tools/sv-scans.mjs).
  *
  * SYN-1 bans `initial`, `#` delays and system tasks from RTL, and allows them in testbenches.
@@ -16,7 +16,7 @@
  */
 import { Module } from 'tssv/lib/core/TSSV'
 import { emittedFiles } from 'tssv/test/models/emitted'
-import { markTestbench, TESTBENCH_MARKER } from 'tssv/test/models/testbench'
+import { markTestbench, TESTBENCH_MARKER } from 'tssv/lib/tb/testbench'
 
 interface Scans {
   svModules: (sv: string) => Array<{ name: string, testbench: boolean }>

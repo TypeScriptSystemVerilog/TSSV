@@ -16,7 +16,7 @@
 // and isn't checked.
 //
 // The scans run on each .sv file. SYN-1 skips the modules a test script marked as testbenches
-// (ts/test/models/testbench.ts).
+// (ts/src/tb/testbench.ts).
 //
 // Left out: the paths in LEFT_OUT below, each with its reason. Run this before
 // `npm run check:rtl-style`, as CI does: the TSSV guide's TEST-1 example also writes an SFIFO
