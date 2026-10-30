@@ -6,14 +6,15 @@ import { diagramLanes } from 'tssv/lib/tb/wavedromVectors'
 
 export const SFIFO_SPEC = '$TSSV_ROOT/doc/modules/SFIFO/SFIFO-spec.md'
 
-/**
- * The diagram to replay, and the SFIFO's size, as SFIFO takes it. Its other parameters keep their
- * defaults, the dual-port SFIFO without almost flags that the diagrams are drawn for.
- */
-export interface SFIFOWaveHarness_Parameters extends Pick<SFIFO_Parameters, 'dataWidth' | 'depth'> {
+export interface SFIFOWaveHarness_Parameters {
   name: string
   /** The diagram to replay: its SVG file name in the SFIFO spec. */
   svg: string
+  /**
+   * The SFIFO's parameters. They must give a dual-port SFIFO without almost flags, the one the
+   * diagrams are drawn for.
+   */
+  config: SFIFO_Parameters
 }
 
 /** The SFIFO's inputs (dual-port, no almost flags) but `clk`. Every other lane is an output */
@@ -34,6 +35,10 @@ const OUTPUTS = ['pop_data', 'empty', 'full', 'curr_depth']
 export class SFIFOWaveHarness extends Harness {
   constructor (params: SFIFOWaveHarness_Parameters) {
     super({ name: params.name })
+    const { config } = params
+    if (config.simultPushPop === false || config.inclAlmostFull === true || config.inclAlmostEmpty === true) {
+      throw Error(`${params.name}: SFIFOWaveHarness replays a dual-port SFIFO without almost flags only`)
+    }
     const { cycles, lanes } = diagramLanes(SFIFO_SPEC, params.svg)
     const diagram = new Map(lanes.map(l => [l.name, l.values.map(v => v === undefined ? undefined : BigInt(v))]))
     const ports = [...INPUTS, ...OUTPUTS]
@@ -41,7 +46,7 @@ export class SFIFOWaveHarness extends Harness {
       if (!ports.includes(name)) throw Error(`${params.name}: ${params.svg} has a lane ${name}, which isn't an SFIFO port`)
     }
     const width = (port: string): number =>
-      port.endsWith('_data') ? Number(params.dataWidth) : port === 'curr_depth' ? this.bitWidth(params.depth) : 1
+      port.endsWith('_data') ? Number(config.dataWidth) : port === 'curr_depth' ? this.bitWidth(config.depth) : 1
 
     // One net per SFIFO port, named after it, between the DUT and the player or checker
     const driven: DriveLane[] = []
@@ -67,7 +72,7 @@ export class SFIFOWaveHarness extends Harness {
     this.addSignal('row', { width: this.bitWidth(cycles) })
     this.addSubmodule('play', new VectorPlayer({ name: `${params.name}_play`, rows: cycles, lanes: driven }), playerBindings, false)
     this.addSubmodule('chk', new VectorChecker({ name: `${params.name}_chk`, rows: cycles, lanes: checked }), checkerBindings, false)
-    this.addSubmodule('dut', new SFIFO({ dataWidth: params.dataWidth, depth: params.depth }), dutBindings, false)
+    this.addSubmodule('dut', new SFIFO(config), dutBindings, false)
     this.finish()
   }
 }
