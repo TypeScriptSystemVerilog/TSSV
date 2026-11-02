@@ -268,6 +268,24 @@ tb_examples_sim: tsc
 
 .PHONY: tb_examples_sim
 
+# PatternMemory in both modes (ts/src/tb/PatternMemory.ts): ts/test/tb/test_PatternMemory.ts writes
+# a sim-only testbench for each to sv-examples/tb/PatternMemory/<tb>/, with the pattern file both
+# read in the folder above them. The preloaded memory loads the file itself; the reloaded one is
+# loaded through its load port by its testbench. Each runs from that folder, where the file is.
+PATTERN_MEMORY_DIR = ../sv-examples/tb/PatternMemory
+PATTERN_MEMORY_TBS = tb_PatternMemory_preloaded tb_PatternMemory_reloaded
+
+pattern_memory_sim: tsc
+	cd ..; node out/test/tb/test_PatternMemory.js
+	mkdir -p obj_dir
+	set -e; for tb in $(PATTERN_MEMORY_TBS); do \
+	  verilator --binary --timing -j 0 -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(PATTERN_MEMORY_DIR)/$$tb $(PATTERN_MEMORY_DIR)/$$tb/$$tb.sv \
+	    > obj_dir/$$tb.build.log 2>&1 || { cat obj_dir/$$tb.build.log; exit 1; }; \
+	  (cd $(PATTERN_MEMORY_DIR) && $(CURDIR)/obj_dir/$$tb/V$$tb); \
+	done
+
+.PHONY: pattern_memory_sim
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd

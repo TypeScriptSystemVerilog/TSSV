@@ -174,6 +174,11 @@ jobs:
       - name: Testbench framework examples
         run: make -C verilatorTB tb_examples_sim
 
+      # PatternMemory in both modes: preloaded from its pattern file, and
+      # reloaded through its load port.
+      - name: Pattern memory
+        run: make -C verilatorTB pattern_memory_sim
+
       - name: Upload simulation build logs and waveforms
         if: failure()
         uses: actions/upload-artifact@v4
