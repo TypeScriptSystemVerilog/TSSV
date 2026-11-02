@@ -248,9 +248,11 @@ rom_sim: tsc
 .PHONY: rom_sim
 
 # Example testbenches on the testbench framework's tier 1 (ts/src/tb/, doc/framework/testbench.md):
-# ts/test/tb/test_tbExamples.ts writes each, a SimTop over a harness, to sv-examples/tb/<tb>/. This
-# checks that each harness is synthesizable (scripts/check-harness.mjs), then builds and runs each
-# testbench. SimTop ends a failed run with $fatal, so a failed check exits nonzero.
+# ts/test/tb/test_tbExamples.ts writes each, a SimTop over a harness, to sv-examples/tb/<tb>/, with
+# its pattern files in patterns/ there. This checks that each harness is synthesizable
+# (scripts/check-harness.mjs), then builds and runs each testbench. Each runs from its own folder,
+# because its pattern memories $readmemh their files by a path relative to it. SimTop ends a failed
+# run with $fatal, so a failed check exits nonzero.
 TB_EXAMPLES_DIR = ../sv-examples/tb
 TB_EXAMPLES = tb_SFIFOWave_dual_port tb_Lfsr
 
@@ -261,7 +263,7 @@ tb_examples_sim: tsc
 	set -e; for tb in $(TB_EXAMPLES); do \
 	  verilator --binary --timing -j 0 -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(TB_EXAMPLES_DIR)/$$tb $(TB_EXAMPLES_DIR)/$$tb/$$tb.sv \
 	    > obj_dir/$$tb.build.log 2>&1 || { cat obj_dir/$$tb.build.log; exit 1; }; \
-	  (cd obj_dir/$$tb && ./V$$tb); \
+	  (cd $(TB_EXAMPLES_DIR)/$$tb && $(CURDIR)/obj_dir/$$tb/V$$tb); \
 	done
 
 .PHONY: tb_examples_sim

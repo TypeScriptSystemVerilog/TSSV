@@ -36,7 +36,7 @@ export interface PatternFileContent {
 export interface ManifestFile {
   /** The pattern file's path, relative to the manifest. */
   file: string
-  /** The memory the file loads into: its instance path from the testbench's top, `h.play.mem`. */
+  /** The memory the file loads into: its instance path from the testbench's top, `h.play.pattern`. */
   memory: string
   radix: Radix
   /** Records in the file. */

@@ -1,83 +1,121 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
+import { PatternMemory } from './PatternMemory.js'
+import { recordLayout, type PatternRecord, type Radix, type RecordLayout } from './patternRecord.js'
 
-/** One lane a VectorPlayer drives. */
+/** One lane a VectorPlayer drives: the output port that drives it, and its width. */
 export interface DriveLane {
-  /** The output port that drives the lane. */
   port: string
   width: number
-  /** The value in each row. `undefined` drives 0. */
+}
+
+/** A lane with its value in each row, for writing a table's pattern file. */
+export interface TableLane {
+  port: string
+  width: number
+  /** The value in each row. `undefined` is written as 0, for a player, or as a don't-care. */
   values: Array<bigint | undefined>
-  /** Drive the lane from a flop, as a reset must be (SV guide RST-4), rather than from logic. */
-  registered?: boolean
 }
 
 export interface VectorPlayer_Parameters {
   name: string
-  /** Rows in the table. Every lane has this many values. */
+  /** Rows in the table. */
   rows: number
   lanes: DriveLane[]
+  /**
+   * The pattern file the table's memory loads, one record per row with a field per lane
+   * (`VectorPlayer.layout()`, `VectorPlayer.records()`). A player without lanes has none.
+   */
+  file?: string
+  /** The pattern file's radix. Default `'h'`. */
+  radix?: Radix
 }
 
-/** `v` as a sized SV literal of `width` bits. */
-export const literal = (width: number, v: bigint): string => `${width}'h${v.toString(16)}`
+/** The table's memory: at least 2 records, the smallest a PatternMemory holds. */
+export const tableDepth = (rows: number): number => Math.max(rows, 2)
+
+/** The width of a table's `fetch`, an address of its memory: for the nets a harness declares. */
+export const fetchWidth = (rows: number): number => Math.ceil(Math.log2(tableDepth(rows)))
 
 /**
- * Drives `out` with `values[row]` in a case table on `sel`, a counter that runs from 0 to
- * `values.length`, and with `after` once it gets there. A lane with only one value is an assign.
- * The table has one entry more than `values`, so `sel` is exactly as wide as the case needs.
- */
-export function addRowTable (m: TSSV.Module, out: string, sel: string, width: number, values: bigint[], after: bigint): void {
-  if (values.every(v => v === after)) {
-    m.addAssign({ in: new Expr(literal(width, after)), out })
-    return
-  }
-  m.addMux({ in: [...values, after].map(v => new Expr(literal(width, v))), sel, out, default: new Expr(literal(width, after)) })
-}
-
-/**
- * VectorPlayer — drives a table one row per clock cycle. During the cycle in which `row` = r,
- * every lane carries its row-r value. `row` is 0 from reset, counts up by one each rising edge
- * and stops at `rows`, where `done` goes high and each lane holds its last value.
+ * VectorPlayer — drives a table one row per clock cycle, from a pattern memory loaded with the
+ * table's pattern file (doc/framework/testbench.md). During the cycle in which `row` = r and `run`
+ * is high, every lane carries its row-r value.
  *
- * Ports: `clk`, `rst_b` in; `row`, `done` and one output per lane out.
+ * Ports: `clk`, `rst_b` in; `row`, `fetch`, `run`, `done` and one output per lane out.
  *
- * A lane is driven one of three ways:
+ *   - `run` is low from reset until the first rising edge after reset is released: the priming
+ *     cycle. The memory's read is synchronous, so its first record can only be at its output one
+ *     edge after the address moves, and through reset the address is row 0's.
+ *   - `row` is 0 from reset. It counts up by one at each rising edge with `run` high and stops at
+ *     `rows`, where `done` goes high and every lane holds its last value. Row 0 lasts two cycles:
+ *     the priming cycle and the next.
+ *   - `fetch` is the row the table's memories read this cycle, one ahead of `row`: 0 until `run`,
+ *     then `row + 1` up to the last row. A VectorChecker on the same table reads its memory at
+ *     `fetch` too, so its expected values line up with the lanes.
  *
- *   - a lane with the same value in every row is a constant;
- *   - a `registered` lane is a flop, loaded from a case table one row ahead, that holds its
- *     row-0 value through reset;
- *   - any other lane is a case table on `row`.
+ * Each lane comes straight from the memory's read register, a flop, so a lane may drive a reset
+ * (SV guide RST-4).
  */
 export class VectorPlayer extends TSSV.Module {
   constructor (params: VectorPlayer_Parameters) {
     super({ name: params.name })
     const rows = params.rows
+    if (!Number.isInteger(rows) || rows < 1) throw Error(`${params.name}: rows must be a positive integer, got ${rows}`)
+    if (params.lanes.length > 0 && params.file === undefined) throw Error(`${params.name}: a player with lanes needs a pattern file`)
     const rowWidth = this.bitWidth(rows)
+    const addrWidth = fetchWidth(rows)
 
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
       rst_b: { direction: 'input', isReset: 'lowasync' },
       row: { direction: 'output', width: rowWidth },
+      fetch: { direction: 'output', width: addrWidth },
+      run: { direction: 'output' },
       done: { direction: 'output' }
     }
-    this.addAssign({ in: new Expr(`row == ${rowWidth}'d${rows}`), out: 'done' })
-    this.addRegister({ d: new Expr(`row + ${rowWidth}'d1`), clk: 'clk', reset: 'rst_b', en: '!done', q: 'row' })
-
     for (const lane of params.lanes) {
-      if (lane.values.length !== rows) throw Error(`${params.name}: lane ${lane.port} has ${lane.values.length} rows, not ${rows}`)
       if (lane.port in this.IOs) throw Error(`${params.name}: lane ${lane.port} has the name of another port`)
-      const values = lane.values.map(v => v ?? 0n)
-      const last = values[rows - 1] ?? 0n
       this.IOs[lane.port] = { direction: 'output', width: lane.width }
-      if (lane.registered !== true || values.every(v => v === last)) {
-        addRowTable(this, lane.port, 'row', lane.width, values, last)
-      } else {
-        const next = `${lane.port}_next`
-        this.addSignal(next, { width: lane.width })
-        addRowTable(this, next, 'row', lane.width, [...values.slice(1), last], last)
-        this.addRegister({ d: next, clk: 'clk', reset: 'rst_b', resetVal: values[0], q: lane.port })
-      }
     }
+
+    // The row counter: run rises at the first edge after reset, then row counts to rows
+    this.addRegister({ d: new Expr("1'b1"), clk: 'clk', reset: 'rst_b', q: 'run' })
+    this.addAssign({ in: new Expr(`row == ${rowWidth}'d${rows}`), out: 'done' })
+    this.addRegister({ d: new Expr(`row + ${rowWidth}'d1`), clk: 'clk', reset: 'rst_b', en: new Expr('run && !done'), q: 'row' })
+
+    // The row the memories read, one ahead of row, held at the last row
+    const last = `${addrWidth}'d${rows - 1}`
+    this.addAssign({
+      in: new Expr(rows === 1 ? `${addrWidth}'d0` : `!run ? ${addrWidth}'d0 : row < ${rowWidth}'d${rows - 1} ? ${addrWidth}'(row + ${rowWidth}'d1) : ${last}`),
+      out: 'fetch'
+    })
+
+    // The lanes, from the table's memory
+    if (params.lanes.length > 0) {
+      const memory = new PatternMemory({
+        name: `${params.name}_mem`,
+        layout: VectorPlayer.layout(params.lanes, params.radix),
+        depth: tableDepth(rows),
+        mode: 'preloaded',
+        file: params.file
+      })
+      const bindings: Record<string, string> = { clk: 'clk', rd_addr: 'fetch' }
+      for (const lane of params.lanes) bindings[lane.port] = lane.port
+      this.addSubmodule('pattern', memory, bindings, false)
+    }
+  }
+
+  /** The record layout of a player's pattern file: one field per lane, named after its port. */
+  static layout (lanes: DriveLane[], radix: Radix = 'h'): RecordLayout {
+    return recordLayout(lanes.map(l => ({ name: l.port, width: l.width })), radix)
+  }
+
+  /** A player's pattern file: row r holds each lane's row-r value, with 0 for `undefined`. */
+  static records (lanes: TableLane[], rows: number): PatternRecord[] {
+    for (const l of lanes) {
+      if (l.values.length !== rows) throw Error(`VectorPlayer.records: lane ${l.port} has ${l.values.length} rows, not ${rows}`)
+    }
+    return Array.from({ length: rows }, (_, r) => Object.fromEntries(lanes.map(l => [l.port, l.values[r] ?? 0n])))
   }
 }
 
