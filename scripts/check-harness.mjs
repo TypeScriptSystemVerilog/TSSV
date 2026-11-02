@@ -7,7 +7,8 @@
 //      warning (STMTDLY) and an event control inside a block an error (NOTIMING); without it, or
 //      with --timing, lint accepts both. And
 //   2. pass the SYN-1 scan in every file it includes: no initial, force or release, no # delay,
-//      and no system task (doc/rtl-style/sv-style/tools/sv-scans.mjs).
+//      and no system task (doc/rtl-style/sv-style/tools/sv-scans.mjs). The one initial allowed is
+//      a PatternMemory's preload, the line `initial $readmemh("<file>", mem);`.
 //
 // The arguments are testbenches, each a SimTop's .sv. A SimTop instantiates only its harness, so
 // the harness is the one file the testbench includes. --harness names harness files directly

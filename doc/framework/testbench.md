@@ -174,7 +174,9 @@ Tier 1, in `ts/src/tb/`:
 
 - **What is sim-only.** Clock generation, reset sequencing, `$display` and `$fatal`/`$finish`
   all live in SimTop, which is marked as a testbench (`markTestbench()`). Nothing else in a
-  testbench may use `initial`, `#`, `force` or a system task.
+  testbench may use `initial`, `#`, `force` or a system task. There is one exception: a
+  `PatternMemory`'s preload, the single line `initial $readmemh("<file>", mem);`. FPGA tools
+  build it as block RAM contents (SV guide SYN-1).
 - **`scripts/check-harness.mjs` checks the boundary.** For each testbench it finds the harness
   (the one file the SimTop includes) and runs two checks on it:
   - `verilator --lint-only -Wall --no-timing`, which reports any delay or event control. Without

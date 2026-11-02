@@ -666,6 +666,17 @@ Use `casez` only with intent and a comment. All of these are fine in testbenches
 script marks each testbench it generates, so the checks can tell it from RTL
 ([README.md](README.md#generated-sv)).
 
+There is one exception: a pattern memory's preload. This is a line that is exactly
+`initial $readmemh("<file>", <array>);`, or the same with `$readmemb`. FPGA tools build it as
+the initial contents of a block RAM, which lets a synthesizable test harness carry its test
+content in a file and not in its RTL ([testbench.md](../../framework/testbench.md)).
+`PatternMemory` (`ts/src/tb/PatternMemory.ts`) emits it. The scan accepts that line and nothing
+more. Each of these is still a finding:
+- a `begin` … `end` around the call;
+- a second statement on the line;
+- an address range;
+- `$readmem` anywhere else.
+
 **SYN-2 (MUST): No gated or generated clocks.** Clock gating goes through a dedicated,
 reviewed clock-gate cell or module.
 
@@ -675,7 +686,8 @@ directly.
 
 **SYN-4 (SHOULD): Use the existing `SRAM`/`ROM`/`SFIFO`/`TwoClockRegFile` modules for
 memories** instead of ad-hoc arrays, so that inferred memory behavior stays consistent.
-`TwoClockRegFile` is the one for a memory written on one clock and read on another.
+`TwoClockRegFile` is the one for a memory written on one clock and read on another. A test
+harness keeps its test content in `PatternMemory`.
 
 ## 8. Lint and verification
 

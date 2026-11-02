@@ -4,13 +4,18 @@
 // SV text without its comments: a "#59" in a comment isn't a delay
 const withoutComments = (sv) => sv.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
 
+// SYN-1's one exception, a pattern memory's preload (ts/src/tb/PatternMemory.ts): a line that is
+// exactly `initial $readmemh("<path>", <array>);` or the same with $readmemb. The path has no
+// quote or line break, the array is one identifier, and nothing else is on the line
+const PRELOAD = /^[ \t]*initial[ \t]+\$readmem[hb][ \t]*\([ \t]*"[^"\n]*"[ \t]*,[ \t]*[A-Za-z_]\w*[ \t]*\)[ \t]*;[ \t]*$/gm
+
 export const SCANS = {
   'SYN-1': (sv) => {
-    const code = withoutComments(sv)
+    const code = withoutComments(sv).replace(PRELOAD, '')
     return [
       ...[...code.matchAll(/^\s*(initial|force|release|casex)\b/gm)].map((m) => `testbench-only construct "${m[1]}"`),
       ...[...code.matchAll(/(?<![\w'])#\s*\d/g)].map(() => 'delay "#"'),
-      ...[...code.matchAll(/\$(display|write|monitor|strobe|finish|stop|fatal|error|warning|info)\b/g)].map((m) => `system task "$${m[1]}"`)
+      ...[...code.matchAll(/\$(display|write|monitor|strobe|finish|stop|fatal|error|warning|info|readmem[hb])\b/g)].map((m) => `system task "$${m[1]}"`)
     ]
   },
   'LINT-3': (sv) => {
