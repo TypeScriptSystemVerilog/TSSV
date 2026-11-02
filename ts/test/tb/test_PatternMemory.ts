@@ -10,50 +10,29 @@
  *     through the load port, and reads the records back. Then it loads them again in reverse
  *     order, as a second testcase would, and reads them back again.
  *
- * Test 1: a preloaded memory has the read port and one output per field, and no load port
- * Test 2: a reloaded memory adds load_en, load_addr and load_data, a whole word wide
- * Test 3: a preloaded memory loads its file with one `initial $readmemh`, a reloaded one has none
- * Test 4: bad parameters are refused
+ * The checks in Node (node:test) read only the TSSV object model, never the generated SV
+ * (doc/framework/testbench.md, "What TS-side tests may check"):
+ *
+ *   - a preloaded memory has the read port and one output per field, and no load port;
+ *   - a reloaded memory adds load_en, load_addr and load_data, a whole word wide;
+ *   - bad parameters are refused.
  */
 import { Interface, Module } from 'tssv/lib/core/TSSV'
 import { PatternMemory, type PatternMemoryMode } from 'tssv/lib/tb/PatternMemory'
 import { recordFields, recordLayout } from 'tssv/lib/tb/patternRecord'
 import { writeManifest, writePatternFile } from 'tssv/lib/tb/patternFile'
 import { markTestbench } from 'tssv/lib/tb/testbench'
-import { moduleSV } from 'tssv/test/models/emitted'
 import { rmSync } from 'fs'
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
 
 const OUT = 'sv-examples/tb/PatternMemory'
 rmSync(OUT, { recursive: true, force: true })
 
-let passed = 0
-let failed = 0
-
-function check (label: string, ok: boolean, detail?: string): void {
-  if (ok) {
-    console.log(`PASS: ${label}`)
-    passed++
-  } else {
-    console.error(`FAIL: ${label}${detail !== undefined ? `\n  ${detail}` : ''}`)
-    failed++
-  }
-}
-
-/** The message `f` throws, or undefined if it doesn't throw */
-function thrown (f: () => unknown): string | undefined {
-  try {
-    f()
-  } catch (e) {
-    return (e as Error).message
-  }
-  return undefined
-}
-
 /** A module's ports, as `<direction> <name>[<width>]` in declaration order */
-function ports (sv: string): string[] {
-  // A port declaration: input or output, logic, an optional [hi:0] range, the name
-  return [...sv.matchAll(/^\s*(input|output)\s+logic\s*(?:\[(\d+):0\])?\s*(\w+)/gm)]
-    .map(m => `${m[1]} ${m[3]}[${m[2] === undefined ? 1 : Number(m[2]) + 1}]`)
+function ports (m: Module): string[] {
+  const IOs = (m as unknown as { IOs: Record<string, { direction: string, width?: number }> }).IOs
+  return Object.entries(IOs).map(([name, io]) => `${io.direction} ${name}[${io.width ?? 1}]`)
 }
 
 // The record of the lead's burst_mix example: head, tail and data of a FlitStream-like interface
@@ -173,27 +152,15 @@ for (const [mode, m] of [['preloaded', preloaded], ['reloaded', reloaded]] as co
   const tb = memoryTestbench(mode, m)
   tb.writeSystemVerilogFiles(`${OUT}/${tb.name}`)
 }
-const preSV = moduleSV(preloaded)
-const reSV = moduleSV(reloaded)
 
-// ---- Test 1 ---------------------------------------------------------------------------------
 const readPorts = ['input clk[1]', 'input rd_addr[3]', 'output head[1]', 'output tail[1]', 'output data[32]']
-check('a preloaded memory has the read port and one output per field, and no load port',
-  ports(preSV).join(', ') === readPorts.join(', '), ports(preSV).join(', '))
+void test('a preloaded memory has the read port and one output per field, and no load port', () => {
+  assert.deepEqual(ports(preloaded), readPorts)
+})
+void test('a reloaded memory adds the load port, a whole 40-bit word wide', () => {
+  assert.deepEqual(ports(reloaded), [...readPorts.slice(0, 2), 'input load_en[1]', 'input load_addr[3]', 'input load_data[40]', ...readPorts.slice(2)])
+})
 
-// ---- Test 2 ---------------------------------------------------------------------------------
-const loadPorts = ['input load_en[1]', 'input load_addr[3]', 'input load_data[40]']
-check('a reloaded memory adds the load port, a whole 40-bit word wide',
-  ports(reSV).join(', ') === [...readPorts.slice(0, 2), ...loadPorts, ...readPorts.slice(2)].join(', '), ports(reSV).join(', '))
-
-// ---- Test 3 ---------------------------------------------------------------------------------
-// An initial statement, from the keyword to the end of its line
-const initials = (sv: string): string[] => [...sv.matchAll(/^\s*initial\b.*$/gm)].map(m => m[0].trim())
-check('a preloaded memory loads its file with one initial $readmemh',
-  initials(preSV).join('\n') === `initial $readmemh("${FILE}", mem);`, initials(preSV).join('\n'))
-check('a reloaded memory has no initial', initials(reSV).length === 0, initials(reSV).join('\n'))
-
-// ---- Test 4 ---------------------------------------------------------------------------------
 const refusals: Array<[string, () => unknown, string]> = [
   ['a preloaded memory without a file', () => new PatternMemory({ name: 'x', layout, depth: 4, mode: 'preloaded' }),
     'x: a preloaded memory needs a file'],
@@ -207,9 +174,5 @@ const refusals: Array<[string, () => unknown, string]> = [
     'x: field rd_addr has the name of one of the memory\'s own signals']
 ]
 for (const [what, f, message] of refusals) {
-  const got = thrown(f)
-  check(`${what} is refused`, got === message, got)
+  void test(`${what} is refused`, () => { assert.throws(f, { message }) })
 }
-
-console.log(`\n${passed} passed, ${failed} failed`)
-if (failed > 0) process.exit(1)
