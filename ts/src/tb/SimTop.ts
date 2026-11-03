@@ -44,11 +44,13 @@ export class SimTop extends TSSV.Module {
     this.addSignal('fail', { width: h.checks.length })
     this.addSubmodule('h', h, { clk: 'clk', rst_b: 'rst_b', done: 'done', fail: 'fail' }, false)
 
+    // A harness with one check has a 1-bit fail, which takes no index
+    const bit = (i: number): string => h.checks.length === 1 ? 'fail' : `fail[${i}]`
     const failLines = h.checks.flatMap((c, i) => [
-      `      if (fail[${i}]) $display("FAIL ${svFormat(c.name)}: ${svFormat(c.description)}");`,
+      `      if (${bit(i)}) $display("FAIL ${svFormat(c.name)}: ${svFormat(c.description)}");`,
       ...(c.detail === undefined
         ? []
-        : [`      if (fail[${i}]) $display("  ${svString(c.detail.format)}", ${c.detail.args.map(a => `h.${a}`).join(', ')});`])
+        : [`      if (${bit(i)}) $display("  ${svString(c.detail.format)}", ${c.detail.args.map(a => `h.${a}`).join(', ')});`])
     ])
 
     // The reset and the result are one process, so nothing reads rst_b at a clock edge: the
