@@ -147,7 +147,7 @@ export class SliceOrderHarness extends Harness {
     if (phases === undefined) {
       this.addAssign({ in: new Expr('inj_done && drained'), out: 'done' })
     } else {
-      const progress = this.check('progress', 'every phase drains within its timeout')
+      const progress = this.check('progress', 'every phase drains within its timeout', TrafficPhases.stuckDetail('phases'))
       this.addSubmodule('phases', phases, {
         clk: 'clk',
         rst_b: 'rst_b',

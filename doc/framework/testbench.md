@@ -161,7 +161,7 @@ Tier 1, in `ts/src/tb/`:
 | `RecordChecker` | `clk`, `rst_b`, `valid`, one input per field → `ready`, `fail`, `drained`; options add `ready_rate`, `limit`, the load port, and for a tie `peer_count` in, `fail_after` and `count` out | `name`, `mode`, `fields`, `depth`, `memory`, `file`/`files`, `records`, `sourceField`, `sources`, `lfsr`, `throttle`, `limitWidth`, `tie`; cycleExact: `rows`, `readyFile`, `file` | Checks a valid/ready stream against expected records, as a scoreboard: `inOrder`, `perSource` or `cycleExact` ([Record streams](#record-streams)). `firstError()`, `firstAfterError()` and `firstCycleError()` are its detail lines |
 | `recordStream` | (TypeScript) | | What an injector and a checker share: `injectorLayout()` and `checkerLayout()` for their pattern files, `lfsrPayloads()`, the model of LFSR payloads, and `mixSeed()` |
 | `Throttle` | `clk`, `rst_b`, `rate` → `pass` | `seed` | Passes in a cycle with a chance of `rate` in 256. `drawSeed(seed, salt)` gives its seed from a stream's |
-| `TrafficPhases` | `clk`, `rst_b`, `drained` → `valid_rate`, `ready_rate`, `limit`, `done`, `stuck`; `full_rate` when a phase sets `fullRate` | `phases` (`STANDARD_PHASES`), `recordsPerPhase`, `timeout`, `quietCycles` (16) | Steps a harness's injectors and checkers through phases of valid and ready rates, a phase's records at a time. `stuck` rises if a phase doesn't drain within `timeout` cycles |
+| `TrafficPhases` | `clk`, `rst_b`, `drained` → `valid_rate`, `ready_rate`, `limit`, `done`, `stuck`; `full_rate` when a phase sets `fullRate` | `phases` (`STANDARD_PHASES`), `recordsPerPhase`, `timeout`, `quietCycles` (16) | Steps a harness's injectors and checkers through phases of valid and ready rates, a phase's records at a time. `stuck` rises if a phase doesn't drain within `timeout` cycles; `stuckDetail()` is its detail line |
 
 ### Pattern memories
 
@@ -412,7 +412,7 @@ standard phases came within 0.0007 of the formula.
 once the checker's `drained` says they have all arrived. After the last phase it waits
 `quietCycles` with checkers ready and nothing offered, so that a late record is still taken and
 checked, and raises `done`. `stuck` rises if a phase runs `timeout` cycles; a harness binds it to
-a `progress` check. Choose `timeout` well below SimTop's `maxCycles`, or a stuck phase fails as a
+a `progress` check, with `TrafficPhases.stuckDetail()` as its detail line, which names the phase. Choose `timeout` well below SimTop's `maxCycles`, or a stuck phase fails as a
 SimTop timeout instead. `STANDARD_PHASES` are full rate, four random phases, then full rate
 again. A phase with `fullRate` raises `full_rate`, for a check that holds only at full rate; a
 table with none has no `full_rate` port.

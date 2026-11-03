@@ -1,4 +1,5 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
+import { type CheckDetail } from './Harness.js'
 import { RATE_WIDTH } from './Throttle.js'
 
 /** One phase of traffic. A rate is a chance in 256 per cycle: 0 is never, 256 is every cycle. */
@@ -109,6 +110,14 @@ export class TrafficPhases extends TSSV.Module {
     // The end, or a phase that never drains
     this.addAssign({ in: new Expr(`ending && timer == ${timerWidth}'d${quietCycles}`), out: 'done' })
     this.addRegister({ d: new Expr(`stuck | (!ending && timer == ${timerWidth}'d${params.timeout})`), clk: 'clk', reset: 'rst_b', q: 'stuck' })
+  }
+
+  /**
+   * What SimTop prints when `stuck` fails, for a TrafficPhases at `path` inside the harness
+   * (`phases`): the phase that didn't drain, numbered from 0 in the order of `phases`.
+   */
+  static stuckDetail (path: string): CheckDetail {
+    return { format: 'phase %0d did not drain within its timeout', args: [`${path}.phase`] }
   }
 
   /**
