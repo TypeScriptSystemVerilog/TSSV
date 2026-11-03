@@ -159,7 +159,7 @@ Tier 1, in `ts/src/tb/`:
 | `testbench` | (TypeScript) | | `markTestbench(module)` marks a module as simulation-only, so the SYN-1 scan skips it. SimTop marks itself |
 | `RecordInjector` | `clk`, `rst_b`, `ready` → `valid`, one output per field, `done`; options add `valid_rate`, `limit`, and in reloaded mode the load port and `records` | `name`, `fields`, `depth`, `memory`, `file`, `radix`, `records`, `lfsr`, `throttle`, `limitWidth` | Drives a valid/ready stream of records from one pattern memory, `pattern`, in order, each until it is accepted ([Record streams](#record-streams)) |
 | `RecordChecker` | `clk`, `rst_b`, `valid`, one input per field → `ready`, `fail`, `drained`; options add `ready_rate`, `limit`, the load port, and for a tie `peer_count` in, `fail_after` and `count` out | `name`, `mode`, `fields`, `depth`, `memory`, `file`/`files`, `records`, `sourceField`, `sources`, `lfsr`, `throttle`, `limitWidth`, `tie`; cycleExact: `rows`, `readyFile`, `file` | Checks a valid/ready stream against expected records, as a scoreboard: `inOrder`, `perSource` or `cycleExact` ([Record streams](#record-streams)). `firstError()`, `firstAfterError()` and `firstCycleError()` are its detail lines |
-| `recordStream` | (TypeScript) | | What an injector and a checker share: `injectorLayout()` and `checkerLayout()` for their pattern files, `lfsrPayloads()`, the model of LFSR payloads, and `mixSeed()` |
+| `recordStream` | (TypeScript) | | What an injector and a checker share, for generators: `injectorLayout()` and `checkerLayout()`, the record layout of an injector's or a checker's pattern file, given the stream's fields and its options; `lfsrPayloads()`, the model of LFSR payloads; and `mixSeed()` |
 | `Throttle` | `clk`, `rst_b`, `rate` → `pass` | `seed` | Passes in a cycle with a chance of `rate` in 256. `drawSeed(seed, salt)` gives its seed from a stream's |
 | `TrafficPhases` | `clk`, `rst_b`, `drained` → `valid_rate`, `ready_rate`, `limit`, `done`, `stuck`; `full_rate` when a phase sets `fullRate` | `phases` (`STANDARD_PHASES`), `recordsPerPhase`, `timeout`, `quietCycles` (16) | Steps a harness's injectors and checkers through phases of valid and ready rates, a phase's records at a time. `stuck` rises if a phase doesn't drain within `timeout` cycles; `stuckDetail()` is its detail line |
 
@@ -309,9 +309,12 @@ sent, and no payload is stored on either side.
   record. A stream seeded once in its first record is the shared-seed scheme of tssv-noc's spike
   (`FlitStreamSource`); a seed in each packet's first record is the per-packet scheme of tssv-noc's
   `doc/ideas/fpga-harness-sequence-memory.md`.
-- **The record's layout** has a field `seed`, as wide as the Lfsr, where its first payload field
-  was (`injectorLayout()`, `checkerLayout()`). The payload fields are at most the Lfsr's width
-  together: 32 or 64 bits.
+- **What the memories hold.** A record in the injector's and the checker's pattern files has a
+  field `seed`, as wide as the Lfsr, in place of its payload fields, where the first of them was.
+  The payload fields are at most the Lfsr's width together: 32 or 64 bits. A generator gets these
+  layouts from `recordStream.ts`, and passes them to `writePatternFile()`:
+  `injectorLayout(fields, { lfsr })` for the injector's file, and `checkerLayout(fields, { lfsr })`
+  for the checker's.
 - **A seed's record shows the seed's low bits** as its payload, and each record after it the next
   value of the sequence. `lfsrPayloads()` gives a generator the payloads, for a cycle table or a
   comment.

@@ -166,8 +166,9 @@ record's fields from the stream's:
 - **A tied checker's records** end with `after_peer` and `after_count`: the record may arrive only
   once that peer has delivered that many records.
 
-`injectorLayout(fields, { lfsr })` and `checkerLayout(fields, { lfsr, sourceField, tie })` give
-the layouts. A cycleExact checker reads two files with a row per cycle: the ready file, `ready`
+A generator gets these layouts from `recordStream.ts`, and passes them to `writePatternFile()`:
+`injectorLayout(fields, { lfsr })` for an injector's file, and
+`checkerLayout(fields, { lfsr, sourceField, tie })` for a checker's. A cycleExact checker reads two files with a row per cycle: the ready file, `ready`
 in each cycle, and the expected file, `valid` and the whole record, its fields as one value, with
 a `care` bit each (`RecordChecker.cycleLayouts()`, `RecordChecker.cycleRecords()`).
 
