@@ -305,22 +305,75 @@ With `lfsr`, a record stores a seed in place of its payload fields, and an Lfsr 
 injector and its checker are given the same `lfsr`, so the checker regenerates what the injector
 sent, and no payload is stored on either side.
 
+**An example.** A stream's records are `last` (1 bit) and `data` (32 bits), and a 32-bit Lfsr
+fills `data`. The harness gives the injector and the checker the same fields and `lfsr`:
+
+```ts
+const fields = [{ name: 'last', width: 1 }, { name: 'data', width: 32 }]
+const lfsr: RecordLfsr = { fields: ['data'], width: 32, seed: 1n }  // seed: the Lfsr's state after reset
+new RecordInjector({ name: 'inj', fields, lfsr, depth: 8, memory: 'preloaded', file: 'patterns/stimulus.hex', records: 5 })
+new RecordChecker({ name: 'chk', mode: 'inOrder', fields, lfsr, depth: 8, memory: 'preloaded', file: 'patterns/expected.hex', records: 5 })
+```
+
+So their memories hold `last` and a 32-bit `seed`, not `last` and `data`. The generator writes
+its records with those fields: a seed in the first record of each packet, and 0 in the rest.
+`injectorLayout(fields, { lfsr })`, from `recordStream.ts`, is the layout that goes with them:
+
+```ts
+const packets = [
+  { records: [{ last: 0n, seed: mixSeed(0n, 32) }, { last: 0n, seed: 0n }, { last: 1n, seed: 0n }] },
+  { records: [{ last: 0n, seed: mixSeed(1n, 32) }, { last: 1n, seed: 0n }] }
+]
+writePatternFile('patterns/stimulus.hex', injectorLayout(fields, { lfsr }), {
+  dut: 'MyDut', testcase: 'two_packets', purpose: 'stimulus for s_in', recordNoun: 'record', objectNoun: 'packet', objects: packets
+})
+```
+
+```text
+// MyDut, testcase two_packets: stimulus for s_in
+// $readmemh, one record per line: last _ seed[31:16] _ seed[15:0]
+//   last: 1 bit, one hex digit; seed: 32 bits
+// 5 records in 2 packets
+// packet 0: 3 records
+0_7b1d_cdaf
+0_0000_0000
+1_0000_0000
+// packet 1: 2 records
+0_8902_5cc1
+1_0000_0000
+```
+
+The injector sends these records:
+
+| Record | `seed` in the file | `data` sent | Why |
+|---|---|---|---|
+| 0 | `7b1dcdaf` | `7b1dcdaf` | a seed: the Lfsr restarts there, and shows it |
+| 1 | 0 | `97a1d39b` | 0: the Lfsr steps on from `7b1dcdaf` |
+| 2 | 0 | `178e4b32` | 0: it steps on again |
+| 3 | `89025cc1` | `89025cc1` | packet 1's seed: the Lfsr restarts there |
+| 4 | 0 | `91d9ac0c` | 0: it steps on from `89025cc1` |
+
+The DUT here passes records through unchanged, so the checker's expected file holds the same
+records. Its layout, `checkerLayout(fields, { lfsr })`, is the same as the injector's here; it
+differs only for a perSource checker, whose files leave out the source field, or a tied one,
+whose records add the tie's fields. The checker's Lfsr regenerates the `data` column from the
+same seeds, and compares it with what arrives.
+
+The rules:
+
 - **A non-zero seed restarts the Lfsr at that seed, and a seed of 0 continues** from the previous
-  record. A stream seeded once in its first record is the shared-seed scheme of tssv-noc's spike
-  (`FlitStreamSource`); a seed in each packet's first record is the per-packet scheme of tssv-noc's
+  record. A stream whose first record has seed 0 starts from `lfsr.seed`. A stream seeded once
+  in its first record is the shared-seed scheme of tssv-noc's spike (`FlitStreamSource`); a seed
+  in each packet's first record, as above, is the per-packet scheme of tssv-noc's
   `doc/ideas/fpga-harness-sequence-memory.md`.
-- **What the memories hold.** A record in the injector's and the checker's pattern files has a
-  field `seed`, as wide as the Lfsr, in place of its payload fields, where the first of them was.
-  The payload fields are at most the Lfsr's width together: 32 or 64 bits. A generator gets these
-  layouts from `recordStream.ts`, and passes them to `writePatternFile()`:
-  `injectorLayout(fields, { lfsr })` for the injector's file, and `checkerLayout(fields, { lfsr })`
-  for the checker's.
-- **A seed's record shows the seed's low bits** as its payload, and each record after it the next
-  value of the sequence. `lfsrPayloads()` gives a generator the payloads, for a cycle table or a
-  comment.
+- **`seed` is as wide as the Lfsr**, and goes where the first payload field was. The payload
+  fields are at most the Lfsr's width together: 32 or 64 bits. They take the low bits of the
+  Lfsr's value, the first field the highest of them.
+- **`lfsrPayloads(lfsr, bits, seeds)`** gives a generator the payloads, the table's `data`
+  column, for an expected file that needs the values themselves, such as a cycleExact checker's.
 - **Mix small seeds.** xorshift takes several steps to leave a state with few bits set, so seeds
   1, 2, 3 would give sparse, alike payloads. `mixSeed(n, width)` turns a packet number into a
-  dense, non-zero seed (splitmix64).
+  dense, non-zero seed (splitmix64), as `mixSeed(0n, 32)` gives `7b1dcdaf` above.
 
 ### Ties: order across outputs
 
