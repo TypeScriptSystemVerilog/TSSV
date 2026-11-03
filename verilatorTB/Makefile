@@ -254,7 +254,8 @@ rom_sim: tsc
 # because its pattern memories $readmemh their files by a path relative to it. SimTop ends a failed
 # run with $fatal, so a failed check exits nonzero.
 TB_EXAMPLES_DIR = ../sv-examples/tb
-TB_EXAMPLES = tb_SFIFOWave_dual_port tb_Lfsr
+TB_EXAMPLES = tb_SFIFOWave_dual_port tb_Lfsr \
+  tb_RecordStream_order tb_RecordStream_stored tb_RecordStream_cycle tb_RecordStream_sources tb_RecordStream_tied
 
 tb_examples_sim: tsc
 	cd ..; node out/test/tb/test_tbExamples.js

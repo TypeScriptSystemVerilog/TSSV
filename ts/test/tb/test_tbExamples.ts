@@ -8,11 +8,22 @@
 //     Its stimulus and expected values are written from the diagram.
 //   - tb_Lfsr checks Lfsr against a model of the xorshift sequence. Its expected values are
 //     written from the model, and the loads its loadable case sees from LOADS.
+//   - tb_RecordStream_* drive small valid/ready DUTs with RecordInjectors and check them with
+//     RecordCheckers (RecordStreamHarness.ts), one testbench per checker mode: order (inOrder,
+//     LFSR payloads, TrafficPhases), stored (inOrder, stored payloads), cycle (cycleExact),
+//     sources (perSource) and tied (two tied inOrder checkers).
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { SimTop } from 'tssv/lib/tb/SimTop'
 import { VectorPlayer } from 'tssv/lib/tb/VectorPlayer'
 import { VectorChecker } from 'tssv/lib/tb/VectorChecker'
-import { writeManifest, writePatternFile } from 'tssv/lib/tb/patternFile'
+import { RecordChecker } from 'tssv/lib/tb/RecordChecker'
+import { writeManifest, writePatternFile, type ManifestFile, type PatternFileContent, type PatternObject } from 'tssv/lib/tb/patternFile'
+import { type RecordLayout } from 'tssv/lib/tb/patternRecord'
+import { checkerLayout, injectorLayout } from 'tssv/lib/tb/recordStream'
+import {
+  MergeSourcesHarness, MERGE_FIELDS, MERGE_LFSR, SliceCycleHarness, SliceOrderHarness, SLICE_FIELDS, SLICE_LFSR, SplitTiedHarness, SPLIT_FIELDS,
+  mergeTestcase, recordsOf, sliceCycleTable, sliceOrderTestcase, splitExpected, splitTestcase, withoutSource
+} from './RecordStreamHarness.js'
 import { SFIFOWaveHarness, sfifoWaveTable } from './SFIFOWaveHarness.js'
 import { LfsrHarness, CASES, ROWS, caseLane, caseWidths, loadLanes } from './LfsrHarness.js'
 import { rmSync } from 'fs'
@@ -72,6 +83,87 @@ writeManifest(`${lfsrDir}/patterns/xorshift.json`, {
   })]
 })
 
+// ---- tb_RecordStream_*: each writes its pattern files and manifest, then its testbench
+
+/**
+ * One pattern file of a record-stream testcase: its name, the memory it loads, and its content,
+ * which is records in packets unless it says otherwise
+ */
+interface StreamFile {
+  file: string
+  memory: string
+  layout: RecordLayout
+  purpose: string
+  objects: PatternObject[]
+  recordNoun?: string
+  objectNoun?: string
+}
+
+/** Writes a testcase's files and manifest into `<tb>/patterns/`, and returns the manifest's entries */
+function writeTestcase (tb: string, dut: string, testcase: string, files: StreamFile[]): ManifestFile[] {
+  const dir = `${OUT}/${tb}`
+  rmSync(dir, { recursive: true, force: true })
+  const entries = files.map(f => {
+    const content: PatternFileContent = {
+      dut, testcase, purpose: f.purpose, recordNoun: f.recordNoun ?? 'record', objectNoun: f.objectNoun ?? 'packet', objects: f.objects
+    }
+    return { file: f.file, memory: f.memory, radix: 'h' as const, records: writePatternFile(`${dir}/patterns/${f.file}`, f.layout, content) }
+  })
+  writeManifest(`${dir}/patterns/${testcase}.json`, { testcase, files: entries })
+  return entries
+}
+
+// tb_RecordStream_order and _stored: the slice, in order, with LFSR payloads and phases, and without
+const ORDER_RECORDS = 48
+const order = sliceOrderTestcase(ORDER_RECORDS, true)
+writeTestcase('tb_RecordStream_order', 'StreamSlice', 'seeded_phases', [
+  { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', layout: injectorLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), purpose: 'stimulus for s_in, a seed per packet', objects: order },
+  { file: 'expected.hex', memory: 'h.chk_m_out.pattern', layout: checkerLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), purpose: 'expected on m_out: the packets as sent', objects: order }
+])
+const STORED_RECORDS = 20
+const stored = sliceOrderTestcase(STORED_RECORDS, false)
+writeTestcase('tb_RecordStream_stored', 'StreamSlice', 'stored', [
+  { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', layout: injectorLayout(SLICE_FIELDS), purpose: 'stimulus for s_in', objects: stored },
+  { file: 'expected.hex', memory: 'h.chk_m_out.pattern', layout: checkerLayout(SLICE_FIELDS), purpose: 'expected on m_out: the packets as sent', objects: stored }
+])
+
+// tb_RecordStream_cycle: the slice, cycle by cycle, with stalls
+const CYCLE_RECORDS = 12
+const CYCLE_ROWS = 28
+const cycleStimulus = sliceOrderTestcase(CYCLE_RECORDS, true)
+const cycleTable = RecordChecker.cycleRecords(SLICE_FIELDS, sliceCycleTable(recordsOf(cycleStimulus), CYCLE_ROWS))
+const cycleLayouts = RecordChecker.cycleLayouts(SLICE_FIELDS)
+writeTestcase('tb_RecordStream_cycle', 'StreamSlice', 'stalls', [
+  { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', layout: injectorLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), purpose: 'stimulus for s_in, a seed per packet', objects: cycleStimulus },
+  { file: 'ready.hex', memory: 'h.chk_m_out.play.pattern', layout: cycleLayouts.ready, purpose: 'ready on m_out, per cycle', recordNoun: 'cycle', objectNoun: 'table', objects: [{ records: cycleTable.ready }] },
+  { file: 'expected.hex', memory: 'h.chk_m_out.chk.pattern', layout: cycleLayouts.expected, purpose: 'expected valid and record on m_out, per cycle', recordNoun: 'cycle', objectNoun: 'table', objects: [{ records: cycleTable.expected }] }
+])
+
+// tb_RecordStream_sources: two sources through the merge, each with a seed per packet
+const SOURCE_RECORDS = 16
+const sources = [0, 1].map(k => mergeTestcase(SOURCE_RECORDS, k))
+writeTestcase('tb_RecordStream_sources', 'StreamMerge', 'two_sources', [0, 1].flatMap(k => [
+  { file: `stimulus_${k}.hex`, memory: `h.inj_${'ab'[k] ?? ''}.pattern`, layout: injectorLayout(MERGE_FIELDS, { lfsr: MERGE_LFSR }), purpose: `stimulus from source ${k}`, objects: sources[k] ?? [] },
+  { file: `expected_${k}.hex`, memory: `h.chk_m_out.pattern_${k}`, layout: checkerLayout(MERGE_FIELDS, { lfsr: MERGE_LFSR, sourceField: 'src' }), purpose: `expected on m_out from source ${k}`, objects: withoutSource(sources[k] ?? []) }
+]))
+
+// tb_RecordStream_tied: the split, its outputs tied
+const TIED_RECORDS = 24
+const tiedTie = { peers: 2, countWidth: Math.ceil(Math.log2(TIED_RECORDS + 1)) }
+const split = splitTestcase(TIED_RECORDS)
+const splitOut = [0, 1].map(dst => splitExpected(split, dst))
+const tied = writeTestcase('tb_RecordStream_tied', 'StreamSplit', 'interleaved', [
+  { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', layout: injectorLayout(SPLIT_FIELDS), purpose: 'stimulus for s_in', objectNoun: 'sequence', objects: [{ label: 'in input order', records: split }] },
+  ...[0, 1].map(dst => ({
+    file: `expected_${'ab'[dst] ?? ''}.hex`,
+    memory: `h.chk_out_${'ab'[dst] ?? ''}.pattern`,
+    layout: checkerLayout(SPLIT_FIELDS, { tie: tiedTie }),
+    purpose: `expected on out_${'ab'[dst] ?? ''}, each after the records sent to the other output before it`,
+    objectNoun: 'sequence',
+    objects: [{ label: 'in input order', records: splitOut[dst] ?? [] }]
+  }))
+])
+
 const testbenches = [
   new SimTop({
     name: 'tb_SFIFOWave_dual_port',
@@ -84,7 +176,42 @@ const testbenches = [
     }),
     maxCycles: 100
   }),
-  new SimTop({ name: 'tb_Lfsr', harness: new LfsrHarness({ name: 'LfsrHarness', patterns: 'patterns' }), maxCycles: 100 })
+  new SimTop({ name: 'tb_Lfsr', harness: new LfsrHarness({ name: 'LfsrHarness', patterns: 'patterns' }), maxCycles: 100 }),
+  new SimTop({
+    name: 'tb_RecordStream_order',
+    harness: new SliceOrderHarness({ name: 'RecordStream_order', records: ORDER_RECORDS, stimulus: 'patterns/stimulus.hex', expected: 'patterns/expected.hex', lfsr: true, phases: true }),
+    maxCycles: 2000
+  }),
+  new SimTop({
+    name: 'tb_RecordStream_stored',
+    harness: new SliceOrderHarness({ name: 'RecordStream_stored', records: STORED_RECORDS, stimulus: 'patterns/stimulus.hex', expected: 'patterns/expected.hex' }),
+    maxCycles: 100
+  }),
+  new SimTop({
+    name: 'tb_RecordStream_cycle',
+    harness: new SliceCycleHarness({
+      name: 'RecordStream_cycle', records: CYCLE_RECORDS, rows: CYCLE_ROWS, stimulus: 'patterns/stimulus.hex', ready: 'patterns/ready.hex', expected: 'patterns/expected.hex'
+    }),
+    maxCycles: 100
+  }),
+  new SimTop({
+    name: 'tb_RecordStream_sources',
+    harness: new MergeSourcesHarness({
+      name: 'RecordStream_sources', records: SOURCE_RECORDS, stimulus: ['patterns/stimulus_0.hex', 'patterns/stimulus_1.hex'], expected: ['patterns/expected_0.hex', 'patterns/expected_1.hex']
+    }),
+    maxCycles: 500
+  }),
+  new SimTop({
+    name: 'tb_RecordStream_tied',
+    harness: new SplitTiedHarness({
+      name: 'RecordStream_tied',
+      records: TIED_RECORDS,
+      stimulus: 'patterns/stimulus.hex',
+      expected: ['patterns/expected_a.hex', 'patterns/expected_b.hex'],
+      expectedRecords: [tied[1]?.records ?? 0, tied[2]?.records ?? 0]
+    }),
+    maxCycles: 500
+  })
 ]
 
 for (const tb of testbenches) {
