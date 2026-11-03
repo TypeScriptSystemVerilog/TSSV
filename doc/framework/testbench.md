@@ -160,7 +160,7 @@ Tier 1, in `ts/src/tb/`:
 | `RecordInjector` | `clk`, `rst_b`, `ready` → `valid`, one output per field, `done`; options add `valid_rate`, `limit`, and in reloaded mode the load port and `records` | `name`, `fields`, `depth`, `memory`, `file`, `radix`, `records`, `lfsr`, `throttle`, `limitWidth` | Drives a valid/ready stream of records from one pattern memory, `pattern`, in order, each until it is accepted ([Record streams](#record-streams)) |
 | `RecordChecker` | `clk`, `rst_b`, `valid`, one input per field → `ready`, `fail`, `drained`; options add `ready_rate`, `limit`, the load port, and for a tie `peer_count` in, `fail_after` and `count` out | `name`, `mode`, `fields`, `depth`, `memory`, `file`/`files`, `records`, `sourceField`, `sources`, `lfsr`, `throttle`, `limitWidth`, `tie`; cycleExact: `rows`, `readyFile`, `file` | Checks a valid/ready stream against expected records, as a scoreboard: `inOrder`, `perSource` or `cycleExact` ([Record streams](#record-streams)). `firstError()`, `firstAfterError()` and `firstCycleError()` are its detail lines |
 | `recordStream` | (TypeScript) | | What an injector and a checker share, for generators: `injectorLayout()` and `checkerLayout()`, the record layout of an injector's or a checker's pattern file, given the stream's fields and its options; `lfsrPayloads()`, the model of LFSR payloads; and `mixSeed()` |
-| `Throttle` | `clk`, `rst_b`, `rate` → `pass` | `seed` | Passes in a cycle with a chance of `rate` in 256. `drawSeed(seed, salt)` gives its seed from a stream's |
+| `Throttle` | `clk`, `rst_b`, `rate` → `allow` | `seed` | Allows a cycle with a chance of `rate` in 256. `drawSeed(seed, salt)` gives its seed from a stream's |
 | `TrafficPhases` | `clk`, `rst_b`, `drained` → `valid_rate`, `ready_rate`, `limit`, `done`, `stuck`; `full_rate` when a phase sets `fullRate` | `phases` (`STANDARD_PHASES`), `recordsPerPhase`, `timeout`, `quietCycles` (16) | Steps a harness's injectors and checkers through phases of valid and ready rates, a phase's records at a time. `stuck` rises if a phase doesn't drain within `timeout` cycles; `stuckDetail()` is its detail line |
 
 ### Pattern memories
@@ -469,7 +469,7 @@ buffer, so r3 reaches `out_a` before r2 reaches `out_b`:
 
 ### Throttling
 
-`Throttle` makes a random choice each cycle: `pass` is high with a chance of `rate` in 256 (rate
+`Throttle` makes a random choice each cycle: `allow` is high with a chance of `rate` in 256 (rate
 0 never, 256 always). It draws 8 bits from a 32-bit Lfsr that steps every cycle, and tests
 `{1'b0, draw} < rate`. An injector with `throttle` uses one to decide when to offer a record
 (`valid_rate`), and a checker one to decide when to be ready (`ready_rate`). Their seeds come from
@@ -478,8 +478,8 @@ seed draw apart.
 
 **The distribution.** The draws are uniform: xorshift32 visits every non-zero state once in its
 period of 2^32 − 1, so each 8-bit value is equally likely, to within 2^−24. Two draws in a row are
-independent: the next draw's bits include state bits the current one doesn't. So each cycle passes
-as an independent coin with p = rate / 256. The sequence is linear, with 32 bits of state, so five
+independent: the next draw's bits include state bits the current one doesn't. So each cycle is
+allowed as an independent coin with p = rate / 256. The sequence is linear, with 32 bits of state, so five
 or more draws in a row are linearly dependent; only a linear-complexity test would notice. With
 p_v = valid_rate / 256 and p_r = ready_rate / 256:
 
@@ -490,7 +490,7 @@ p_v = valid_rate / 256 and p_r = ready_rate / 256:
 - an injector straight into a checker carries 1 / (1/p_v + 1/p_r − 1) records a cycle. A DUT that
   buffers between them raises that toward min(p_v, p_r).
 
-A Python model of 10^6 cycles gave P(pass) within 0.0006 of rate / 256, and a pass in two cycles
+A Python model of 10^6 cycles gave P(allow) within 0.0006 of rate / 256, and `allow` in two cycles
 in a row within 0.0009 of p², for rates 64, 128 and 224. Its throughput in the four random
 standard phases came within 0.0007 of the formula.
 

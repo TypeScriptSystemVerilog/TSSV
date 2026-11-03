@@ -89,7 +89,7 @@ const PORTS = ['clk', 'rst_b', 'valid', 'ready', 'ready_rate', 'limit', 'load_en
   'peer_count', 'fail', 'fail_after', 'drained', 'count']
 
 /** The module's own signals besides its ports, which a field can't be named either */
-const INTERNAL = ['delivered', 'got', 'miss', 'early', 'expected', 'pass', 'sel', 'idx', 'idx_nxt', 'exhausted', 'adv', 'rd_addr',
+const INTERNAL = ['delivered', 'got', 'miss', 'early', 'expected', 'allow', 'sel', 'idx', 'idx_nxt', 'exhausted', 'adv', 'rd_addr',
   'want', 'ok', 'payload', 'load', 'had', 'after_ok']
 
 /** `values` selected by one-hot `sels`, as an AND-OR of `width`-bit values */
@@ -232,10 +232,10 @@ export class RecordChecker extends TSSV.Module {
     if (params.throttle === undefined) {
       this.addAssign({ in: new Expr("1'b1"), out: 'ready' })
     } else {
-      this.addSignal('pass', { width: 1 })
+      this.addSignal('allow', { width: 1 })
       this.addSubmodule('throttle', new Throttle({ name: `${name}_throttle`, seed: drawSeed(params.throttle.seed, READY_SALT) }),
-        { clk: 'clk', rst_b: 'rst_b', rate: 'ready_rate', pass: 'pass' }, false)
-      this.addRegister({ d: 'pass', clk: 'clk', reset: 'rst_b', q: 'ready' })
+        { clk: 'clk', rst_b: 'rst_b', rate: 'ready_rate', allow: 'allow' }, false)
+      this.addRegister({ d: 'allow', clk: 'clk', reset: 'rst_b', q: 'ready' })
     }
     this.addSignal('delivered', { width: 1 })
     this.addAssign({ in: new Expr('valid && ready'), out: 'delivered' })

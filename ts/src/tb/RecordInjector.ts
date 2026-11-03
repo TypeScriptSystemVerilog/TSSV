@@ -28,7 +28,7 @@ export interface RecordInjector_Parameters extends TSSV.TSSVParameters {
 }
 
 /** The module's own signals besides its ports, which a field can't be named */
-const INTERNAL = ['idx', 'idx_nxt', 'bound', 'more', 'pass', 'offering', 'accepted', 'rd_addr', 'payload', 'load']
+const INTERNAL = ['idx', 'idx_nxt', 'bound', 'more', 'allow', 'offering', 'accepted', 'rd_addr', 'payload', 'load']
 
 /**
  * RecordInjector — drives a valid/ready stream of records from a pattern memory
@@ -126,15 +126,15 @@ export class RecordInjector extends TSSV.Module {
     this.addAssign({ in: new Expr(`idx == ${count}`), out: 'done' })
 
     // Offering: a record is held until it is accepted, and the next one is offered when the
-    // throttle passes
-    this.addSignal('pass', { width: 1 })
+    // throttle allows it
+    this.addSignal('allow', { width: 1 })
     if (params.throttle === undefined) {
-      this.addAssign({ in: new Expr("1'b1"), out: 'pass' })
+      this.addAssign({ in: new Expr("1'b1"), out: 'allow' })
     } else {
       this.addSubmodule('throttle', new Throttle({ name: `${name}_throttle`, seed: drawSeed(params.throttle.seed, VALID_SALT) }),
-        { clk: 'clk', rst_b: 'rst_b', rate: 'valid_rate', pass: 'pass' }, false)
+        { clk: 'clk', rst_b: 'rst_b', rate: 'valid_rate', allow: 'allow' }, false)
     }
-    this.addRegister({ d: new Expr('(offering && !ready) || (more && pass)'), clk: 'clk', reset: 'rst_b', q: 'offering' })
+    this.addRegister({ d: new Expr('(offering && !ready) || (more && allow)'), clk: 'clk', reset: 'rst_b', q: 'offering' })
     this.addAssign({ in: new Expr('offering'), out: 'valid' })
 
     // The records, from the memory. The address stays in range once every record is sent

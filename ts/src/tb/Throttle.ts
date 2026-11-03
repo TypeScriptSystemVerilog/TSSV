@@ -26,17 +26,17 @@ export interface Throttle_Parameters extends TSSV.TSSVParameters {
 }
 
 /**
- * Throttle — passes in a cycle with a chance of `rate` in 256 (doc/framework/testbench.md, "Record
+ * Throttle — allows a cycle with a chance of `rate` in 256 (doc/framework/testbench.md, "Record
  * streams"). An injector uses one to decide when to offer a record, and a checker to decide when
  * to be ready.
  *
- * Ports: `clk`, `rst_b`, `rate` in; `pass` out.
+ * Ports: `clk`, `rst_b`, `rate` in; `allow` out.
  *
- * Each cycle draws 8 bits from a 32-bit Lfsr that steps every cycle, and `pass` is
- * `{1'b0, draw} < rate`: rate 0 never passes, and rate 256 always does. The draws are uniform, and
- * two in a row are independent, so each cycle passes as an independent coin with p = rate / 256.
- * `pass` comes from the Lfsr's state and `rate` through a compare, so it follows `rate` within the
- * cycle.
+ * Each cycle draws 8 bits from a 32-bit Lfsr that steps every cycle, and `allow` is
+ * `{1'b0, draw} < rate`: rate 0 never allows, and rate 256 always does. The draws are uniform,
+ * and two in a row are independent, so each cycle is allowed as an independent coin with
+ * p = rate / 256. `allow` comes from the Lfsr's state and `rate` through a compare, so it follows
+ * `rate` within the cycle.
  */
 export class Throttle extends TSSV.Module {
   constructor (params: Throttle_Parameters) {
@@ -49,14 +49,14 @@ export class Throttle extends TSSV.Module {
       clk: { direction: 'input', isClock: 'posedge' },
       rst_b: { direction: 'input', isReset: 'lowasync' },
       rate: { direction: 'input', width: RATE_WIDTH },
-      pass: { direction: 'output' }
+      allow: { direction: 'output' }
     }
 
     // A random byte each cycle, and whether it falls under the rate
     this.addSignal('draw', { width: 8 })
     this.addSubmodule('dice', new Lfsr({ width: 32, seed: params.seed, outWidth: 8 }),
       { clk: 'clk', rst_b: 'rst_b', step: 1n, value: 'draw' }, false)
-    this.addAssign({ in: new Expr(`{1'b0, draw} < rate`), out: 'pass' })
+    this.addAssign({ in: new Expr(`{1'b0, draw} < rate`), out: 'allow' })
   }
 }
 

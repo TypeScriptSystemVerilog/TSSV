@@ -113,8 +113,8 @@ void test('cycleRecords makes a row that expects no record a don\'t-care, and pa
 
 // ---- Throttle
 
-void test('a Throttle has clk, rst_b and a 9-bit rate in, and pass out', () => {
-  assert.deepEqual(ports(new Throttle({ seed: 1n })), ['input clk[1]', 'input rst_b[1]', 'input rate[9]', 'output pass[1]'])
+void test('a Throttle has clk, rst_b and a 9-bit rate in, and allow out', () => {
+  assert.deepEqual(ports(new Throttle({ seed: 1n })), ['input clk[1]', 'input rst_b[1]', 'input rate[9]', 'output allow[1]'])
 })
 
 void test('drawSeed gives an odd 32-bit seed, different for an injector and a checker of one stream', () => {
