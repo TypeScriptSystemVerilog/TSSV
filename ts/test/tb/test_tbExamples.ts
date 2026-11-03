@@ -7,14 +7,14 @@
 //   - tb_SFIFOWave_dual_port replays the SFIFO spec's dual-port timing diagram against the RTL.
 //     Its stimulus and expected values are written from the diagram.
 //   - tb_Lfsr checks Lfsr against a model of the xorshift sequence. Its expected values are
-//     written from the model.
+//     written from the model, and the loads its loadable case sees from LOADS.
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { SimTop } from 'tssv/lib/tb/SimTop'
 import { VectorPlayer } from 'tssv/lib/tb/VectorPlayer'
 import { VectorChecker } from 'tssv/lib/tb/VectorChecker'
 import { writeManifest, writePatternFile } from 'tssv/lib/tb/patternFile'
 import { SFIFOWaveHarness, sfifoWaveTable } from './SFIFOWaveHarness.js'
-import { LfsrHarness, CASES, ROWS, caseLane, caseWidths } from './LfsrHarness.js'
+import { LfsrHarness, CASES, ROWS, caseLane, caseWidths, loadLanes } from './LfsrHarness.js'
 import { rmSync } from 'fs'
 
 const OUT = `${TSSV_ROOT}/sv-examples/tb`
@@ -44,12 +44,20 @@ writeManifest(`${sfifoDir}/patterns/dual_port.json`, {
   ]
 })
 
-// ---- tb_Lfsr: each case's expected values, from the xorshift model
+// ---- tb_Lfsr: the loads, and each case's expected values from the xorshift model
 const lfsrDir = `${OUT}/tb_Lfsr`
 rmSync(lfsrDir, { recursive: true, force: true })
+const loads = writePatternFile(`${lfsrDir}/patterns/stimulus.hex`, VectorPlayer.layout(loadLanes()), {
+  dut: 'Lfsr',
+  testcase: 'xorshift',
+  purpose: 'load and seed_in of each loadable Lfsr',
+  recordNoun: 'cycle',
+  objectNoun: 'sequence',
+  objects: [{ label: `${ROWS} cycles from reset`, records: VectorPlayer.records(loadLanes(), ROWS) }]
+})
 writeManifest(`${lfsrDir}/patterns/xorshift.json`, {
   testcase: 'xorshift',
-  files: CASES.map(c => {
+  files: [{ file: 'stimulus.hex', memory: 'h.play.pattern', radix: 'h' as const, records: loads }, ...CASES.map(c => {
     const { width, outWidth } = caseWidths(c)
     const lane = caseLane(c)
     const records = writePatternFile(`${lfsrDir}/patterns/expect_${c.tag}.hex`, VectorChecker.layout([lane]), {
@@ -61,7 +69,7 @@ writeManifest(`${lfsrDir}/patterns/xorshift.json`, {
       objects: [{ label: `${ROWS} steps from reset`, records: VectorChecker.records([lane], ROWS) }]
     })
     return { file: `expect_${c.tag}.hex`, memory: `h.chk_${c.tag}.pattern`, radix: 'h' as const, records }
-  })
+  })]
 })
 
 const testbenches = [
