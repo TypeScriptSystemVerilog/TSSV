@@ -8,7 +8,10 @@ export interface TrafficPhase {
   validRate: number
   /** Chance that a checker is ready. */
   readyRate: number
-  /** Raises `full_rate` during the phase, for the checks that only hold at full rate. */
+  /**
+   * Raises `full_rate` during the phase, for the checks that only hold at full rate. A table
+   * with no such phase has no `full_rate` port.
+   */
   fullRate?: boolean
 }
 
@@ -45,8 +48,9 @@ export interface TrafficPhases_Parameters extends TSSV.TSSVParameters {
  * After the last phase it waits `quietCycles` with every checker ready and no injector offering,
  * so that any record the DUT still delivers is taken and checked, and raises `done`.
  *
- * Ports: `clk`, `rst_b`, `drained` in; `valid_rate`, `ready_rate`, `limit`, `full_rate`, `done`
- * and `stuck` out. `stuck` rises, and stays high, if a phase runs for `timeout` cycles.
+ * Ports: `clk`, `rst_b`, `drained` in; `valid_rate`, `ready_rate`, `limit`, `done` and `stuck`
+ * out, and `full_rate` when a phase sets `fullRate`. `stuck` rises, and stays high, if a phase
+ * runs for `timeout` cycles.
  */
 export class TrafficPhases extends TSSV.Module {
   /** Width of `limit`: the `limitWidth` of the injectors and checkers it drives. */
@@ -78,11 +82,12 @@ export class TrafficPhases extends TSSV.Module {
       drained: { direction: 'input' },
       valid_rate: { direction: 'output', width: RATE_WIDTH },
       ready_rate: { direction: 'output', width: RATE_WIDTH },
-      limit: { direction: 'output', width: this.countWidth },
-      full_rate: { direction: 'output' },
-      done: { direction: 'output' },
-      stuck: { direction: 'output' }
+      limit: { direction: 'output', width: this.countWidth }
     }
+    const fullRate = phases.some(p => p.fullRate === true)
+    if (fullRate) this.IOs.full_rate = { direction: 'output' }
+    this.IOs.done = { direction: 'output' }
+    this.IOs.stuck = { direction: 'output' }
 
     // The phase, and the cycles spent in it. The timer wraps only after stuck has risen
     this.addSignal('phase', { width: phaseWidth })
@@ -99,7 +104,7 @@ export class TrafficPhases extends TSSV.Module {
     this.addPhaseTable('valid_rate', RATE_WIDTH, phases.map(p => BigInt(p.validRate)), 0n)
     this.addPhaseTable('ready_rate', RATE_WIDTH, phases.map(p => BigInt(p.readyRate)), 256n)
     this.addPhaseTable('limit', this.countWidth, phases.map((_, i) => BigInt((i + 1) * n)), BigInt(last * n))
-    this.addPhaseTable('full_rate', 1, phases.map(p => p.fullRate === true ? 1n : 0n), 0n)
+    if (fullRate) this.addPhaseTable('full_rate', 1, phases.map(p => p.fullRate === true ? 1n : 0n), 0n)
 
     // The end, or a phase that never drains
     this.addAssign({ in: new Expr(`ending && timer == ${timerWidth}'d${quietCycles}`), out: 'done' })
