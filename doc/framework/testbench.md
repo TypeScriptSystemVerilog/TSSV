@@ -377,20 +377,29 @@ The rules:
 
 ### Ties: order across outputs
 
-A DUT with several outputs may promise an order across them, such as a response after the request
-it answers. Checkers on those outputs can be tied, each given `tie: { peers, countWidth }`:
+A checker checks the order of the records on its own output, but it can't see the other outputs.
+Some DUTs also promise an order across outputs, such as a split that keeps its input order, or a
+response that leaves after the request it answers. Tying the checkers on those outputs checks
+that order too.
 
-- Every tied checker outputs `count`, the records it has delivered, from a flop.
-- `RecordChecker.peerCounts()` adds a net to the harness that carries every tied checker's count,
-  peer 0's in the low bits, and each tied checker takes it as `peer_count`.
-- Each expected record also holds `after_peer` and `after_count`. The record may arrive only once
-  peer `after_peer` has delivered `after_count` records. The counts come from flops, so "once"
-  means in an earlier cycle, and an `after_count` of 0 asks nothing.
-- A record that arrives too early raises `fail_after`, apart from `fail`. `err_after_*` hold it, and
-  `firstAfterError()` prints it:
-  `record 1: arrived before peer 0 had delivered 6 records; it had 4`.
+**The rule.** The tied checkers are numbered: peer 0, peer 1, and so on. Each record in a tied
+checker's expected file has two more fields, `after_peer` and `after_count`, which say: "this
+record mustn't arrive until peer `after_peer` has received `after_count` records".
 
-`tb_RecordStream_tied` ties the two outputs of a split that keeps its input order:
+**How the checkers check it.** Each is given `tie: { peers, countWidth }`, the number of tied
+checkers and the width of a count.
+
+- Each tied checker counts the records it has received, `count`, in a flop.
+- `RecordChecker.peerCounts()` adds a net to the harness with every tied checker's `count`, peer
+  0's in the low bits. Each tied checker reads it as `peer_count`.
+- When a record arrives, its checker compares its peer's count with its `after_count`. The count
+  comes from a flop, so it holds only the records received in earlier cycles. So a record that
+  arrives in the same cycle as one it must follow fails. An `after_count` of 0 always passes.
+- A record that arrives too early raises `fail_after`, a check apart from `fail`. `err_after_*`
+  hold the first one, and `firstAfterError()` prints it.
+
+**An example.** `tb_RecordStream_tied` ties the two outputs of a split. The split promises that a
+record leaves only after every earlier record has left, on either output:
 
 ```mermaid
 flowchart LR
@@ -415,28 +424,48 @@ flowchart LR
   class DUT dut
 ```
 
-The generator knows the input order, so for each record it counts the records sent to the other
-output before it. With r0→A, r1→B, r2→B, r3→A:
+The injector sends four records, r0 to r3. The split sends r0 and r3 to `out_a`, and r1 and r2
+to `out_b`. The generator knows this, so it gives each record the other output's checker as
+`after_peer`. Its `after_count` is the number of earlier records that went to that output:
 
-| File | Record | `after_peer` | `after_count` | Meaning |
+| Record | Goes to | Earlier records sent to the other output | `after_peer` | `after_count` |
 |---|---|---|---|---|
-| expected a | r0 | 1 | 0 | no constraint |
-| expected a | r3 | 1 | 2 | only after B has delivered 2 (r1, r2) |
-| expected b | r1 | 0 | 1 | only after A has delivered 1 (r0) |
-| expected b | r2 | 0 | 1 | the same; r1 before it is on its own output, which `order` covers |
+| r0 | `out_a` | none | 1 (`chk_out_b`) | 0 |
+| r1 | `out_b` | r0 | 0 (`chk_out_a`) | 1 |
+| r2 | `out_b` | r0 | 0 (`chk_out_a`) | 1 |
+| r3 | `out_a` | r1, r2 | 1 (`chk_out_b`) | 2 |
 
-```text
-the split keeps its order (passes)       out_b buffered: r1, r2 wait, r3 passes them
-cycle      1   2   3   4                 cycle      1   2   3   4
-out_a      r0  .   .   r3                out_a      r0  r3  .   .
-out_b      .   r1  r2  .                 out_b      .   .   r1  r2
-count_a    0   1   1   1                 count_a    0   1   2   2
-count_b    0   0   1   2                 count_b    0   0   0   1
-r1: count_a 1 ≥ 1                        r3 in cycle 2: count_b 0 < 2 → fail_after on out_a
-r3: count_b 2 ≥ 2
-```
+`chk_out_a`'s expected file holds r0 and r3, as its records 0 and 1. `chk_out_b`'s holds r1 and
+r2. A record's tie counts only the other output, because `order` already checks the order within
+its own: r2 after r1, for example. `splitExpected()` in `RecordStreamHarness.ts` writes the files.
 
-A DUT that may deliver two dependent records in the same cycle fails this check by design.
+In the cycles below, the injector offers a record every cycle, and both checkers are always
+ready. `count_a` and `count_b` are the checkers' counts during the cycle: the records they
+received in earlier cycles.
+
+**The split keeps its order, and the test passes.** Each record leaves in the cycle it is sent:
+
+| Cycle | Arrives on `out_a` | Arrives on `out_b` | `count_a` | `count_b` | The check |
+|---|---|---|---|---|---|
+| 1 | r0 | | 0 | 0 | r0 needs `count_b` ≥ 0: yes |
+| 2 | | r1 | 1 | 0 | r1 needs `count_a` ≥ 1: yes |
+| 3 | | r2 | 1 | 1 | r2 needs `count_a` ≥ 1: yes |
+| 4 | r3 | | 1 | 2 | r3 needs `count_b` ≥ 2: yes |
+
+**A 2-stage buffer on `out_b`, and the test fails.** r1 and r2 each spend two cycles in the
+buffer, so r3 reaches `out_a` before r2 reaches `out_b`:
+
+| Cycle | Arrives on `out_a` | Arrives on `out_b` | `count_a` | `count_b` | The check |
+|---|---|---|---|---|---|
+| 1 | r0 | | 0 | 0 | r0 needs `count_b` ≥ 0: yes |
+| 2 | | | 1 | 0 | |
+| 3 | | | 1 | 0 | |
+| 4 | r3 | r1 | 1 | 0 | r3 needs `count_b` ≥ 2: **no**, so `chk_out_a` raises `fail_after`. r1 needs `count_a` ≥ 1: yes |
+| 5 | | r2 | 1 | 1 | r2 needs `count_a` ≥ 1: yes |
+
+`firstAfterError()` names the record by its number in its own checker's file, so r3 is
+`chk_out_a`'s record 1:
+`record 1: arrived before peer 1 had delivered 2 records; it had 0`.
 
 ### Throttling
 
