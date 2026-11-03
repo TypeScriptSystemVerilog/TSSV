@@ -1,8 +1,9 @@
 # Pattern files
 
-> **Status:** pattern memories for the testbench framework (tssv-noc#207, TSSV#197).
+> **Status:** pattern memories for the testbench framework (tssv-noc#207, TSSV#197), and the
+> files of record-stream injectors and checkers (TSSV#198).
 > **Code:** `ts/src/tb/patternRecord.ts` (record layouts), `ts/src/tb/patternFile.ts` (the writer),
-> `ts/src/tb/PatternMemory.ts` (the memory)
+> `ts/src/tb/PatternMemory.ts` (the memory), `ts/src/tb/recordStream.ts` (record-stream layouts)
 > **Examples:** `ts/test/tb/test_patternFile.ts`, `ts/test/tb/test_PatternMemory.ts`, and the
 > example testbenches' `patterns/` folders, written by `ts/test/tb/test_tbExamples.ts`
 
@@ -135,6 +136,44 @@ The SFIFO example's expected values, from the spec's dual-port diagram, start li
 00_1_0_0_7
 41_0_0_1_f
 ```
+
+---
+
+## Record streams
+
+A `RecordInjector` or `RecordChecker` ([testbench.md](testbench.md#record-streams)) holds a
+stream's records, one per line, in the order they are sent or expected. Three things change a
+record's fields from the stream's:
+
+- **LFSR payloads.** The payload fields are replaced by one field `seed`, as wide as the Lfsr
+  (32 or 64 bits), where the first of them was. A non-zero seed restarts the payload sequence at
+  that seed, and 0 continues it, so a file seeded once per packet reads like this:
+  ```text
+  // StreamSlice, testcase seeded_phases: stimulus for s_in, a seed per packet
+  // $readmemh, one record per line: last _ seed[63:48] _ seed[47:32] _ seed[31:16] _ seed[15:0]
+  //   last: 1 bit, one hex digit; seed: 64 bits
+  // 48 records in 22 packets
+  // packet 0: 1 record
+  1_3c1e_ba8b_4dcc_c148
+  // packet 1: 1 record
+  1_533e_00f7_f3c6_06d4
+  // packet 2: 2 records
+  0_eefa_317f_ac7a_b8fd
+  1_0000_0000_0000_0000
+  ```
+- **A perSource checker** has one file per source, and each leaves out the source field: every
+  record in it is from that source.
+- **A tied checker's records** end with `after_peer` and `after_count`: the record may arrive only
+  once that peer has delivered that many records.
+
+`injectorLayout(fields, { lfsr })` and `checkerLayout(fields, { lfsr, sourceField, tie })` give
+the layouts. A cycleExact checker reads a cycle table's two files: its `ready` column, and
+`valid` and the whole record, its fields as one value, with a `care` bit each
+(`RecordChecker.cycleLayouts()`, `RecordChecker.cycleRecords()`).
+
+Their manifests name the memories by the injector's and checker's instances: `h.inj_<port>.pattern`;
+`h.chk_<port>.pattern`, or `h.chk_<port>.pattern_<k>` for source k; and in cycleExact mode
+`h.chk_<port>.play.pattern` and `h.chk_<port>.chk.pattern`.
 
 ---
 
