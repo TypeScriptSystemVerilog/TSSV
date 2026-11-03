@@ -167,9 +167,9 @@ record's fields from the stream's:
   once that peer has delivered that many records.
 
 `injectorLayout(fields, { lfsr })` and `checkerLayout(fields, { lfsr, sourceField, tie })` give
-the layouts. A cycleExact checker reads a cycle table's two files: its `ready` column, and
-`valid` and the whole record, its fields as one value, with a `care` bit each
-(`RecordChecker.cycleLayouts()`, `RecordChecker.cycleRecords()`).
+the layouts. A cycleExact checker reads two files with a row per cycle: the ready file, `ready`
+in each cycle, and the expected file, `valid` and the whole record, its fields as one value, with
+a `care` bit each (`RecordChecker.cycleLayouts()`, `RecordChecker.cycleRecords()`).
 
 Their manifests name the memories by the injector's and checker's instances: `h.inj_<port>.pattern`;
 `h.chk_<port>.pattern`, or `h.chk_<port>.pattern_<k>` for source k; and in cycleExact mode

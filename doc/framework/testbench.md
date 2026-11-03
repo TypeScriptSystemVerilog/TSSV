@@ -272,7 +272,7 @@ what it expects. Its `mode` says what it requires:
 |---|---|---|
 | `inOrder` | one, `pattern` | Every expected record arrives once, in order, unchanged |
 | `perSource` | one per source, `pattern_<k>` | The same within each source, the source being the value of `sourceField`. The order across sources isn't checked (tssv-noc `NP_VIP_REQ_036`). Each source's file leaves out the source field |
-| `cycleExact` | the cycle table's two, `play.pattern` and `chk.pattern` | In each cycle, `valid` and the record have the table's values, and `ready` is the table's ([Cycle tables](#cycle-tables-and-their-timing)) |
+| `cycleExact` | two, one row per cycle: `play.pattern`, loaded from the ready file, and `chk.pattern`, loaded from the expected file | In cycle r, the checker drives `ready` from row r of the ready file, and `valid` and the record must equal row r of the expected file ([Cycle tables](#cycle-tables-and-their-timing)) |
 
 In `inOrder` and `perSource` modes:
 
@@ -290,12 +290,14 @@ In `inOrder` and `perSource` modes:
 - **Reloaded mode** adds the load port and `records`, with one count per source, source 0's in
   the low bits. With several sources, `load_src` picks the memory a word goes to.
 
-In `cycleExact` mode, a VectorPlayer, `play`, drives `ready` from the table's first file, and a
-VectorChecker, `chk`, checks two lanes: `valid`, and the record, its fields in order as one
-value. The record is a don't-care in a row that expects no record. It reports per lane,
-`fail_valid` and `fail_record` (`firstCycleError()`), and `done` rises after the last row.
-`RecordChecker.cycleRecords()` writes both files from a list of rows, each with `ready` and the
-record it expects, if any.
+In `cycleExact` mode, the checker reads two files, one row per cycle: the ready file
+(`readyFile`), which says in each cycle whether it is ready, and the expected file (`file`),
+which gives `valid` and the record it expects in each cycle. A VectorPlayer, `play`, drives
+`ready` from the ready file. A VectorChecker, `chk`, compares two lanes with the expected file:
+`valid`, and the record, its fields in order as one value. Where the expected file has `valid`
+low, the record is a don't-care. The checker reports per lane, `fail_valid` and `fail_record`
+(`firstCycleError()`), and `done` rises after the last row. `RecordChecker.cycleRecords()` writes
+both files from a list of rows, each with `ready` and the record expected, if any.
 
 ### LFSR payloads
 

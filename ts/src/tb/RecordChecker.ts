@@ -17,8 +17,9 @@ import { VectorPlayer, fetchWidth, type TableLane } from './VectorPlayer.js'
  *   - `inOrder`: every expected record arrives once, in order, unchanged;
  *   - `perSource`: the same within each source, a field of the record naming the source; the
  *     order across sources isn't checked (tssv-noc NP_VIP_REQ_036);
- *   - `cycleExact`: in each cycle, `valid` and the fields have the values of a table, which also
- *     says when the checker is ready: the cycle table (VectorPlayer, VectorChecker).
+ *   - `cycleExact`: in each cycle, the checker is ready as the ready file says, and `valid` and the
+ *     fields have the expected file's values for that cycle: the cycle table (VectorPlayer,
+ *     VectorChecker).
  */
 export type RecordCheckMode = 'inOrder' | 'perSource' | 'cycleExact'
 
@@ -66,17 +67,17 @@ export interface PerSourceChecker_Parameters extends RecordChecker_Common {
 
 export interface CycleExactChecker_Parameters extends RecordChecker_Base {
   mode: 'cycleExact'
-  /** Rows in the table: one per cycle, from the cycle after the priming cycle (VectorPlayer). */
+  /** Rows in each file: one per cycle, from the cycle after the priming cycle (VectorPlayer). */
   rows: number
-  /** The table's `ready` column, as the SV names it (`cycleLayouts().ready`, `cycleRecords()`). */
+  /** The ready file: `ready` in each cycle, as the SV names it (`cycleLayouts().ready`, `cycleRecords()`). */
   readyFile: string
-  /** The table's expected `valid` and record, as the SV names it (`cycleLayouts().expected`). */
+  /** The expected file: `valid` and the record in each cycle, as the SV names it (`cycleLayouts().expected`). */
   file: string
 }
 
 export type RecordChecker_Parameters = InOrderChecker_Parameters | PerSourceChecker_Parameters | CycleExactChecker_Parameters
 
-/** One row of a cycleExact checker's table: whether it is ready, and the record it expects, if any. */
+/** One cycle of a cycleExact checker: whether it is ready, and the record it expects, if any. */
 export interface CycleRow {
   ready: boolean
   /** The record expected in this cycle, with `valid` high. Without one, `valid` must be low. */
@@ -137,10 +138,10 @@ function bitsOf (value: string, total: number, lo: number, width: number): strin
  * the first record that arrives before its peer's count, and `err_after_*` hold it. SimTop prints
  * them by hierarchical reference (`firstError()`, `firstAfterError()`).
  *
- * Mode `cycleExact` is the cycle table on a stream: a VectorPlayer, `play`, drives `ready` from
- * the table, and a VectorChecker, `chk`, checks `valid` and the record, the fields in order as one
- * value, row by row, with the record a don't-care where the table expects no record
- * (`cycleRecords()`). Its ports are `clk`, `rst_b`, `valid` and the fields in; `ready`,
+ * Mode `cycleExact` is the cycle table on a stream, from two files with a row per cycle: a
+ * VectorPlayer, `play`, drives `ready` from the ready file, and a VectorChecker, `chk`, checks
+ * `valid` and the record, the fields in order as one value, against the expected file, with the
+ * record a don't-care where the expected file has `valid` low (`cycleRecords()`). Its ports are `clk`, `rst_b`, `valid` and the fields in; `ready`,
  * `fail_valid`, `fail_record` and `done` out, a fail per lane as VectorChecker has
  * (`firstCycleError()`). Row 0 is the cycle after the priming cycle (doc/framework/testbench.md,
  * "Cycle tables and their timing").
@@ -378,7 +379,7 @@ export class RecordChecker extends TSSV.Module {
     }
   }
 
-  /** cycleExact: a VectorPlayer drives `ready` from the table, and a VectorChecker checks the rest */
+  /** cycleExact: a VectorPlayer drives `ready` from the ready file, and a VectorChecker checks the rest */
   private buildCycleTable (params: CycleExactChecker_Parameters): void {
     const { name, fields, rows } = params
     if (!Number.isInteger(rows) || rows < 1) throw Error(`${name}: rows must be a positive integer, got ${rows}`)
@@ -400,7 +401,7 @@ export class RecordChecker extends TSSV.Module {
     this.IOs.fail_record = { direction: 'output' }
     this.IOs.done = { direction: 'output' }
 
-    // The table's row, and ready from it
+    // The row for this cycle, and ready from the ready file
     this.addSignal('row', { width: this.bitWidth(rows) })
     this.addSignal('fetch', { width: fetchWidth(rows) })
     this.addSignal('run', { width: 1 })
@@ -408,7 +409,7 @@ export class RecordChecker extends TSSV.Module {
       name: `${name}_play`, rows, lanes: [{ port: 'ready', width: 1 }], file: params.readyFile, radix: params.radix
     }), { clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', done: 'done', ready: 'ready' }, false)
 
-    // valid and the whole record, checked against the table
+    // valid and the whole record, checked against the expected file
     this.addSignal('record', { width: rw })
     this.addAssign({ in: new Expr(fields.length === 1 ? fields[0]?.name ?? '' : `{${fields.map(f => f.name).join(', ')}}`), out: 'record' })
     this.addSubmodule('chk', new VectorChecker({
@@ -416,7 +417,7 @@ export class RecordChecker extends TSSV.Module {
     }), { clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', valid: 'valid', record: 'record', fail_valid: 'fail_valid', fail_record: 'fail_record' }, false)
   }
 
-  /** The layouts of a cycleExact checker's two files: its `ready` column, and its expected values. */
+  /** The layouts of a cycleExact checker's two files: the ready file and the expected file. */
   static cycleLayouts (fields: RecordField[], radix: Radix = 'h'): { ready: RecordLayout, expected: RecordLayout } {
     const rw = fields.reduce((sum, f) => sum + f.width, 0)
     return {
@@ -426,8 +427,9 @@ export class RecordChecker extends TSSV.Module {
   }
 
   /**
-   * A cycleExact checker's two files, from its table: `ready` per row, and per row `valid` and
-   * the record, which is a don't-care in a row that expects no record.
+   * A cycleExact checker's two files, from one CycleRow per cycle: the ready file, and the
+   * expected file, with `valid` and the record, the record a don't-care in a row that expects
+   * none.
    */
   static cycleRecords (fields: RecordField[], table: CycleRow[]): { ready: PatternRecord[], expected: PatternRecord[] } {
     const pack = (r: PatternRecord): bigint => fields.reduce((word, f) => {
