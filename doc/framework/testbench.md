@@ -1,8 +1,8 @@
 # Block testbench framework
 
 > **Status:** tier 1 of the testbench framework (tssv-noc#207, TSSV#196), with pattern memories
-> loaded from files (TSSV#197), and a generic injector, checker and scoreboard for valid/ready
-> record streams (TSSV#198). Still to come: clocks and resets for several domains (#199), the TB
+> loaded from files (TSSV#197), a generic injector, checker and scoreboard for valid/ready record
+> streams (TSSV#198), and clocks and resets for several domains (TSSV#199). Still to come: the TB
 > generator and TB spec template (#200), the port-contract check (#201), and an FPGA wrapper
 > (#202).
 > **Code:** `ts/src/tb/`, imported as `tssv/lib/tb/<file>`
@@ -26,11 +26,12 @@ Every testbench has the same two layers.
   drive it, and the checkers that watch it. The test's content, its stimulus and its expected
   values, is in pattern memories loaded from pattern files, not in the RTL. Its ports are always
   the same:
-  - `clk` and `rst_b` (active low, asynchronous) in;
+  - `clk` and `rst_b` (active low, asynchronous) in, or `clk_<d>` and `rst_b_<d>` for each
+    domain of a harness with [clock domains](#clock-domains);
   - `done` and `fail`, one bit per check, out.
 - **SimTop** is the simulation-only top, and the only raw SV in a testbench. One class,
   `SimTop` (`ts/src/tb/SimTop.ts`), wraps every harness. It does three things:
-  - generates the clock and reset;
+  - generates the clock and reset, or a clock and a reset per domain;
   - reports the result: a named FAIL line per failed check, or one PASS line;
   - enforces a cycle timeout.
 
@@ -146,8 +147,8 @@ Tier 1, in `ts/src/tb/`:
 
 | Component | Ports | Parameters | What it does |
 |---|---|---|---|
-| `SimTop` | none (top) | `name`, `harness`, `maxCycles`, `resetCycles` (4) | The sim-only top. Clock (period 10); `rst_b` low for `resetCycles` rising edges, released at a falling edge. It reads `fail`, then `done`, at every rising edge after reset |
-| `Harness` | `clk`, `rst_b` → `done`, `fail[N-1:0]` | `name` | Base class of every harness. Its helpers:<br/>• `check(name, description, detail?)` adds a check and returns its fail net<br/>• `tap(path, width)` reads a DUT signal by hierarchical reference<br/>• `finish()` builds `fail` |
+| `SimTop` | none (top) | `name`, `harness`, `maxCycles`, `resetCycles` (4) | The sim-only top. Clock (period 10); `rst_b` low for `resetCycles` rising edges, released at a falling edge. It reads `fail`, then `done`, at every rising edge after reset. For a harness with domains, the same per domain, in the order `releaseAfter` sets, and it reads `fail` and `done` in the report domain ([Clock domains](#clock-domains)) |
+| `Harness` | `clk`, `rst_b` → `done`, `fail[N-1:0]`; with domains, `clk_<d>`, `rst_b_<d>` per domain in place of `clk`, `rst_b` | `name`, `domains` (`name`, `period`, `phase`, `releaseAfter`), `reportDomain` | Base class of every harness. Its helpers:<br/>• `check(name, description, detail?)` adds a check and returns its fail net<br/>• `tap(path, width)` reads a DUT signal by hierarchical reference<br/>• `finish()` builds `fail` |
 | `Lfsr` | `clk`, `rst_b`, `step` → `value`; loadable: `load`, `seed_in` in | `width` (32 or 64), `seed`, `outWidth`, `loadable` | A xorshift sequence that steps on `step`. Two Lfsrs with one seed produce the same values, which is how a source and its checker agree on what was sent. A loadable Lfsr restarts at `seed_in` while `load` is high, showing it on `value` in that cycle |
 | `xorshift` | (TypeScript) | | `xorshift(width, seed, outWidth, n)` and `xorshiftNext()`: the model of an Lfsr's sequence, for generators and tests. Its shift triples are written apart from `Lfsr`'s, so a test of one against the other catches a wrong triple |
 | `PatternMemory` | `clk`, `rd_addr` → one output per field; reloaded only: `load_en`, `load_addr`, `load_data` in | `name`, `layout`, `depth`, `mode` (`preloaded` or `reloaded`), `file` (preloaded) | Holds a test's content, one record per word ([pattern-files.md](pattern-files.md)). The read is synchronous, the block-RAM form. Preloaded: one `initial $readmemh("<file>", mem);` loads the file at configuration, the one `initial` SYN-1 allows. Reloaded: a host writes each word through the load port, and there is no `$readmem` |
@@ -530,6 +531,43 @@ table with none has no `full_rate` port.
 
 ---
 
+## Clock domains
+
+A harness has one clock and one reset unless it declares clock domains. A DUT with two clocks, such
+as `AFIFO`, needs a harness that declares them. `AFIFOStreamHarness` (`ts/test/tb/`) does:
+
+```ts
+super({
+  name: params.name,
+  domains: [{ name: 'wr', period: 10, releaseAfter: 'rd' }, { name: 'rd', period: 14, phase: 3 }],
+  reportDomain: 'rd'
+})
+```
+
+- **Ports.** The harness has `clk_<d>` and `rst_b_<d>` for each domain, in the order declared, in
+  place of `clk` and `rst_b`. A harness without domains is unchanged, and SimTop generates the
+  same SV for it as before.
+- **Clocks.** Each clock has its own `period`, an even number of SimTop's time units. `phase`
+  makes every edge of the clock that much later. With phase 0, the first rising edge is at
+  `period / 2`, as for the clock of a harness without domains, whose period is 10.
+- **Resets.** Every reset is low from time 0, so they all assert together. Each is held for
+  `resetCycles` rising edges of its own clock, then released at a falling edge of that clock, so
+  its release is synchronous to it. A domain with `releaseAfter` waits for that domain's release
+  before its `resetCycles` start. The AFIFO example releases `wr` after `rd`, because the AFIFO
+  must not be pushed until both of its resets are released (AFIFO-spec.md, "Reset behavior").
+  The harness refuses a `releaseAfter` that names no domain, or that leads back to its own domain.
+- **The report domain.** `done` and every `fail` bit belong to one domain, `reportDomain`. SimTop
+  reads them at that domain's rising edges, and counts `maxCycles` and the PASS line's cycles in
+  it. A harness with two or more domains has to name it. With one domain, it is that one.
+- **Crossing into the report domain.** A signal from another domain crosses through a
+  synchronizer, as in any RTL (SV guide SYN-3). The AFIFO example's injector is in `wr`, so its
+  `done` is registered there, crosses into `rd` through a `CDCSynchronizer`, and only then joins
+  `done`. A check made in another domain would cross the same way.
+
+On an FPGA, the wrapper (#202) supplies each domain's clock and reset from the board.
+
+---
+
 ## The sim-only boundary
 
 - **What is sim-only.** Clock generation, reset sequencing, `$display` and `$fatal`/`$finish`
@@ -603,7 +641,8 @@ testbenches; given a SimTop that way, it fails, as it should. Both scripts exit 
 ## Writing a block testbench
 
 1. **The harness.** Create `<DUT>Harness.ts`, a `Harness` subclass: in a project, in
-   `ts/test/<DUT>/`. Its header comment says:
+   `ts/test/<DUT>/`. If the DUT has more than one clock, it declares its
+   [clock domains](#clock-domains). Its header comment says:
    - what it verifies;
    - which spec section it verifies against;
    - a small block diagram of its wiring;
@@ -730,6 +769,19 @@ made in `sv-examples/tb/<tb>/patterns/`, which needs no rebuild:
 The unthrottled `stored` testbench missed the stall break that `order` caught: a check needs
 traffic that reaches the state it guards.
 
+Two clock domains (#199), in `tb_AFIFOStream_two_domains`. Each break was made once in its
+generated SV and restored:
+
+| Break | Caught by |
+|---|---|
+| One bit of `rd_data` flipped | `order`, record 0 |
+| The injector's `ready` held high, so it moves on while the AFIFO is full | `order`, record 4 |
+| `wr` released without waiting for `rd` | passes |
+
+The order of release is SimTop's job, and no check watches it. This AFIFO happens to carry the
+stream even when it is pushed while its read side is still in reset, which its spec forbids. In
+the passing run, `rst_b_rd` is released at time 59 and `rst_b_wr` at 100.
+
 ---
 
 ## The examples: `ts/test/tb/`
@@ -740,7 +792,9 @@ traffic that reaches the state it guards.
 | `LfsrHarness.ts` | Three `Lfsr`s, 64 bits, 32 bits with an 8-bit output, and a loadable 32-bit one, each stepping on the player's `run`, checked by a `VectorChecker` against the xorshift model for 64 cycles, written to a pattern file per Lfsr. The player drives the loadable one's `load` and `seed_in` from `LOADS` |
 | `streamDuts.ts` | Small valid/ready DUTs for the record streams: `StreamSlice` (register stages, full rate), `StreamMerge` (two streams into one, in turn) and `StreamSplit` (one into two by a bit of the word, in input order) |
 | `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases, or stored payloads), `SliceCycleHarness` (cycleExact), `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
-| `test_tbExamples.ts` | The generator and runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_Lfsr` and the five `tb_RecordStream_*` to `sv-examples/tb/` |
+| `AFIFOStreamHarness.ts` | The two-domain example: an `AFIFO` between an injector in domain `wr` and an inOrder checker in domain `rd`, each at its own random rate, so the FIFO fills and runs empty. `wr` is released after `rd`, and the injector's `done` crosses into `rd` through a `CDCSynchronizer` |
+| `test_tbExamples.ts` | The generator and runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_Lfsr`, the five `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/` |
+| `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses, in Node |
 | `test_RecordStream.ts` | The record-stream components' ports per option, their record layouts, the payload model and their refusals, in Node |
 | `test_Lfsr.ts` | The xorshift model against Marsaglia's paper, and `Lfsr`'s ports, name and refusals, in Node |
 | `test_PatternMemory.ts` | `PatternMemory` in both modes, with the lead's burst_mix pattern file: `tb_PatternMemory_preloaded` reads the memory back after it loads the file itself, and in `tb_PatternMemory_reloaded` the testbench loads it through the load port, twice. Run by `make -C verilatorTB pattern_memory_sim` |
