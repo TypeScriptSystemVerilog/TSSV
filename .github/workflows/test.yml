@@ -103,6 +103,13 @@ jobs:
       - name: Generated-SV style checks
         run: npm run check:generated-sv
 
+      # Every port contract a generated module declares, under sv-examples/: no combinational
+      # path from one port to another, checked by tying the two together in a wrapper and
+      # linting it for a loop (scripts/check-port-contracts.mjs). Fails on a broken contract,
+      # or one it couldn't check.
+      - name: Port contracts
+        run: npm run check:port-contracts
+
       - name: RTL-style checks
         run: |
           npm run check:rtl-style
