@@ -394,6 +394,20 @@ It checks each module it writes against the SV guide first (`ts/src/core/ModuleC
 | RST-2 | Sequential blocks that use resets of more than one kind |
 | RST-4 | A reset generated in logic: a reset that isn't an input, or a signal bound to a submodule's reset port, assigned an expression or assigned in a combinational block. A reset may come from an input, a submodule output or a register, plainly, as a bit, or inverted (`!r`, `~r`) |
 
+### `addNoCombinationalPathContract(from, to): void`
+
+Promises that the module has no combinational path from input bit `from` to output bit `to`, a port contract. `npm run check:port-contracts` checks it on every configuration a test writes, by tying `to` back into `from` in a wrapper and linting it for a loop. Each end names one bit: `'in_ready'`, `'in.ready'`, `'ready_bus[2]'` or `'out.ready_bus[2]'`. It throws, naming the module and the contract, if `from` isn't one bit of an input or `to` one bit of an output, or if the contract is already declared. Declare it once the ports exist. Details in `concepts.md` §7, "Port contracts".
+
+```typescript
+this.addNoCombinationalPathContract('out.ready', 'in.ready')
+```
+
+`portContracts` returns the declared contracts, `{ from, to }`, in the order declared. A module with contracts also gets `<outDir>/<name>.contracts.json` from `writeSystemVerilogFiles()`, holding the wrappers the check lints.
+
+### `ports(): ModulePorts`
+
+The module's ports as seen from outside: `plain`, its plain ports in declaration order, then `interfaces`, each interface port with its SV type and its modport's signals. Each port or signal has its `direction`, `width` and `isSigned`. A local interface bundle isn't a port. The contract wrappers and the tests' lint wrappers (`ts/test/models/lintWrapper.ts`) are built from it.
+
 ---
 
 ## `RegisterBlock` (`ts/src/core/Registers.ts`)

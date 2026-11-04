@@ -2,11 +2,12 @@
 
 > **Status:** tier 1 of the testbench framework (tssv-noc#207, TSSV#196), with pattern memories
 > loaded from files (TSSV#197), a generic injector, checker and scoreboard for valid/ready record
-> streams (TSSV#198), and clocks and resets for several domains (TSSV#199). Still to come: the TB
-> generator and TB spec template (#200), the port-contract check (#201), and an FPGA wrapper
-> (#202).
+> streams (TSSV#198), clocks and resets for several domains (TSSV#199), and the port-contract
+> check that takes over ready isolation (TSSV#201). Still to come: the TB generator and TB spec
+> template (#200), and an FPGA wrapper (#202).
 > **Code:** `ts/src/tb/`, imported as `tssv/lib/tb/<file>`
-> **Checks:** `scripts/check-harness.mjs`, `scripts/check-test-structure.mjs`
+> **Checks:** `scripts/check-harness.mjs`, `scripts/check-test-structure.mjs`, and, for the DUT,
+> `scripts/check-port-contracts.mjs`
 > **Examples:** `ts/test/tb/`, run by `make -C verilatorTB tb_examples_sim` and
 > `make -C verilatorTB pattern_memory_sim`
 > **Pattern file format:** [pattern-files.md](pattern-files.md)
@@ -119,7 +120,7 @@ the tiers below it, and must not name anything above it.**
 ```mermaid
 flowchart BT
   subgraph TSSV["TSSV"]
-    T1["TIER 1 · ts/src/tb/ → tssv/lib/tb/<br/>SimTop · Harness · Lfsr · xorshift<br/>PatternMemory · patternRecord · patternFile<br/>VectorPlayer · VectorChecker · wavedromVectors<br/>RecordInjector · RecordChecker · recordStream<br/>Throttle · TrafficPhases<br/>check-harness · check-test-structure"]
+    T1["TIER 1 · ts/src/tb/ → tssv/lib/tb/<br/>SimTop · Harness · Lfsr · xorshift<br/>PatternMemory · patternRecord · patternFile<br/>VectorPlayer · VectorChecker · wavedromVectors<br/>RecordInjector · RecordChecker · recordStream<br/>Throttle · TrafficPhases<br/>check-harness · check-test-structure · check-port-contracts"]
     TM["TSSV modules' testbenches<br/>ts/test/tb/"]
   end
   subgraph PRJ["A project, such as tssv-noc"]
@@ -586,8 +587,10 @@ On an FPGA, the wrapper (#202) supplies each domain's clock and reset from the b
   the `err_*` first-error registers, because SimTop reads them from outside (SV guide,
   section 8).
 - **Ready isolation is not a simulation check.** That an output doesn't depend combinationally
-  on an input is a property of the structure, so the port-contract check (#201) checks it, not
-  SimTop.
+  on an input is a property of the structure, not of behaviour. So the DUT declares it as a port
+  contract, such as `addNoCombinationalPathContract('out.ready', 'in.ready')`, and
+  `scripts/check-port-contracts.mjs` checks it on the DUT's generated SV, with no harness and no
+  simulation ([concepts.md](concepts.md) §7, "Port contracts").
 - **Taps.** A spec diagram can show a DUT's internal state. `Harness.tap('dut.valid_0', 1)` reads
   it by downward hierarchical reference. This synthesizes in Vivado as long as the path names a
   signal, not a member reached through an interface port.
@@ -623,6 +626,7 @@ In TSSV:
 ```bash
 npm run check:test-structure                      # tier 1 imports nothing above it
 npm run check:harness -- sv-examples/tb/<tb>/<tb>.sv ...
+npm run check:port-contracts                      # every port contract under sv-examples/
 make -C verilatorTB tb_examples_sim               # the examples: generate, check-harness, run
 make -C verilatorTB pattern_memory_sim            # PatternMemory, preloaded and reloaded
 ```
@@ -632,10 +636,12 @@ In a project, through its link to TSSV, from the project's root:
 ```bash
 node node_modules/tssv/scripts/check-test-structure.mjs .    # TSSV's tier 1 and the project's tier 2
 node node_modules/tssv/scripts/check-harness.mjs sv-examples/<DUT>/<tb>/<tb>.sv ...
+node node_modules/tssv/scripts/check-port-contracts.mjs sv-examples   # the DUTs' port contracts
 ```
 
 `check-harness` takes `--harness <harness.sv>...` to name harness files directly instead of
-testbenches; given a SimTop that way, it fails, as it should. Both scripts exit 1 on a failure.
+testbenches; given a SimTop that way, it fails, as it should. Each script exits 1 on a failure.
+`check-port-contracts` also fails when it finds no contracts, so a wrong directory can't pass.
 
 ---
 

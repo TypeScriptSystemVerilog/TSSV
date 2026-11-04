@@ -468,6 +468,62 @@ reset branch under a `case`, and resets generated in imported SV or carried in a
 Each module is checked as it's emitted, submodules first, and SV imported with
 `addSystemVerilogSubmodule()` isn't checked: TSSV didn't generate it.
 
+### Port contracts
+
+A module can promise that it has no combinational path from one of its inputs to one of its
+outputs: every path between them goes through a flop. A skid buffer, for example, promises that
+its `in.ready` doesn't follow `out.ready` within a cycle. The module declares the promise once its
+ports exist:
+
+```typescript
+this.addNoCombinationalPathContract('out.ready', 'in.ready')
+```
+
+Each end names one bit: a one-bit port (`in_ready`), a one-bit signal of an interface port
+(`in.ready`), or one bit of a wider one (`ready_bus[2]`, `out.ready_bus[2]`). A promise about a
+whole vector is one contract per bit. The call throws, naming the module and the contract, if
+`from` isn't one bit of an input or `to` one bit of an output.
+
+**How it's checked.** Verilator doesn't report a path from an input to an output, but it does
+report a combinational loop (`UNOPTFLAT`). So for a module with contracts, emission also writes
+`<outDir>/<name>.contracts.json`, which holds wrappers that instantiate the module:
+
+- the open wrapper, with every port brought out, as a lint wrapper does;
+- one per contract, which ties `to` back into `from`, so any path through the module becomes a
+  loop.
+
+`scripts/check-port-contracts.mjs` (`npm run check:port-contracts`) finds every such file under
+the directories it's given, `sv-examples/` by default, and lints each wrapper with
+`verilator --lint-only -Wall`. A contract fails when its wrapper has a loop and the open wrapper
+has none, and the failure names it:
+
+```text
+FAIL: ReadyPaths_false_true: no combinational path from a_out_ready to a_in_ready: broken: tying the output back into the input makes a combinational loop (ReadyPaths_false_true__contract_0)
+```
+
+Only loops count. Other warnings are the business of the module's own lint.
+
+- **A loop inside the module isn't blamed on a contract.** Comparing with the open wrapper, rather
+  than reading the loop's path, is what makes this safe: Verilator merges a module's ports into
+  the wrapper's nets, so the path it prints can name wrapper lines for a loop that never leaves
+  the module. If the open wrapper already has a loop, a contract's loop can't be told apart from
+  it, so each contract is reported "not checked", which also fails.
+- **One bit of a vector is checked alone.** Verilator 5.052 tracks a vector's bits apart, so
+  closing one bit finds a path to that bit only.
+
+The check reads the generated SV, so it covers every configuration a test writes, and a module's
+tests need no code of their own for it. A project runs it through its link to TSSV:
+`node node_modules/tssv/scripts/check-port-contracts.mjs sv-examples`. Its evidence is
+`ts/test/test_checkPortContracts.ts`, on `ts/test/models/ReadyPaths.ts`, a module with registered
+and combinational ready paths:
+- a contract on each kind;
+- the registered path mutated to combinational;
+- one bit of a vector;
+- a loop inside the module.
+
+The JSON file isn't SV, so it isn't among the paths `writeSystemVerilogFiles()` returns, and a
+module without contracts writes nothing new.
+
 ### Formatting with Verible
 
 Each file's definition is passed through `verible-verilog-format` before its guard is added.
