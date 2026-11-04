@@ -12,6 +12,8 @@
 //     RecordCheckers (RecordStreamHarness.ts), one testbench per checker mode: order (inOrder,
 //     LFSR payloads, TrafficPhases), stored (inOrder, stored payloads), cycle (cycleExact),
 //     sources (perSource) and tied (two tied inOrder checkers).
+//   - tb_AFIFOStream_two_domains carries a record stream through an AFIFO from one clock domain
+//     to another (AFIFOStreamHarness.ts): the example of a harness with two domains.
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { SimTop } from 'tssv/lib/tb/SimTop'
 import { VectorPlayer } from 'tssv/lib/tb/VectorPlayer'
@@ -25,6 +27,7 @@ import {
   mergeTestcase, recordsOf, sliceCycleTable, sliceOrderTestcase, splitExpected, splitTestcase, withoutSource
 } from './RecordStreamHarness.js'
 import { SFIFOWaveHarness, sfifoWaveTable } from './SFIFOWaveHarness.js'
+import { AFIFOStreamHarness, AFIFO_FIELDS, afifoTestcase } from './AFIFOStreamHarness.js'
 import { LfsrHarness, CASES, ROWS, caseLane, caseWidths, loadLanes } from './LfsrHarness.js'
 import { rmSync } from 'fs'
 
@@ -164,6 +167,14 @@ const tied = writeTestcase('tb_RecordStream_tied', 'StreamSplit', 'interleaved',
   }))
 ])
 
+// tb_AFIFOStream_two_domains: the AFIFO, from the write domain to the read domain
+const AFIFO_RECORDS = 40
+const afifo = afifoTestcase(AFIFO_RECORDS)
+writeTestcase('tb_AFIFOStream_two_domains', 'AFIFO', 'two_domains', [
+  { file: 'stimulus.hex', memory: 'h.inj_wr.pattern', layout: injectorLayout(AFIFO_FIELDS), purpose: 'stimulus for the write side', objects: afifo },
+  { file: 'expected.hex', memory: 'h.chk_rd.pattern', layout: checkerLayout(AFIFO_FIELDS), purpose: 'expected on the read side: the packets as sent', objects: afifo }
+])
+
 const testbenches = [
   new SimTop({
     name: 'tb_SFIFOWave_dual_port',
@@ -211,6 +222,11 @@ const testbenches = [
       expectedRecords: [tied[1]?.records ?? 0, tied[2]?.records ?? 0]
     }),
     maxCycles: 500
+  }),
+  new SimTop({
+    name: 'tb_AFIFOStream_two_domains',
+    harness: new AFIFOStreamHarness({ name: 'AFIFOStream_two_domains', records: AFIFO_RECORDS, stimulus: 'patterns/stimulus.hex', expected: 'patterns/expected.hex' }),
+    maxCycles: 1000
   })
 ]
 
