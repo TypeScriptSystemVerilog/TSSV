@@ -445,7 +445,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * `to`: every path between them goes through a flop. scripts/check-port-contracts.mjs checks it
    * on every configuration a test generates, by tying `to` back into `from` in a wrapper and
    * linting it with Verilator, which reports any path as a combinational loop
-   * (doc/framework/concepts.md, "Port contracts"). Declare it once the ports exist.
+   * (doc/framework/concepts.md, "Port contracts"). Declare it once the ports exist. The module's
+   * SV names its contracts in a comment block after the Parameters block.
    *
    * Each endpoint names one bit: a one-bit port (`'in_ready'`), a one-bit signal of an interface
    * port (`'in.ready'`), or one bit of a wider one (`'ready_bus[2]'`, `'out.ready_bus[2]'`). A
@@ -1642,6 +1643,21 @@ ${caseAssignments}
     ].join('\n')
   }
 
+  /**
+   * The comment block that names this module's port contracts in its SV, after the Parameters
+   * block, or '' for a module without contracts.
+   */
+  private formatPortContractsAsVerilogComment (): string {
+    if (this.contracts.length === 0) return ''
+    return [
+      '\n   // ------------------------------------------------------------------',
+      "   // Port contracts, checked by TSSV's scripts/check-port-contracts.mjs",
+      '   // ------------------------------------------------------------------',
+      ...this.contracts.map(c => `   // ${contractText(c)}`),
+      '   // ------------------------------------------------------------------\n'
+    ].join('\n')
+  }
+
   private applyFormatter (sv: string): string {
     if (Module.formatterConfig.engine === 'verible') {
       return runVerible(sv, Module.formatterConfig)
@@ -2005,7 +2021,7 @@ ${bindingsArray.join(',\n')}
    (
 ${IOString}
    );
-${opt(this.formatParametersAsVerilogComment(this.params))}${opt(signalString)}
+${opt(this.formatParametersAsVerilogComment(this.params))}${opt(this.formatPortContractsAsVerilogComment())}${opt(signalString)}
 ${opt(this.body)}${opt(generatedBody)}
 endmodule
 `

@@ -402,7 +402,7 @@ Promises that the module has no combinational path from input bit `from` to outp
 this.addNoCombinationalPathContract('out.ready', 'in.ready')
 ```
 
-`portContracts` returns the declared contracts, `{ from, to }`, in the order declared. A module with contracts also gets `<outDir>/<name>.contracts.json` from `writeSystemVerilogFiles()`, holding the wrappers the check lints.
+`portContracts` returns the declared contracts, `{ from, to }`, in the order declared. The module's SV names them in a `// Port contracts` comment block after the `// Parameters` block. A module with contracts also gets `<outDir>/<name>.contracts.json` from `writeSystemVerilogFiles()`, holding the wrappers the check lints.
 
 ### `ports(): ModulePorts`
 

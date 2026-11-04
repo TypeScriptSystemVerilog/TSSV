@@ -358,7 +358,8 @@ Promises that this module has no combinational path from input bit `from` to out
 `to`: every path between them goes through a flop. scripts/check-port-contracts.mjs checks it
 on every configuration a test generates, by tying `to` back into `from` in a wrapper and
 linting it with Verilator, which reports any path as a combinational loop
-(doc/framework/concepts.md, "Port contracts"). Declare it once the ports exist.
+(doc/framework/concepts.md, "Port contracts"). Declare it once the ports exist. The module's
+SV names its contracts in a comment block after the Parameters block.
 
 Each endpoint names one bit: a one-bit port (`'in_ready'`), a one-bit signal of an interface
 port (`'in.ready'`), or one bit of a wider one (`'ready_bus[2]'`, `'out.ready_bus[2]'`). A

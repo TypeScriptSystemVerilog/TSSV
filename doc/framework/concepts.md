@@ -482,7 +482,9 @@ this.addNoCombinationalPathContract('out.ready', 'in.ready')
 Each end names one bit: a one-bit port (`in_ready`), a one-bit signal of an interface port
 (`in.ready`), or one bit of a wider one (`ready_bus[2]`, `out.ready_bus[2]`). A promise about a
 whole vector is one contract per bit. The call throws, naming the module and the contract, if
-`from` isn't one bit of an input or `to` one bit of an output.
+`from` isn't one bit of an input or `to` one bit of an output. The module's SV names its contracts
+in a `// Port contracts` comment block after the `// Parameters` block, one line per contract, as
+`// no combinational path from out.ready to in.ready`.
 
 **How it's checked.** Verilator doesn't report a path from an input to an output, but it does
 report a combinational loop (`UNOPTFLAT`). So for a module with contracts, emission also writes
