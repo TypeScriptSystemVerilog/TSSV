@@ -25,8 +25,8 @@ const svFormat = (s: string): string => svString(s).replace(/%/g, '%%')
  *   - It generates the clock (period 10) and holds rst_b low for `resetCycles` rising edges,
  *     releasing it at a falling edge.
  *   - For a harness with clock domains, it does the same for each domain, with the domain's
- *     period and phase. A domain with `releaseAfter` waits for that domain's release before its
- *     `resetCycles` edges start.
+ *     period and phase. A domain with `releaseAfter` is also held until that domain's reset is
+ *     released, then released at its own next falling edge.
  *   - At each rising edge after reset it reads the harness's `fail` and then its `done`. For a
  *     set fail bit it prints the check's FAIL line and detail, then calls `$fatal`. When `done`
  *     rises it prints one PASS line and calls `$finish`. It calls `$fatal` if `done` hasn't risen
@@ -121,16 +121,23 @@ function domainsBody (domains: ClockDomain[], report: string, resetCycles: numbe
     lines.push(`  forever #${d.period / 2} clk_${d.name} = ~clk_${d.name};`, 'end')
   }
   if (awaited.size > 0) {
-    lines.push('', '// Set when a domain\'s reset is released, for the domains released after it', ...[...awaited].map(n => `bit released_${n};`))
+    lines.push(
+      '',
+      '// Set when a domain\'s reset is released, for the domains released after it. Set with <=, so',
+      '// a domain waiting for it sees it only after every clock edge of that time step, and is',
+      '// released at a later falling edge even when the two clocks fall together',
+      ...[...awaited].map(n => `bit released_${n};`)
+    )
   }
 
-  // A domain's reset process, up to its release
+  // A domain's reset process, up to its release: resetCycles of its own clock, and then, with
+  // releaseAfter, until that domain's reset is released
   const reset = (d: ClockDomain): string[] => [
     `  rst_b_${d.name} = 1'b0;`,
-    ...(d.releaseAfter === undefined ? [] : [`  wait (released_${d.releaseAfter});`]),
     `  repeat (${resetCycles}) @(posedge clk_${d.name});`,
+    ...(d.releaseAfter === undefined ? [] : [`  wait (released_${d.releaseAfter});`]),
     `  @(negedge clk_${d.name}) rst_b_${d.name} = 1'b1;`,
-    ...(awaited.has(d.name) ? [`  released_${d.name} = 1'b1;`] : [])
+    ...(awaited.has(d.name) ? [`  released_${d.name} <= 1'b1;`] : [])
   ]
   const after = (d: ClockDomain): string => d.releaseAfter === undefined ? '' : `, released after ${d.releaseAfter}`
   for (const d of domains.filter(d => d.name !== report)) {

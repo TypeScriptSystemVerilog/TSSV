@@ -44,7 +44,8 @@ export interface ClockDomain {
   phase?: number
   /**
    * Another domain, whose reset is released first. This domain's reset is held for SimTop's
-   * `resetCycles` rising edges after that, then released.
+   * `resetCycles` rising edges of its own clock, as every domain's is, and also until that
+   * domain's reset is released. It is released at its own next falling edge.
    */
   releaseAfter?: string
 }

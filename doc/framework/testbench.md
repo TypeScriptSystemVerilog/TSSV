@@ -552,8 +552,9 @@ super({
   `period / 2`, as for the clock of a harness without domains, whose period is 10.
 - **Resets.** Every reset is low from time 0, so they all assert together. Each is held for
   `resetCycles` rising edges of its own clock, then released at a falling edge of that clock, so
-  its release is synchronous to it. A domain with `releaseAfter` waits for that domain's release
-  before its `resetCycles` start. The AFIFO example releases `wr` after `rd`, because the AFIFO
+  its release is synchronous to it. A domain with `releaseAfter` is also held until that domain's
+  reset is released, then released at its own next falling edge. That is always later, even when
+  the two clocks fall together. The AFIFO example releases `wr` after `rd`, because the AFIFO
   must not be pushed until both of its resets are released (AFIFO-spec.md, "Reset behavior").
   The harness refuses a `releaseAfter` that names no domain, or that leads back to its own domain.
 - **The report domain.** `done` and every `fail` bit belong to one domain, `reportDomain`. SimTop
@@ -780,7 +781,8 @@ generated SV and restored:
 
 The order of release is SimTop's job, and no check watches it. This AFIFO happens to carry the
 stream even when it is pushed while its read side is still in reset, which its spec forbids. In
-the passing run, `rst_b_rd` is released at time 59 and `rst_b_wr` at 100.
+the passing run, `rst_b_rd` is released at time 59, and `rst_b_wr` at 60, the first falling edge
+of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 
 ---
 
