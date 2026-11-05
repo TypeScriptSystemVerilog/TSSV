@@ -1,4 +1,5 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
+import { type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 
 /**
  * A check's detail line: how the check failed, as values from inside the harness. SimTop prints it
@@ -48,6 +49,38 @@ export interface ClockDomain {
    * domain's reset is released. It is released at its own next falling edge.
    */
   releaseAfter?: string
+}
+
+/**
+ * A pattern memory of the harness, as `registerMemories()` records it: the component's
+ * description of it (ComponentMemory), with its path from the harness, and where it sits on the
+ * harness's load port.
+ */
+export interface HarnessMemory extends ComponentMemory {
+  /** Its instance path from the harness: `inj_s_in.pattern`. Under SimTop, a manifest names it `h.<path>`. */
+  path: string
+  /** The component instance that holds it: `inj_s_in`. */
+  instance: string
+  /** The clock domain it loads in: undefined for a harness without domains. */
+  domain?: string
+  /** Its value on `load_sel`: the order it was registered in, from 0. */
+  select: number
+  /** Its record count's lowest bit in `records`. */
+  recordsLo: number
+  /** Its record count's width in `records`: bitWidth(depth). */
+  recordsWidth: number
+}
+
+/**
+ * The widths of a reloaded harness's load port, which SimTop drives (`load_en` is one bit). Every
+ * bit is used: the select names every memory, the address and data are as wide as the deepest and
+ * widest memory need, and `records` holds every memory's count, packed with memory 0's lowest.
+ */
+export interface LoadPort {
+  selWidth: number
+  addrWidth: number
+  dataWidth: number
+  recordsWidth: number
 }
 
 export interface Harness_Parameters {
@@ -115,6 +148,19 @@ function checkDomains (harness: string, domains: ClockDomain[], reportDomain?: s
  *
  * A subclass calls `check()` once per check and binds the net it returns to the fail output of
  * the component making the check, and calls `finish()` last.
+ *
+ * **Pattern memories.** A subclass registers each component that holds pattern memories, such as
+ * a RecordInjector or RecordChecker, with `registerMemories()`, so that the testbench generator
+ * can check a testcase against them and SimTop can load them. Every memory of a harness has one
+ * mode. In reloaded mode the harness has one load port for all of them, which SimTop drives while
+ * reset is held:
+ *
+ *   - `load_en`, `load_sel`, `load_addr`, `load_data`: write word `load_data` at `load_addr` of
+ *     the memory whose `select` is `load_sel`, on a rising edge of that memory's clock;
+ *   - `records`: each memory's record count (HarnessMemory.recordsLo, recordsWidth).
+ *
+ * The harness decodes the port into each component's own load port. A preloaded harness has no
+ * load port, and its ports are as above.
  */
 export class Harness extends TSSV.Module {
   /** The checks, in `fail` bit order. */
@@ -123,6 +169,12 @@ export class Harness extends TSSV.Module {
   readonly domains: ClockDomain[]
   /** The domain that `done` and `fail` belong to: undefined for a harness without domains. */
   readonly reportDomain: string | undefined
+  /** The registered pattern memories, in `load_sel` order (registerMemories()). */
+  readonly memories: HarnessMemory[] = []
+  /** The components registered, by instance, with the domain they load in. */
+  private readonly registered = new Map<string, { component: TSSV.Module, domain?: string }>()
+  private finished = false
+  private port: LoadPort | undefined
 
   constructor (params: Harness_Parameters) {
     super({ name: params.name })
@@ -169,12 +221,162 @@ export class Harness extends TSSV.Module {
     return net
   }
 
-  /** Sizes `fail` to the checks and drives it, bit i from checks[i]. Call it last. */
+  /** The mode of the harness's pattern memories: undefined when it has none. */
+  get mode (): PatternMemoryMode | undefined {
+    return this.memories[0]?.mode
+  }
+
+  /** The load port's widths: undefined unless the harness's memories are reloaded. Set by `finish()`. */
+  get loadPort (): LoadPort | undefined {
+    return this.port
+  }
+
+  /**
+   * Registers the pattern memories of `component`, instance `instance` of this harness, and
+   * returns the bindings its load port needs, to spread into its `addSubmodule()` call:
+   *
+   *     const inj = new RecordInjector({ ...,  memory: build.mode, ...build.memory('h.inj_s_in.pattern') })
+   *     this.addSubmodule('inj_s_in', inj, { clk: 'clk', ..., ...this.registerMemories('inj_s_in', inj) }, false)
+   *
+   * In preloaded mode it only records the memories, and returns no bindings. In reloaded mode it
+   * also declares the component's load nets, `load_en_<instance>`, `load_addr_<instance>`,
+   * `load_data_<instance>`, `load_src_<instance>` (with several memories) and
+   * `records_<instance>`, which `finish()` drives from the harness's load port.
+   * @param options.domain the clock domain the component runs in, whose clock loads its
+   * memories. Required with two or more domains; with one, it is that one.
+   */
+  protected registerMemories (instance: string, component: TSSV.Module & { readonly memories: readonly ComponentMemory[] }, options: { domain?: string } = {}): Record<string, string> {
+    const what = `${this.name}: ${instance}`
+    if (this.finished) throw Error(`${what}: registerMemories() comes before finish()`)
+    if (this.registered.has(instance)) throw Error(`${what}: is registered twice`)
+    const domain = this.loadDomain(what, options.domain)
+    const mems = component.memories
+    if (mems.length === 0) throw Error(`${what}: has no pattern memories to register`)
+    const mode = this.mode ?? mems[0]?.mode
+    for (const m of mems) {
+      if (m.mode !== mode) throw Error(`${what}: its memory ${m.path} is ${m.mode}, but the harness's memories are ${mode}; every memory of a harness has one mode`)
+    }
+    this.registered.set(instance, { component, domain })
+    for (const m of mems) {
+      const last = this.memories[this.memories.length - 1]
+      this.memories.push({
+        ...m,
+        path: `${instance}.${m.path}`,
+        instance,
+        domain,
+        select: this.memories.length,
+        recordsLo: last === undefined ? 0 : last.recordsLo + last.recordsWidth,
+        recordsWidth: this.bitWidth(m.depth)
+      })
+    }
+    if (mode === 'preloaded') return {}
+
+    // The component's load port, as ComponentMemory says it is, and a net for each of its ports
+    const first = mems[0]
+    if (first === undefined) return {}
+    for (const m of mems) {
+      if (m.depth !== first.depth || m.layout.wordWidth !== first.layout.wordWidth) throw Error(`${what}: its memories differ in depth or width, so they can't share one load port`)
+    }
+    const want: Array<[string, number]> = [
+      ['load_en', 1],
+      ...(mems.length > 1 ? [['load_src', this.bitWidth(mems.length - 1)] as [string, number]] : []),
+      ['load_addr', this.bitWidth(first.depth - 1)],
+      ['load_data', first.layout.wordWidth],
+      ['records', mems.length * this.bitWidth(first.depth)]
+    ]
+    const ports = component.ports().plain
+    const bindings: Record<string, string> = {}
+    for (const [port, width] of want) {
+      const p = ports.find(q => q.name === port)
+      if (p === undefined || p.direction !== 'input' || p.width !== width) {
+        throw Error(`${what}: a reloaded component needs input ${port} of ${width} bits, got ${p === undefined ? 'none' : `${p.direction} ${p.name} of ${p.width}`}`)
+      }
+      this.addSignal(`${port}_${instance}`, { width })
+      bindings[port] = `${port}_${instance}`
+    }
+    return bindings
+  }
+
+  /** The domain a component registered in `what` loads in, checked against the harness's domains. */
+  private loadDomain (what: string, domain: string | undefined): string | undefined {
+    if (this.domains.length === 0) {
+      if (domain !== undefined) throw Error(`${what}: has domain ${domain}, but the harness has no domains`)
+      return undefined
+    }
+    if (domain === undefined) {
+      if (this.domains.length > 1) throw Error(`${what}: a harness with ${this.domains.length} domains needs the domain its memories load in`)
+      return this.domains[0]?.name
+    }
+    if (!this.domains.some(d => d.name === domain)) throw Error(`${what}: domain ${domain} isn't one of the harness's domains`)
+    return domain
+  }
+
+  /**
+   * Sizes `fail` to the checks and drives it, bit i from checks[i]. In reloaded mode, also adds
+   * the load port and drives each registered component's load nets from it. Call it last.
+   */
   protected finish (): void {
     if (this.checks.length === 0) throw Error(`${this.name}: a harness needs at least one check`)
     this.IOs.fail.width = this.checks.length
     const msbFirst = this.checks.map(c => `fail_${c.name}`).reverse().join(', ')
     this.addAssign({ in: new Expr(`{${msbFirst}}`), out: 'fail' })
+
+    // Each registered component is a submodule, clocked by its domain's clock
+    for (const [instance, { component, domain }] of this.registered) {
+      const sub = this.submodules[instance]
+      if (sub?.module !== component) throw Error(`${this.name}: ${instance} is registered, but isn't a submodule of the harness under that name`)
+      const clk = domain === undefined ? 'clk' : `clk_${domain}`
+      if (String(sub.bindings.clk) !== clk) throw Error(`${this.name}: ${instance} loads in ${clk}, but its clk is bound to ${String(sub.bindings.clk)}`)
+    }
+    this.finished = true
+    if (this.mode === 'reloaded') this.addLoadPort()
+  }
+
+  /** The load port, decoded into each registered component's load nets. */
+  private addLoadPort (): void {
+    const mems = this.memories
+    const last = mems[mems.length - 1]
+    if (last === undefined) return
+    const port: LoadPort = {
+      selWidth: Math.max(1, this.bitWidth(mems.length - 1)),
+      addrWidth: Math.max(...mems.map(m => this.bitWidth(m.depth - 1))),
+      dataWidth: Math.max(...mems.map(m => m.layout.wordWidth)),
+      recordsWidth: last.recordsLo + last.recordsWidth
+    }
+    this.port = port
+
+    // The load port's inputs go after the clocks and resets, before done and fail
+    const { done, fail, ...clocks } = this.IOs
+    this.IOs = {
+      ...clocks,
+      load_en: { direction: 'input' },
+      load_sel: { direction: 'input', width: port.selWidth },
+      load_addr: { direction: 'input', width: port.addrWidth },
+      load_data: { direction: 'input', width: port.dataWidth },
+      records: { direction: 'input', width: port.recordsWidth },
+      done,
+      fail
+    }
+
+    // Per component: enabled when load_sel names one of its memories, which are consecutive
+    const low = (value: string, total: number, width: number, lo = 0): string =>
+      width === total ? value : width === 1 ? `${value}[${lo}]` : `${value}[${lo + width - 1}:${lo}]`
+    const sw = port.selWidth
+    for (const instance of this.registered.keys()) {
+      const own = mems.filter(m => m.instance === instance)
+      const first = own[0]
+      if (first === undefined) continue
+      const sels = own.map(m => `load_sel == ${sw}'d${m.select}`)
+      this.addAssign({ in: new Expr(`load_en && ${sels.length === 1 ? sels[0] ?? '' : `(${sels.join(' || ')})`}`), out: `load_en_${instance}` })
+      if (own.length > 1) {
+        const srcWidth = this.bitWidth(own.length - 1)
+        const offset = first.select === 0 ? 'load_sel' : `load_sel - ${sw}'d${first.select}`
+        this.addAssign({ in: new Expr(srcWidth === sw && first.select === 0 ? 'load_sel' : `${srcWidth}'(${offset})`), out: `load_src_${instance}` })
+      }
+      this.addAssign({ in: new Expr(low('load_addr', port.addrWidth, this.bitWidth(first.depth - 1))), out: `load_addr_${instance}` })
+      this.addAssign({ in: new Expr(low('load_data', port.dataWidth, first.layout.wordWidth)), out: `load_data_${instance}` })
+      this.addAssign({ in: new Expr(low('records', port.recordsWidth, own.length * first.recordsWidth, first.recordsLo)), out: `records_${instance}` })
+    }
   }
 }
 
