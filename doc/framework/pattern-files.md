@@ -1,9 +1,11 @@
 # Pattern files
 
-> **Status:** pattern memories for the testbench framework (tssv-noc#207, TSSV#197), and the
-> files of record-stream injectors and checkers (TSSV#198).
-> **Code:** `ts/src/tb/patternRecord.ts` (record layouts), `ts/src/tb/patternFile.ts` (the writer),
-> `ts/src/tb/PatternMemory.ts` (the memory), `ts/src/tb/recordStream.ts` (record-stream layouts)
+> **Status:** pattern memories for the testbench framework (tssv-noc#207, TSSV#197), the files of
+> record-stream injectors and checkers (TSSV#198), and the readers the testbench generator checks
+> testcases with (TSSV#200).
+> **Code:** `ts/src/tb/patternRecord.ts` (record layouts), `ts/src/tb/patternFile.ts` (the writer
+> and the readers), `ts/src/tb/PatternMemory.ts` (the memory), `ts/src/tb/recordStream.ts`
+> (record-stream layouts)
 > **Examples:** `ts/test/tb/test_patternFile.ts`, `ts/test/tb/test_PatternMemory.ts`, and the
 > example testbenches' `patterns/` folders, written by `ts/test/tb/test_tbExamples.ts`
 
@@ -149,7 +151,7 @@ record's fields from the stream's:
   (32 or 64 bits), where the first of them was. A non-zero seed restarts the payload sequence at
   that seed, and 0 continues it, so a file seeded once per packet reads like this:
   ```text
-  // StreamSlice, testcase seeded_phases: stimulus for s_in, a seed per packet
+  // StreamSlice, testcase seeded_packets: stimulus for s_in, a seed per packet
   // $readmemh, one record per line: last _ seed[63:48] _ seed[47:32] _ seed[31:16] _ seed[15:0]
   //   last: 1 bit, one hex digit; seed: 64 bits
   // 48 records in 22 packets
@@ -203,6 +205,18 @@ Each testcase has a JSON manifest that lists its pattern files and the memory ea
 A host that loads a reloaded memory reads the manifest to know which file goes to which memory. It
 writes record i of the file at `load_addr` = i.
 
+`readManifest()` reads a manifest back and refuses one that breaks this format: a missing or
+unknown key, a testcase that isn't lower snake_case (it names folders and modules), no files, a
+`file` that is absolute or leaves the manifest's folder, a memory with two files, a radix other
+than `h` or `b`, or a record count that isn't a whole number. `readPatternWords()` reads a file's
+records as `$readmem` does, and refuses what the format leaves out: an `@` line, a block comment,
+two words on a line, or a character that isn't a digit of the radix.
+
+The testbench generator ([testbench.md](testbench.md#what-the-generator-checks)) also checks a
+manifest against the harness: its files name exactly the harness's memories, and each file has
+the memory's radix, holds the records the manifest says, no more than the memory's depth, each as
+wide as the memory's word.
+
 ---
 
 ## Loading
@@ -214,7 +228,10 @@ writes record i of the file at `load_addr` = i.
   reads them at run time. On an FPGA it needs a new bitstream.
 - **Reloaded:** the memory has no file. A host writes each record's word, as one line of the file
   holds it, to `load_data` at `load_addr`, with `load_en` high for one rising edge per word.
-  `tb_PatternMemory_reloaded` (`ts/test/tb/test_PatternMemory.ts`) does this in simulation.
+  `tb_PatternMemory_reloaded` (`ts/test/tb/test_PatternMemory.ts`) does this for one memory. Under
+  a SimTop, the harness gathers its memories' load ports into one, and SimTop's loader writes
+  every memory from the testcase's load list before it releases reset
+  ([testbench.md](testbench.md#simtops-loader)).
 
 ---
 

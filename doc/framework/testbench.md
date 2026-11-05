@@ -2,15 +2,18 @@
 
 > **Status:** tier 1 of the testbench framework (tssv-noc#207, TSSV#196), with pattern memories
 > loaded from files (TSSV#197), a generic injector, checker and scoreboard for valid/ready record
-> streams (TSSV#198), clocks and resets for several domains (TSSV#199), and the port-contract
-> check that takes over ready isolation (TSSV#201). Still to come: the TB generator and TB spec
-> template (#200), and an FPGA wrapper (#202).
+> streams (TSSV#198), clocks and resets for several domains (TSSV#199), the port-contract
+> check that takes over ready isolation (TSSV#201), and the testbench generator, with DUT
+> configuration files, reloaded mode in simulation and the TB spec template (TSSV#200). Still to
+> come: an FPGA wrapper (#202).
 > **Code:** `ts/src/tb/`, imported as `tssv/lib/tb/<file>`
 > **Checks:** `scripts/check-harness.mjs`, `scripts/check-test-structure.mjs`, and, for the DUT,
 > `scripts/check-port-contracts.mjs`
-> **Examples:** `ts/test/tb/`, run by `make -C verilatorTB tb_examples_sim` and
+> **Examples:** `ts/test/tb/`, run by `make -C verilatorTB tb_examples_sim`,
+> `make -C verilatorTB tb_regression_sim` (the generated ones) and
 > `make -C verilatorTB pattern_memory_sim`
 > **Pattern file format:** [pattern-files.md](pattern-files.md)
+> **TB spec template:** [doc/templates/tb-spec-template.md](../templates/tb-spec-template.md)
 
 How a block testbench is put together, in TSSV or in a project built on it. The aim is a
 testbench that a reviewer can read top to bottom, that an agent can follow without inventing a
@@ -148,13 +151,15 @@ Tier 1, in `ts/src/tb/`:
 
 | Component | Ports | Parameters | What it does |
 |---|---|---|---|
-| `SimTop` | none (top) | `name`, `harness`, `maxCycles`, `resetCycles` (4) | The sim-only top. Clock (period 10); `rst_b` low for `resetCycles` rising edges, released at a falling edge. It reads `fail`, then `done`, at every rising edge after reset. With [clock domains](#clock-domains), it generates a clock and a reset for each domain. Each reset is released the same way, on its own clock, and a domain with `releaseAfter` is released after the domain it names. It reads `fail`, then `done`, at the report domain's rising edges, and counts `maxCycles` in that domain's cycles |
-| `Harness` | `clk`, `rst_b` → `done`, `fail[N-1:0]`; with domains, `clk_<d>`, `rst_b_<d>` per domain in place of `clk`, `rst_b` | `name`, `domains` (`name`, `period`, `phase`, `releaseAfter`), `reportDomain` | Base class of every harness. Its helpers:<br/>• `check(name, description, detail?)` adds a check and returns its fail net<br/>• `tap(path, width)` reads a DUT signal by hierarchical reference<br/>• `finish()` builds `fail` |
+| `SimTop` | none (top) | `name`, `harness`, `maxCycles`, `resetCycles` (4), `loadList` (reloaded: `patterns/load.txt`) | The sim-only top. Clock (period 10); `rst_b` low for `resetCycles` rising edges, released at a falling edge. It reads `fail`, then `done`, at every rising edge after reset. With [clock domains](#clock-domains), it generates a clock and a reset for each domain. Each reset is released the same way, on its own clock, and a domain with `releaseAfter` is released after the domain it names. It reads `fail`, then `done`, at the report domain's rising edges, and counts `maxCycles` in that domain's cycles. For a reloaded harness, its loader loads every memory from the load list before any reset is released ([SimTop's loader](#simtops-loader)); `formatLoadList()` writes the list |
+| `Harness` | `clk`, `rst_b` → `done`, `fail[N-1:0]`; with domains, `clk_<d>`, `rst_b_<d>` per domain in place of `clk`, `rst_b`; reloaded: `load_en`, `load_sel`, `load_addr`, `load_data`, `records` in | `name`, `domains` (`name`, `period`, `phase`, `releaseAfter`), `reportDomain` | Base class of every harness. Its helpers:<br/>• `check(name, description, detail?)` adds a check and returns its fail net<br/>• `tap(path, width)` reads a DUT signal by hierarchical reference<br/>• `registerMemories(instance, component, { domain })` records a component's pattern memories, and in reloaded mode returns its load bindings ([The load port](#the-load-port))<br/>• `finish()` builds `fail`, and in reloaded mode the load port |
 | `Lfsr` | `clk`, `rst_b`, `step` → `value`; loadable: `load`, `seed_in` in | `width` (32 or 64), `seed`, `outWidth`, `loadable` | A xorshift sequence that steps on `step`. Two Lfsrs with one seed produce the same values, which is how a source and its checker agree on what was sent. A loadable Lfsr restarts at `seed_in` while `load` is high, showing it on `value` in that cycle |
 | `xorshift` | (TypeScript) | | `xorshift(width, seed, outWidth, n)` and `xorshiftNext()`: the model of an Lfsr's sequence, for generators and tests. Its shift triples are written apart from `Lfsr`'s, so a test of one against the other catches a wrong triple |
 | `PatternMemory` | `clk`, `rd_addr` → one output per field; reloaded only: `load_en`, `load_addr`, `load_data` in | `name`, `layout`, `depth`, `mode` (`preloaded` or `reloaded`), `file` (preloaded) | Holds a test's content, one record per word ([pattern-files.md](pattern-files.md)). The read is synchronous, the block-RAM form. Preloaded: one `initial $readmemh("<file>", mem);` loads the file at configuration, the one `initial` SYN-1 allows. Reloaded: a host writes each word through the load port, and there is no `$readmem` |
 | `patternRecord` | (TypeScript) | | `recordFields(intf, names)` takes a record's fields from an interface; `recordLayout(fields, radix)` gives each its slot in a word, padded to whole hex digits for `$readmemh`; `packRecord()` and `unpackRecord()` |
-| `patternFile` | (TypeScript) | | `writePatternFile()` writes a pattern file a person can read (header comment, a comment per object, `_` between fields), and `writeManifest()` the testcase's JSON manifest |
+| `patternFile` | (TypeScript) | | `writePatternFile()` writes a pattern file a person can read (header comment, a comment per object, `_` between fields), and `writeManifest()` the testcase's JSON manifest. `readManifest()` reads a manifest back and checks it, and `readPatternWords()` reads a file's records as `$readmem` does |
+| `testbenchConfiguration` | (TypeScript) | | A DUT configuration file: `readConfiguration()`, `parseConfiguration()` and `writeConfiguration()`, checked against its schema ([The configuration file](#the-configuration-file)) |
+| `testbenchGenerator` | (TypeScript) | | `generateTestbenches()` builds the project's harness under a SimTop for every configuration and testcase in each mode, checks them, and writes them with a regression index ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)) |
 | `VectorPlayer` | `clk`, `rst_b` → `row`, `fetch`, `run`, `done`, one output per lane | `name`, `rows`, `lanes`, `file`, `radix` | Drives a table one row per cycle from a `PatternMemory` loaded with the table's pattern file. Every lane comes from the memory's read register, a flop, so a lane may drive a reset (SV guide RST-4). `done` rises after the last row. `layout()` and `records()` give a generator the file's layout and records. Timing: [below](#cycle-tables-and-their-timing) |
 | `VectorChecker` | `clk`, `rst_b`, `row`, `fetch`, `run`, one input per lane → `fail_<lane>` | `name`, `rows`, `lanes`, `file`, `radix`, `firstRow` | Compares each lane with its row of a table of expected values, read from a `PatternMemory` at the player's `fetch`. A `care` bit per lane in each row marks the don't-cares. It latches the first mismatch per lane in `err_row_`, `err_got_` and `err_want_<lane>`; `firstError()` is the detail line that prints them |
 | `wavedromVectors` | (TypeScript) | | Reads a spec's WaveDrom diagrams. `diagramLanes()` gives one diagram on one clock as values per cycle per lane, for a `VectorPlayer` and a `VectorChecker`. `diagramTasks()` gives every diagram with a prefix, on a fast and a slow clock, as SV tasks for a hand-written testbench |
@@ -173,12 +178,14 @@ offline, in any language. Each `PatternMemory` in the harness holds one file, wi
 layout taken from an interface or from a table's lanes. A build picks one of two modes:
 
 - **Preloaded:** the memory loads its file at configuration, with `initial $readmemh`, as FPGA
-  block RAM can be. New content needs a new bitstream on an FPGA, but in simulation only the new
-  files, because `$readmem` reads them at run time.
+  block RAM can be. New content needs a new bitstream on an FPGA. In simulation `$readmem` reads
+  the files at run time, but an injector's or checker's record count is compiled in, so the
+  generator builds one testbench per configuration and testcase.
 - **Reloaded:** one build per DUT configuration. A host writes new content through the memory's
   load port between testcases or batches (tssv-noc `NP_VIP_REQ_028`–`031` and `033`). The load
-  port is built only in this mode. Carrying the load ports out of a harness to a host is the FPGA
-  wrapper's job (#202). Until then, `tb_PatternMemory_reloaded` loads a memory in simulation.
+  port is built only in this mode. The harness gathers its memories' load ports into one
+  ([The load port](#the-load-port)), which SimTop's loader drives in simulation and the FPGA
+  wrapper (#202) will carry to a host.
 
 ### Cycle tables and their timing
 
@@ -227,7 +234,8 @@ so every lane holds its last value from `done` on.
 Most DUT ports are valid/ready streams. Tier 1 drives and checks one with a `RecordInjector` and
 a `RecordChecker`, each holding its records in pattern memories. A protocol package (tier 2)
 adds only what its protocol needs beyond that, such as FlitStream's packet framing. The
-examples are the five `tb_RecordStream_*` testbenches ([below](#the-examples-tstesttb)).
+examples are the three `tb_RecordStream_*` testbenches and SliceOrder, which the generator
+builds ([below](#the-examples-tstesttb)).
 
 ### Names
 
@@ -262,8 +270,8 @@ each one, `valid` high and the fields steady, until a cycle with `ready` high ac
 - **Options:** `throttle` offers at random ([Throttling](#throttling)); `limitWidth` adds
   `limit`, a cap on the records sent so far, for TrafficPhases; `lfsr` fills payload fields from
   seeds ([LFSR payloads](#lfsr-payloads)).
-- **Reloaded mode** adds the memory's load port and `records`. Load while `rst_b` is low.
-  tssv-noc#216 shows it in simulation.
+- **Reloaded mode** adds the memory's load port and `records`. Load while `rst_b` is low, as
+  SimTop's loader does ([SimTop's loader](#simtops-loader)).
 
 ### The checker
 
@@ -566,7 +574,173 @@ super({
   `done` is registered there, crosses into `rd` through a `CDCSynchronizer`, and only then joins
   `done`. A check made in another domain would cross the same way.
 
+In reloaded mode, each component's memories load on its domain's clock, and every domain's
+reset waits for the loader ([SimTop's loader](#simtops-loader)).
+
 On an FPGA, the wrapper (#202) supplies each domain's clock and reset from the board.
+
+---
+
+## Configurations, testcases and the generator
+
+A testbench is built from two inputs, and a project's runner keeps them apart:
+
+- **A DUT configuration** is structure: what changes the RTL, so a change means a rebuild.
+- **A testcase** is content: a manifest and its pattern files ([pattern-files.md](pattern-files.md)).
+
+`generateTestbenches()` (`testbenchGenerator.ts`) takes both as files, with a callback that builds
+the project's harness, and writes a testbench for every configuration and testcase in each run
+mode. The harness holds no test content, so the runner loops over files, not over code. The
+generator itself is one function, with no name and no knowledge of any DUT or protocol (tier 1).
+SliceOrder (`ts/test/tb/test_SliceOrderTB.ts`) is the example; its TB spec is
+[examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md).
+
+### The configuration file
+
+One JSON file per configuration, `<configuration>.json`, which the runner writes with
+`writeConfiguration()` or keeps as it is. SliceOrder's `stages2.json`:
+
+```json
+{
+  "configuration": "stages2",
+  "parameters": { "stages": 2 },
+  "depths": { "h.inj_s_in.pattern": 48, "h.chk_m_out.pattern": 48 },
+  "maxCycles": 2000
+}
+```
+
+| Key | Type | Required | Meaning |
+|---|---|---|---|
+| `configuration` | string, lower snake_case | yes | Names the configuration's folders and its tops. It must match the file's name |
+| `parameters` | object of JSON values | yes, may be `{}` | The DUT parameters that vary between configurations, which the harness passes to the DUT. A number is a safe integer; a value wider than 53 bits is a `"0x…"` string, which the project turns into a `bigint` |
+| `depths` | object: memory path → integer ≥ 2 | yes | Each pattern memory's depth, by its manifest path: the most records a testcase may hold in it. Its keys must be exactly the harness's registered memories |
+| `maxCycles` | integer ≥ 1 | yes | SimTop's timeout, in the report domain's cycles |
+| `resetCycles` | integer ≥ 1 | no, default 4 | SimTop's reset length |
+
+The file names neither the DUT nor the testbench: its folder does,
+`<DUT>/<testbench>/configurations/`, and its `depths` tie it to one harness. Unknown keys are
+refused, at the top level and in `depths`, and `readConfiguration()` refuses a file not named
+after its configuration.
+
+- **Depth is configuration, never content** (tssv-noc `NP_VIP_REQ_028`). A preloaded memory takes
+  its depth from `depths` too, so both modes of one configuration build the same memories.
+- **What `parameters` holds is the project's to define.** The generator calls the project's
+  `parameters(raw, where)`, which checks them and gives them the project's type.
+- **What doesn't vary stays in the harness**, and the TB spec's "Configurations" section lists it:
+  the record fields, LFSR payloads, the traffic phases, throttle seeds.
+
+### The harness, built from a configuration and a testcase
+
+The project's callback gets a `HarnessBuild`: the configuration, with typed parameters; the
+harness's module name; the mode; and `memory(path)`, a memory's options by its manifest path. Those
+are its `depth` from the configuration, and in preloaded mode the `file` the SV loads
+(`patterns/<file>`) and its `records`, from the testcase. The harness spreads them into each
+component, and registers the component's memories with `registerMemories()`, spreading the
+bindings it returns:
+
+```ts
+const inj = new RecordInjector({ name: `${build.name}_inj`, fields, memory: build.mode, ...build.memory('h.inj_s_in.pattern'), lfsr, throttle })
+this.addSubmodule('inj_s_in', inj, { clk: 'clk', rst_b: 'rst_b', ..., ...this.registerMemories('inj_s_in', inj) }, false)
+```
+
+- Every memory of a harness has one mode.
+- A component in one of several domains names it: `registerMemories('chk_rd', chk, { domain: 'rd' })`.
+  With one domain, it is that one.
+- `finish()` checks that each registered component was added under its name, with `clk` bound to
+  its domain's clock.
+- `RecordInjector` and `RecordChecker` (inOrder, perSource) list their memories (`memories`).
+  A cycleExact checker, `VectorPlayer` and `VectorChecker` don't yet, so a testbench with a cycle
+  table can't be generated; write it as `test_tbExamples.ts` does.
+
+### The load port
+
+In reloaded mode, `finish()` adds one load port for every memory of the harness. Each memory has a
+`select`, the order it was registered in, and a slot in `records`. The widths make every bit used,
+so the harness lints clean under `-Wall`:
+
+| Port | Width |
+|---|---|
+| `load_en` | 1 |
+| `load_sel` | max(1, bitWidth(memories − 1)) |
+| `load_addr` | the widest memory address: max of bitWidth(depth − 1) |
+| `load_data` | the widest word |
+| `records` | the sum of every memory's bitWidth(depth), memory 0's lowest |
+
+The harness decodes it into each component's own load port: `load_en_<inst>` when `load_sel` names
+one of the component's memories, `load_src_<inst>` = `load_sel` minus its first select for a
+component with several, the low bits of `load_addr` and `load_data`, and its slice of `records`.
+A harness with no reloaded memories has no load port, and its SV is as before. The FPGA wrapper
+(#202) maps the same port to MMIO.
+
+### SimTop's loader
+
+A reloaded SimTop reads its load list, `patterns/load.txt`, at run time. `formatLoadList()` writes
+it, a line per memory in `load_sel` order:
+
+```text
+testcase seeded_packets
+h.inj_s_in.pattern 48 patterns/stimulus.hex
+h.chk_m_out.pattern 48 patterns/expected.hex
+```
+
+For each memory, the loader checks the line's path and that the count fits the depth, and calls
+`$fatal` if not. It reads the file with `$readmem`, sets the memory's slot of `records`, and writes
+each word through the load port at a falling edge of the memory's own clock. Every reset waits for
+it, and the PASS and FAIL lines name the testcase. So one build runs every testcase of its
+configuration, from each testcase's folder.
+
+### What it writes
+
+Under `<outRoot>/<DUT>/<testbench>/`, `sv-examples/tb/StreamSlice/SliceOrder/` for the example:
+
+```text
+regression.txt                         a line per run
+configurations/<cfg>.json              the runner's input
+testcases/<tc>/<tc>.json + files       the runner's input
+preloaded/<cfg>/<tc>/                  the SV, <cfg>.json, patterns/<tc>.json and its files
+reloaded/<cfg>/                        the SV, <cfg>.json
+reloaded/<cfg>/<tc>/patterns/          <tc>.json, its files, load.txt
+```
+
+| Mode | SimTop | Harness | Build | Run in |
+|---|---|---|---|---|
+| preloaded | `tb_<testbench>_<cfg>_<tc>` | `<testbench>_<cfg>_<tc>` | `preloaded/<cfg>/<tc>/` | the build folder |
+| reloaded | `tb_<testbench>_<cfg>_reloaded` | `<testbench>_<cfg>_reloaded` | `reloaded/<cfg>/` | `reloaded/<cfg>/<tc>/` |
+
+`<testbench>` names the harness, since a DUT may have several. The index, `regression.txt`, has a
+line per run, `<mode> <cfg> <tc> <top> <build> <run>`, the folders relative to the index:
+
+```text
+preloaded stages2 seeded_packets tb_SliceOrder_stages2_seeded_packets preloaded/stages2/seeded_packets preloaded/stages2/seeded_packets
+reloaded stages2 seeded_packets tb_SliceOrder_stages2_reloaded reloaded/stages2 reloaded/stages2/seeded_packets
+```
+
+In TSSV, `make -C verilatorTB tb_regression_sim` runs the runners in `TB_REGRESSION_RUNNERS`, then
+for every `sv-examples/tb/<DUT>/<testbench>/regression.txt` checks each harness, builds each top
+once, and runs every line from its run folder.
+
+### What the generator checks
+
+It builds and checks every pair before it writes anything, so a refused run leaves the previous
+output as it was:
+
+- the configuration's `depths` name exactly the harness's memories, at the depth each was built
+  with;
+- the testcase's files name exactly the harness's memories, and each exists, has the memory's
+  radix, holds the records the manifest says, no more than the depth, each the memory's word width;
+- in preloaded mode, each memory loads `patterns/<file>` with the manifest's count;
+- in reloaded mode, the load list can be written: no path has whitespace;
+- no two runs would share a top, and no configuration or testcase is named twice.
+
+An error from building a harness is given with its top's name in front.
+
+### The TB spec
+
+Each DUT's testbenches have a TB spec, `doc/modules/<DUT>/<DUT>-tb-spec.md`, written from the
+template, [doc/templates/tb-spec-template.md](../templates/tb-spec-template.md). It covers the
+block diagram, each interface's pattern format, the configurations, the testcases, the checks, how
+outputs are matched across interfaces, and the run modes. Each harness's header comment points to
+it. The module spec's Test Plan says *what* is tested; the TB spec says *how*.
 
 ---
 
@@ -628,6 +802,7 @@ npm run check:test-structure                      # tier 1 imports nothing above
 npm run check:harness -- sv-examples/tb/<tb>/<tb>.sv ...
 npm run check:port-contracts                      # every port contract under sv-examples/
 make -C verilatorTB tb_examples_sim               # the examples: generate, check-harness, run
+make -C verilatorTB tb_regression_sim             # the generated ones: every regression.txt line
 make -C verilatorTB pattern_memory_sim            # PatternMemory, preloaded and reloaded
 ```
 
@@ -647,35 +822,45 @@ testbenches; given a SimTop that way, it fails, as it should. Each script exits 
 
 ## Writing a block testbench
 
-1. **The harness.** Create `<DUT>Harness.ts`, a `Harness` subclass: in a project, in
+1. **The TB spec.** Copy [the template](../templates/tb-spec-template.md) to
+   `doc/modules/<DUT>/<DUT>-tb-spec.md`, and fill in what the testbench will be: its block diagram,
+   its configurations, each interface's pattern format, its testcases, checks and run modes.
+2. **The harness.** Create `<DUT>Harness.ts`, a `Harness` subclass: in a project, in
    `ts/test/<DUT>/`. If the DUT has more than one clock, it declares its
-   [clock domains](#clock-domains). Its header comment says:
+   [clock domains](#clock-domains). Its header comment points to the TB spec, and says:
    - what it verifies;
    - which spec section it verifies against;
    - a small block diagram of its wiring;
    - the list of checks.
-2. **Its body is wiring.** It creates the interface instances and nets, then adds each submodule
+3. **Its body is wiring.** It creates the interface instances and nets, then adds each submodule
    with explicit bindings. Pass `autoBind = false`: auto-binding would short two same-named
    `fail` outputs together. It binds each component's fail output to
-   `this.check(name, description)`, and calls `this.finish()` last. It takes the paths of its
-   pattern files as parameters, and holds only the shape of the content: which lanes or fields,
-   and how many rows or records.
-3. **The testcase.** A generator writes the pattern files and their manifest
-   ([pattern-files.md](pattern-files.md)). In TypeScript it uses `writePatternFile()` and
-   `writeManifest()`, with a table's `VectorPlayer.records()` and `VectorChecker.records()`, or a
-   record stream's `injectorLayout()`, `checkerLayout()` and `RecordChecker.cycleRecords()`. Put
-   the files in `patterns/` beside the testbench's SV, and give the harness paths relative to
-   that folder (`patterns/stimulus.hex`).
-4. **The runner.** A test script wraps each harness in a `SimTop` and writes it with
-   `writeSystemVerilogFiles()` to `sv-examples/<DUT>/<testbench>/`, on a path that starts at the
-   repo's root (`` `${TSSV_ROOT}/sv-examples/...` `` in TSSV). Pick `maxCycles` well above the
-   cycles the test needs: it is the only timeout.
-5. **Build and run.** `verilator --binary --timing +define+USE_INCLUDES -I<dir> <dir>/<tb>.sv`
-   builds a testbench. Run it from `<dir>`, where its pattern file paths lead; its exit status is
-   the result. Run `check-harness` on it too. In TSSV, add it to `TB_EXAMPLES` in
-   `verilatorTB/Makefile`.
-6. **Show that each check can fail.** Break the DUT on purpose, one way per check, and record in
-   the PR which testbench and check caught each break ([Evidence](#evidence-that-a-check-works)).
+   `this.check(name, description)`, and calls `this.finish()` last. It holds no test content: it
+   takes a `HarnessBuild`, builds each component with the mode and `build.memory()`, and registers
+   each component's memories with `registerMemories()`
+   ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)).
+4. **The configurations and testcases.** The runner writes each configuration with
+   `writeConfiguration()`, and each testcase's pattern files and manifest
+   ([pattern-files.md](pattern-files.md)) with `writePatternFile()` and `writeManifest()`, using a
+   record stream's `injectorLayout()` and `checkerLayout()`. A generator in another language
+   writes the same files.
+5. **The runner** calls `generateTestbenches()` with the DUT and testbench names, the files, the
+   modes the TB spec supports, the project's parameter check, and the harness. It writes to
+   `sv-examples/tb/<DUT>/<testbench>/`, on a path that starts at the repo's root
+   (`` `${TSSV_ROOT}/sv-examples/tb` `` in TSSV). Pick `maxCycles` well above the cycles the test
+   needs: it is the only timeout.
+6. **Build and run.** For each line of `regression.txt`,
+   `verilator --binary --timing +define+USE_INCLUDES -I<build> <build>/<top>.sv` builds the top,
+   once, and it runs from the line's run folder, where its pattern file paths lead; its exit
+   status is the result. Run `check-harness` on it too. In TSSV, add the runner to
+   `TB_REGRESSION_RUNNERS` in `verilatorTB/Makefile`, and `tb_regression_sim` does all of this.
+7. **Show that each check can fail.** Break the DUT on purpose, one way per check, and record in
+   the TB spec and the PR which testbench and check caught each break
+   ([Evidence](#evidence-that-a-check-works)).
+
+A testbench whose components don't list their memories, one with a cycle table, can't be
+generated yet. Its harness takes its pattern file paths as parameters, and a runner writes it with
+`writeSystemVerilogFiles()`, as `test_tbExamples.ts` does; in TSSV it goes in `TB_EXAMPLES`.
 
 Expected values come from the spec, from a model of what the DUT is meant to do, or from a shared
 seed, written into pattern files by a generator. Never derive them by re-implementing the
@@ -776,6 +961,26 @@ made in `sv-examples/tb/<tb>/patterns/`, which needs no rebuild:
 The unthrottled `stored` testbench missed the stall break that `order` caught: a check needs
 traffic that reaches the state it guards.
 
+`order` and `stored` were #198's testbenches. #200 moved `order`'s content onto the generator, as
+SliceOrder's `stages2 seeded_packets`, which passes in the same 148 cycles, and dropped `stored`.
+
+The generator, the load port and SimTop's loader (#200), on SliceOrder's
+`reloaded stages2 seeded_packets` unless named. The pattern-file and load-list breaks need no
+rebuild; the others were made in the generated SV:
+
+| Break | Caught by |
+|---|---|
+| Expected record 0's lowest digit changed | `order`, record 0 |
+| The injector's count in the load list one short, 47 | `progress`, phase 5 |
+| The checker's count in the load list one short, 47 | `order`, record 47 |
+| The load list's two memory lines swapped | SimTop's `$fatal`: line 2 isn't for `h.inj_s_in.pattern` |
+| The loader writes the checker's record i at address i + 1 | `order`, record 0 |
+| The loader writes every record at address i + 1 | passes |
+| LoadBus: the checker's `load_src` without its offset, `load_sel` | `order`, both testcases |
+
+Shifting every memory alike shifts the stimulus and the expected records together, and both read
+the same unwritten word 0, so no check sees it.
+
 Two clock domains (#199), in `tb_AFIFOStream_two_domains`. Each break was made once in its
 generated SV and restored:
 
@@ -799,10 +1004,13 @@ of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 | `SFIFOWaveHarness.ts` | Replays the SFIFO spec's dual-port timing diagram: `sfifoWaveTable()` reads it with `diagramLanes()`, a `VectorPlayer` drives the four input lanes, and a `VectorChecker` checks the four output lanes, one check each, from the two pattern files written from the diagram |
 | `LfsrHarness.ts` | Three `Lfsr`s, 64 bits, 32 bits with an 8-bit output, and a loadable 32-bit one, each stepping on the player's `run`, checked by a `VectorChecker` against the xorshift model for 64 cycles, written to a pattern file per Lfsr. The player drives the loadable one's `load` and `seed_in` from `LOADS` |
 | `streamDuts.ts` | Small valid/ready DUTs for the record streams: `StreamSlice` (register stages, full rate), `StreamMerge` (two streams into one, in turn) and `StreamSplit` (one into two by a bit of the word, in input order) |
-| `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases, or stored payloads), `SliceCycleHarness` (cycleExact), `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
+| `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases, built by the testbench generator), `SliceCycleHarness` (cycleExact), `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
 | `AFIFOStreamHarness.ts` | The two-domain example: an `AFIFO` between an injector in domain `wr` and an inOrder checker in domain `rd`, each at its own random rate, so the FIFO fills and runs empty. `wr` is released after `rd`, and the injector's `done` crosses into `rd` through a `CDCSynchronizer` |
-| `test_tbExamples.ts` | The generator and runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_Lfsr`, the five `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/` |
-| `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses, in Node |
+| `test_tbExamples.ts` | The hand-written runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_Lfsr`, the three `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/`. Run by `make -C verilatorTB tb_examples_sim` |
+| `test_SliceOrderTB.ts` | The testbench generator's example: writes two configurations and two testcases, and generates SliceOrder for each pair in both modes under `sv-examples/tb/StreamSlice/SliceOrder/`. Its TB spec is [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md). Run by `make -C verilatorTB tb_regression_sim` |
+| `LoadBusHarness.ts`, `test_loadBusTB.ts` | The load port's test: an `AFIFO` between an injector in `wr` and a perSource checker of 3 sources in `rd`, reloaded, with memories of two depths and widths, and a testcase where one source loads no records. Run by `make -C verilatorTB tb_regression_sim` |
+| `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, and the configuration file's schema, in Node |
+| `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, and the registrations it refuses, in Node |
 | `test_RecordStream.ts` | The record-stream components' ports per option, their record layouts, the payload model and their refusals, in Node |
 | `test_Lfsr.ts` | The xorshift model against Marsaglia's paper, and `Lfsr`'s ports, name and refusals, in Node |
 | `test_PatternMemory.ts` | `PatternMemory` in both modes, with the lead's burst_mix pattern file: `tb_PatternMemory_preloaded` reads the memory back after it loads the file itself, and in `tb_PatternMemory_reloaded` the testbench loads it through the load port, twice. Run by `make -C verilatorTB pattern_memory_sim` |
