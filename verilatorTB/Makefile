@@ -255,7 +255,7 @@ rom_sim: tsc
 # run with $fatal, so a failed check exits nonzero.
 TB_EXAMPLES_DIR = ../sv-examples/tb
 TB_EXAMPLES = tb_SFIFOWave_dual_port tb_Lfsr \
-  tb_RecordStream_order tb_RecordStream_stored tb_RecordStream_cycle tb_RecordStream_sources tb_RecordStream_tied \
+  tb_RecordStream_cycle tb_RecordStream_sources tb_RecordStream_tied \
   tb_AFIFOStream_two_domains
 
 tb_examples_sim: tsc
@@ -269,6 +269,32 @@ tb_examples_sim: tsc
 	done
 
 .PHONY: tb_examples_sim
+
+# Generated testbenches (doc/framework/testbench.md, "Configurations, testcases and the
+# generator"). Each runner in TB_REGRESSION_RUNNERS writes its configurations and testcases, and
+# the testbench generator writes sv-examples/tb/<DUT>/<testbench>/ with a regression.txt that lists
+# every run: `mode configuration testcase top buildDir runDir`, the folders relative to the index.
+# For each index, this checks each harness (scripts/check-harness.mjs) and builds each top once,
+# into obj_dir/<DUT>/<testbench>/<top>/, then runs every line from its run folder, so a reloaded
+# build runs once per testcase. A failed run exits nonzero, as in tb_examples_sim.
+TB_REGRESSION_RUNNERS = test_SliceOrderTB
+
+tb_regression_sim: tsc
+	cd ..; set -e; for r in $(TB_REGRESSION_RUNNERS); do node out/test/tb/$$r.js > /dev/null; done
+	set -e; for idx in $(TB_EXAMPLES_DIR)/*/*/regression.txt; do \
+	  d=$$(dirname $$idx); o=obj_dir/$${d#$(TB_EXAMPLES_DIR)/}; built=' '; mkdir -p $$o; \
+	  while read -r mode cfg tc top build run; do \
+	    case "$$built" in *" $$top "*) ;; *) \
+	      (cd .. && node scripts/check-harness.mjs $${d#../}/$$build/$$top.sv) < /dev/null; \
+	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build $$d/$$build/$$top.sv \
+	        > $$o/$$top.build.log 2>&1 < /dev/null || { cat $$o/$$top.build.log; exit 1; }; \
+	      built="$$built$$top ";; \
+	    esac; \
+	    (cd $$d/$$run && $(CURDIR)/$$o/$$top/V$$top) < /dev/null; \
+	  done < $$idx; \
+	done
+
+.PHONY: tb_regression_sim
 
 # PatternMemory in both modes (ts/src/tb/PatternMemory.ts): ts/test/tb/test_PatternMemory.ts writes
 # a sim-only testbench for each to sv-examples/tb/PatternMemory/<tb>/, with the pattern file both

@@ -9,9 +9,9 @@
 //   - tb_Lfsr checks Lfsr against a model of the xorshift sequence. Its expected values are
 //     written from the model, and the loads its loadable case sees from LOADS.
 //   - tb_RecordStream_* drive small valid/ready DUTs with RecordInjectors and check them with
-//     RecordCheckers (RecordStreamHarness.ts), one testbench per checker mode: order (inOrder,
-//     LFSR payloads, TrafficPhases), stored (inOrder, stored payloads), cycle (cycleExact),
-//     sources (perSource) and tied (two tied inOrder checkers).
+//     RecordCheckers (RecordStreamHarness.ts): cycle (cycleExact), sources (perSource) and tied
+//     (two tied inOrder checkers). The inOrder example with LFSR payloads and TrafficPhases,
+//     SliceOrder, is built by the testbench generator instead (test_SliceOrderTB.ts).
 //   - tb_AFIFOStream_two_domains carries a record stream through an AFIFO from one clock domain
 //     to another (AFIFOStreamHarness.ts): the example of a harness with two domains.
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
@@ -23,7 +23,7 @@ import { writeManifest, writePatternFile, type ManifestFile, type PatternFileCon
 import { type RecordLayout } from 'tssv/lib/tb/patternRecord'
 import { checkerLayout, injectorLayout } from 'tssv/lib/tb/recordStream'
 import {
-  MergeSourcesHarness, MERGE_FIELDS, MERGE_LFSR, SliceCycleHarness, SliceOrderHarness, SLICE_FIELDS, SLICE_LFSR, SplitTiedHarness, SPLIT_FIELDS,
+  MergeSourcesHarness, MERGE_FIELDS, MERGE_LFSR, SliceCycleHarness, SLICE_FIELDS, SLICE_LFSR, SplitTiedHarness, SPLIT_FIELDS,
   mergeTestcase, recordsOf, sliceCycleTable, sliceOrderTestcase, splitExpected, splitTestcase, withoutSource
 } from './RecordStreamHarness.js'
 import { SFIFOWaveHarness, sfifoWaveTable } from './SFIFOWaveHarness.js'
@@ -116,24 +116,10 @@ function writeTestcase (tb: string, dut: string, testcase: string, files: Stream
   return entries
 }
 
-// tb_RecordStream_order and _stored: the slice, in order, with LFSR payloads and phases, and without
-const ORDER_RECORDS = 48
-const order = sliceOrderTestcase(ORDER_RECORDS, true)
-writeTestcase('tb_RecordStream_order', 'StreamSlice', 'seeded_phases', [
-  { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', layout: injectorLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), purpose: 'stimulus for s_in, a seed per packet', objects: order },
-  { file: 'expected.hex', memory: 'h.chk_m_out.pattern', layout: checkerLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), purpose: 'expected on m_out: the packets as sent', objects: order }
-])
-const STORED_RECORDS = 20
-const stored = sliceOrderTestcase(STORED_RECORDS, false)
-writeTestcase('tb_RecordStream_stored', 'StreamSlice', 'stored', [
-  { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', layout: injectorLayout(SLICE_FIELDS), purpose: 'stimulus for s_in', objects: stored },
-  { file: 'expected.hex', memory: 'h.chk_m_out.pattern', layout: checkerLayout(SLICE_FIELDS), purpose: 'expected on m_out: the packets as sent', objects: stored }
-])
-
 // tb_RecordStream_cycle: the slice, cycle by cycle, with stalls
 const CYCLE_RECORDS = 12
 const CYCLE_ROWS = 28
-const cycleStimulus = sliceOrderTestcase(CYCLE_RECORDS, true)
+const cycleStimulus = sliceOrderTestcase(CYCLE_RECORDS)
 const cycleTable = RecordChecker.cycleRecords(SLICE_FIELDS, sliceCycleTable(recordsOf(cycleStimulus), CYCLE_ROWS))
 const cycleLayouts = RecordChecker.cycleLayouts(SLICE_FIELDS)
 writeTestcase('tb_RecordStream_cycle', 'StreamSlice', 'stalls', [
@@ -188,16 +174,6 @@ const testbenches = [
     maxCycles: 100
   }),
   new SimTop({ name: 'tb_Lfsr', harness: new LfsrHarness({ name: 'LfsrHarness', patterns: 'patterns' }), maxCycles: 100 }),
-  new SimTop({
-    name: 'tb_RecordStream_order',
-    harness: new SliceOrderHarness({ name: 'RecordStream_order', records: ORDER_RECORDS, stimulus: 'patterns/stimulus.hex', expected: 'patterns/expected.hex', lfsr: true, phases: true }),
-    maxCycles: 2000
-  }),
-  new SimTop({
-    name: 'tb_RecordStream_stored',
-    harness: new SliceOrderHarness({ name: 'RecordStream_stored', records: STORED_RECORDS, stimulus: 'patterns/stimulus.hex', expected: 'patterns/expected.hex' }),
-    maxCycles: 100
-  }),
   new SimTop({
     name: 'tb_RecordStream_cycle',
     harness: new SliceCycleHarness({

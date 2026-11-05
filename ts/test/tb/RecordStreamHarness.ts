@@ -1,10 +1,12 @@
 // The record-stream examples (doc/framework/testbench.md, "Record streams"): harnesses that drive
 // a small DUT (streamDuts.ts) with RecordInjectors and check it with RecordCheckers, in each of
 // the checker's modes, and the generators that write their testcases. test_tbExamples.ts writes
-// the pattern files and the testbenches.
+// the pattern files and the testbenches, except SliceOrder's, which test_SliceOrderTB.ts builds
+// with the testbench generator (TSSV#200).
 //
-//   - SliceOrderHarness: an injector, a StreamSlice and an inOrder checker. With `lfsr`, the
-//     records carry seeds, one per packet; with `phases`, TrafficPhases throttles both ends.
+//   - SliceOrderHarness: an injector, a StreamSlice and an inOrder checker. The records carry
+//     seeds for LFSR payloads, and TrafficPhases throttles both ends. Built by the testbench
+//     generator, in either mode, from a configuration (the slice's stages) and a testcase.
 //   - SliceCycleHarness: an injector, a StreamSlice and a cycleExact checker, whose table stalls
 //     the slice's output.
 //   - MergeSourcesHarness: two injectors, a StreamMerge and a perSource checker.
@@ -12,6 +14,8 @@
 //     input order is checked across the outputs.
 import { Expr } from 'tssv/lib/core/TSSV'
 import { Harness } from 'tssv/lib/tb/Harness'
+import { type HarnessBuild } from 'tssv/lib/tb/testbenchGenerator'
+import { type JsonValue } from 'tssv/lib/tb/testbenchConfiguration'
 import { RecordInjector } from 'tssv/lib/tb/RecordInjector'
 import { RecordChecker, type CycleRow } from 'tssv/lib/tb/RecordChecker'
 import { STANDARD_PHASES, TrafficPhases } from 'tssv/lib/tb/TrafficPhases'
@@ -58,42 +62,50 @@ export const SLICE_FIELDS: RecordField[] = [{ name: 'last', width: 1 }, { name: 
 /** The slice examples' LFSR payloads: an Lfsr fills `data` from each record's seed */
 export const SLICE_LFSR: RecordLfsr = { fields: ['data'], seed: 0x5eed5eed5eed5eedn }
 
-export interface SliceOrderHarness_Parameters {
-  name: string
-  /** Records sent: with `phases`, a multiple of the 6 standard phases. */
-  records: number
-  /** The injector's and the checker's pattern files, as the SV names them. */
-  stimulus: string
-  expected: string
-  /** The records carry seeds, and an Lfsr fills in `data` (SLICE_LFSR). */
-  lfsr?: boolean
-  /** TrafficPhases throttles the injector and the checker through the standard phases. */
-  phases?: boolean
+/** A SliceOrder configuration's parameters: the slice's register stages. */
+export interface SliceOrderParameters {
+  stages: number
+}
+
+/** Checks a SliceOrder configuration's parameters, for the testbench generator. */
+export function sliceOrderParameters (raw: Record<string, JsonValue>, where: string): SliceOrderParameters {
+  for (const key of Object.keys(raw)) {
+    if (key !== 'stages') throw Error(`${where}: parameters has ${key}; a SliceOrder configuration has only stages`)
+  }
+  const stages = raw.stages
+  if (typeof stages !== 'number' || !Number.isInteger(stages) || stages < 1) throw Error(`${where}: parameters.stages must be an integer, at least 1, got ${JSON.stringify(stages)}`)
+  return { stages }
 }
 
 /**
- * SliceOrderHarness — a StreamSlice of 2 stages, driven by a RecordInjector, `inj_s_in`, and
- * checked by an inOrder RecordChecker, `chk_m_out`: the slice must carry every record once, in
- * order, unchanged. Checks: `order`, and with `phases`, `progress`.
+ * SliceOrderHarness — a StreamSlice of `stages` register stages, driven by a RecordInjector,
+ * `inj_s_in`, and checked by an inOrder RecordChecker, `chk_m_out`: the slice must carry every
+ * record once, in order, unchanged. Checks: `order` and `progress`.
+ *
+ * TB spec: doc/framework/examples/StreamSlice-tb-spec.md. The testbench generator builds it from a
+ * configuration (`stages`, and the two memories' depth, a multiple of 6) and a testcase (the
+ * stimulus and expected files), in either mode. The records carry seeds, from which the injector's
+ * and the checker's Lfsrs make the data (SLICE_LFSR), and TrafficPhases runs the 6 standard phases
+ * without full_rate, depth / 6 records each, at both ends. A testcase of fewer records than the
+ * depth sends what it has; the last phases are short or empty.
  *
  *   inj_s_in ──{last, data}──▶ dut (StreamSlice) ──▶ chk_m_out
  *       ▲ valid_rate, limit              ready_rate, limit ▲ │ drained
  *       └────────────── phases (TrafficPhases) ────────────┘─┘
  */
 export class SliceOrderHarness extends Harness {
-  constructor (params: SliceOrderHarness_Parameters) {
-    super({ name: params.name })
-    const n = params.records
-    const lfsr = params.lfsr === true ? SLICE_LFSR : undefined
+  constructor (build: HarnessBuild<SliceOrderParameters>) {
+    super({ name: build.name })
+    const inj = build.memory('h.inj_s_in.pattern')
+    const chk = build.memory('h.chk_m_out.pattern')
+    const n = inj.depth
+    if (n % 6 !== 0 || chk.depth !== n) throw Error(`${build.name}: both memories need one depth, a multiple of 6 for the phases, got ${n} and ${chk.depth}`)
     // The standard phases' rates. This harness has no check that holds only at full rate, so no
     // phase raises full_rate. A phase may take 25 cycles a record, far more than its rates need,
     // and far less than SimTop's limit, so a stuck phase fails progress, not the timeout
-    const phases = params.phases === true
-      ? new TrafficPhases({ name: `${params.name}_phases`, phases: STANDARD_PHASES.map(({ fullRate: _, ...p }) => p), recordsPerPhase: n / 6, timeout: 25 * (n / 6) })
-      : undefined
-    if (phases !== undefined && n % 6 !== 0) throw Error(`${params.name}: with phases, records must be a multiple of 6, got ${n}`)
-    const throttle = phases === undefined ? undefined : { seed: 0xC0FFEEn }
-    const limitWidth = phases?.countWidth
+    const phases = new TrafficPhases({ name: `${build.name}_phases`, phases: STANDARD_PHASES.map(({ fullRate: _, ...p }) => p), recordsPerPhase: n / 6, timeout: 25 * (n / 6) })
+    const throttle = { seed: 0xC0FFEEn }
+    const limitWidth = phases.countWidth
 
     for (const s of ['s_in', 'm_out']) {
       this.addSignal(`${s}_valid`, { width: 1 })
@@ -104,19 +116,19 @@ export class SliceOrderHarness extends Harness {
     }
     this.addSignal('inj_done', { width: 1 })
     this.addSignal('drained', { width: 1 })
-    if (phases !== undefined) {
-      for (const [sig, width] of [['valid_rate', 9], ['ready_rate', 9], ['limit', phases.countWidth], ['phases_done', 1]] as const) {
-        this.addSignal(sig, { width })
-      }
+    for (const [sig, width] of [['valid_rate', 9], ['ready_rate', 9], ['limit', phases.countWidth], ['phases_done', 1]] as const) {
+      this.addSignal(sig, { width })
     }
 
     // The injector, the slice, and the checker
-    const rates = (rate: string): Record<string, string> => phases === undefined ? {} : { [rate]: rate, limit: 'limit' }
-    this.addSubmodule('inj_s_in', new RecordInjector({
-      name: `${params.name}_inj`, fields: SLICE_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus, records: n, lfsr, throttle, limitWidth
-    }), { clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', ...rates('valid_rate') }, false)
+    const injector = new RecordInjector({
+      name: `${build.name}_inj`, fields: SLICE_FIELDS, memory: build.mode, ...inj, lfsr: SLICE_LFSR, throttle, limitWidth
+    })
+    this.addSubmodule('inj_s_in', injector, {
+      clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', valid_rate: 'valid_rate', limit: 'limit', ...this.registerMemories('inj_s_in', injector)
+    }, false)
     this.addAssign({ in: new Expr('{s_in_last, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSlice({ name: `${params.name}_slice`, width: 33 }), {
+    this.addSubmodule('dut', new StreamSlice({ name: `${build.name}_slice`, width: 33, stages: build.config.parameters.stages }), {
       clk: 'clk',
       rst_b: 'rst_b',
       in_valid: 's_in_valid',
@@ -129,9 +141,10 @@ export class SliceOrderHarness extends Harness {
     this.addAssign({ in: new Expr('m_out_word[32]'), out: 'm_out_last' })
     this.addAssign({ in: new Expr('m_out_word[31:0]'), out: 'm_out_data' })
     const order = this.check('order', 'the slice carries every record once, in order, unchanged', RecordChecker.firstError('chk_m_out'))
-    this.addSubmodule('chk_m_out', new RecordChecker({
-      name: `${params.name}_chk`, mode: 'inOrder', fields: SLICE_FIELDS, depth: n, memory: 'preloaded', file: params.expected, records: n, lfsr, throttle, limitWidth
-    }), {
+    const checker = new RecordChecker({
+      name: `${build.name}_chk`, mode: 'inOrder', fields: SLICE_FIELDS, memory: build.mode, ...chk, lfsr: SLICE_LFSR, throttle, limitWidth
+    })
+    this.addSubmodule('chk_m_out', checker, {
       clk: 'clk',
       rst_b: 'rst_b',
       valid: 'm_out_valid',
@@ -140,38 +153,44 @@ export class SliceOrderHarness extends Harness {
       ready: 'm_out_ready',
       fail: order,
       drained: 'drained',
-      ...rates('ready_rate')
+      ready_rate: 'ready_rate',
+      limit: 'limit',
+      ...this.registerMemories('chk_m_out', checker)
     }, false)
 
-    // The end: every record sent and received, and with phases, every phase drained
-    if (phases === undefined) {
-      this.addAssign({ in: new Expr('inj_done && drained'), out: 'done' })
-    } else {
-      const progress = this.check('progress', 'every phase drains within its timeout', TrafficPhases.stuckDetail('phases'))
-      this.addSubmodule('phases', phases, {
-        clk: 'clk',
-        rst_b: 'rst_b',
-        drained: 'drained',
-        valid_rate: 'valid_rate',
-        ready_rate: 'ready_rate',
-        limit: 'limit',
-        done: 'phases_done',
-        stuck: progress
-      }, false)
-      this.addAssign({ in: new Expr('inj_done && phases_done'), out: 'done' })
-    }
+    // The end: every record sent and received, and every phase drained
+    const progress = this.check('progress', 'every phase drains within its timeout', TrafficPhases.stuckDetail('phases'))
+    this.addSubmodule('phases', phases, {
+      clk: 'clk',
+      rst_b: 'rst_b',
+      drained: 'drained',
+      valid_rate: 'valid_rate',
+      ready_rate: 'ready_rate',
+      limit: 'limit',
+      done: 'phases_done',
+      stuck: progress
+    }, false)
+    this.addAssign({ in: new Expr('inj_done && phases_done'), out: 'done' })
     this.finish()
   }
 }
 
 /**
- * A SliceOrderHarness's testcase: the same packets for the injector and the checker, since the
- * slice changes nothing. With `lfsr`, each packet's first record carries its seed, and the rest 0.
+ * A slice testcase, `seeded_packets`: the same packets for the injector and the checker, since
+ * the slice changes nothing. Each packet's first record carries its seed, and the rest 0.
  */
-export function sliceOrderTestcase (records: number, lfsr: boolean): PatternObject[] {
-  return lfsr
-    ? seededPackets(records, 1, SLICE_LFSR, last => ({ last: last ? 1n : 0n }))
-    : packets(records, 1, (p, i, last) => ({ last: last ? 1n : 0n, data: mixSeed(BigInt(p * 16 + i), 32) }))
+export function sliceOrderTestcase (records: number): PatternObject[] {
+  return seededPackets(records, 1, SLICE_LFSR, last => ({ last: last ? 1n : 0n }))
+}
+
+/**
+ * A slice testcase, `continued`: packets of other lengths, where only the first record of every
+ * third packet, from packet 1, carries a seed. Every other record carries 0, so its data continues
+ * the Lfsr's sequence: record 0 continues from the Lfsr's reset seed, and a packet without a seed
+ * continues from the one before it.
+ */
+export function sliceContinuedTestcase (records: number): PatternObject[] {
+  return packets(records, 2, (p, i, last) => ({ last: last ? 1n : 0n, seed: i === 0 && p % 3 === 1 ? mixSeed(BigInt(2000 + p), SLICE_LFSR.width) : 0n }))
 }
 
 // ---- SliceCycleHarness
