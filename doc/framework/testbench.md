@@ -595,6 +595,143 @@ generator itself is one function, with no name and no knowledge of any DUT or pr
 SliceOrder (`ts/test/tb/test_SliceOrderTB.ts`) is the example; its TB spec is
 [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md).
 
+### The flow
+
+**Diagram 3: generating and running testbenches.** The runner writes the two kinds of input file.
+The generator reads them, calls back into the project for each harness, checks each harness
+against its configuration and testcase, and writes the testbenches. `tb_regression_sim` then
+builds and runs them from the index. The generator writes nothing until every harness has been
+built and checked, so a bad file leaves the previous output as it was. Amber is the project's code
+(tier 3), lavender tier 1, and grey the files and tools; dotted arrows are files.
+
+```mermaid
+flowchart TD
+  subgraph RUN["Runner · TIER 3 · test_‹testbench›TB.ts"]
+    direction LR
+    WC["writeConfiguration()<br/>configurations/‹cfg›.json<br/>structure: parameters, depths, maxCycles"]
+    WT["writePatternFile(), writeManifest()<br/>testcases/‹tc›/‹tc›.json + pattern files<br/>content: the records"]
+  end
+  subgraph GEN["generateTestbenches() · TIER 1"]
+    direction TB
+    READ["Read and check the files<br/>readConfiguration(), readManifest()<br/>the project's parameters(): typed parameters"]
+    PRE["preloaded: per configuration × testcase<br/>memory(path) = depth, file, records"]
+    REL["reloaded: per configuration<br/>memory(path) = depth"]
+    CHECK["checkConfiguration(), checkTestcase()<br/>reloaded: formatLoadList() per testcase<br/>any error: stop, write nothing"]
+    WRITE["Write ‹outRoot›/‹DUT›/‹testbench›/<br/>SimTop + harness SV and ‹cfg›.json per build<br/>patterns/ and load.txt per run · regression.txt"]
+  end
+  HB["harness callback · TIER 3<br/>e.g. new SliceOrderHarness(build)<br/>builds each component from memory()<br/>registerMemories() per component"]
+  MK["make -C verilatorTB tb_regression_sim<br/>per line of regression.txt: check-harness,<br/>build each top once, run it in its run folder"]
+  RES(["PASS or FAIL per run"])
+
+  WC -. "file" .-> READ
+  WT -. "file" .-> READ
+  READ --> PRE
+  READ --> REL
+  PRE -- "HarnessBuild" --> HB
+  REL -- "HarnessBuild" --> HB
+  HB -- "Harness" --> CHECK
+  CHECK --> WRITE
+  WRITE -. "regression.txt" .-> MK
+  MK --> RES
+
+  classDef t1 fill:#e8e4f8,stroke:#5b4fa8,color:#111
+  classDef t3 fill:#fff4e0,stroke:#c77700,color:#111
+  classDef off fill:#eeeeee,stroke:#666666,color:#111
+  class READ,PRE,REL,CHECK,WRITE t1
+  class WC,WT,HB t3
+  class MK,RES off
+  style RUN fill:#fffaf0,stroke:#c77700,color:#111
+  style GEN fill:#f6f4fd,stroke:#5b4fa8,color:#111
+```
+
+**Diagram 4: SliceOrder, configuration `stages2` in both modes.** Under
+`sv-examples/tb/StreamSlice/SliceOrder/`. A preloaded build compiles its testcase in, so each
+testcase gets a build of its own. The reloaded build has no testcase compiled in, so one binary
+runs in each testcase's folder and loads it from `load.txt`. Each pair passes in the same number of
+cycles in both modes. Configuration `stages3` gives two more preloaded builds and one more reloaded
+build, passing in 155 and 151 cycles.
+
+```mermaid
+flowchart LR
+  CFG["configurations/stages2.json<br/>parameters: stages 2<br/>depths: 48 and 48 · maxCycles 2000"]
+  TC1["testcases/seeded_packets/<br/>stimulus.hex, expected.hex<br/>48 records each"]
+  TC2["testcases/continued/<br/>stimulus.hex, expected.hex<br/>44 records each"]
+  subgraph PRE["preloaded: a build per configuration × testcase"]
+    direction TB
+    P1["preloaded/stages2/seeded_packets/<br/>tb_SliceOrder_stages2_seeded_packets<br/>loads patterns/stimulus.hex, 48 records compiled in"]
+    P2["preloaded/stages2/continued/<br/>tb_SliceOrder_stages2_continued<br/>loads patterns/stimulus.hex, 44 records compiled in"]
+  end
+  subgraph REL["reloaded: a build per configuration"]
+    direction TB
+    R["reloaded/stages2/<br/>tb_SliceOrder_stages2_reloaded<br/>load port, no testcase compiled in"]
+    L1["seeded_packets/patterns/load.txt<br/>h.inj_s_in.pattern 48 patterns/stimulus.hex<br/>h.chk_m_out.pattern 48 patterns/expected.hex"]
+    L2["continued/patterns/load.txt<br/>h.inj_s_in.pattern 44 patterns/stimulus.hex<br/>h.chk_m_out.pattern 44 patterns/expected.hex"]
+  end
+  O1(["PASS in 148 cycles"])
+  O2(["PASS in 144 cycles"])
+  O3(["PASS, testcase seeded_packets, in 148 cycles"])
+  O4(["PASS, testcase continued, in 144 cycles"])
+
+  CFG -. "stages, depths" .-> P1
+  CFG -. "stages, depths" .-> P2
+  CFG -. "stages, depths" .-> R
+  TC1 -. "files, counts" .-> P1
+  TC2 -. "files, counts" .-> P2
+  TC1 -. "files, load list" .-> L1
+  TC2 -. "files, load list" .-> L2
+  R -- "runs in" --> L1
+  R -- "runs in" --> L2
+  P1 --> O1
+  P2 --> O2
+  L1 --> O3
+  L2 --> O4
+
+  classDef sim fill:#e8e4f8,stroke:#b03030,color:#111,stroke-width:2px,stroke-dasharray:5 3
+  classDef off fill:#eeeeee,stroke:#666666,color:#111
+  classDef pass fill:#e3f4e1,stroke:#2e7d32,color:#111
+  class P1,P2,R sim
+  class CFG,TC1,TC2,L1,L2 off
+  class O1,O2,O3,O4 pass
+```
+
+**Diagram 5: LoadBus, reloaded only, across two clock domains.** Under
+`sv-examples/tb/AFIFO/LoadBus/` (`ts/test/tb/test_loadBusTB.ts`). One build runs both testcases.
+The injector's memory is 16 deep and loads on `clk_wr` with `load_sel` 0. The checker has three
+sources, each memory 8 deep, and they load on `clk_rd` with `load_sel` 1 to 3. In `one_empty`,
+source 2 loads no records.
+
+```mermaid
+flowchart LR
+  CFG["configurations/depth16.json<br/>parameters: none<br/>depths: h.inj_wr.pattern 16<br/>h.chk_rd.pattern_0, _1, _2: 8 each"]
+  TA["testcases/all_sources/<br/>16 records, from sources 0, 1 and 2"]
+  TE["testcases/one_empty/<br/>13 records, from sources 0 and 1"]
+  subgraph REL["reloaded/depth16/"]
+    direction TB
+    B["tb_LoadBus_depth16_reloaded<br/>harness ports: load_en, load_sel[1:0],<br/>load_addr[3:0], load_data[15:0], records[16:0]"]
+    LA["all_sources/patterns/load.txt<br/>inj_wr.pattern: 16, on clk_wr<br/>chk_rd.pattern_0, _1, _2: 6, 5, 5, on clk_rd"]
+    LE["one_empty/patterns/load.txt<br/>inj_wr.pattern: 13, on clk_wr<br/>chk_rd.pattern_0, _1, _2: 7, 6, 0, on clk_rd"]
+  end
+  OA(["PASS, testcase all_sources, in 35 cycles"])
+  OE(["PASS, testcase one_empty, in 31 cycles"])
+
+  CFG -. "depths" .-> B
+  TA -. "files, load list" .-> LA
+  TE -. "files, load list" .-> LE
+  B -- "runs in" --> LA
+  B -- "runs in" --> LE
+  LA --> OA
+  LE --> OE
+
+  classDef sim fill:#e8e4f8,stroke:#b03030,color:#111,stroke-width:2px,stroke-dasharray:5 3
+  classDef off fill:#eeeeee,stroke:#666666,color:#111
+  classDef pass fill:#e3f4e1,stroke:#2e7d32,color:#111
+  class B sim
+  class CFG,TA,TE,LA,LE off
+  class OA,OE pass
+```
+
+In Diagrams 4 and 5, a red dashed border is a build, grey a file, and green a run's result.
+
 ### The configuration file
 
 One JSON file per configuration, `<configuration>.json`, which the runner writes with
@@ -769,7 +906,7 @@ it. The module spec's Test Plan says *what* is tested; the TB spec says *how*.
   it by downward hierarchical reference. This synthesizes in Vivado as long as the path names a
   signal, not a member reached through an interface port.
 
-**Diagram 3: the same harness in simulation and on an FPGA.**
+**Diagram 6: the same harness in simulation and on an FPGA.**
 
 ```mermaid
 flowchart LR
