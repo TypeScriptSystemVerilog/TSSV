@@ -277,7 +277,7 @@ tb_examples_sim: tsc
 # For each index, this checks each harness (scripts/check-harness.mjs) and builds each top once,
 # into obj_dir/<DUT>/<testbench>/<top>/, then runs every line from its run folder, so a reloaded
 # build runs once per testcase. A failed run exits nonzero, as in tb_examples_sim.
-TB_REGRESSION_RUNNERS = test_SliceOrderTB
+TB_REGRESSION_RUNNERS = test_SliceOrderTB test_loadBusTB
 
 tb_regression_sim: tsc
 	cd ..; set -e; for r in $(TB_REGRESSION_RUNNERS); do node out/test/tb/$$r.js > /dev/null; done
