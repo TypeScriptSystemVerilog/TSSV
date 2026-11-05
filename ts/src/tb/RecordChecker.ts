@@ -1,7 +1,7 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
 import { type CheckDetail } from './Harness.js'
 import { Lfsr } from './Lfsr.js'
-import { PatternMemory, type PatternMemoryMode } from './PatternMemory.js'
+import { PatternMemory, type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 import { type PatternRecord, type Radix, type RecordField, type RecordLayout } from './patternRecord.js'
 import {
   AFTER_COUNT, AFTER_PEER, checkerLayout, payloadSlices, peerWidth, SEED_FIELD,
@@ -148,6 +148,12 @@ function bitsOf (value: string, total: number, lo: number, width: number): strin
  */
 export class RecordChecker extends TSSV.Module {
   declare params: RecordChecker_Parameters
+  /**
+   * Its pattern memories, for a harness to register (Harness.registerMemories()): `pattern`, or
+   * `pattern_<k>` per source in perSource mode. A cycleExact checker's tables (VectorPlayer,
+   * VectorChecker) are preloaded only and aren't listed.
+   */
+  readonly memories: ComponentMemory[] = []
   constructor (params: RecordChecker_Parameters) {
     super({ ...params, radix: params.radix ?? 'h' })
     if (params.mode === 'cycleExact') this.buildCycleTable(params)
@@ -287,6 +293,7 @@ export class RecordChecker extends TSSV.Module {
       this.addSubmodule(`pattern${s}`, new PatternMemory({
         name: `${name}_mem${s}`, layout, depth, mode: memory, file: files?.[k]
       }), memBindings, false)
+      this.memories.push({ path: `pattern${s}`, depth, layout, mode: memory, file: files?.[k], records: records?.[k] })
 
       // LFSR payloads: the seed restarts the Lfsr, 0 continues it, and it steps with each record
       if (lfsr !== undefined) {

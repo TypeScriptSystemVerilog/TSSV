@@ -1,6 +1,6 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
 import { Lfsr } from './Lfsr.js'
-import { PatternMemory, type PatternMemoryMode } from './PatternMemory.js'
+import { PatternMemory, type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 import { type Radix, type RecordField } from './patternRecord.js'
 import { injectorLayout, payloadSlices, SEED_FIELD, type RecordLfsr } from './recordStream.js'
 import { drawSeed, RATE_WIDTH, Throttle, VALID_SALT } from './Throttle.js'
@@ -54,6 +54,8 @@ const INTERNAL = ['idx', 'idx_nxt', 'bound', 'more', 'allow', 'offering', 'accep
  */
 export class RecordInjector extends TSSV.Module {
   declare params: RecordInjector_Parameters
+  /** Its pattern memory, `pattern`, for a harness to register (Harness.registerMemories()). */
+  readonly memories: ComponentMemory[] = []
   constructor (params: RecordInjector_Parameters) {
     super({
       name: params.name,
@@ -147,6 +149,7 @@ export class RecordInjector extends TSSV.Module {
     for (const f of layout.fields) memBindings[f.name] = f.name
     if (lfsr !== undefined) this.addSignal(SEED_FIELD, { width: lfsr.width ?? 64 })
     this.addSubmodule('pattern', new PatternMemory({ name: `${name}_mem`, layout, depth, mode: memory, file: params.file }), memBindings, false)
+    this.memories.push({ path: 'pattern', depth, layout, mode: memory, file: params.file, records })
 
     // LFSR payloads: the seed restarts the Lfsr, 0 continues it, and it steps when a record leaves
     if (lfsr !== undefined) {

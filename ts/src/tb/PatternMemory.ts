@@ -11,6 +11,29 @@ import { type RecordLayout } from './patternRecord.js'
  */
 export type PatternMemoryMode = 'preloaded' | 'reloaded'
 
+/**
+ * A pattern memory inside a component (a RecordInjector, a RecordChecker), as the component
+ * describes it to a harness that registers it (Harness.registerMemories()), so that the testbench
+ * generator can check a testcase's files against the memories and SimTop can load them.
+ *
+ * A reloaded component loads its memories through one load port: `load_en`, `load_addr` and
+ * `load_data`, plus `load_src` when it has more than one memory, which selects memory k of
+ * `memories` with `load_src` = k. Its `records` input holds one count per memory, memory k's in
+ * bits [k*w +: w], w = bitWidth(depth).
+ */
+export interface ComponentMemory {
+  /** Its instance path inside the component: `pattern`, or `pattern_<k>` for a checker's source k. */
+  path: string
+  /** Records it holds. */
+  depth: number
+  layout: RecordLayout
+  mode: PatternMemoryMode
+  /** Preloaded only: the file it loads, as the SV names it. */
+  file?: string
+  /** Preloaded only: the record count compiled into the component. */
+  records?: number
+}
+
 export interface PatternMemory_Parameters extends TSSV.TSSVParameters {
   /** The record each word holds (patternRecord.ts): one output per field. */
   layout: RecordLayout

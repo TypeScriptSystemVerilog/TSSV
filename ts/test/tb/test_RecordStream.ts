@@ -12,12 +12,14 @@
  *     checker's source field, and add a tied checker's after fields;
  *   - the payload model restarts at a seed and continues on 0;
  *   - derived values, such as TrafficPhases' countWidth and drawSeed's seeds, are as documented;
+ *   - each component lists its pattern memories, with their paths, depths, layouts, files and
+ *     record counts, for a harness to register (TSSV#200);
  *   - bad parameters are refused.
  */
 import { type Module } from 'tssv/lib/core/TSSV'
 import { RecordInjector, type RecordInjector_Parameters } from 'tssv/lib/tb/RecordInjector'
 import { RecordChecker, type RecordChecker_Parameters } from 'tssv/lib/tb/RecordChecker'
-import { checkerFields, lfsrPayloads, mixSeed, storedFields } from 'tssv/lib/tb/recordStream'
+import { checkerFields, checkerLayout, injectorLayout, lfsrPayloads, mixSeed, storedFields } from 'tssv/lib/tb/recordStream'
 import { xorshift } from 'tssv/lib/tb/xorshift'
 import { Throttle, drawSeed, READY_SALT, VALID_SALT } from 'tssv/lib/tb/Throttle'
 import { TrafficPhases, STANDARD_PHASES } from 'tssv/lib/tb/TrafficPhases'
@@ -79,6 +81,13 @@ void test('throttle adds valid_rate, limitWidth adds limit, and reloaded mode ad
   ])
 })
 
+void test('an injector lists its memory, pattern: preloaded with its file and records, reloaded without', () => {
+  assert.deepEqual(injector().memories, [{ path: 'pattern', depth: 8, layout: injectorLayout(FIELDS), mode: 'preloaded', file: 'f.hex', records: 5 }])
+  assert.deepEqual(injector({ memory: 'reloaded', file: undefined, records: undefined, lfsr: LFSR }).memories, [
+    { path: 'pattern', depth: 8, layout: injectorLayout(FIELDS, { lfsr: LFSR }), mode: 'reloaded', file: undefined, records: undefined }
+  ])
+})
+
 // ---- RecordChecker
 
 const checker = (extra: Partial<RecordChecker_Parameters> = {}): RecordChecker =>
@@ -96,6 +105,22 @@ void test('a tied perSource checker, reloaded, adds ready_rate, limit, the load 
     'input load_en[1]', 'input load_src[2]', 'input load_addr[3]', 'input load_data[48]', 'input records[12]', 'input peer_count[12]',
     'output ready[1]', 'output fail[1]', 'output fail_after[1]', 'output drained[1]', 'output count[5]'
   ])
+})
+
+void test('an inOrder checker lists pattern; a perSource one lists pattern_<k> per source, with each file and count', () => {
+  assert.deepEqual(checker().memories, [{ path: 'pattern', depth: 8, layout: checkerLayout(FIELDS), mode: 'preloaded', file: 'e.hex', records: 5 }])
+  const layout = checkerLayout(FIELDS, { sourceField: 'src' })
+  assert.deepEqual(checker({ mode: 'perSource', sourceField: 'src', sources: 2, files: ['e0.hex', 'e1.hex'], records: [3, 0] } as Partial<RecordChecker_Parameters>).memories, [
+    { path: 'pattern_0', depth: 8, layout, mode: 'preloaded', file: 'e0.hex', records: 3 },
+    { path: 'pattern_1', depth: 8, layout, mode: 'preloaded', file: 'e1.hex', records: 0 }
+  ])
+  assert.deepEqual(checker({ mode: 'perSource', sourceField: 'src', sources: 3, memory: 'reloaded', file: undefined, records: undefined } as Partial<RecordChecker_Parameters>).memories.map(m => [m.path, m.mode, m.file, m.records]), [
+    ['pattern_0', 'reloaded', undefined, undefined], ['pattern_1', 'reloaded', undefined, undefined], ['pattern_2', 'reloaded', undefined, undefined]
+  ])
+})
+
+void test('a cycleExact checker lists no memories: its tables are preloaded only', () => {
+  assert.deepEqual(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex' }).memories, [])
 })
 
 void test('a cycleExact checker has ready, a fail per lane and done out', () => {
