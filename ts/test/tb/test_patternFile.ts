@@ -9,12 +9,17 @@
  *   - a $readmemb file writes each field at its exact width;
  *   - a field wider than 16 bits is split into 4-digit groups, named without pad bits;
  *   - a value that doesn't fit, a missing or unknown field, and an unknown signal are refused;
- *   - the manifest is JSON that reads back as written, and writePatternFile returns the record count.
+ *   - the manifest is JSON that reads back as written, and writePatternFile returns the record count;
+ *   - readManifest reads a manifest back, and refuses one that breaks the format: a missing or
+ *     unknown key, a testcase that isn't snake_case, no files, a path outside the manifest's
+ *     folder, a memory with two files, a bad radix or record count (TSSV#200);
+ *   - readPatternWords reads a file's records as $readmem does, and refuses an @ line, a block
+ *     comment, two words on a line, and a digit the radix doesn't have.
  */
 import { Interface } from 'tssv/lib/core/TSSV'
 import { recordFields, recordLayout, unpackRecord, type PatternRecord, type RecordLayout } from 'tssv/lib/tb/patternRecord'
-import { formatPatternFile, writeManifest, writePatternFile, type Manifest, type PatternFileContent } from 'tssv/lib/tb/patternFile'
-import { readFileSync, rmSync } from 'fs'
+import { formatPatternFile, parseManifest, readManifest, readPatternWords, writeManifest, writePatternFile, type Manifest, type PatternFileContent } from 'tssv/lib/tb/patternFile'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -140,3 +145,69 @@ void test('writePatternFile writes the text and returns the record count; the ma
   writeManifest(`${OUT}/burst_mix.json`, manifest)
   assert.deepEqual(JSON.parse(readFileSync(`${OUT}/burst_mix.json`, 'utf8')), manifest)
 })
+
+void test('readManifest reads back what writeManifest wrote', () => {
+  const manifest: Manifest = {
+    testcase: 'burst_mix',
+    files: [
+      { file: 'burst_mix_s_in.hex', memory: 'h.inj_s_in.pattern', radix: 'h', records: 4 },
+      { file: 'sub/expected.bin', memory: 'h.chk_m_out.pattern', radix: 'b', records: 0 }
+    ]
+  }
+  writeManifest(`${OUT}/read/burst_mix.json`, manifest)
+  assert.deepEqual(readManifest(`${OUT}/read/burst_mix.json`), manifest)
+})
+
+void test('readManifest names the file in a JSON syntax error', () => {
+  mkdirSync(OUT, { recursive: true })
+  writeFileSync(`${OUT}/broken.json`, '{ "testcase": ')
+  assert.throws(() => readManifest(`${OUT}/broken.json`), (e: Error) => e.message.startsWith(`${OUT}/broken.json: `))
+})
+
+// A manifest's one file, to break one key of at a time
+const goodFile = { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', radix: 'h', records: 4 }
+const refusals: Array<[string, unknown, string]> = [
+  ['a manifest that isn\'t an object', [goodFile], 'm.json: a manifest is a JSON object'],
+  ['a missing key', { testcase: 'burst_mix' }, 'm.json: has no files'],
+  ['an unknown key', { testcase: 'burst_mix', files: [goodFile], mode: 'reloaded' }, 'm.json: has mode, which isn\'t one of testcase, files'],
+  ['a testcase that isn\'t snake_case', { testcase: 'BurstMix', files: [goodFile] }, 'm.json: testcase "BurstMix" isn\'t a lower snake_case name'],
+  ['no files', { testcase: 'burst_mix', files: [] }, 'm.json: files must be an array of at least one file'],
+  ['a file entry that isn\'t an object', { testcase: 'burst_mix', files: ['stimulus.hex'] }, 'm.json: files[0] isn\'t an object'],
+  ['an unknown key in a file', { testcase: 'burst_mix', files: [{ ...goodFile, depth: 8 }] }, 'm.json: files[0]: has depth, which isn\'t one of file, memory, radix, records'],
+  ['a path above the manifest', { testcase: 'burst_mix', files: [{ ...goodFile, file: '../stimulus.hex' }] }, 'm.json: files[0]: file "../stimulus.hex" must be a path inside the manifest\'s folder, relative to it'],
+  ['an absolute path', { testcase: 'burst_mix', files: [{ ...goodFile, file: '/tmp/stimulus.hex' }] }, 'm.json: files[0]: file "/tmp/stimulus.hex" must be a path inside the manifest\'s folder, relative to it'],
+  ['an empty memory', { testcase: 'burst_mix', files: [{ ...goodFile, memory: '' }] }, 'm.json: files[0]: memory must be a memory\'s instance path, got ""'],
+  ['a memory with two files', { testcase: 'burst_mix', files: [goodFile, { ...goodFile, file: 'more.hex' }] }, 'm.json: files[1]: memory h.inj_s_in.pattern has two files'],
+  ['a radix other than h or b', { testcase: 'burst_mix', files: [{ ...goodFile, radix: 'd' }] }, 'm.json: files[0]: radix must be \'h\' or \'b\', got "d"'],
+  ['a negative record count', { testcase: 'burst_mix', files: [{ ...goodFile, records: -1 }] }, 'm.json: files[0]: records must be an integer, at least 0, got -1'],
+  ['a fractional record count', { testcase: 'burst_mix', files: [{ ...goodFile, records: 1.5 }] }, 'm.json: files[0]: records must be an integer, at least 0, got 1.5'],
+  ['a record count as a string', { testcase: 'burst_mix', files: [{ ...goodFile, records: '3' }] }, 'm.json: files[0]: records must be an integer, at least 0, got "3"']
+]
+for (const [what, json, message] of refusals) {
+  void test(`parseManifest refuses ${what}`, () => {
+    assert.throws(() => parseManifest(json, 'm.json'), { message })
+  })
+}
+
+void test('readPatternWords reads the lead\'s example as its 4 records, without comments or underscores', () => {
+  mkdirSync(OUT, { recursive: true })
+  writeFileSync(`${OUT}/lead.hex`, LEAD_EXAMPLE)
+  assert.deepEqual(readPatternWords(`${OUT}/lead.hex`, 'h'), ['1000000a01', '0000000a02', '0100000a03', '1100000b01'])
+})
+
+// A pattern file's text, to break the format of one line at a time
+const words: Array<[string, string, 'h' | 'b', string]> = [
+  ['an @ address line', '// header\n@10\n1_0\n', 'h', 'words.txt:2: has an @ address line; records load from address 0 up, one per line'],
+  ['a block comment', '1_0 /* first */\n', 'h', 'words.txt:1: has a block comment; a pattern file uses // comments'],
+  ['two words on one line', '1_0 0_1\n', 'h', 'words.txt:1: has two words on one line'],
+  ['an x digit', '1_x\n', 'h', 'words.txt:1: 1_x isn\'t a word of $readmemh digits'],
+  ['a g in a hex file', '1_g\n', 'h', 'words.txt:1: 1_g isn\'t a word of $readmemh digits'],
+  ['a 2 in a binary file', '0_1\n1_2\n', 'b', 'words.txt:2: 1_2 isn\'t a word of $readmemb digits']
+]
+for (const [what, text, radix, message] of words) {
+  void test(`readPatternWords refuses ${what}`, () => {
+    mkdirSync(OUT, { recursive: true })
+    writeFileSync(`${OUT}/words.txt`, text)
+    assert.throws(() => readPatternWords(`${OUT}/words.txt`, radix), { message: `${OUT}/${message}` })
+  })
+}

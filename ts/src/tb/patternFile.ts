@@ -1,14 +1,15 @@
 // Writes pattern files and testcase manifests (doc/framework/pattern-files.md), so that a test
 // content generator in TypeScript needs no formatting code of its own. A generator in another
-// language follows the documented format instead.
+// language follows the documented format instead. Reads them back too, checking the format, for
+// the testbench generator (testbenchGenerator.ts).
 //
 // A pattern file is a $readmemh or $readmemb file that a person can read: a header comment, then
 // the records one per line, with a comment before each object (a packet, a transaction, a phase)
 // that introduces its records. The underscores in each line fall between fields. In a $readmemh
 // file a field wider than 16 bits is also split into groups of 4 hex digits, each named in the
 // header (`data[31:16] _ data[15:0]`).
-import { mkdirSync, writeFileSync } from 'fs'
-import { dirname } from 'path'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { dirname, isAbsolute, normalize, sep } from 'path'
 import { type FieldSlot, type PatternRecord, type Radix, type RecordLayout, packRecord } from './patternRecord.js'
 
 /** One object of a pattern file, such as a packet: a label and its records. */
@@ -48,6 +49,12 @@ export interface Manifest {
   testcase: string
   files: ManifestFile[]
 }
+
+/**
+ * A testcase's or configuration's name: lower snake_case, since it names folders and is part of
+ * module names. A lowercase letter, then lowercase letters, digits and underscores.
+ */
+export const SNAKE_CASE = /^[a-z][a-z0-9_]*$/
 
 /** One group of a field's digits in a line: its name in the header, and its bits in the field. */
 interface Group {
@@ -139,4 +146,96 @@ export function writePatternFile (path: string, layout: RecordLayout, content: P
 export function writeManifest (path: string, manifest: Manifest): void {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)
+}
+
+/** True for a JSON object: not null, and not an array. */
+export function isJsonObject (v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+/**
+ * Checks that object `o` has every key of `required` and no key outside `required` and
+ * `optional`. A misspelt key is refused rather than ignored.
+ */
+export function checkJsonKeys (where: string, o: Record<string, unknown>, required: string[], optional: string[] = []): void {
+  for (const k of required) {
+    if (!(k in o)) throw Error(`${where}: has no ${k}`)
+  }
+  for (const k of Object.keys(o)) {
+    if (!required.includes(k) && !optional.includes(k)) throw Error(`${where}: has ${k}, which isn't one of ${[...required, ...optional].join(', ')}`)
+  }
+}
+
+/**
+ * A manifest from `json`, the value a manifest file parses to, checked against the format in
+ * pattern-files.md. `where` names the file in errors. Refuses a missing or unknown key, a testcase
+ * that isn't lower snake_case, no files, a file path that is absolute or leaves the manifest's
+ * folder, an empty memory, a memory named twice, a radix other than `h` or `b`, and a record count
+ * that isn't a non-negative integer. The memory paths aren't checked against a harness here: the
+ * testbench generator does that (checkTestcase).
+ */
+export function parseManifest (json: unknown, where: string): Manifest {
+  if (!isJsonObject(json)) throw Error(`${where}: a manifest is a JSON object`)
+  checkJsonKeys(where, json, ['testcase', 'files'])
+  const { testcase, files } = json
+  if (typeof testcase !== 'string' || !SNAKE_CASE.test(testcase)) throw Error(`${where}: testcase ${JSON.stringify(testcase)} isn't a lower snake_case name`)
+  if (!Array.isArray(files) || files.length === 0) throw Error(`${where}: files must be an array of at least one file`)
+  const memories = new Set<string>()
+  return {
+    testcase,
+    files: files.map((f: unknown, i): ManifestFile => {
+      const at = `${where}: files[${i}]`
+      if (!isJsonObject(f)) throw Error(`${at} isn't an object`)
+      checkJsonKeys(at, f, ['file', 'memory', 'radix', 'records'])
+      const { file, memory, radix, records } = f
+      if (typeof file !== 'string' || file === '' || isAbsolute(file) || normalize(file).split(sep)[0] === '..') {
+        throw Error(`${at}: file ${JSON.stringify(file)} must be a path inside the manifest's folder, relative to it`)
+      }
+      if (typeof memory !== 'string' || memory === '') throw Error(`${at}: memory must be a memory's instance path, got ${JSON.stringify(memory)}`)
+      if (memories.has(memory)) throw Error(`${at}: memory ${memory} has two files`)
+      memories.add(memory)
+      if (radix !== 'h' && radix !== 'b') throw Error(`${at}: radix must be 'h' or 'b', got ${JSON.stringify(radix)}`)
+      if (typeof records !== 'number' || !Number.isSafeInteger(records) || records < 0) throw Error(`${at}: records must be an integer, at least 0, got ${JSON.stringify(records)}`)
+      return { file, memory, radix, records }
+    })
+  }
+}
+
+/** The manifest in file `path`, checked as parseManifest() checks it. */
+export function readManifest (path: string): Manifest {
+  return parseManifest(parseJsonFile(path), path)
+}
+
+/** The value of JSON file `path`. A syntax error names the file. */
+export function parseJsonFile (path: string): unknown {
+  const text = readFileSync(path, 'utf8')
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    throw Error(`${path}: ${(e as Error).message}`)
+  }
+}
+
+/**
+ * The records of pattern file `path`, one digit string per record, as $readmem<radix> reads them:
+ * comments, blank lines and underscores removed. Refuses what the format leaves out: an `@`
+ * address line, a block comment, two words on one line, and a character that isn't a digit of
+ * the radix, such as an x or z digit.
+ */
+export function readPatternWords (path: string, radix: Radix): string[] {
+  // One word: the radix's digits and underscores, nothing else
+  const word = radix === 'h' ? /^[0-9a-fA-F_]+$/ : /^[01_]+$/
+  const words: string[] = []
+  readFileSync(path, 'utf8').split('\n').forEach((line, i) => {
+    const at = `${path}:${i + 1}`
+    // The line before any // comment, without the spaces around it
+    const text = line.replace(/\/\/.*$/, '').trim()
+    if (text === '') return
+    if (text.startsWith('@')) throw Error(`${at}: has an @ address line; records load from address 0 up, one per line`)
+    if (text.includes('/*')) throw Error(`${at}: has a block comment; a pattern file uses // comments`)
+    if (/\s/.test(text)) throw Error(`${at}: has two words on one line`) // any whitespace inside the word
+    if (!word.test(text)) throw Error(`${at}: ${text} isn't a word of $readmem${radix} digits`)
+    words.push(text.replace(/_/g, '')) // every underscore
+  })
+  return words
 }
