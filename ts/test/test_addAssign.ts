@@ -1,6 +1,6 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { mkdirSync } from 'fs'
-import { markTestbench } from 'tssv/test/models/testbench'
+import { markTestbench } from 'tssv/lib/tb/testbench'
 
 try {
   mkdirSync('sv-examples/Core/addAssign', { recursive: true })

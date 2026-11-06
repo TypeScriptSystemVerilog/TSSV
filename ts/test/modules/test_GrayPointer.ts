@@ -13,9 +13,9 @@
 
 import { GrayPointer } from 'tssv/lib/modules/GrayPointer'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { diagramTasks } from '../models/wavedromVectors.js'
+import { diagramTasks } from 'tssv/lib/tb/wavedromVectors'
 
-const SPEC = 'doc/modules/GrayPointer/GrayPointer-spec.md'
+const SPEC = '$TSSV_ROOT/doc/modules/GrayPointer/GrayPointer-spec.md'
 const OUT = 'sv-examples/GrayPointer'
 const TB_DIR = `${OUT}/tb`
 const GENERATOR = 'ts/test/modules/test_GrayPointer.ts'

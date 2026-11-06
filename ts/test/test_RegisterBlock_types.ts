@@ -39,7 +39,7 @@ import { type Interface } from 'tssv/lib/core/TSSV'
 import { mkdirSync, writeFileSync } from 'fs'
 import { guardSV } from 'tssv/test/models/guardSV'
 import { writeLintWrapped } from 'tssv/test/models/lintWrapper'
-import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
+import { TESTBENCH_MARKER } from 'tssv/lib/tb/testbench'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from 'tssv/test/models/MemoryModels'
 import { type Def, fieldBits, hasFields, lit, pattern, placeFields, type Reg } from 'tssv/test/models/RegisterBlockTestbench'
 

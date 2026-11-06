@@ -9,6 +9,10 @@ TypeScript → (npx tsc) → JS → (node) → .sv → (verilator) → binary �
 It needs the Verilator version pinned in the top-level `README.md` (Setup section), and GTKWave
 on your `PATH` to view the waveform.
 
+A new self-checking testbench is built on the testbench framework instead: a synthesizable
+harness under a sim-only `SimTop`, built with `verilator --binary --timing`
+([testbench.md](testbench.md)).
+
 ## Full flow from scratch
 
 ```bash

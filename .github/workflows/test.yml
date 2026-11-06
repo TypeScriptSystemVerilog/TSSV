@@ -103,6 +103,13 @@ jobs:
       - name: Generated-SV style checks
         run: npm run check:generated-sv
 
+      # Every port contract a generated module declares, under sv-examples/: no combinational
+      # path from one port to another, checked by tying the two together in a wrapper and
+      # linting it for a loop (scripts/check-port-contracts.mjs). Fails on a broken contract,
+      # or one it couldn't check.
+      - name: Port contracts
+        run: npm run check:port-contracts
+
       - name: RTL-style checks
         run: |
           npm run check:rtl-style
@@ -165,6 +172,27 @@ jobs:
       - name: ROM simulation
         run: make -C verilatorTB rom_sim
 
+      # The testbench framework (ts/src/tb/, doc/framework/testbench.md):
+      # tier 1 imports nothing above it, and each example testbench's
+      # harness passes check-harness before the testbench is built and run.
+      - name: Testbench tier rule
+        run: npm run check:test-structure
+
+      - name: Testbench framework examples
+        run: make -C verilatorTB tb_examples_sim
+
+      # Testbenches the testbench generator builds from configuration and
+      # testcase files: each preloaded build, and each reloaded build run
+      # once per testcase, as sv-examples/tb/<DUT>/<testbench>/regression.txt
+      # lists them.
+      - name: Generated testbenches
+        run: make -C verilatorTB tb_regression_sim
+
+      # PatternMemory in both modes: preloaded from its pattern file, and
+      # reloaded through its load port.
+      - name: Pattern memory
+        run: make -C verilatorTB pattern_memory_sim
+
       - name: Upload simulation build logs and waveforms
         if: failure()
         uses: actions/upload-artifact@v4
@@ -172,5 +200,6 @@ jobs:
           name: verilator-sims
           path: |
             verilatorTB/obj_dir/*.build.log
+            verilatorTB/obj_dir/*/*/*.build.log
             verilatorTB/obj_dir/*/*.fst
           if-no-files-found: ignore

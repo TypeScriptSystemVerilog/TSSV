@@ -19,7 +19,7 @@ import { RegisterType, type RegisterBlock, type RegisterBlockDef } from 'tssv/li
 import { type Interface } from 'tssv/lib/core/TSSV'
 import { writeFileSync } from 'fs'
 import { guardSV } from './guardSV.js'
-import { TESTBENCH_MARKER } from './testbench.js'
+import { TESTBENCH_MARKER } from 'tssv/lib/tb/testbench'
 import { memoryMasterBfm, memoryMasterName, memorySlaveModel, memorySlaveName, type MemoryModelOptions } from './MemoryModels.js'
 
 export type Def = RegisterBlockDef<Record<string, bigint>>

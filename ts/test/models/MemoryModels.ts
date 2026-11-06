@@ -12,7 +12,7 @@
 // memory_slave_<type>_<DATA_WIDTH>_<ADDR_WIDTH> or memory_master_<type>_<DATA_WIDTH>_<ADDR_WIDTH>.
 // Used by ts/test/test_RegisterBlock_types.ts (TSSV#80) and ts/test/models/RegisterBlockTestbench.ts (TSSV#130).
 import { Memory, type Memory_Type } from 'tssv/lib/interfaces/Memory'
-import { TESTBENCH_MARKER } from 'tssv/test/models/testbench'
+import { TESTBENCH_MARKER } from 'tssv/lib/tb/testbench'
 
 export interface MemoryModelOptions {
   /** The bus's type. Default `bidi`. */

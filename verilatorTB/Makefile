@@ -247,6 +247,73 @@ rom_sim: tsc
 
 .PHONY: rom_sim
 
+# Example testbenches on the testbench framework's tier 1 (ts/src/tb/, doc/framework/testbench.md):
+# ts/test/tb/test_tbExamples.ts writes each, a SimTop over a harness, to sv-examples/tb/<tb>/, with
+# its pattern files in patterns/ there. This checks that each harness is synthesizable
+# (scripts/check-harness.mjs), then builds and runs each testbench. Each runs from its own folder,
+# because its pattern memories $readmemh their files by a path relative to it. SimTop ends a failed
+# run with $fatal, so a failed check exits nonzero.
+TB_EXAMPLES_DIR = ../sv-examples/tb
+TB_EXAMPLES = tb_SFIFOWave_dual_port tb_Lfsr \
+  tb_RecordStream_cycle tb_RecordStream_sources tb_RecordStream_tied \
+  tb_AFIFOStream_two_domains
+
+tb_examples_sim: tsc
+	cd ..; node out/test/tb/test_tbExamples.js
+	cd ..; node scripts/check-harness.mjs $(foreach tb,$(TB_EXAMPLES),sv-examples/tb/$(tb)/$(tb).sv)
+	mkdir -p obj_dir
+	set -e; for tb in $(TB_EXAMPLES); do \
+	  verilator --binary --timing -j 0 -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(TB_EXAMPLES_DIR)/$$tb $(TB_EXAMPLES_DIR)/$$tb/$$tb.sv \
+	    > obj_dir/$$tb.build.log 2>&1 || { cat obj_dir/$$tb.build.log; exit 1; }; \
+	  (cd $(TB_EXAMPLES_DIR)/$$tb && $(CURDIR)/obj_dir/$$tb/V$$tb); \
+	done
+
+.PHONY: tb_examples_sim
+
+# Generated testbenches (doc/framework/testbench.md, "Configurations, testcases and the
+# generator"). Each runner in TB_REGRESSION_RUNNERS writes its configurations and testcases, and
+# the testbench generator writes sv-examples/tb/<DUT>/<testbench>/ with a regression.txt that lists
+# every run: `mode configuration testcase top buildDir runDir`, the folders relative to the index.
+# For each index, this checks each harness (scripts/check-harness.mjs) and builds each top once,
+# into obj_dir/<DUT>/<testbench>/<top>/, then runs every line from its run folder, so a reloaded
+# build runs once per testcase. A failed run exits nonzero, as in tb_examples_sim.
+TB_REGRESSION_RUNNERS = test_SliceOrderTB test_loadBusTB
+
+tb_regression_sim: tsc
+	cd ..; set -e; for r in $(TB_REGRESSION_RUNNERS); do node out/test/tb/$$r.js > /dev/null; done
+	set -e; for idx in $(TB_EXAMPLES_DIR)/*/*/regression.txt; do \
+	  d=$$(dirname $$idx); o=obj_dir/$${d#$(TB_EXAMPLES_DIR)/}; built=' '; mkdir -p $$o; \
+	  while read -r mode cfg tc top build run; do \
+	    case "$$built" in *" $$top "*) ;; *) \
+	      (cd .. && node scripts/check-harness.mjs $${d#../}/$$build/$$top.sv) < /dev/null; \
+	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build $$d/$$build/$$top.sv \
+	        > $$o/$$top.build.log 2>&1 < /dev/null || { cat $$o/$$top.build.log; exit 1; }; \
+	      built="$$built$$top ";; \
+	    esac; \
+	    (cd $$d/$$run && $(CURDIR)/$$o/$$top/V$$top) < /dev/null; \
+	  done < $$idx; \
+	done
+
+.PHONY: tb_regression_sim
+
+# PatternMemory in both modes (ts/src/tb/PatternMemory.ts): ts/test/tb/test_PatternMemory.ts writes
+# a sim-only testbench for each to sv-examples/tb/PatternMemory/<tb>/, with the pattern file both
+# read in the folder above them. The preloaded memory loads the file itself; the reloaded one is
+# loaded through its load port by its testbench. Each runs from that folder, where the file is.
+PATTERN_MEMORY_DIR = ../sv-examples/tb/PatternMemory
+PATTERN_MEMORY_TBS = tb_PatternMemory_preloaded tb_PatternMemory_reloaded
+
+pattern_memory_sim: tsc
+	cd ..; node out/test/tb/test_PatternMemory.js
+	mkdir -p obj_dir
+	set -e; for tb in $(PATTERN_MEMORY_TBS); do \
+	  verilator --binary --timing -j 0 -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(PATTERN_MEMORY_DIR)/$$tb $(PATTERN_MEMORY_DIR)/$$tb/$$tb.sv \
+	    > obj_dir/$$tb.build.log 2>&1 || { cat obj_dir/$$tb.build.log; exit 1; }; \
+	  (cd $(PATTERN_MEMORY_DIR) && $(CURDIR)/obj_dir/$$tb/V$$tb); \
+	done
+
+.PHONY: pattern_memory_sim
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd

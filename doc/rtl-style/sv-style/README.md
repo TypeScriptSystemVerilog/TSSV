@@ -132,11 +132,17 @@ it generates, and each simulation model, with this comment inside the module:
 // tssv: testbench (simulation only; SYN-1 does not apply)
 ```
 
-`markTestbench(module)` in `ts/test/models/testbench.ts` adds it to a `Module`. SV written as
+`markTestbench(module)` in `ts/src/tb/testbench.ts` adds it to a `Module`. SV written as
 text, such as the models in `ts/test/models/MemoryModels.ts`, includes `TESTBENCH_MARKER` from
 the same file. SYN-1 skips a marked module and reports every unmarked one, a design in the same
 file included. The other checks apply to testbenches as well.
 `ts/test/rtl_style/test_testbench_marker.ts` tests both sides.
+
+**Pattern memories.** A `PatternMemory` is not a testbench. It is part of a synthesizable test
+harness, so SYN-1 applies to it in full, with one exception. Its preload is the single line
+`initial $readmemh("<file>", mem);`, which FPGA tools build as block RAM contents. The scan
+removes that exact line before it looks for `initial`. Anything more makes it a finding again,
+and `ts/test/rtl_style/test_syn1_preload.ts` tests both sides.
 
 **What's left out.** `LEFT_OUT` in `tools/check-generated-sv.mjs` lists the paths the check
 skips, each with its reason. There are two: `sv-examples/AXI4XBar/`, because Rocket Chip's

@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs'
 // import * as fs from 'fs'
 import { Q_Channel } from 'tssv/lib/interfaces/AMBA/AMBA4/Q-Channel/r0p0_0/Q-Channel'
 import { Memory } from 'tssv/lib/interfaces/Memory'
-import { markTestbench } from 'tssv/test/models/testbench'
+import { markTestbench } from 'tssv/lib/tb/testbench'
 
 const OUT = 'sv-examples/Core/addSubmodule'
 

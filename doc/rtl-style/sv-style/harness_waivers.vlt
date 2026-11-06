@@ -1,0 +1,10 @@
+`verilator_config
+// Waivers for linting a testbench harness alone (scripts/check-harness.mjs), on top of the
+// common waivers. Nothing else passes this file (SV guide, section 8).
+//
+// A checker latches its first mismatch in err_* registers (VectorChecker in ts/src/tb/, and the
+// checkers built like it). Nothing inside the harness reads them: SimTop prints them by
+// hierarchical reference when the check fails, and an FPGA build would read them back the same
+// way. A lint of the harness alone sees them as unused, so this waives exactly that warning for
+// exactly those names.
+lint_off -rule UNUSEDSIGNAL -file "*" -match "Signal is not used: 'err_*'"

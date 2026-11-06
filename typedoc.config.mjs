@@ -18,6 +18,7 @@ export default {
     'ts/src/core/SVModuleHeader.ts',
     'ts/src/core/SVFileList.ts',
     'ts/src/core/Paths.ts',
+    'ts/src/core/PortContract.ts',
     'ts/src/interfaces/Memory.ts',
     'ts/src/core/Base.ts'
   ],
