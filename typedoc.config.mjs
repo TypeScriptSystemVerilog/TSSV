@@ -76,6 +76,17 @@ export default {
   // SV it emits (AGENTS.md, "Builder groups and examples").
   jsDocCompatibility: { exampleTag: false },
 
-  // Warnings for now; #71 backfills the JSDoc and makes these errors.
-  validation: { notDocumented: true }
+  // Every exported item and member in the reference has a comment: an undocumented one, an
+  // invalid link or an unexported type in a signature fails `npm run docs`, and so CI.
+  validation: { notDocumented: true },
+  treatValidationWarningsAsErrors: true,
+  // Left undocumented on purpose. TypeDoc fails on an entry here that is documented or no longer
+  // in the reference, so remove an entry when that happens.
+  // - Base.Module.body: #211 makes it private, which takes it out of the reference.
+  // - The `width` of each entry of Memory's inferred `signals` type: Memory's own comment says
+  //   which signals it has and how wide they are.
+  intentionallyNotDocumented: [
+    'Base.Module.body',
+    'Memory.Memory.signals.__type.__index.__type.width'
+  ]
 }
