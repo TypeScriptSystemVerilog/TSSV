@@ -71,6 +71,11 @@ export default {
   // doesn't warn that it's unknown.
   blockTags: [...OptionDefaults.blockTags, '@wavedrom', '@noInheritDoc'],
 
+  // @example is markdown, its first line a title, even without a fenced
+  // block: a builder's example is two {@includeCode} tags, the call and the
+  // SV it emits (AGENTS.md, "Builder groups and examples").
+  jsDocCompatibility: { exampleTag: false },
+
   // Warnings for now; #71 backfills the JSDoc and makes these errors.
   validation: { notDocumented: true }
 }

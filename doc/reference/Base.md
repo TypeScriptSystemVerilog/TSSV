@@ -365,6 +365,40 @@ reset in the module (RST-2).
 
 return the q output signal
 
+###### Example
+
+**An 8-bit register with an enable and an active-low asynchronous reset**
+
+```ts
+m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_b', en: 'en', q: 'q' })
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__RegisterExample__
+`define DEF__RegisterExample__
+
+module RegisterExample (
+    input logic clk,
+    input logic rst_b,
+    input logic en,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else if (en) begin
+      q <= d;
+    end
+
+endmodule
+
+`endif //!DEF__RegisterExample__
+```
+
 #### Combinational logic
 
 ##### addCombAlways()
@@ -435,6 +469,42 @@ add a multiplexer to the TSSV module
 [`Sig`](#sig)
 
 signal of the multiplexer output
+
+###### Example
+
+**A three-input multiplexer with a default**
+
+```ts
+m.addMux({ in: ['a', 'b', 'c'], sel: 'sel', out: 'out', default: 'a' })
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__MuxExample__
+`define DEF__MuxExample__
+
+module MuxExample (
+    input  logic [3:0] a,
+    input  logic [3:0] b,
+    input  logic [3:0] c,
+    input  logic [1:0] sel,
+    output logic [3:0] out
+);
+
+  always_comb
+    unique case (sel)
+      2'd0: out = a;
+      2'd1: out = b;
+      2'd2: out = c;
+
+      default: out = a;
+    endcase
+
+endmodule
+
+`endif //!DEF__MuxExample__
+```
 
 #### Sequential logic
 
@@ -629,6 +699,53 @@ instantiate another module a a submodule
 [`Module`](#module)
 
 returns the resulting submodule instance
+
+###### Example
+
+**Two instances of one module, chained**
+
+```ts
+// stage is a PipeStage module, with ports clk, rst_b, d and q. Its clk and rst_b
+// bind to the parent's ports of the same name (autoBind)
+m.addSubmodule('stage0', stage, { d: 'in', q: 'mid' })
+m.addSubmodule('stage1', stage, { d: 'mid', q: 'out' })
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__SubmoduleExample__
+`define DEF__SubmoduleExample__
+`ifdef USE_INCLUDES
+`include "PipeStage.sv"
+`endif //USE_INCLUDES
+
+module SubmoduleExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] in,
+    output logic [7:0] out
+);
+  logic [7:0] mid;
+
+  PipeStage stage0 (
+      .d(in),
+      .q(mid),
+      .clk(clk),
+      .rst_b(rst_b)
+  );
+
+  PipeStage stage1 (
+      .d(mid),
+      .q(out),
+      .clk(clk),
+      .rst_b(rst_b)
+  );
+
+endmodule
+
+`endif //!DEF__SubmoduleExample__
+```
 
 ##### addSystemVerilogSubmodule()
 

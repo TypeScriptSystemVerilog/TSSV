@@ -14,6 +14,11 @@ name: docs-reference
 # check:wavedrom` for the diagrams in hand-written docs (module specs), whose
 # SVGs are committed beside them.
 #
+# A second job, examples, reruns the builder examples in ts/doc-examples/
+# (`npm run docs:examples`), whose SV under doc/examples/ the reference
+# includes, and fails if that SV differs from what is committed. Generating
+# SV needs Verible, so that job runs in the tssv-ci image, as test.yml does.
+#
 # Also runs on pushes to main, which catches two PRs that are each fresh on
 # their own but stale once both are merged.
 on:
@@ -57,3 +62,44 @@ jobs:
 
       - name: Check the WaveDrom SVGs in doc/ are up to date
         run: npm run check:wavedrom
+
+  examples:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+
+    # The emitted SV is Verible-formatted, so the examples need the pinned
+    # toolchain: the same image and tag as test.yml. Bump both together.
+    container:
+      image: ghcr.io/typescriptsystemverilog/tssv-ci:v1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci
+
+      # Builds, empties doc/examples/core/ and runs every example.
+      - run: npm run docs:examples
+
+      # The checkout belongs to the runner's user, not the container's root,
+      # so git refuses to touch it without this.
+      - name: Check doc/examples/ is up to date
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git add -N doc/examples
+          if ! git diff --exit-code --stat -- doc/examples; then
+            git diff -- doc/examples
+            echo "::error::doc/examples/ is stale. Run 'npm run docs:examples', then 'npm run docs', and commit the result; never hand-edit it."
+            exit 1
+          fi

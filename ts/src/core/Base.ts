@@ -517,6 +517,12 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param bindings define the connections of the submodule
      * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
      * @returns returns the resulting submodule instance
+     * @example Two instances of one module, chained
+     * {@includeCode ../../doc-examples/core/addSubmodule.ts#example}
+     *
+     * The SystemVerilog it emits:
+     *
+     * {@includeCode ../../../doc/examples/core/addSubmodule/SubmoduleExample.sv}
      * @group Hierarchy
      */
   addSubmodule (
@@ -835,6 +841,12 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
      * written as `'0`, or as a literal sized to q
      * @returns return the q output signal
+     * @example An 8-bit register with an enable and an active-low asynchronous reset
+     * {@includeCode ../../doc-examples/core/addRegister.ts#example}
+     *
+     * The SystemVerilog it emits:
+     *
+     * {@includeCode ../../../doc/examples/core/addRegister/RegisterExample.sv}
      * @group Registers
      */
   addRegister (io: {
@@ -1439,6 +1451,12 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * than `out` is an error. An `Expr` input is used as given. A `sel` value past the last input
      * gives `default`, or all X.
      * @returns signal of the multiplexer output
+     * @example A three-input multiplexer with a default
+     * {@includeCode ../../doc-examples/core/addMux.ts#example}
+     *
+     * The SystemVerilog it emits:
+     *
+     * {@includeCode ../../../doc/examples/core/addMux/MuxExample.sv}
      * @group Combinational logic
      */
   addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig, default?: string | Sig | Expr }): Sig {
