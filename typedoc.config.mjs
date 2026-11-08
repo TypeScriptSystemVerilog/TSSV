@@ -37,6 +37,24 @@ export default {
   outputFileStrategy: 'modules',
   flattenOutputFiles: true,
 
+  // Module's builders, grouped by what they add (@group on each), in this
+  // order, ahead of everything else. AGENTS.md, "Builder groups and
+  // examples". The rest are TypeDoc's own groups, in its default order:
+  // without them here they would sort alphabetically.
+  groupOrder: [
+    'Signals and ports',
+    'Registers',
+    'Combinational logic',
+    'Sequential logic',
+    'Arithmetic',
+    'Hierarchy',
+    'Raw SystemVerilog',
+    'Output and utilities',
+    'Enumerations', 'Classes', 'Interfaces', 'Type Aliases', 'Constructors',
+    'Properties', 'Variables', 'Functions', 'Accessors', 'Methods',
+    '*'
+  ],
+
   // No "Defined in: Base.ts:<line>": the reference changes only when the
   // API or its comments do, so its diff in a PR shows the API change.
   disableSources: true,

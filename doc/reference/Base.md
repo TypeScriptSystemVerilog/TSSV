@@ -173,94 +173,7 @@ The Module class is the base class for all TSSV modules.
 | `P` *extends* [`TSSVParameters`](#tssvparameters) | [`TSSVParameters`](#tssvparameters) |
 | `IO` *extends* [`IOSignals`](#iosignals) | [`IOSignals`](#iosignals) |
 
-#### Constructors
-
-##### Constructor
-
-```ts
-new Module<P, IO>(
-   params?, 
-   IOs?, 
-   signals?, 
-   body?
-): Module<P, IO>;
-```
-
-base constructor
-
-###### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `params` | `P` | `...` | parameter value bundle. Without a `name`, the module name is `<ClassName>_` followed by one segment per other key, sorted by key (`doc/framework/concepts.md` §2) |
-| `IOs` | `IO` | `...` | IO port bundle |
-| `signals` | \{ \} | `{}` | signal bundle |
-| `body` | `string` | `''` | SystemVerilog body text |
-
-###### Returns
-
-[`Module`](#module)\<`P`, `IO`\>
-
-#### Properties
-
-| Property | Modifier | Type | Description |
-| ------ | ------ | ------ | ------ |
-| <a id="name-2"></a> `name` | `readonly` | `string` | name contains the resulting SystemVerilog module name: `params.name` if it is set, otherwise one derived from the class name and the parameter values (`doc/framework/concepts.md` §2) |
-| <a id="params-2"></a> `params` | `protected` | `P` | - |
-| <a id="ios"></a> `IOs` | `protected` | `IO` | - |
-| <a id="submodules"></a> `submodules` | `protected` | `Record`\<`string`, \{ `module`: [`Module`](#module); `bindings`: `Record`\<`string`, `string` \| [`Sig`](#sig) \| `bigint`\>; \}\> | - |
-| <a id="interfaces-1"></a> `interfaces` | `protected` | [`Interfaces`](#interfaces) | - |
-| <a id="body"></a> `body` | `protected` | `string` | - |
-
-#### Accessors
-
-##### portContracts
-
-###### Get Signature
-
-```ts
-get portContracts(): readonly PortContract[];
-```
-
-The port contracts this module declares, in the order declared
-
-###### Returns
-
-readonly [`PortContract`](PortContract.md#portcontract)[]
-
-#### Methods
-
-##### setVerilogParameter()
-
-```ts
-setVerilogParameter(param): void;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `param` | `string` |
-
-###### Returns
-
-`void`
-
-##### setFormatterConfig()
-
-```ts
-static setFormatterConfig(config): void;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `config` | [`FormatterConfig`](#formatterconfig) |
-
-###### Returns
-
-`void`
+#### Signals and ports
 
 ##### addInterface()
 
@@ -331,6 +244,359 @@ this.addNoCombinationalPathContract('out.ready', 'in.ready')
 ###### Returns
 
 `void`
+
+##### portContracts
+
+###### Get Signature
+
+```ts
+get portContracts(): readonly PortContract[];
+```
+
+The port contracts this module declares, in the order declared
+
+###### Returns
+
+readonly [`PortContract`](PortContract.md#portcontract)[]
+
+##### addSignal()
+
+```ts
+addSignal(name, signal): Sig;
+```
+
+add a signal to the SystemVerilog module
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | name of the signal |
+| `signal` | [`Signal`](#signal) | parameters of the signal |
+
+###### Returns
+
+[`Sig`](#sig)
+
+signal that can be passed to other add* functions to make connections
+
+##### addConstSignal()
+
+```ts
+addConstSignal(
+   name, 
+   value, 
+   isSigned?, 
+   width?
+): Sig;
+```
+
+add a constant literal signal to the generated SystemVerilog module
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `name` | `string` \| `undefined` | `undefined` | signal name |
+| `value` | `bigint` | `undefined` | signal literal value. It's declared with a sized literal at the signal's width. |
+| `isSigned` | `boolean` | `false` | whether the signal is signed or not |
+| `width` | `number` \| `undefined` | `undefined` | bit width of the resulting signal |
+
+###### Returns
+
+[`Sig`](#sig)
+
+##### addConstSignals()
+
+```ts
+addConstSignals(
+   name, 
+   values, 
+   isSigned?, 
+   width?
+): Sig[];
+```
+
+add an array of constant literal signals to the generated SystemVerilog module
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `name` | `string` | `undefined` | signal name |
+| `values` | `bigint`[] | `undefined` | the literal values of the array |
+| `isSigned` | `boolean` | `false` | whether the signals are signed or not |
+| `width` | `number` \| `undefined` | `undefined` | bit width of the resulting signals |
+
+###### Returns
+
+[`Sig`](#sig)[]
+
+The array of signals
+
+#### Registers
+
+##### addRegister()
+
+```ts
+addRegister(io): Sig;
+```
+
+add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
+(SV guide SEQ-6). Emission checks the `always_ff` block the register goes in,
+as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
+reset in the module (RST-2).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `d`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `resetVal?`: `bigint`; `en?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `q?`: `string` \| [`Sig`](#sig); \} | the input/output of the register. With a reset, q resets to `resetVal` (default 0), written as `'0`, or as a literal sized to q |
+| `io.d` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
+| `io.clk` | `string` \| [`Sig`](#sig) | - |
+| `io.reset?` | `string` \| [`Sig`](#sig) | - |
+| `io.resetVal?` | `bigint` | - |
+| `io.en?` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
+| `io.q?` | `string` \| [`Sig`](#sig) | - |
+
+###### Returns
+
+[`Sig`](#sig)
+
+return the q output signal
+
+#### Combinational logic
+
+##### addCombAlways()
+
+```ts
+addCombAlways(io, body): void;
+```
+
+Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
+[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
+block in the module: COMB-2 and COMB-3 apply to this one.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the signals the block assigns, which become `logic`; `inputs` gives a sensitivity list instead of `always_comb` |
+| `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
+| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
+| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
+
+###### Returns
+
+`void`
+
+##### addAssign()
+
+```ts
+addAssign(io): Sig;
+```
+
+add a SystemVerilog continuous assign statement
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `in`: [`Expr`](#expr); `out`: `string` \| [`Sig`](#sig); \} | expression that is the right hand side of the assigment |
+| `io.in` | [`Expr`](#expr) | - |
+| `io.out` | `string` \| [`Sig`](#sig) | - |
+
+###### Returns
+
+[`Sig`](#sig)
+
+signal that is the left hand side of the assignment
+
+##### addMux()
+
+```ts
+addMux(io): Sig;
+```
+
+add a multiplexer to the TSSV module
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `in`: (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[]; `sel`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `out`: `string` \| [`Sig`](#sig); `default?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); \} | The input/output signals connected to the multiplexer. `in` needs at least two entries, and `sel` picks one; a `sel` signal wider than it needs is sliced to its low bits. A signal input narrower than `out` is extended to it, with the input's signedness; one wider than `out` is an error. An `Expr` input is used as given. A `sel` value past the last input gives `default`, or all X. |
+| `io.in` | (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[] | - |
+| `io.sel` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
+| `io.out` | `string` \| [`Sig`](#sig) | - |
+| `io.default?` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
+
+###### Returns
+
+[`Sig`](#sig)
+
+signal of the multiplexer output
+
+#### Sequential logic
+
+##### addSequentialAlways()
+
+```ts
+addSequentialAlways(io, body): void;
+```
+
+Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
+<reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
+[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
+block in the module: COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the block's clock, its reset if it has one, and the signals it assigns, which become `logic` |
+| `io.clk` | `string` \| [`Sig`](#sig) | - |
+| `io.reset?` | `string` \| [`Sig`](#sig) | - |
+| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
+| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
+
+###### Returns
+
+`void`
+
+##### addLatchAlways()
+
+```ts
+addLatchAlways(io, body): void;
+```
+
+Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5).
+[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
+block in the module: COMB-2 applies to this one.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the signals the block assigns, which become `logic`; `inputs` gives a sensitivity list instead of `always_latch` |
+| `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
+| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
+| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
+
+###### Returns
+
+`void`
+
+#### Arithmetic
+
+##### addRound()
+
+```ts
+addRound(io, roundMode?): Sig;
+```
+
+add a rounding operation to scale down and reduce the bit width of a signal: `out` is
+`in / 2^rShift`, rounded as `roundMode` says.
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); `rShift`: `string` \| `number` \| [`Sig`](#sig); \} | `undefined` | the input/output signals of the round operation. `in` and `out` must have the same signedness. `rShift` determines the number of LSBs to round away. It can be either a literal constant, from 0 to `in`'s width minus 1, or a variable shift: an unsigned signal whose value stays in that range. When using a variable shift, care should be taken to minimize the number of bits to minimize the impact on the timing path of the resulting logic. Every mode but `rm` adds a bias before the shift. The sum is a signal named `<out>_biased`, one bit wider than `in`, so it can't overflow. A result that doesn't fit `out` keeps its low bits: `out` needs `in`'s width minus `rShift`, plus one bit, to hold every result. |
+| `io.in` | `string` \| [`Sig`](#sig) | `undefined` | - |
+| `io.out` | `string` \| [`Sig`](#sig) | `undefined` | - |
+| `io.rShift` | `string` \| `number` \| [`Sig`](#sig) | `undefined` | - |
+| `roundMode` | `"rp"` \| `"rm"` \| `"rz"` \| `"rn"` \| `"rna"` | `'rp'` | determines the type of rounding to apply: `rp` rounds half up (towards +∞), `rm` rounds down, `rz` rounds towards zero, `rn` rounds half to even, and `rna` rounds half away from zero |
+
+###### Returns
+
+[`Sig`](#sig)
+
+the signal of the rounded result
+
+##### addSaturate()
+
+```ts
+addSaturate(io, satMode?): Sig;
+```
+
+add a Saturate operation to limit the bit width of a signal without overflow
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); \} | `undefined` | the input and output signals of the saturation operation. They must have the same signedness. An `out` at least as wide as `in` gets `in` extended, except that `balanced` still clamps a signed `in` of the same width. |
+| `io.in` | `string` \| [`Sig`](#sig) | `undefined` | - |
+| `io.out` | `string` \| [`Sig`](#sig) | `undefined` | - |
+| `satMode` | `"balanced"` \| `"none"` \| `"simple"` | `'simple'` | determines the behavior of the saturation. `simple` clamps `in` to `out`'s range. `balanced` clamps a signed `in` to a range symmetric about zero, from `-(2^(n-1) - 1)` to `2^(n-1) - 1` for an `n`-bit `out`; for an unsigned `in` it's `simple`. `none` doesn't clamp: an unsigned `in` keeps its low bits, and a signed `in` out of range keeps its sign and its low `n - 1` bits. |
+
+###### Returns
+
+[`Sig`](#sig)
+
+signal of the result of the saturation
+
+##### addMultiplier()
+
+```ts
+addMultiplier(io): Sig;
+```
+
+adds an arithmetic multiplier to the generated SystemVerilog module
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the multiplier. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the product is signed, and an unsigned signal is converted with `$signed({1'b0, x})`. The product is written plain, `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both operands together, which holds every product. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and logs a warning. A literal is written at its own width, with a sign bit in a signed product. A negative literal is negated: `a * -8n` gives `a * -5'sd8`. |
+
+###### Returns
+
+[`Sig`](#sig)
+
+the product result
+
+##### addAdder()
+
+```ts
+addAdder(io): Sig;
+```
+
+adds an arithmetic adder to the generated SystemVerilog module
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the adder. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the sum is signed, and an unsigned signal is converted with `$signed({1'b0, x})`, which adds a bit. The sum is written plain, `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a warning. A literal is written at its own width, with a sign bit in a signed sum. A negative literal is negated: `a + -8n` gives `a + -5'sd8`. |
+
+###### Returns
+
+[`Sig`](#sig)
+
+the sum result
+
+##### addSubtractor()
+
+```ts
+addSubtractor(io): Sig;
+```
+
+adds an arithmetic subtractor to the generated SystemVerilog module
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `io` | [`OperationIO`](#operationio) | the input/output interface of the subtractor: `a - b`. The widths and signedness follow [Module.addAdder](#addadder). |
+
+###### Returns
+
+[`Sig`](#sig)
+
+the difference result
+
+#### Hierarchy
 
 ##### addSubmodule()
 
@@ -412,377 +678,7 @@ once.
 
 the imported submodule
 
-##### nameHash()
-
-```ts
-protected nameHash(value): string;
-```
-
-The hash a derived module name holds for a value that can't go into it as is: 41 bits of the
-SHA-256 of the value's canonical JSON, as 8 lowercase base-36 characters (2^41 < 36^8). Text
-that refers to the hash in a module's name, such as a parameter comment, should use it too.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `value` | `unknown` | the parameter value |
-
-###### Returns
-
-`string`
-
-8 characters from `0-9a-z`
-
-##### addSignal()
-
-```ts
-addSignal(name, signal): Sig;
-```
-
-add a signal to the SystemVerilog module
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `name` | `string` | name of the signal |
-| `signal` | [`Signal`](#signal) | parameters of the signal |
-
-###### Returns
-
-[`Sig`](#sig)
-
-signal that can be passed to other add* functions to make connections
-
-##### addRegister()
-
-```ts
-addRegister(io): Sig;
-```
-
-add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
-(SV guide SEQ-6). Emission checks the `always_ff` block the register goes in,
-as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
-reset in the module (RST-2).
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | \{ `d`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `resetVal?`: `bigint`; `en?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `q?`: `string` \| [`Sig`](#sig); \} | the input/output of the register. With a reset, q resets to `resetVal` (default 0), written as `'0`, or as a literal sized to q |
-| `io.d` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
-| `io.clk` | `string` \| [`Sig`](#sig) | - |
-| `io.reset?` | `string` \| [`Sig`](#sig) | - |
-| `io.resetVal?` | `bigint` | - |
-| `io.en?` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
-| `io.q?` | `string` \| [`Sig`](#sig) | - |
-
-###### Returns
-
-[`Sig`](#sig)
-
-return the q output signal
-
-##### bitWidth()
-
-```ts
-bitWidth(a, isSigned?): number;
-```
-
-get the number of bits need to represent an integer value
-
-###### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `a` | `number` \| `bigint` | `undefined` | the value to determine the bit width of |
-| `isSigned` | `boolean` | `false` | whether the value should be treated as a signed number |
-
-###### Returns
-
-`number`
-
-the minimum bit width needed to represent the value
-
-##### addRound()
-
-```ts
-addRound(io, roundMode?): Sig;
-```
-
-add a rounding operation to scale down and reduce the bit width of a signal: `out` is
-`in / 2^rShift`, rounded as `roundMode` says.
-
-###### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); `rShift`: `string` \| `number` \| [`Sig`](#sig); \} | `undefined` | the input/output signals of the round operation. `in` and `out` must have the same signedness. `rShift` determines the number of LSBs to round away. It can be either a literal constant, from 0 to `in`'s width minus 1, or a variable shift: an unsigned signal whose value stays in that range. When using a variable shift, care should be taken to minimize the number of bits to minimize the impact on the timing path of the resulting logic. Every mode but `rm` adds a bias before the shift. The sum is a signal named `<out>_biased`, one bit wider than `in`, so it can't overflow. A result that doesn't fit `out` keeps its low bits: `out` needs `in`'s width minus `rShift`, plus one bit, to hold every result. |
-| `io.in` | `string` \| [`Sig`](#sig) | `undefined` | - |
-| `io.out` | `string` \| [`Sig`](#sig) | `undefined` | - |
-| `io.rShift` | `string` \| `number` \| [`Sig`](#sig) | `undefined` | - |
-| `roundMode` | `"rp"` \| `"rm"` \| `"rz"` \| `"rn"` \| `"rna"` | `'rp'` | determines the type of rounding to apply: `rp` rounds half up (towards +∞), `rm` rounds down, `rz` rounds towards zero, `rn` rounds half to even, and `rna` rounds half away from zero |
-
-###### Returns
-
-[`Sig`](#sig)
-
-the signal of the rounded result
-
-##### addSaturate()
-
-```ts
-addSaturate(io, satMode?): Sig;
-```
-
-add a Saturate operation to limit the bit width of a signal without overflow
-
-###### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `io` | \{ `in`: `string` \| [`Sig`](#sig); `out`: `string` \| [`Sig`](#sig); \} | `undefined` | the input and output signals of the saturation operation. They must have the same signedness. An `out` at least as wide as `in` gets `in` extended, except that `balanced` still clamps a signed `in` of the same width. |
-| `io.in` | `string` \| [`Sig`](#sig) | `undefined` | - |
-| `io.out` | `string` \| [`Sig`](#sig) | `undefined` | - |
-| `satMode` | `"balanced"` \| `"none"` \| `"simple"` | `'simple'` | determines the behavior of the saturation. `simple` clamps `in` to `out`'s range. `balanced` clamps a signed `in` to a range symmetric about zero, from `-(2^(n-1) - 1)` to `2^(n-1) - 1` for an `n`-bit `out`; for an unsigned `in` it's `simple`. `none` doesn't clamp: an unsigned `in` keeps its low bits, and a signed `in` out of range keeps its sign and its low `n - 1` bits. |
-
-###### Returns
-
-[`Sig`](#sig)
-
-signal of the result of the saturation
-
-##### addSequentialAlways()
-
-```ts
-addSequentialAlways(io, body): void;
-```
-
-Add an `always_ff` block. The builder writes the header, `always_ff @(<clock edge> <clk> or
-<reset edge> <reset>)`, from `clk` and `reset`; a body that has its own header must match it.
-[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
-block in the module: COMB-2, SEQ-1, SEQ-4, SEQ-5, SEQ-6 and RST-2 apply to this one.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | \{ `clk`: `string` \| [`Sig`](#sig); `reset?`: `string` \| [`Sig`](#sig); `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the block's clock, its reset if it has one, and the signals it assigns, which become `logic` |
-| `io.clk` | `string` \| [`Sig`](#sig) | - |
-| `io.reset?` | `string` \| [`Sig`](#sig) | - |
-| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
-| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
-
-###### Returns
-
-`void`
-
-##### addCombAlways()
-
-```ts
-addCombAlways(io, body): void;
-```
-
-Add a combinational block: `always_comb`, or, with `inputs`, the older `always @( ... )` form.
-[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
-block in the module: COMB-2 and COMB-3 apply to this one.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the signals the block assigns, which become `logic`; `inputs` gives a sensitivity list instead of `always_comb` |
-| `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
-| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
-| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
-
-###### Returns
-
-`void`
-
-##### addLatchAlways()
-
-```ts
-addLatchAlways(io, body): void;
-```
-
-Add an `always_latch` block, for a latch built by intent (TSSV guide BUILD-5).
-[writeSystemVerilogFiles](#writesystemverilogfiles) checks the block against the SV guide, as it checks every always
-block in the module: COMB-2 applies to this one.
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | \{ `inputs?`: (`string` \| [`Sig`](#sig))[]; `outputs`: (`string` \| [`Sig`](#sig))[]; \} | the signals the block assigns, which become `logic`; `inputs` gives a sensitivity list instead of `always_latch` |
-| `io.inputs?` | (`string` \| [`Sig`](#sig))[] | - |
-| `io.outputs` | (`string` \| [`Sig`](#sig))[] | - |
-| `body` | `string` | the block's statements, usually `begin : <name> ... end` |
-
-###### Returns
-
-`void`
-
-##### addMultiplier()
-
-```ts
-addMultiplier(io): Sig;
-```
-
-adds an arithmetic multiplier to the generated SystemVerilog module
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the multiplier. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the product is signed, and an unsigned signal is converted with `$signed({1'b0, x})`. The product is written plain, `a * b`, with no operand casts. Without `result`, it's a new signal as wide as both operands together, which holds every product. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a * b)`, which keeps the low bits, and logs a warning. A literal is written at its own width, with a sign bit in a signed product. A negative literal is negated: `a * -8n` gives `a * -5'sd8`. |
-
-###### Returns
-
-[`Sig`](#sig)
-
-the product result
-
-##### addAdder()
-
-```ts
-addAdder(io): Sig;
-```
-
-adds an arithmetic adder to the generated SystemVerilog module
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the adder. `a` and `b` are signals or bigint literals. If either is signed, or a negative literal, the sum is signed, and an unsigned signal is converted with `$signed({1'b0, x})`, which adds a bit. The sum is written plain, `a + b`, with no operand casts. Without `result`, it's a new signal one bit wider than the wider operand, which holds every sum. With `result`, it's computed at `result`'s width; a narrower `result` gets one outer cast, `W'(a + b)`, which keeps the low bits, and logs a warning. A literal is written at its own width, with a sign bit in a signed sum. A negative literal is negated: `a + -8n` gives `a + -5'sd8`. |
-
-###### Returns
-
-[`Sig`](#sig)
-
-the sum result
-
-##### addSubtractor()
-
-```ts
-addSubtractor(io): Sig;
-```
-
-adds an arithmetic subtractor to the generated SystemVerilog module
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | [`OperationIO`](#operationio) | the input/output interface of the subtractor: `a - b`. The widths and signedness follow [Module.addAdder](#addadder). |
-
-###### Returns
-
-[`Sig`](#sig)
-
-the difference result
-
-##### addConstSignal()
-
-```ts
-addConstSignal(
-   name, 
-   value, 
-   isSigned?, 
-   width?
-): Sig;
-```
-
-add a constant literal signal to the generated SystemVerilog module
-
-###### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `name` | `string` \| `undefined` | `undefined` | signal name |
-| `value` | `bigint` | `undefined` | signal literal value. It's declared with a sized literal at the signal's width. |
-| `isSigned` | `boolean` | `false` | whether the signal is signed or not |
-| `width` | `number` \| `undefined` | `undefined` | bit width of the resulting signal |
-
-###### Returns
-
-[`Sig`](#sig)
-
-##### addConstSignals()
-
-```ts
-addConstSignals(
-   name, 
-   values, 
-   isSigned?, 
-   width?
-): Sig[];
-```
-
-add an array of constant literal signals to the generated SystemVerilog module
-
-###### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `name` | `string` | `undefined` | signal name |
-| `values` | `bigint`[] | `undefined` | the literal values of the array |
-| `isSigned` | `boolean` | `false` | whether the signals are signed or not |
-| `width` | `number` \| `undefined` | `undefined` | bit width of the resulting signals |
-
-###### Returns
-
-[`Sig`](#sig)[]
-
-The array of signals
-
-##### addAssign()
-
-```ts
-addAssign(io): Sig;
-```
-
-add a SystemVerilog continuous assign statement
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | \{ `in`: [`Expr`](#expr); `out`: `string` \| [`Sig`](#sig); \} | expression that is the right hand side of the assigment |
-| `io.in` | [`Expr`](#expr) | - |
-| `io.out` | `string` \| [`Sig`](#sig) | - |
-
-###### Returns
-
-[`Sig`](#sig)
-
-signal that is the left hand side of the assignment
-
-##### addMux()
-
-```ts
-addMux(io): Sig;
-```
-
-add a multiplexer to the TSSV module
-
-###### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `io` | \{ `in`: (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[]; `sel`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); `out`: `string` \| [`Sig`](#sig); `default?`: `string` \| [`Sig`](#sig) \| [`Expr`](#expr); \} | The input/output signals connected to the multiplexer. `in` needs at least two entries, and `sel` picks one; a `sel` signal wider than it needs is sliced to its low bits. A signal input narrower than `out` is extended to it, with the input's signedness; one wider than `out` is an error. An `Expr` input is used as given. A `sel` value past the last input gives `default`, or all X. |
-| `io.in` | (`string` \| [`Sig`](#sig) \| [`Expr`](#expr))[] | - |
-| `io.sel` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
-| `io.out` | `string` \| [`Sig`](#sig) | - |
-| `io.default?` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | - |
-
-###### Returns
-
-[`Sig`](#sig)
-
-signal of the multiplexer output
+#### Raw SystemVerilog
 
 ##### addBody()
 
@@ -845,6 +741,83 @@ that benefit from automatic indent stripping.
 ###### Returns
 
 `void`
+
+#### Output and utilities
+
+##### setVerilogParameter()
+
+```ts
+setVerilogParameter(param): void;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `param` | `string` |
+
+###### Returns
+
+`void`
+
+##### setFormatterConfig()
+
+```ts
+static setFormatterConfig(config): void;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `config` | [`FormatterConfig`](#formatterconfig) |
+
+###### Returns
+
+`void`
+
+##### nameHash()
+
+```ts
+protected nameHash(value): string;
+```
+
+The hash a derived module name holds for a value that can't go into it as is: 41 bits of the
+SHA-256 of the value's canonical JSON, as 8 lowercase base-36 characters (2^41 < 36^8). Text
+that refers to the hash in a module's name, such as a parameter comment, should use it too.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `value` | `unknown` | the parameter value |
+
+###### Returns
+
+`string`
+
+8 characters from `0-9a-z`
+
+##### bitWidth()
+
+```ts
+bitWidth(a, isSigned?): number;
+```
+
+get the number of bits need to represent an integer value
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `a` | `number` \| `bigint` | `undefined` | the value to determine the bit width of |
+| `isSigned` | `boolean` | `false` | whether the value should be treated as a signed number |
+
+###### Returns
+
+`number`
+
+the minimum bit width needed to represent the value
 
 ##### debug()
 
@@ -974,6 +947,45 @@ are constants. The rules:
 `string`[]
 
 the paths written, each after every file it includes, so this module's is last
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new Module<P, IO>(
+   params?, 
+   IOs?, 
+   signals?, 
+   body?
+): Module<P, IO>;
+```
+
+base constructor
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `params` | `P` | `...` | parameter value bundle. Without a `name`, the module name is `<ClassName>_` followed by one segment per other key, sorted by key (`doc/framework/concepts.md` §2) |
+| `IOs` | `IO` | `...` | IO port bundle |
+| `signals` | \{ \} | `{}` | signal bundle |
+| `body` | `string` | `''` | SystemVerilog body text |
+
+###### Returns
+
+[`Module`](#module)\<`P`, `IO`\>
+
+#### Properties
+
+| Property | Modifier | Type | Description |
+| ------ | ------ | ------ | ------ |
+| <a id="name-2"></a> `name` | `readonly` | `string` | name contains the resulting SystemVerilog module name: `params.name` if it is set, otherwise one derived from the class name and the parameter values (`doc/framework/concepts.md` §2) |
+| <a id="params-2"></a> `params` | `protected` | `P` | - |
+| <a id="ios"></a> `IOs` | `protected` | `IO` | - |
+| <a id="submodules"></a> `submodules` | `protected` | `Record`\<`string`, \{ `module`: [`Module`](#module); `bindings`: `Record`\<`string`, `string` \| [`Sig`](#sig) \| `bigint`\>; \}\> | - |
+| <a id="interfaces-1"></a> `interfaces` | `protected` | [`Interfaces`](#interfaces) | - |
+| <a id="body"></a> `body` | `protected` | `string` | - |
 
 ## Interfaces
 
