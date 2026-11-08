@@ -305,7 +305,7 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         const firstVal = hwFirst ? hwVal : swVal
         const secondCond = hwFirst ? `${regName}_wr_hit` : `${regName}_hw_update`
         const secondVal = hwFirst ? swVal : hwVal
-        this.body += `
+        this.addBody(`
 always_ff @( posedge clk or negedge rst_b )
   if (!rst_b)
     ${regName} <= ${width}'h${resetHex};
@@ -313,7 +313,7 @@ always_ff @( posedge clk or negedge rst_b )
     ${regName} <= ${firstVal};
   else if (${secondCond})
     ${regName} <= ${secondVal};
-`
+`, { trimLeadingBlankLines: false })
       } else if (thisReg.type === RegisterType.RO) {
         // A constant RO has no port: the read path returns its reset value
         if (thisReg.constant !== true) {
