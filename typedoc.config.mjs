@@ -8,38 +8,34 @@ export default {
   // The core, plus the Memory interface that RegisterBlock's bus uses.
   // The TSSV.ts / TSSVLib.ts barrels are left out: TSSVLib.ts re-exports
   // APB_to_Memory, which is outside the core.
-  //
-  // Base.ts goes last on purpose. typedoc-plugin-missing-exports documents
-  // a non-exported symbol in the last module that referenced it, and
-  // RegisterBlock's inherited Module members reference Base's internals
-  // (BinaryOp, IOSignal, ...). Converting Base last keeps them in Base.md.
   entryPoints: [
+    'ts/src/core/Base.ts',
     'ts/src/core/Registers.ts',
     'ts/src/core/SVModuleHeader.ts',
     'ts/src/core/SVFileList.ts',
     'ts/src/core/Paths.ts',
     'ts/src/core/PortContract.ts',
-    'ts/src/interfaces/Memory.ts',
-    'ts/src/core/Base.ts'
+    'ts/src/interfaces/Memory.ts'
   ],
   out: 'doc/reference',
   plugin: [
     'typedoc-plugin-markdown',
-    'typedoc-plugin-missing-exports',
     'typedoc-plugin-no-inherit',
     './scripts/typedoc-wavedrom.mjs'
   ],
   readme: 'none',
   sort: ['source-order'],
   excludePrivate: true,
-  // Keeps missing-exports from documenting lib types such as Record.
+  // Protected members stay: TSSV modules subclass Module and use some of them
+  // (params, IOs, nameHash(), ...). The ones that aren't meant for module
+  // authors, and exported items that aren't API, are tagged @internal.
+  excludeInternal: true,
   excludeExternals: true,
 
   // One file per source file, named after it, instead of
-  // core/Base/README.md plus -internal-.md.
+  // core/Base/README.md.
   outputFileStrategy: 'modules',
   flattenOutputFiles: true,
-  placeInternalsInOwningModule: true,
 
   // No "Defined in: Base.ts:<line>": the reference changes only when the
   // API or its comments do, so its diff in a PR shows the API change.

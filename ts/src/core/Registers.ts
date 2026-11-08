@@ -14,13 +14,16 @@ export enum RegisterType {
   ROM = 'ROM',
 }
 
-interface Field {
+/** A field of a {@link Register}: its bits within the register, and its reset value */
+export interface Field {
   reset?: bigint
   description?: string
   bitRange: [IntRange<0, 63>, IntRange<0, 63>]
   isSigned?: boolean
 }
-interface Register {
+
+/** A register of a {@link RegisterBlockDef}: its type, width, reset value and fields */
+export interface Register {
   type: RegisterType
   reset?: bigint
   description?: string

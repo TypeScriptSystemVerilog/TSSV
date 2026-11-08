@@ -20,7 +20,8 @@ ACC extends number = never> = ARR['length'] extends END
   ? ACC | START | END
   : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
-type ParameterValue =
+/** A value a module parameter can take: an entry of {@link TSSVParameters} */
+export type ParameterValue =
   string | boolean | bigint | IntRange<number, number> | bigint[] | string[] |
   Array<IntRange<number, number>> |
   object
@@ -30,7 +31,8 @@ export interface TSSVParameters {
   [name: string]: ParameterValue | undefined
 }
 
-interface SVEnum {
+/** A SystemVerilog enum type for a signal of type `'enum'`: its type name, width and values */
+export interface SVEnum {
   typeName: string
   width: number
   values: Record<string, bigint>
@@ -49,9 +51,9 @@ interface SVEnum {
 export type SVAttributes = Record<string, string | number | bigint | true>
 
 /**
- * signal parameters
+ * signal parameters, shared by {@link Signal} and {@link IOSignal}
  */
-interface baseSignal {
+export interface baseSignal {
   type?: 'wire' | 'reg' | 'const logic' | 'logic' | 'enum'
   width?: number
   isClock?: 'posedge' | 'negedge'
@@ -117,12 +119,13 @@ function guardSVFile (name: string, includes: string[], sv: string): string {
   return `\`ifndef ${guard}\n\`define ${guard}\n${includeBlock}\n${body}\n\n\`endif //!${guard}\n`
 }
 
-type PortDirection = 'input' | 'output' | 'inout'
+/** The direction of a port, or of an interface signal in a modport */
+export type PortDirection = 'input' | 'output' | 'inout'
 
 /**
  * defines an IO signal (a.k.a port of the the TSSV module)
  */
-interface IOSignal extends baseSignal {
+export interface IOSignal extends baseSignal {
   direction: PortDirection
 }
 
@@ -153,6 +156,7 @@ export class Sig {
     return this.name
   }
 
+  /** @internal */
   protected name: string
   readonly type: 'Sig'
 }
@@ -191,7 +195,9 @@ export class Expr {
   }
 
   params: ExprParams | null
+  /** @internal */
   protected text: string | null
+  /** @internal */
   protected func: ((p: ExprParams) => string) | null
   readonly type: 'Expr'
 }
@@ -202,7 +208,8 @@ export interface Signal extends baseSignal {
 
 export type Signals = Record<string, Signal | undefined>
 
-interface OperationIO {
+/** The `io` of {@link Module.addAdder}, {@link Module.addSubtractor} and {@link Module.addMultiplier} */
+export interface OperationIO {
   a: string | Sig | bigint
   b: string | Sig | bigint
   result?: string | Sig
@@ -340,7 +347,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   protected params: P
   protected IOs: IO
+  /** @internal */
   protected static formatterConfig: FormatterConfig = { engine: 'verible', failOnFormatError: true }
+  /** @internal */
   protected signals: Signals
   protected submodules: Record<string, {
     module: Module
@@ -395,6 +404,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     Module.formatterConfig = config
   }
 
+  /** @internal */
   protected bindingRules = {
     input: ['input', 'wire', 'reg', 'const logic', 'logic', 'enum'],
     output: ['output', 'wire', 'logic', 'enum'],
@@ -733,6 +743,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return this.nameHash(value)
   }
 
+  /** @internal */
   protected bigintToSigName (value: bigint, isSigned?: boolean, width?: number): string {
     if (isSigned === undefined) {
       isSigned = (value < 0n)
@@ -747,6 +758,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return `const_w${width}${isSigned ? 's' : 'u'}${absVal}`
   }
 
+  /** @internal */
   // we do not call the caller, we just grab the name for an error message
   // so the explicit anys are fine
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
@@ -1214,6 +1226,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     this.body += header + body
   }
 
+  /** @internal */
   protected addOperation (
     op: BinaryOp,
     io: OperationIO): Sig {
@@ -1559,6 +1572,7 @@ ${caseAssignments}
   /**
    * Convert a ParameterValue into a compact, readable string suitable for Verilog comments.
    * Deterministic ordering for objects/records.
+   * @internal
    */
   protected formatParameterValue (v: ParameterValue): string {
     if (typeof v === 'bigint') return v.toString() + 'n'
@@ -1630,6 +1644,7 @@ ${caseAssignments}
 
   /**
    * Convenience wrapper that emits a nice comment block.
+   * @internal
    */
   protected formatParametersAsVerilogComment (params: TSSVParameters = this.params): string {
     const body = this.formatParametersForComment(params)
@@ -2040,13 +2055,19 @@ endmodule
   }
 
   protected body: string
-  // set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
+  /**
+   * set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
+   * @internal
+   */
   protected importedFiles?: ReadonlyArray<{ path: string, text: string }>
+  /** @internal */
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
+  /** @internal */
   protected verilogParams: Record<string, boolean>
 }
 
+/** @internal */
 export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): string {
   const serialized = JSON.stringify(obj, function (key, value) {
     if (typeof value === 'bigint') {
@@ -2057,6 +2078,7 @@ export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): strin
   return serialized
 }
 
+/** @internal */
 export function deserialize (serialized: string): any {
   const revived = JSON.parse(serialized, (key, value) => {
     const hexPattern = /^0x[0-9a-fA-F]+n$/
@@ -2068,4 +2090,5 @@ export function deserialize (serialized: string): any {
   return revived
 }
 
+/** @internal */
 export default { Module, Sig, Expr }

@@ -6,42 +6,6 @@
 
 # Base
 
-## Enumerations
-
-### BinaryOp
-
-#### Enumeration Members
-
-##### MULTIPLY
-
-```ts
-MULTIPLY: "*";
-```
-
-##### ADD
-
-```ts
-ADD: "+";
-```
-
-##### SUBTRACT
-
-```ts
-SUBTRACT: "-";
-```
-
-##### BITWISE\_AND
-
-```ts
-BITWISE_AND: "&";
-```
-
-##### BITWISE\_OR
-
-```ts
-BITWISE_OR: "|";
-```
-
 ## Classes
 
 ### Sig
@@ -71,7 +35,6 @@ new Sig(name): Sig;
 
 | Property | Modifier | Type |
 | ------ | ------ | ------ |
-| <a id="name-1"></a> `name` | `protected` | `string` |
 | <a id="type-2"></a> `type` | `readonly` | `"Sig"` |
 
 #### Methods
@@ -117,8 +80,6 @@ new Expr(def, params?): Expr;
 | Property | Modifier | Type |
 | ------ | ------ | ------ |
 | <a id="params"></a> `params` | `public` | [`ExprParams`](#exprparams) \| `null` |
-| <a id="text"></a> `text` | `protected` | `string` \| `null` |
-| <a id="func"></a> `func` | `protected` | ((`p`) => `string`) \| `null` |
 | <a id="type-3"></a> `type` | `readonly` | `"Expr"` |
 
 #### Methods
@@ -177,7 +138,7 @@ new Interface(
 
 | Property | Type |
 | ------ | ------ |
-| <a id="name-2"></a> `name` | `string` |
+| <a id="name-1"></a> `name` | `string` |
 | <a id="params-1"></a> `params` | [`TSSVParameters`](#tssvparameters) |
 | <a id="signals-1"></a> `signals` | [`Signals`](#signals) |
 | <a id="role"></a> `role?` | `string` |
@@ -242,23 +203,14 @@ base constructor
 
 #### Properties
 
-| Property | Modifier | Type | Default value | Description |
-| ------ | ------ | ------ | ------ | ------ |
-| <a id="name-3"></a> `name` | `readonly` | `string` | `undefined` | name contains the resulting SystemVerilog module name: `params.name` if it is set, otherwise one derived from the class name and the parameter values (`doc/framework/concepts.md` §2) |
-| <a id="params-2"></a> `params` | `protected` | `P` | `undefined` | - |
-| <a id="ios"></a> `IOs` | `protected` | `IO` | `undefined` | - |
-| <a id="formatterconfig-1"></a> `formatterConfig` | `static` | [`FormatterConfig`](#formatterconfig) | `undefined` | - |
-| <a id="signals-2"></a> `signals` | `protected` | [`Signals`](#signals) | `undefined` | - |
-| <a id="submodules"></a> `submodules` | `protected` | `Record`\<`string`, \{ `module`: [`Module`](#module); `bindings`: `Record`\<`string`, `string` \| [`Sig`](#sig) \| `bigint`\>; \}\> | `undefined` | - |
-| <a id="interfaces-1"></a> `interfaces` | `protected` | [`Interfaces`](#interfaces) | `undefined` | - |
-| <a id="bindingrules"></a> `bindingRules` | `protected` | `object` | `undefined` | - |
-| `bindingRules.input` | `public` | `string`[] | `undefined` | - |
-| `bindingRules.output` | `public` | `string`[] | `undefined` | - |
-| `bindingRules.inout` | `public` | `string`[] | `undefined` | - |
-| <a id="body"></a> `body` | `protected` | `string` | `undefined` | - |
-| <a id="importedfiles"></a> `importedFiles?` | `protected` | readonly `object`[] | `undefined` | - |
-| <a id="registerblocks"></a> `registerBlocks` | `protected` | `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, `Record`\<`string`, \{ `d`: `string`; `resetVal?`: `bigint`; \}\>\>\>\> | `{}` | - |
-| <a id="verilogparams"></a> `verilogParams` | `protected` | `Record`\<`string`, `boolean`\> | `undefined` | - |
+| Property | Modifier | Type | Description |
+| ------ | ------ | ------ | ------ |
+| <a id="name-2"></a> `name` | `readonly` | `string` | name contains the resulting SystemVerilog module name: `params.name` if it is set, otherwise one derived from the class name and the parameter values (`doc/framework/concepts.md` §2) |
+| <a id="params-2"></a> `params` | `protected` | `P` | - |
+| <a id="ios"></a> `IOs` | `protected` | `IO` | - |
+| <a id="submodules"></a> `submodules` | `protected` | `Record`\<`string`, \{ `module`: [`Module`](#module); `bindings`: `Record`\<`string`, `string` \| [`Sig`](#sig) \| `bigint`\>; \}\> | - |
+| <a id="interfaces-1"></a> `interfaces` | `protected` | [`Interfaces`](#interfaces) | - |
+| <a id="body"></a> `body` | `protected` | `string` | - |
 
 #### Accessors
 
@@ -482,52 +434,6 @@ that refers to the hash in a module's name, such as a parameter comment, should 
 
 8 characters from `0-9a-z`
 
-##### bigintToSigName()
-
-```ts
-protected bigintToSigName(
-   value, 
-   isSigned?, 
-   width?
-): string;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `value` | `bigint` |
-| `isSigned?` | `boolean` |
-| `width?` | `number` |
-
-###### Returns
-
-`string`
-
-##### findSignal()
-
-```ts
-protected findSignal(
-   sig, 
-   throwOnFalse?, 
-   caller?, 
-   throwOnArray?
-): IOSignal | Signal;
-```
-
-###### Parameters
-
-| Parameter | Type | Default value |
-| ------ | ------ | ------ |
-| `sig` | `string` \| `bigint` \| [`Sig`](#sig) | `undefined` |
-| `throwOnFalse` | `boolean` | `false` |
-| `caller` | `string` \| ((...`args`) => `any`) \| `null` | `null` |
-| `throwOnArray?` | `boolean` | `undefined` |
-
-###### Returns
-
-[`IOSignal`](#iosignal) \| [`Signal`](#signal)
-
 ##### addSignal()
 
 ```ts
@@ -717,23 +623,6 @@ block in the module: COMB-2 applies to this one.
 ###### Returns
 
 `void`
-
-##### addOperation()
-
-```ts
-protected addOperation(op, io): Sig;
-```
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `op` | [`BinaryOp`](#binaryop) |
-| `io` | [`OperationIO`](#operationio) |
-
-###### Returns
-
-[`Sig`](#sig)
 
 ##### addMultiplier()
 
@@ -969,25 +858,6 @@ print some debug information to the console
 
 `void`
 
-##### formatParameterValue()
-
-```ts
-protected formatParameterValue(v): string;
-```
-
-Convert a ParameterValue into a compact, readable string suitable for Verilog comments.
-Deterministic ordering for objects/records.
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `v` | [`ParameterValue`](#parametervalue) |
-
-###### Returns
-
-`string`
-
 ##### formatParametersForComment()
 
 ```ts
@@ -1005,24 +875,6 @@ Good for embedding at the top of generated Verilog.
 | `opts?` | \{ `prefix?`: `string`; `skipName?`: `boolean`; \} |
 | `opts.prefix?` | `string` |
 | `opts.skipName?` | `boolean` |
-
-###### Returns
-
-`string`
-
-##### formatParametersAsVerilogComment()
-
-```ts
-protected formatParametersAsVerilogComment(params?): string;
-```
-
-Convenience wrapper that emits a nice comment block.
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `params` | [`TSSVParameters`](#tssvparameters) |
 
 ###### Returns
 
@@ -1148,6 +1000,8 @@ the paths written, each after every file it includes, so this module's is last
 
 ### SVEnum
 
+A SystemVerilog enum type for a signal of type `'enum'`: its type name, width and values
+
 #### Properties
 
 | Property | Type |
@@ -1160,12 +1014,12 @@ the paths written, each after every file it includes, so this module's is last
 
 ### baseSignal
 
-signal parameters
+signal parameters, shared by [Signal](#signal) and [IOSignal](#iosignal)
 
 #### Extended by
 
-- [`Signal`](#signal)
 - [`IOSignal`](#iosignal)
+- [`Signal`](#signal)
 
 #### Properties
 
@@ -1222,7 +1076,7 @@ options for `Module.addSystemVerilogSubmodule()`
 
 ### Signal
 
-signal parameters
+signal parameters, shared by [Signal](#signal) and [IOSignal](#iosignal)
 
 #### Extends
 
@@ -1246,6 +1100,8 @@ signal parameters
 ***
 
 ### OperationIO
+
+The `io` of [Module.addAdder](#addadder), [Module.addSubtractor](#addsubtractor) and [Module.addMultiplier](#addmultiplier)
 
 #### Properties
 
@@ -1305,6 +1161,8 @@ type ParameterValue =
   | object;
 ```
 
+A value a module parameter can take: an entry of [TSSVParameters](#tssvparameters)
+
 ***
 
 ### SVAttributes
@@ -1330,6 +1188,8 @@ this.addSignal('mem', { width: 8, isArray: 4n, attributes: { ram_style: 'distrib
 ```ts
 type PortDirection = "input" | "output" | "inout";
 ```
+
+The direction of a port, or of an interface signal in a modport
 
 ***
 
@@ -1364,61 +1224,3 @@ type Signals = Record<string, Signal | undefined>;
 ```ts
 type Interfaces = Record<string, Interface>;
 ```
-
-## Variables
-
-### default
-
-```ts
-default: object;
-```
-
-#### Type Declaration
-
-| Name | Type |
-| ------ | ------ |
-| <a id="property-module"></a> `Module` | *typeof* [`Module`](#module) |
-| <a id="property-sig"></a> `Sig` | *typeof* [`Sig`](#sig) |
-| <a id="property-expr"></a> `Expr` | *typeof* [`Expr`](#expr) |
-
-## Functions
-
-### serialize()
-
-```ts
-function serialize(
-   obj, 
-   indent?, 
-   bigIntSuffix?
-): string;
-```
-
-#### Parameters
-
-| Parameter | Type | Default value |
-| ------ | ------ | ------ |
-| `obj` | `any` | `undefined` |
-| `indent?` | `number` | `undefined` |
-| `bigIntSuffix?` | `string` | `'n'` |
-
-#### Returns
-
-`string`
-
-***
-
-### deserialize()
-
-```ts
-function deserialize(serialized): any;
-```
-
-#### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `serialized` | `string` |
-
-#### Returns
-
-`any`

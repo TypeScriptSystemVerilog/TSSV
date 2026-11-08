@@ -188,6 +188,8 @@ one `// key = value` line per parameter
 
 ### Field
 
+A field of a [Register](#register): its bits within the register, and its reset value
+
 #### Properties
 
 | Property | Type |
@@ -200,6 +202,8 @@ one `// key = value` line per parameter
 ***
 
 ### Register
+
+A register of a [RegisterBlockDef](#registerblockdef): its type, width, reset value and fields
 
 #### Properties
 
@@ -216,20 +220,6 @@ one `// key = value` line per parameter
 | <a id="constant"></a> `constant?` | `boolean` | RO only: no input port; the register reads its `reset`, or each field's `reset`. |
 | <a id="registerrequest"></a> `registerRequest?` | `boolean` | RAM/ROM only: drive the window's request from flops. Default true. |
 | <a id="registerresponse"></a> `registerResponse?` | `boolean` | RAM/ROM only: return the window's response through flops. Default true. |
-
-***
-
-### WindowResponse
-
-A RAM/ROM window's response, for the read path: when it is ready and what it returns.
-
-#### Properties
-
-| Property | Type | Description |
-| ------ | ------ | ------ |
-| <a id="regname"></a> `regName` | `string` | - |
-| <a id="ready"></a> `ready` | `string` | High unless the window has an access in flight. |
-| <a id="data"></a> `data` | `string` | The window's read data. |
 
 ***
 
