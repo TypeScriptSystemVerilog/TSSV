@@ -28,8 +28,8 @@ One bit-level view of a port: a plain port, or one signal of an interface port
 | ------ | ------ | ------ |
 | <a id="name"></a> `name` | `string` | the plain port's name, or the interface signal's name |
 | <a id="direction"></a> `direction` | `"input"` \| `"output"` \| `"inout"` | the direction the module sees it in |
-| <a id="width"></a> `width` | `number` | - |
-| <a id="issigned"></a> `isSigned` | `boolean` | - |
+| <a id="width"></a> `width` | `number` | the width in bits |
+| <a id="issigned"></a> `isSigned` | `boolean` | whether it is declared `signed` |
 
 ***
 
@@ -40,10 +40,10 @@ interface port with the signals of its modport, in the modport's order.
 
 #### Properties
 
-| Property | Type |
-| ------ | ------ |
-| <a id="plain"></a> `plain` | [`PortSignal`](#portsignal)[] |
-| <a id="interfaces"></a> `interfaces` | `object`[] |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="plain"></a> `plain` | [`PortSignal`](#portsignal)[] | the plain ports, in declaration order |
+| <a id="interfaces"></a> `interfaces` | `object`[] | the interface ports: each one's name, SV type and modport signals |
 
 ***
 
@@ -55,10 +55,10 @@ Each endpoint names one bit: a one-bit port (`ready`), a one-bit signal of an in
 
 #### Properties
 
-| Property | Type |
-| ------ | ------ |
-| <a id="from"></a> `from` | `string` |
-| <a id="to"></a> `to` | `string` |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="from"></a> `from` | `string` | one bit of an input |
+| <a id="to"></a> `to` | `string` | one bit of an output |
 
 ***
 
@@ -73,7 +73,7 @@ An endpoint resolved against the module's ports
 | <a id="port"></a> `port` | `string` | the plain port, or the interface port |
 | <a id="signal"></a> `signal?` | `string` | the interface signal, for an endpoint on an interface port |
 | <a id="bit"></a> `bit?` | `number` | the bit, for an endpoint on a signal wider than one bit |
-| <a id="width-1"></a> `width` | `number` | - |
+| <a id="width-1"></a> `width` | `number` | the width of the port or signal the endpoint is a bit of |
 
 ***
 
@@ -87,11 +87,11 @@ Each `sv` is the whole file, which includes `<module>.sv` under `USE_INCLUDES`.
 
 | Property | Type | Description |
 | ------ | ------ | ------ |
-| <a id="module"></a> `module` | `string` | - |
+| <a id="module"></a> `module` | `string` | the module's name |
 | <a id="open"></a> `open` | `object` | every port brought out, nothing closed: a loop here is the module's own |
-| `open.top` | `string` | - |
-| `open.sv` | `string` | - |
-| <a id="contracts"></a> `contracts` | `object`[] | - |
+| `open.top` | `string` | the wrapper's module name |
+| `open.sv` | `string` | the wrapper's file |
+| <a id="contracts"></a> `contracts` | `object`[] | one wrapper per contract, in the order declared, with that contract's loop closed |
 
 ## Functions
 
@@ -138,12 +138,10 @@ the module and the contract, if `from` isn't one bit of an input or `to` one bit
 
 #### Returns
 
-`object`
-
-| Name | Type |
-| ------ | ------ |
-| `from` | [`Endpoint`](#endpoint) |
-| `to` | [`Endpoint`](#endpoint) |
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `from` | [`Endpoint`](#endpoint) | the input end |
+| `to` | [`Endpoint`](#endpoint) | the output end |
 
 ***
 

@@ -15,7 +15,9 @@ export type SVPortKind = 'input' | 'output' | 'inout' | 'ref' | 'interface'
 
 /** the name and port directions of one module found in a SystemVerilog source */
 export interface SVModuleHeader {
+  /** the module's name */
   name: string
+  /** each port's declared kind, by port name */
   ports: Record<string, SVPortKind>
 }
 
