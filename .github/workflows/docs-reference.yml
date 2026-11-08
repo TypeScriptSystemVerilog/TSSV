@@ -12,7 +12,9 @@ name: docs-reference
 # `npm run docs` also renders the reference's WaveDrom diagrams to SVG, so a
 # stale diagram fails the same check. A second check runs `npm run
 # check:wavedrom` for the diagrams in hand-written docs (module specs), whose
-# SVGs are committed beside them.
+# SVGs are committed beside them. A third runs `npm run check:docs`: the doc
+# layout (a spec per module, its @see, no .md under ts/, every doc reachable
+# from AGENTS.md's Key Documents) and every relative markdown link.
 #
 # Also runs on pushes to main, which catches two PRs that are each fresh on
 # their own but stale once both are merged.
@@ -57,3 +59,6 @@ jobs:
 
       - name: Check the WaveDrom SVGs in doc/ are up to date
         run: npm run check:wavedrom
+
+      - name: Check the doc layout and markdown links
+        run: npm run check:docs
