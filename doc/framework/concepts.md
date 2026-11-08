@@ -49,6 +49,10 @@ class Accum extends Module {
 new Accum({ width: 8 }).writeSystemVerilogFiles('build/rtl')   // emission happens here
 ```
 
+`tssv/lib/core/TSSV` is the import for module code: it re-exports the core's `Base.ts`
+(`Module`, `Sig`, `Expr`, the signal types), `Registers.ts` (`RegisterBlock`), `Paths.ts` and
+the `APB_to_Memory` module. Interface classes are imported from their own files (§4).
+
 What each table holds, and which calls fill it:
 
 | Table | Holds | Filled by |
@@ -236,8 +240,9 @@ is emitted. A local bundle on its own doesn't cause the definition to be written
 some child always has the matching port, but a module that only declares a local bundle emits
 a reference to an undefined interface.
 
-How to write a new interface class is in
-[adding-an-interface.md](../interfaces/adding-an-interface.md).
+The interface classes live in `tssv/lib/interfaces/`: `Memory`, `TileLink`, and the AMBA 2 to 5
+families (AHB, APB, AXI, ACE, ATB and their variants) under `AMBA/`. How to write a new interface
+class is in [adding-an-interface.md](../interfaces/adding-an-interface.md).
 
 ## 5. Submodules
 
