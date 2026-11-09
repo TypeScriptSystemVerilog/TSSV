@@ -2587,7 +2587,7 @@ endmodule
     return moduleString
   }
 
-  protected body: string
+  private body: string
   /**
    * set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
    * @internal

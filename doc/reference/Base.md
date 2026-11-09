@@ -2078,7 +2078,6 @@ base constructor
 | <a id="ios"></a> `IOs` | `protected` | `IO` | the module's plain ports, by name. A subclass may assign it in its constructor, after `super()` |
 | <a id="submodules"></a> `submodules` | `protected` | `Record`\<`string`, \{ `module`: [`Module`](#module); `bindings`: `Record`\<`string`, `string` \| [`Sig`](#sig) \| `bigint`\>; \}\> | the submodule instances [Module.addSubmodule](#addsubmodule) added, by instance name |
 | <a id="interfaces-1"></a> `interfaces` | `protected` | [`Interfaces`](#interfaces) | the interface instances [Module.addInterface](#addinterface) added, by instance name: its interface ports and local bundles |
-| <a id="body"></a> `body` | `protected` | `string` | - |
 
 ## Interfaces
 
