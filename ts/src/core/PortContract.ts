@@ -18,7 +18,9 @@ export interface PortSignal {
   name: string
   /** the direction the module sees it in */
   direction: 'input' | 'output' | 'inout'
+  /** the width in bits */
   width: number
+  /** whether it is declared `signed` */
   isSigned: boolean
 }
 
@@ -27,12 +29,15 @@ export interface PortSignal {
  * interface port with the signals of its modport, in the modport's order.
  */
 export interface ModulePorts {
+  /** the plain ports, in declaration order */
   plain: PortSignal[]
+  /** the interface ports: each one's name, SV type and modport signals */
   interfaces: Array<{
     /** the port's name in the module */
     port: string
     /** the interface's SV type, `Interface.interfaceName()` */
     type: string
+    /** the signals of the port's modport, in the modport's order, with the directions it gives them */
     signals: PortSignal[]
   }>
 }
@@ -43,7 +48,9 @@ export interface ModulePorts {
  * (`out.ready`), or one bit of a wider one (`ready_bus[2]`, `out.ready_bus[2]`).
  */
 export interface PortContract {
+  /** one bit of an input */
   from: string
+  /** one bit of an output */
   to: string
 }
 
@@ -60,6 +67,7 @@ export interface Endpoint {
   signal?: string
   /** the bit, for an endpoint on a signal wider than one bit */
   bit?: number
+  /** the width of the port or signal the endpoint is a bit of */
   width: number
 }
 
@@ -102,7 +110,12 @@ function resolveEndpoint (module: string, ports: ModulePorts, c: PortContract, t
  * Checks contract `c` against the module's ports, and returns its two endpoints. Throws, naming
  * the module and the contract, if `from` isn't one bit of an input or `to` one bit of an output.
  */
-export function resolveContract (module: string, ports: ModulePorts, c: PortContract): { from: Endpoint, to: Endpoint } {
+export function resolveContract (module: string, ports: ModulePorts, c: PortContract): {
+  /** the input end */
+  from: Endpoint
+  /** the output end */
+  to: Endpoint
+} {
   return {
     from: resolveEndpoint(module, ports, c, c.from, 'input'),
     to: resolveEndpoint(module, ports, c, c.to, 'output')
@@ -191,8 +204,22 @@ endmodule
  * Each `sv` is the whole file, which includes `<module>.sv` under `USE_INCLUDES`.
  */
 export interface ContractManifest {
+  /** the module's name */
   module: string
   /** every port brought out, nothing closed: a loop here is the module's own */
-  open: { top: string, sv: string }
-  contracts: Array<{ contract: string, top: string, sv: string }>
+  open: {
+    /** the wrapper's module name */
+    top: string
+    /** the wrapper's file */
+    sv: string
+  }
+  /** one wrapper per contract, in the order declared, with that contract's loop closed */
+  contracts: Array<{
+    /** the contract, as {@link contractText} gives it */
+    contract: string
+    /** the wrapper's module name */
+    top: string
+    /** the wrapper's file */
+    sv: string
+  }>
 }

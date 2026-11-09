@@ -170,10 +170,10 @@ new Memory(params?, role?): Memory;
 
 #### Properties
 
-| Property | Type | Overrides |
-| ------ | ------ | ------ |
-| <a id="params"></a> `params` | [`Memory_Parameters`](#memory_parameters) | [`Interface`](Base.md#interface).[`params`](Base.md#params-1) |
-| <a id="signals"></a> `signals` | `object` | [`Interface`](Base.md#interface).[`signals`](Base.md#signals-1) |
+| Property | Type | Description | Overrides |
+| ------ | ------ | ------ | ------ |
+| <a id="params"></a> `params` | [`Memory_Parameters`](#memory_parameters) | the parameters; their values name the SV interface type | [`Interface`](Base.md#interface).[`params`](Base.md#params-1) |
+| <a id="signals"></a> `signals` | `object` | the bundle's signals, by name | [`Interface`](Base.md#interface).[`signals`](Base.md#signals-1) |
 
 ## Interfaces
 
@@ -195,7 +195,7 @@ Parameters of a [Memory](#memory) bus.
 
 | Property | Type | Description | Inherited from |
 | ------ | ------ | ------ | ------ |
-| <a id="name"></a> `name?` | `string` | - | [`TSSVParameters`](Base.md#tssvparameters).[`name`](Base.md#name) |
+| <a id="name"></a> `name?` | `string` | the SystemVerilog module name. Without it, the name is derived from the class name and the other parameters' values (`doc/framework/concepts.md` §2); the constructor then sets it | [`TSSVParameters`](Base.md#tssvparameters).[`name`](Base.md#name) |
 | <a id="type"></a> `type?` | `"bidi"` \| `"rd_only"` \| `"wr_only"` | Which signals the bus has (see [Memory\_Type](#memory_type)). Default `bidi`. | - |
 | <a id="data_width"></a> `DATA_WIDTH?` | `32` \| `64` \| `128` \| `256` \| `512` \| `1024` | Width of `DATA_WR` and `DATA_RD` in bits. Default 32. | - |
 | <a id="addr_width"></a> `ADDR_WIDTH?` | \| `16` \| `32` \| `64` \| `17` \| `18` \| `19` \| `20` \| `21` \| `22` \| `23` \| `24` \| `25` \| `30` \| `36` \| `26` \| `27` \| `28` \| `29` \| `31` \| `33` \| `34` \| `35` \| `37` \| `38` \| `39` \| `40` \| `41` \| `42` \| `43` \| `44` \| `45` \| `46` \| `47` \| `48` \| `49` \| `50` \| `51` \| `52` \| `53` \| `54` \| `55` \| `56` \| `57` \| `58` \| `59` \| `60` \| `61` \| `62` \| `63` | Width of `ADDR` in bits. `ADDR` is a byte address. Default 32. | - |
