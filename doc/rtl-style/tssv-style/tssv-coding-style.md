@@ -747,17 +747,16 @@ for (let i = 0; i < lanes; i++) {
 
 **BUILD-7 (MUST): Append raw SV with `addBody()` or `addBodyLine()`, never `this.body +=`.**
 `addBody()` strips the template literal's indentation and ends the text with a newline.
-`addBodyLine()` appends one line and its newline. Appending to `this.body` directly does
-neither, so the next builder's output can end up on the same line, for example inside a `//`
-comment. `npm run check:body` lists every `this.body +=` in `ts/src/modules/` and
-`ts/src/interfaces/`.
+`addBodyLine()` appends one line and its newline. `body` is private to `Module`, so the
+compiler rejects a direct append, which would do neither and could put the next builder's
+output on the same line, for example inside a `//` comment.
 
-<!-- ts: dont body lint UNDRIVEN
+<!-- ts: dont body tserror TS2341
 a: { direction: 'input' }
 y: { direction: 'output' }
 -->
 ```ts
-// Don't: no newline, so the assign lands inside the comment and y is never driven
+// Don't: body is private, and with no newline the assign would land inside the comment
 this.body += '// y follows a'
 this.addAssign({ in: new Expr('a'), out: 'y' })
 ```

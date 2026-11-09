@@ -19,10 +19,10 @@ the name and port directions of one module found in a SystemVerilog source
 
 #### Properties
 
-| Property | Type |
-| ------ | ------ |
-| <a id="name"></a> `name` | `string` |
-| <a id="ports"></a> `ports` | `Record`\<`string`, [`SVPortKind`](#svportkind)\> |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="name"></a> `name` | `string` | the module's name |
+| <a id="ports"></a> `ports` | `Record`\<`string`, [`SVPortKind`](#svportkind)\> | each port's declared kind, by port name |
 
 ***
 

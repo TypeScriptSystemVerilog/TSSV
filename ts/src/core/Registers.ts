@@ -5,28 +5,52 @@ import { Memory } from 'tssv/lib/interfaces/Memory'
 import { APB4 } from 'tssv/lib/interfaces/AMBA/AMBA4/APB4/r0p0_0/APB4'
 import { APB_to_Memory } from 'tssv/lib/modules/APB_to_Memory'
 
+/**
+ * A register's type: who writes it, who reads it, and the ports it gives the block.
+ * `doc/framework/registers.md` §3 has each type's exact ports and timing.
+ */
 export enum RegisterType {
+  /** read-only: logic drives it through one input per register (or per field), the host reads it. With `constant: true`, no port: it reads its reset */
   RO = 'RO',
+  /** read-write: the host writes it, logic reads it through one output per register (or per field) */
   RW = 'RW',
+  /** read-write with a hardware update: an output, plus `<R>_hw_update` and `<R>_hw_update_val` inputs. Host and logic both write it */
   RWU = 'RWU',
+  /** write-only: one output per register (or per field), plus a `<R>_we` pulse. The host can't read it */
   WO = 'WO',
+  /** a window of `size` words served by an external memory, through an outward `Memory` port `<R>` (`bidi`) */
   RAM = 'RAM',
+  /** like `RAM`, with a `rd_only` port: the memory serves reads, and writes are dropped */
   ROM = 'ROM',
 }
 
-interface Field {
+/** A field of a {@link Register}: its bits within the register, and its reset value */
+export interface Field {
+  /** the field's reset value; default `0n` */
   reset?: bigint
+  /** free text, for the YAML-generated JSDoc; not in the SV or RALF */
   description?: string
+  /** the field's bits in the register, `[msb, lsb]`. Fields can't overlap */
   bitRange: [IntRange<0, 63>, IntRange<0, 63>]
+  /** declares the field's port `signed` */
   isSigned?: boolean
 }
-interface Register {
+
+/** A register of a {@link RegisterBlockDef}: its type, width, reset value and fields */
+export interface Register {
+  /** the register's type */
   type: RegisterType
+  /** the reset value; default `0n`. Used by `RW` without fields, `RWU`, and a constant `RO` */
   reset?: bigint
+  /** free text, for the YAML-generated JSDoc; not in the SV or RALF */
   description?: string
+  /** `RAM`/`ROM` only: the window's size in words, at least 1 */
   size?: bigint
+  /** the width in bits; default the block's `wordSize`. A `RAM`/`ROM` window's must be `wordSize` */
   width?: IntRange<1, 64>
+  /** declares the register's port `signed` */
   isSigned?: boolean
+  /** named bit fields, each with its own port and reset; used by `RW` and in RALF */
   fields?: Record<string, Field>
   /**
    * RWU only: which update source wins when both assert in the same cycle. Default 'hw'. With
@@ -51,32 +75,61 @@ interface WindowResponse {
   data: string
 }
 
+/**
+ * Hands out consecutive register addresses, one word apart, for an `addrMap`.
+ *
+ * ```typescript
+ * const addr = new RegAddr(0n, 32)
+ * addr.next() // 0x0
+ * addr.next() // 0x4
+ * ```
+ */
 export class RegAddr {
   private addr: bigint
   private readonly stride: bigint
+  /**
+   * @param start the first address; default `0n`
+   * @param wordSize the word size in bits, which sets the step; default 32
+   */
   constructor (start?: bigint, wordSize?: 32 | 64) {
     this.addr = start || 0n
     this.stride = BigInt((wordSize || 32) / 8)
   }
 
+  /** @returns the next address, starting at `start`, then one word on each call */
   next (): bigint {
     const nextAddr = this.addr
     this.addr += this.stride
     return nextAddr
   }
 }
+/**
+ * The register map of a {@link RegisterBlock}. `doc/framework/registers.md` §2 has an example;
+ * `scripts/gen_regblock.sh` writes one from a YAML register map.
+ */
 export interface RegisterBlockDef<T extends Record<string, bigint>> {
+  /** the bus data width, and the default register width */
   wordSize: 32 | 64
+  /**
+   * every register and its absolute byte address, `{ REG_NAME: 0x0n, ... }`. Declare it
+   * `as const` and pass `typeof addrMap` as `T`, so `registers` only takes names from the map
+   */
   addrMap: T
+  /** accepted but not used: the addresses in `addrMap` are absolute */
   baseAddress?: bigint
+  /** each register's definition. A register in `addrMap` without one is a full-width `RW` register with reset `0` */
   registers: { [name in keyof T]?: Register }
 }
 
+/** The parameters of a {@link RegisterBlock} */
 export interface RegisterBlockParameters extends TSSVParameters {
   /** the bus type. The bus interface argument picks it; if this is set, it must agree */
   busInterface?: 'Memory' | 'TL_UL' | 'APB'
+  /** the byte order; only `'little'`, the default. It appears only in the parameter comment and the name */
   endianess?: 'little'
+  /** accepted but not used */
   busIDWidth?: 8
+  /** the bus address width; default 32 */
   busAddressWidth?: 32
 }
 
@@ -124,8 +177,27 @@ function ralfAccessType (type: RegisterType): string {
  */
 export class RegisterBlock<T extends Record<string, bigint>> extends Module {
   declare params: RegisterBlockParameters
+  /** the register map the block was built from */
   regDefs: RegisterBlockDef<T>
 
+  /**
+   * @param params the parameters. Without a `name`, the derived name holds the bus address
+   * width, the bus, the endianness and a hash of the register map
+   * @param regDefs the register map
+   * @param busInterface picks the bus, and only that: a `Memory` gives the block a `regs` Memory
+   * port, an `APB4` an `apb` port bridged onto `regs` by an `APB_to_Memory` submodule. The
+   * instance's own parameters are ignored; the port is built from `wordSize` and `busAddressWidth`
+   * @throws `Unsupported interface` for a bus that is neither a `Memory` nor an `APB4`
+   * @throws `RegisterBlock: params.busInterface is ...` if `params.busInterface` disagrees with `busInterface`
+   * @throws `<R>: constant is only allowed on RO, ...`, `<R>: registerRequest and registerResponse
+   * are only allowed on RAM and ROM, ...`, or `<R>: a <type> window's width must be the wordSize, ...`
+   * for an option on the wrong register type
+   * @throws `<R>: address ... doesn't fit in the <n>-bit bus address`, `<R>: size must be at least 1, ...`,
+   * or `<R>: window ... doesn't fit in the <n>-bit bus address` for an address out of range
+   * @throws `<R>.<F>: bitRange [<hi>, <lo>] must be [msb, lsb]`, `<R>.<F>: bit <hi> is past the
+   * <n>-bit word`, or `<R>.<F>: bits [<hi>:<lo>] overlap <R>.<G>` for a bad field
+   * @throws `<R>: reset ... doesn't fit in <n> bits` (or `<R>.<F>: ...`) for a reset value too wide
+   */
   constructor (params: RegisterBlockParameters, regDefs: RegisterBlockDef<T>, busInterface: Interface) {
     // The third argument picks the bus, so it is what the parameters, and the name, record
     const bus = busInterface instanceof Memory ? 'Memory' : busInterface instanceof APB4 ? 'APB' : undefined
@@ -233,7 +305,7 @@ export class RegisterBlock<T extends Record<string, bigint>> extends Module {
         const firstVal = hwFirst ? hwVal : swVal
         const secondCond = hwFirst ? `${regName}_wr_hit` : `${regName}_hw_update`
         const secondVal = hwFirst ? swVal : hwVal
-        this.body += `
+        this.addBody(`
 always_ff @( posedge clk or negedge rst_b )
   if (!rst_b)
     ${regName} <= ${width}'h${resetHex};
@@ -241,7 +313,7 @@ always_ff @( posedge clk or negedge rst_b )
     ${regName} <= ${firstVal};
   else if (${secondCond})
     ${regName} <= ${secondVal};
-`
+`, { trimLeadingBlankLines: false })
       } else if (thisReg.type === RegisterType.RO) {
         // A constant RO has no port: the read path returns its reset value
         if (thisReg.constant !== true) {
@@ -595,6 +667,12 @@ ${selects.join('\n')}
 `)
   }
 
+  /**
+   * The register map in RALF, the register description format Synopsys' `ralgen` reads to
+   * build a UVM register model: one `register` per register in `addrMap` that has a definition, at its address,
+   * with its fields, reset values and access (`ro` for `RO`/`ROM`, `wo` for `WO`, `rw` otherwise).
+   * @returns the RALF `block`
+   */
   writeRALF (): string {
     const blockName = this.params.name ?? 'unnamed'
     const wordBytes = (this.regDefs.wordSize ?? 32) / 8

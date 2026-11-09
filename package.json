@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "docs": "typedoc && node scripts/render-wavedrom.mjs doc/reference/*.md",
-    "check:body": "bash scripts/check-body-appends.sh",
+    "docs:examples": "tsc && node scripts/run-doc-examples.mjs",
     "check:dco": "bash scripts/check-dco.sh",
     "lint:sv": "bash scripts/lint-sv.sh",
     "check:generated-sv": "node doc/rtl-style/sv-style/tools/check-generated-sv.mjs",
@@ -54,7 +54,6 @@
     "eslint": "^8.57.0",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.13.1",
-    "typedoc-plugin-missing-exports": "^4.1.4",
     "typedoc-plugin-no-inherit": "^1.6.1",
     "typescript": "^5.4.2",
     "wavedrom": "^3.7.0"

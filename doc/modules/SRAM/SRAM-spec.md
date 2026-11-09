@@ -72,6 +72,7 @@ A port `<p>_` that writes has:
   - **`readBehavior`** sets what a conflicting read returns. A read that doesn't conflict always returns the stored word.
     - `'readBeforeWrite'`: the word as it was before that cycle's writes. **WARNING:** because most macros do not behave this way, it is only implementable via flip-flops. As a result, the value of the `minMacroBits` parameter must be set accordingly (i.e. `depth * dataWidth < minMacroBits`) or elaboration will fail.
     - `'undefOnWrite'` (default): an undefined value. In simulation it is X and `<p>_data_out` stays undefined until the port's next read that doesn't conflict. In synthesis, the write occurs, but not the read and  `<p>_data_out` keeps its previous value.
+    - There is no write-through (`writeBeforeRead`) behavior, where a conflicting read returns the word being written. Build it outside the SRAM: compare the read address with the write address and select the write data instead of `<p>_data_out`.
 - **`2rw` write collision:** when both ports write the same word in one cycle, the word becomes an X. In synthesis neither write occurs. NOTE: it is a collision when both ports write the same word, whatever the masks.
 - An address at or above `depth` (possible when `depth` isn't a power of 2) is outside the array. Don't use one.
 
