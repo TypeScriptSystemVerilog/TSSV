@@ -20,7 +20,8 @@ ACC extends number = never> = ARR['length'] extends END
   ? ACC | START | END
   : IntRange<START, END, [...ARR, 1], ARR[START] extends undefined ? ACC : ACC | ARR['length']>
 
-type ParameterValue =
+/** A value a module parameter can take: an entry of {@link TSSVParameters} */
+export type ParameterValue =
   string | boolean | bigint | IntRange<number, number> | bigint[] | string[] |
   Array<IntRange<number, number>> |
   object
@@ -30,7 +31,8 @@ export interface TSSVParameters {
   [name: string]: ParameterValue | undefined
 }
 
-interface SVEnum {
+/** A SystemVerilog enum type for a signal of type `'enum'`: its type name, width and values */
+export interface SVEnum {
   typeName: string
   width: number
   values: Record<string, bigint>
@@ -49,9 +51,9 @@ interface SVEnum {
 export type SVAttributes = Record<string, string | number | bigint | true>
 
 /**
- * signal parameters
+ * signal parameters, shared by {@link Signal} and {@link IOSignal}
  */
-interface baseSignal {
+export interface baseSignal {
   type?: 'wire' | 'reg' | 'const logic' | 'logic' | 'enum'
   width?: number
   isClock?: 'posedge' | 'negedge'
@@ -117,12 +119,13 @@ function guardSVFile (name: string, includes: string[], sv: string): string {
   return `\`ifndef ${guard}\n\`define ${guard}\n${includeBlock}\n${body}\n\n\`endif //!${guard}\n`
 }
 
-type PortDirection = 'input' | 'output' | 'inout'
+/** The direction of a port, or of an interface signal in a modport */
+export type PortDirection = 'input' | 'output' | 'inout'
 
 /**
  * defines an IO signal (a.k.a port of the the TSSV module)
  */
-interface IOSignal extends baseSignal {
+export interface IOSignal extends baseSignal {
   direction: PortDirection
 }
 
@@ -153,6 +156,7 @@ export class Sig {
     return this.name
   }
 
+  /** @internal */
   protected name: string
   readonly type: 'Sig'
 }
@@ -191,7 +195,9 @@ export class Expr {
   }
 
   params: ExprParams | null
+  /** @internal */
   protected text: string | null
+  /** @internal */
   protected func: ((p: ExprParams) => string) | null
   readonly type: 'Expr'
 }
@@ -202,7 +208,8 @@ export interface Signal extends baseSignal {
 
 export type Signals = Record<string, Signal | undefined>
 
-interface OperationIO {
+/** The `io` of {@link Module.addAdder}, {@link Module.addSubtractor} and {@link Module.addMultiplier} */
+export interface OperationIO {
   a: string | Sig | bigint
   b: string | Sig | bigint
   result?: string | Sig
@@ -340,7 +347,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   protected params: P
   protected IOs: IO
+  /** @internal */
   protected static formatterConfig: FormatterConfig = { engine: 'verible', failOnFormatError: true }
+  /** @internal */
   protected signals: Signals
   protected submodules: Record<string, {
     module: Module
@@ -378,6 +387,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     this.verilogParams = {}
   }
 
+  /** @group Output and utilities */
   setVerilogParameter (param: string): void {
     if (!this.params[param]) {
       throw Error(`${param} does not exist!`)
@@ -391,10 +401,12 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
   }
 
+  /** @group Output and utilities */
   static setFormatterConfig (config: FormatterConfig): void {
     Module.formatterConfig = config
   }
 
+  /** @internal */
   protected bindingRules = {
     input: ['input', 'wire', 'reg', 'const logic', 'logic', 'enum'],
     output: ['output', 'wire', 'logic', 'enum'],
@@ -406,6 +418,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param instanceName the name for this instance of the signal bundle
      * @param _interface the type of interface to add
      * @returns the resulting interface for connecting to modules and add* primitives
+     * @group Signals and ports
      */
   addInterface (
     instanceName: string,
@@ -421,6 +434,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * bundle (one without a role) is not a port. Wrappers that bring every port out, such as a
    * port contract's, are built from it.
    * @returns the ports, each with its direction, width and signedness
+   * @group Signals and ports
    */
   ports (): ModulePorts {
     const plain = Object.entries(this.IOs).map(([name, io]) =>
@@ -457,6 +471,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * ```
    * @param from one bit of an input
    * @param to one bit of an output
+   * @group Signals and ports
    */
   addNoCombinationalPathContract (from: string, to: string): void {
     const contract = { from, to }
@@ -467,7 +482,10 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     this.contracts.push(contract)
   }
 
-  /** The port contracts this module declares, in the order declared */
+  /**
+   * The port contracts this module declares, in the order declared
+   * @group Signals and ports
+   */
   get portContracts (): readonly PortContract[] {
     return this.contracts.map(c => ({ ...c }))
   }
@@ -499,6 +517,13 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param bindings define the connections of the submodule
      * @param autoBind find signals in parent with matching name for signals that are not explicitly bound
      * @returns returns the resulting submodule instance
+     * @example Two instances of one module, chained
+     * {@includeCode ../../doc-examples/core/addSubmodule.ts#example}
+     *
+     * The SystemVerilog it emits:
+     *
+     * {@includeCode ../../../doc/examples/core/addSubmodule/SubmoduleExample.sv}
+     * @group Hierarchy
      */
   addSubmodule (
     instanceName: string,
@@ -660,6 +685,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @param autoBind automatically bind unbound ports to same-named parent signals
    * @param options `moduleName`, the module to instantiate
    * @returns the imported submodule
+   * @group Hierarchy
    */
   addSystemVerilogSubmodule (
     instanceName: string,
@@ -712,6 +738,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * that refers to the hash in a module's name, such as a parameter comment, should use it too.
    * @param value the parameter value
    * @returns 8 characters from `0-9a-z`
+   * @group Output and utilities
    */
   protected nameHash (value: unknown): string {
     const digest = createHash('sha256').update(canonicalJSON(value)).digest('hex')
@@ -733,6 +760,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return this.nameHash(value)
   }
 
+  /** @internal */
   protected bigintToSigName (value: bigint, isSigned?: boolean, width?: number): string {
     if (isSigned === undefined) {
       isSigned = (value < 0n)
@@ -747,6 +775,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     return `const_w${width}${isSigned ? 's' : 'u'}${absVal}`
   }
 
+  /** @internal */
   // we do not call the caller, we just grab the name for an error message
   // so the explicit anys are fine
   // eslint-disable-next-line  @typescript-eslint/no-explicit-any
@@ -796,6 +825,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param name name of the signal
      * @param signal parameters of the signal
      * @returns signal that can be passed to other add* functions to make connections
+     * @group Signals and ports
      */
   addSignal (name: string, signal: Signal): Sig {
     if (this.findSignal(name)) throw Error(`${name} signal already exists`)
@@ -811,6 +841,13 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param io the input/output of the register. With a reset, q resets to `resetVal` (default 0),
      * written as `'0`, or as a literal sized to q
      * @returns return the q output signal
+     * @example An 8-bit register with an enable and an active-low asynchronous reset
+     * {@includeCode ../../doc-examples/core/addRegister.ts#example}
+     *
+     * The SystemVerilog it emits:
+     *
+     * {@includeCode ../../../doc/examples/core/addRegister/RegisterExample.sv}
+     * @group Registers
      */
   addRegister (io: {
     d: string | Sig | Expr
@@ -908,6 +945,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param a the value to determine the bit width of
      * @param isSigned whether the value should be treated as a signed number
      * @returns the minimum bit width needed to represent the value
+     * @group Output and utilities
      */
   bitWidth (a: number | bigint, isSigned: boolean = false): number {
     return (Math.ceil(Math.log2(Math.abs(Number(a)) + Number(a >= 0)) + Number(isSigned || (a < 0))))
@@ -928,6 +966,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * +∞), `rm` rounds down, `rz` rounds towards zero, `rn` rounds half to even, and `rna`
      * rounds half away from zero
      * @returns the signal of the rounded result
+     * @group Arithmetic
      */
   addRound (io: {
     in: string | Sig
@@ -1021,6 +1060,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * `none` doesn't clamp: an unsigned `in` keeps its low bits, and a signed `in` out of range
      * keeps its sign and its low `n - 1` bits.
      * @returns signal of the result of the saturation
+     * @group Arithmetic
      */
   addSaturate (io: {
     in: string | Sig
@@ -1077,6 +1117,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @param io the block's clock, its reset if it has one, and the signals it assigns, which
    * become `logic`
    * @param body the block's statements, usually `begin : <name> ... end`
+   * @group Sequential logic
    */
   addSequentialAlways (
     io: {
@@ -1135,6 +1176,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_comb`
    * @param body the block's statements, usually `begin : <name> ... end`
+   * @group Combinational logic
    */
   addCombAlways (
     io: {
@@ -1178,6 +1220,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @param io the signals the block assigns, which become `logic`; `inputs` gives a sensitivity
    * list instead of `always_latch`
    * @param body the block's statements, usually `begin : <name> ... end`
+   * @group Sequential logic
    */
   addLatchAlways (
     io: {
@@ -1214,6 +1257,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     this.body += header + body
   }
 
+  /** @internal */
   protected addOperation (
     op: BinaryOp,
     io: OperationIO): Sig {
@@ -1306,6 +1350,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * logs a warning. A literal is written at its own width, with a sign bit in a signed product.
      * A negative literal is negated: `a * -8n` gives `a * -5'sd8`.
      * @returns the product result
+     * @group Arithmetic
      */
   addMultiplier (io: OperationIO): Sig {
     return this.addOperation(BinaryOp.MULTIPLY, io)
@@ -1322,6 +1367,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * warning. A literal is written at its own width, with a sign bit in a signed sum. A negative
      * literal is negated: `a + -8n` gives `a + -5'sd8`.
      * @returns the sum result
+     * @group Arithmetic
      */
   addAdder (io: OperationIO): Sig {
     return this.addOperation(BinaryOp.ADD, io)
@@ -1332,6 +1378,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param io the input/output interface of the subtractor: `a - b`. The widths and signedness
      * follow {@link Module.addAdder}.
      * @returns the difference result
+     * @group Arithmetic
      */
   addSubtractor (io: OperationIO): Sig {
     return this.addOperation(BinaryOp.SUBTRACT, io)
@@ -1344,6 +1391,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param isSigned whether the signal is signed or not
      * @param width bit width of the resulting signal
      * @returns
+     * @group Signals and ports
      */
   addConstSignal (name: string | undefined, value: bigint, isSigned: boolean = false, width: number | undefined = undefined): Sig {
     const minWidth = this.bitWidth(value, isSigned)
@@ -1366,6 +1414,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @param isSigned whether the signals are signed or not
      * @param width bit width of the resulting signals
      * @returns The array of signals
+     * @group Signals and ports
      */
   addConstSignals (name: string, values: bigint[], isSigned: boolean = false, width: number | undefined = undefined): Sig[] {
     const signalNames = [...Array(values.length).keys()].map((p: number) => { return `${name}_${p}` })
@@ -1380,6 +1429,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * add a SystemVerilog continuous assign statement
      * @param io expression that is the right hand side of the assigment
      * @returns signal that is the left hand side of the assignment
+     * @group Combinational logic
      */
   addAssign (io: { in: Expr, out: string | Sig }): Sig {
     const outSig = this.findSignal(io.out, true, this.addAssign, true)
@@ -1401,6 +1451,13 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * than `out` is an error. An `Expr` input is used as given. A `sel` value past the last input
      * gives `default`, or all X.
      * @returns signal of the multiplexer output
+     * @example A three-input multiplexer with a default
+     * {@includeCode ../../doc-examples/core/addMux.ts#example}
+     *
+     * The SystemVerilog it emits:
+     *
+     * {@includeCode ../../../doc/examples/core/addMux/MuxExample.sv}
+     * @group Combinational logic
      */
   addMux (io: { in: Array<string | Sig | Expr>, sel: string | Sig | Expr, out: string | Sig, default?: string | Sig | Expr }): Sig {
     if (io.in.length < 2) throw Error(`addMux: ${io.out.toString()} needs at least 2 inputs, got ${io.in.length}`)
@@ -1490,6 +1547,7 @@ ${caseAssignments}
    *   snippet before processing. Defaults to `true`.
    * @param opts.ensureTrailingNewline - Guarantee the appended text ends with
    *   a newline. Defaults to `true`.
+   * @group Raw SystemVerilog
    */
   addBody (body: string, opts?: {
     indentMode?: 'relative' | 'verbatim'
@@ -1539,6 +1597,7 @@ ${caseAssignments}
    * that benefit from automatic indent stripping.
    *
    * @param line - A single line of SystemVerilog text (no trailing newline needed).
+   * @group Raw SystemVerilog
    */
   addBodyLine (line: string): void {
     this.body += line + '\n'
@@ -1546,6 +1605,7 @@ ${caseAssignments}
 
   /**
      * print some debug information to the console
+     * @group Output and utilities
      */
   debug (): void {
     console.log(this.name)
@@ -1559,6 +1619,7 @@ ${caseAssignments}
   /**
    * Convert a ParameterValue into a compact, readable string suitable for Verilog comments.
    * Deterministic ordering for objects/records.
+   * @internal
    */
   protected formatParameterValue (v: ParameterValue): string {
     if (typeof v === 'bigint') return v.toString() + 'n'
@@ -1591,6 +1652,7 @@ ${caseAssignments}
   /**
    * Flatten parameters into `// key.path = value` lines.
    * Good for embedding at the top of generated Verilog.
+   * @group Output and utilities
    */
   protected formatParametersForComment (
     params: TSSVParameters = this.params,
@@ -1630,6 +1692,7 @@ ${caseAssignments}
 
   /**
    * Convenience wrapper that emits a nice comment block.
+   * @internal
    */
   protected formatParametersAsVerilogComment (params: TSSVParameters = this.params): string {
     const body = this.formatParametersForComment(params)
@@ -1744,6 +1807,7 @@ ${caseAssignments}
    *   of it, or inverted (`!r`, `~r`).
    * @param outDir the directory to write to, created if it doesn't exist
    * @returns the paths written, each after every file it includes, so this module's is last
+   * @group Output and utilities
    */
   writeSystemVerilogFiles (outDir: string): string[] {
     if (this.importedFiles !== undefined) {
@@ -2040,13 +2104,19 @@ endmodule
   }
 
   protected body: string
-  // set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
+  /**
+   * set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
+   * @internal
+   */
   protected importedFiles?: ReadonlyArray<{ path: string, text: string }>
+  /** @internal */
   protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
 
+  /** @internal */
   protected verilogParams: Record<string, boolean>
 }
 
+/** @internal */
 export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): string {
   const serialized = JSON.stringify(obj, function (key, value) {
     if (typeof value === 'bigint') {
@@ -2057,6 +2127,7 @@ export function serialize (obj: any, indent?: number, bigIntSuffix = 'n'): strin
   return serialized
 }
 
+/** @internal */
 export function deserialize (serialized: string): any {
   const revived = JSON.parse(serialized, (key, value) => {
     const hexPattern = /^0x[0-9a-fA-F]+n$/
@@ -2068,4 +2139,5 @@ export function deserialize (serialized: string): any {
   return revived
 }
 
+/** @internal */
 export default { Module, Sig, Expr }
