@@ -304,6 +304,29 @@ void test('the reciprocal convention: the bits satisfy the characteristic polyno
   for (let i = 0; i < 1000; i++) { state = m.shift(state); s.push(state & 1n) }
   for (let t = 0; t + 16 < s.length; t++) assert.equal(s[t + 16], (s[t + 5] ?? 0n) ^ (s[t + 3] ?? 0n) ^ (s[t + 2] ?? 0n) ^ (s[t] ?? 0n))
   assert.equal(isPrimitive(normalizePolynomial('test', 16, 'x^16 + x^5 + x^3 + x^2 + 1')), true)
+  // An LFSR given the reciprocal makes the same bits backwards: reversed, they follow its taps
+  const r = [...s].reverse()
+  const reciprocal = taps(16, 'x^16 + x^5 + x^3 + x^2 + 1')
+  for (let t = 16; t < r.length; t++) assert.equal(r[t], reciprocal.reduce((x, k) => x ^ (r[t - k] ?? 0n), 0n))
+})
+
+void test('the spec\'s timing diagram: steps, a hold, and a load, as the model gives them', () => {
+  // A loadable LFSR with x^4 + x^3 + 1 from seed 1, cycles 0 to 9 of the diagram: step and load in
+  // each cycle, and the state_q and value the diagram shows
+  const m = new LFSRModel({ width: 4n, polynomial: 'x^4 + x^3 + 1' })
+  const step = [0, 0, 1, 1, 0, 1, 1, 1, 0, 0]
+  const load = new Map([[6, 0xan]])
+  let state = 1n
+  const states: bigint[] = []
+  const values: bigint[] = []
+  for (let c = 0; c < 10; c++) {
+    states.push(state)
+    const cur = load.get(c) ?? state
+    values.push(m.value(cur))
+    if (c >= 1 && step[c] === 1) state = m.next(cur)
+  }
+  assert.deepEqual(states, [1n, 1n, 1n, 2n, 4n, 4n, 9n, 5n, 0xbn, 0xbn])
+  assert.deepEqual(values, [1n, 1n, 1n, 2n, 4n, 4n, 0xan, 5n, 0xbn, 0xbn])
 })
 
 void test('an XNOR LFSR, as XAPP052 draws it, is the complement of LFSR from the complemented seed', () => {

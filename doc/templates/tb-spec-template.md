@@ -66,7 +66,7 @@ _Fixed in every configuration:_
 
 ## Interfaces and pattern formats
 
-_One subsection per DUT interface that a component drives or checks. For each: the component and its instance, the pattern memory and its manifest path (`h.<instance>.<memory>`), the record's fields in order with their widths, the radix, which fields are stored and which are made by an Lfsr from a seed, a source or tie field if any, and two or three sample lines of a pattern file with its header. [pattern-files.md](../framework/pattern-files.md) defines the file format._
+_One subsection per DUT interface that a component drives or checks. For each: the component and its instance, the pattern memory and its manifest path (`h.<instance>.<memory>`), the record's fields in order with their widths, the radix, which fields are stored and which are made by an LFSR from a seed, a source or tie field if any, and two or three sample lines of a pattern file with its header. [pattern-files.md](../framework/pattern-files.md) defines the file format._
 
 ### `<port>`
 

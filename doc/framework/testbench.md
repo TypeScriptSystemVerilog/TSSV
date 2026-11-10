@@ -132,24 +132,29 @@ the tiers below it, and must not name anything above it.**
 ```mermaid
 flowchart BT
   subgraph TSSV["TSSV"]
-    T1["TIER 1 · ts/src/tb/ → tssv/lib/tb/<br/>SimTop · Harness · Lfsr · xorshift<br/>PatternMemory · patternRecord · patternFile<br/>VectorPlayer · VectorChecker · wavedromVectors<br/>RecordInjector · RecordChecker · recordStream<br/>Throttle · TrafficPhases<br/>check-harness · check-test-structure · check-port-contracts"]
+    T1["TIER 1 · ts/src/tb/ → tssv/lib/tb/<br/>SimTop · Harness<br/>PatternMemory · patternRecord · patternFile<br/>VectorPlayer · VectorChecker · wavedromVectors<br/>RecordInjector · RecordChecker · recordStream<br/>Throttle · TrafficPhases<br/>check-harness · check-test-structure · check-port-contracts"]
     TM["TSSV modules' testbenches<br/>ts/test/tb/"]
+    BB["Building blocks · ts/src/modules/<br/>LFSR"]
   end
   subgraph PRJ["A project, such as tssv-noc"]
     T2["TIER 2 · ts/test/vip/‹protocol›/"]
     T3["TIER 3 · ts/test/‹DUT›/"]
   end
   TM --> T1
+  T1 --> BB
   T2 --> T1
+  T2 --> BB
   T3 --> T2
   T3 --> T1
 
   classDef t1 fill:#e8e4f8,stroke:#5b4fa8,color:#111
   classDef t2 fill:#e2f2e2,stroke:#2e7d32,color:#111
   classDef t3 fill:#fff4e0,stroke:#c77700,color:#111
+  classDef bb fill:#e3eef8,stroke:#2f6690,color:#111
   class T1 t1
   class T2 t2
   class T3,TM t3
+  class BB bb
 ```
 
 ---
@@ -162,8 +167,6 @@ Tier 1, in `ts/src/tb/`:
 |---|---|---|---|
 | `SimTop` | none (top) | `name`, `harness`, `maxCycles`, `resetCycles` (4), `loadList` (reloaded: `patterns/load.txt`) | The sim-only top. Clock (period 10); `rst_b` low for `resetCycles` rising edges, released at a falling edge. It reads `fail`, then `done`, at every rising edge after reset. With [clock domains](#clock-domains), it generates a clock and a reset for each domain. Each reset is released the same way, on its own clock, and a domain with `releaseAfter` is released after the domain it names. It reads `fail`, then `done`, at the report domain's rising edges, and counts `maxCycles` in that domain's cycles. For a reloaded harness, its loader loads every memory from the load list before any reset is released ([SimTop's loader](#simtops-loader)); `formatLoadList()` writes the list |
 | `Harness` | `clk`, `rst_b` → `done`, `fail[N-1:0]`; with domains, `clk_<d>`, `rst_b_<d>` per domain in place of `clk`, `rst_b`; reloaded: `load_en`, `load_sel`, `load_addr`, `load_data`, `records` in | `name`, `domains` (`name`, `period`, `phase`, `releaseAfter`), `reportDomain` | Base class of every harness. Its helpers:<br/>• `check(name, description, detail?)` adds a check and returns its fail net<br/>• `tap(path, width)` reads a DUT signal by hierarchical reference<br/>• `registerMemories(instance, component, { domain })` records a component's pattern memories, and in reloaded mode returns its load bindings ([The load port](#the-load-port))<br/>• `finish()` builds `fail`, and in reloaded mode the load port |
-| `Lfsr` | `clk`, `rst_b`, `step` → `value`; loadable: `load`, `seed_in` in | `width` (32 or 64), `seed`, `outWidth`, `loadable` | A xorshift sequence that steps on `step`. Two Lfsrs with one seed produce the same values, which is how a source and its checker agree on what was sent. A loadable Lfsr restarts at `seed_in` while `load` is high, showing it on `value` in that cycle |
-| `xorshift` | (TypeScript) | | `xorshift(width, seed, outWidth, n)` and `xorshiftNext()`: the model of an Lfsr's sequence, for generators and tests. Its shift triples are written apart from `Lfsr`'s, so a test of one against the other catches a wrong triple |
 | `PatternMemory` | `clk`, `rd_addr` → one output per field; reloaded only: `load_en`, `load_addr`, `load_data` in | `name`, `layout`, `depth`, `mode` (`preloaded` or `reloaded`), `file` (preloaded) | Holds a test's content, one record per word ([pattern-files.md](pattern-files.md)). The read is synchronous, the block-RAM form. Preloaded: one `initial $readmemh("<file>", mem);` loads the file at configuration, the one `initial` SYN-1 allows. Reloaded: a host writes each word through the load port, and there is no `$readmem` |
 | `patternRecord` | (TypeScript) | | `recordFields(intf, names)` takes a record's fields from an interface; `recordLayout(fields, radix)` gives each its slot in a word, padded to whole hex digits for `$readmemh`; `packRecord()` and `unpackRecord()` |
 | `patternFile` | (TypeScript) | | `writePatternFile()` writes a pattern file a person can read (header comment, a comment per object, `_` between fields), and `writeManifest()` the testcase's JSON manifest. `readManifest()` reads a manifest back and checks it, and `readPatternWords()` reads a file's records as `$readmem` does |
@@ -176,6 +179,7 @@ Tier 1, in `ts/src/tb/`:
 | `RecordInjector` | `clk`, `rst_b`, `ready` → `valid`, one output per field, `done`; options add `valid_rate`, `limit`, and in reloaded mode the load port and `records` | `name`, `fields`, `depth`, `memory`, `file`, `radix`, `records`, `lfsr`, `throttle`, `limitWidth` | Drives a valid/ready stream of records from one pattern memory, `pattern`, in order, each until it is accepted ([Record streams](#record-streams)) |
 | `RecordChecker` | `clk`, `rst_b`, `valid`, one input per field → `ready`, `fail`, `drained`; options add `ready_rate`, `limit`, the load port, and for a tie `peer_count` in, `fail_after` and `count` out | `name`, `mode`, `fields`, `depth`, `memory`, `file`/`files`, `records`, `sourceField`, `sources`, `lfsr`, `throttle`, `limitWidth`, `tie`; cycleExact: `rows`, `readyFile`, `file` | Checks a valid/ready stream against expected records, as a scoreboard: `inOrder`, `perSource` or `cycleExact` ([Record streams](#record-streams)). `firstError()`, `firstAfterError()` and `firstCycleError()` are its detail lines |
 | `recordStream` | (TypeScript) | | What an injector and a checker share, for generators: `injectorLayout()` and `checkerLayout()`, the record layout of an injector's or a checker's pattern file, given the stream's fields and its options; `lfsrPayloads()`, the model of LFSR payloads; and `mixSeed()` |
+| `LFSR` (building block, `ts/src/modules/LFSR/`) | `clk`, `rst_n`, `step` → `value`; loadable: `load`, `seed_in` in | `width`, `polynomial` (default `MAXIMAL_LENGTH[width]`), `seed`, `advance`, `outWidth`, `loadable` | A linear-feedback shift register, a design module that tier 1 uses as a part ([LFSR spec](../modules/LFSR/LFSR-spec.md)). Two LFSRs with one seed produce the same values, which is how a source and its checker agree on what was sent. `LFSRModel` predicts them, for generators and tests. A loadable LFSR restarts at `seed_in` while `load` is high, showing it on `value` in that cycle |
 | `Throttle` | `clk`, `rst_b`, `rate` → `allow` | `seed` | Allows a cycle with a chance of `rate` in 256. `drawSeed(seed, salt)` gives its seed from a stream's |
 | `TrafficPhases` | `clk`, `rst_b`, `drained` → `valid_rate`, `ready_rate`, `limit`, `done`, `stuck`; `full_rate` when a phase sets `fullRate` | `phases` (`STANDARD_PHASES`), `recordsPerPhase`, `timeout`, `quietCycles` (16) | Steps a harness's injectors and checkers through phases of valid and ready rates, a phase's records at a time. `stuck` rises if a phase doesn't drain within `timeout` cycles; `stuckDetail()` is its detail line |
 
@@ -211,7 +215,7 @@ one row ahead, and needs one priming cycle after reset:
   per edge, and `fetch`, the row the memories read, is one ahead of it.
 - Row 0 lasts two cycles: the priming cycle and the next one. A checker compares only while `run`
   is high. A DUT that should start at row 0 takes its reset from a table lane, as the SFIFO does,
-  or steps on `run`, as the Lfsrs in `tb_Lfsr` do.
+  or steps on `run`, as the LFSRs in `tb_LFSR` do.
 
 A table of four rows, records m0 to m3:
 
@@ -320,16 +324,17 @@ both files from a list of rows, each with `ready` and the record expected, if an
 
 ### LFSR payloads
 
-With `lfsr`, a record stores a seed in place of its payload fields, and an Lfsr fills them in. The
-injector and its checker are given the same `lfsr`, so the checker regenerates what the injector
-sent, and no payload is stored on either side.
+With `lfsr`, a record stores a seed in place of its payload fields, and an
+[`LFSR`](../modules/LFSR/LFSR-spec.md) fills them in. The injector and its checker are given the
+same `lfsr`, so the checker regenerates what the injector sent, and no payload is stored on either
+side.
 
-**An example.** A stream's records are `last` (1 bit) and `data` (32 bits), and a 32-bit Lfsr
+**An example.** A stream's records are `last` (1 bit) and `data` (32 bits), and a 32-bit LFSR
 fills `data`. The harness gives the injector and the checker the same fields and `lfsr`:
 
 ```ts
 const fields = [{ name: 'last', width: 1 }, { name: 'data', width: 32 }]
-const lfsr: RecordLfsr = { fields: ['data'], width: 32, seed: 1n }  // seed: the Lfsr's state after reset
+const lfsr: RecordLfsr = { fields: ['data'], width: 32, seed: 1n }  // seed: the LFSR's state after reset
 new RecordInjector({ name: 'inj', fields, lfsr, depth: 8, memory: 'preloaded', file: 'patterns/stimulus.hex', records: 5 })
 new RecordChecker({ name: 'chk', mode: 'inOrder', fields, lfsr, depth: 8, memory: 'preloaded', file: 'patterns/expected.hex', records: 5 })
 ```
@@ -366,33 +371,37 @@ The injector sends these records:
 
 | Record | `seed` in the file | `data` sent | Why |
 |---|---|---|---|
-| 0 | `7b1dcdaf` | `7b1dcdaf` | a seed: the Lfsr restarts there, and shows it |
-| 1 | 0 | `97a1d39b` | 0: the Lfsr steps on from `7b1dcdaf` |
-| 2 | 0 | `178e4b32` | 0: it steps on again |
-| 3 | `89025cc1` | `89025cc1` | packet 1's seed: the Lfsr restarts there |
-| 4 | 0 | `91d9ac0c` | 0: it steps on from `89025cc1` |
+| 0 | `7b1dcdaf` | `7b1dcdaf` | a seed: the LFSR restarts there, and shows it |
+| 1 | 0 | `66e29b46` | 0: the LFSR steps on from `7b1dcdaf`, 32 shifts |
+| 2 | 0 | `50d2036a` | 0: it steps on again |
+| 3 | `89025cc1` | `89025cc1` | packet 1's seed: the LFSR restarts there |
+| 4 | 0 | `6df71728` | 0: it steps on from `89025cc1` |
 
 The DUT here passes records through unchanged, so the checker's expected file holds the same
 records. Its layout, `checkerLayout(fields, { lfsr })`, is the same as the injector's here; it
 differs only for a perSource checker, whose files leave out the source field, or a tied one,
-whose records add the tie's fields. The checker's Lfsr regenerates the `data` column from the
+whose records add the tie's fields. The checker's LFSR regenerates the `data` column from the
 same seeds, and compares it with what arrives.
 
 The rules:
 
-- **A non-zero seed restarts the Lfsr at that seed, and a seed of 0 continues** from the previous
+- **A non-zero seed restarts the LFSR at that seed, and a seed of 0 continues** from the previous
   record. A stream whose first record has seed 0 starts from `lfsr.seed`. A stream seeded once
   in its first record is the shared-seed scheme of tssv-noc's spike (`FlitStreamSource`); a seed
   in each packet's first record, as above, is the per-packet scheme of tssv-noc's
   `doc/ideas/fpga-harness-sequence-memory.md`.
-- **`seed` is as wide as the Lfsr**, and goes where the first payload field was. The payload
-  fields are at most the Lfsr's width together: 32 or 64 bits. They take the low bits of the
-  Lfsr's value, the first field the highest of them.
+- **`seed` is as wide as the LFSR**, and goes where the first payload field was. The payload
+  fields are at most the LFSR's width together: `lfsr.width`, 2 to 168 bits, default 64. They
+  take the low bits of the LFSR's value, the first field the highest of them.
+- **The LFSR** has `lfsr.width` bits and `lfsr.polynomial`, by default the library's for the width
+  (`MAXIMAL_LENGTH`). For `bits` bits of payload, it steps `bits` shifts rounded up to a power of
+  2 per record (`payloadLfsr()`), so two records' payloads share no bits and the sequence keeps
+  its full period ([LFSR spec](../modules/LFSR/LFSR-spec.md#the-advance)).
 - **`lfsrPayloads(lfsr, bits, seeds)`** gives a generator the payloads, the table's `data`
   column, for an expected file that needs the values themselves, such as a cycleExact checker's.
-- **Mix small seeds.** xorshift takes several steps to leave a state with few bits set, so seeds
-  1, 2, 3 would give sparse, alike payloads. `mixSeed(n, width)` turns a packet number into a
-  dense, non-zero seed (splitmix64), as `mixSeed(0n, 32)` gives `7b1dcdaf` above.
+- **Mix small seeds.** An LFSR shifts a state with few bits set into others with few bits set, so
+  seeds 1, 2, 3 would give sparse, alike payloads. `mixSeed(n, width)` turns a packet number into
+  a dense, non-zero seed (splitmix64), as `mixSeed(0n, 32)` gives `7b1dcdaf` above.
 
 ### Ties: order across outputs
 
@@ -489,17 +498,19 @@ buffer, so r3 reaches `out_a` before r2 reaches `out_b`:
 ### Throttling
 
 `Throttle` makes a random choice each cycle: `allow` is high with a chance of `rate` in 256 (rate
-0 never, 256 always). It draws 8 bits from a 32-bit Lfsr that steps every cycle, and tests
-`{1'b0, draw} < rate`. An injector with `throttle` uses one to decide when to offer a record
+0 never, 256 always). It draws 8 bits from a 32-bit LFSR that steps every cycle, 8 shifts at a
+time, and tests `{1'b0, draw} < rate`. An injector with `throttle` uses one to decide when to offer a record
 (`valid_rate`), and a checker one to decide when to be ready (`ready_rate`). Their seeds come from
 `drawSeed(seed, salt)`, with a different salt for each, so an injector and a checker given one
 seed draw apart.
 
-**The distribution.** The draws are uniform: xorshift32 visits every non-zero state once in its
-period of 2^32 − 1, so each 8-bit value is equally likely, to within 2^−24. Two draws in a row are
-independent: the next draw's bits include state bits the current one doesn't. So each cycle is
-allowed as an independent coin with p = rate / 256. The sequence is linear, with 32 bits of state, so five
-or more draws in a row are linearly dependent; only a linear-complexity test would notice. With
+**The distribution.** The draws are uniform: the LFSR visits every non-zero state once in its
+period of 2^32 − 1, and each draw is the next 8 bits of its sequence, so each 8-bit value is
+equally likely, to within 2^−24. Two draws in a row share no bits: together they are 16
+consecutive bits of the sequence, and over its period every 16-bit pattern comes up equally
+often, the all-zero one once less. So each cycle is allowed as an independent coin with
+p = rate / 256. The sequence is linear, with 32 bits of state, so five or more draws in a row are
+linearly dependent; only a linear-complexity test would notice. With
 p_v = valid_rate / 256 and p_r = ready_rate / 256:
 
 - a checker's `ready` is high in each cycle with chance p_r, and an offered record waits for it
@@ -532,10 +543,10 @@ table with none has no `full_rate` port.
   VectorChecker comparing a DUT output with its expected value each cycle. That component sets
   the bit at the first violation and holds it.
 - **A check has a name and a description.** SimTop prints both:
-  `FAIL x64: a 64-bit Lfsr from seed 0x123456789abcdef gives xorshift64's low 64 bits`.
+  `FAIL w64_a64: an LFSR with x^64 + x^63 + x^61 + x^60 + 1, 64 shifts a step, from seed 0x123456789abcdef, gives the model's low 64 bits`.
 - **A check may have a detail line**, a `$display` format over signals inside the harness. A
   checker that latches its first error supplies one (`VectorChecker.firstError('chk', port)`):
-  `first differs in cycle 1: 1e2b7e2ad5623bc2, expected 3f2800d6569e01b4`.
+  `first differs in cycle 1: 0a7fe494d7a23949, expected 184bb2ec4d1ee7b8`.
 - **The order of the reads matters.** At every rising edge after reset, SimTop reads `fail`
   first, then `done`, then the cycle count. So a check that fails in the last cycle still fails
   the run.
@@ -543,7 +554,7 @@ table with none has no `full_rate` port.
   Verilator discards the `$finish` argument. A testbench built with `verilator --binary` exits
   with status 1 on a failure and 0 on a pass.
 - **Shared values come from shared seeds.** A source and its checker can agree on a sequence
-  through a shared `Lfsr` seed rather than a channel between them, as a `RecordInjector` and a
+  through a shared `LFSR` seed rather than a channel between them, as a `RecordInjector` and a
   `RecordChecker` with one `lfsr` do. That's why the harness is the only thing that has to know
   both.
 
@@ -1039,7 +1050,8 @@ testbench caught it and on which check, then restore the DUT. The PR shows the t
 
 For the examples, each break below was made in the source and run against both testbenches. It
 was run first on case tables (#196), and again on pattern memories (#197), with the same results.
-Each was caught by exactly the check it targets, and the other testbench passed:
+Each was caught by exactly the check it targets, and the other testbench passed. The LFSR rows
+are #210's, run on the `LFSR` module and `tb_LFSR`; `tb_SFIFOWave_dual_port` passed each time:
 
 | Break | Caught by | On |
 |---|---|---|
@@ -1047,15 +1059,18 @@ Each was caught by exactly the check it targets, and the other testbench passed:
 | SFIFO `empty` never set | `tb_SFIFOWave_dual_port` | `empty`, cycle 0 |
 | SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_dual_port` | `curr_depth`, cycle 0 |
 | SFIFO `bypass_q` never loaded | `tb_SFIFOWave_dual_port` | `pop_data`, cycle 3 |
-| `Lfsr` xorshift32 triple (13, 17, 6) | `tb_Lfsr` | `x32_8`, cycle 1 |
-| `Lfsr` xorshift64 triple (13, 8, 17) | `tb_Lfsr` | `x64`, cycle 1 |
+| `LFSR` with the lowest tap dropped from its XOR network | `tb_LFSR` | `w16_a8`, `w33_a40`, `w64_a64` and `load32`, cycle 1 |
+| `LFSR`'s `value` from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 10, the first load |
+| `LFSR`'s step from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 11 |
 
-A failure reads, for example:
+With the tap dropped, `prbs7` loses x<sup>6</sup>. From seed 1, stage 6 holds 0 until the 1 reaches
+it, so `prbs7` would first differ in cycle 6, after SimTop has stopped at cycle 3 on the first
+failures. A failure reads, for example:
 
 ```text
-FAIL x64: a 64-bit Lfsr from seed 0x123456789abcdef gives xorshift64's low 64 bits
-  first differs in cycle 1: 1e2b7e2ad5623bc2, expected 3f2800d6569e01b4
-[75] %Fatal: tb_Lfsr.sv:47: Assertion failed in tb_Lfsr: tb_Lfsr failed in cycle 3
+FAIL w64_a64: an LFSR with x^64 + x^63 + x^61 + x^60 + 1, 64 shifts a step, from seed 0x123456789abcdef, gives the model's low 64 bits
+  first differs in cycle 1: 0a7fe494d7a23949, expected 184bb2ec4d1ee7b8
+[75] %Fatal: tb_LFSR.sv:82: Assertion failed in tb_LFSR: tb_LFSR failed in cycle 3
 ```
 
 The detail line counts the table's rows, and the last line counts SimTop's cycles after reset,
@@ -1070,14 +1085,7 @@ testbench again. `$readmemh` reads the file at run time, so this needs no rebuil
 | `stimulus.hex`: the second push 42 → 52 | `pop_data` fails, cycle 8 |
 | `expected.hex`: row 0's `pop_data` ff, with its care bit 0 | passes: not checked |
 | `expected.hex`: row 0's `pop_data` ff, with its care bit 1 | `pop_data` fails, cycle 0 |
-| `expect_x32_8.hex`: the last row changed | `x32_8` fails, cycle 63 |
-
-The loadable Lfsr (#198), in `tb_Lfsr`'s case `load32`:
-
-| Break | On |
-|---|---|
-| `value` from the state, not the seed being loaded | `load32`, cycle 10, the first load |
-| The step mixes the state, not the loaded seed | `load32`, cycle 11 |
+| `expect_w16_a8.hex`: the last row's value changed (#210) | `w16_a8` fails, cycle 159 |
 
 The record streams (#198). Each break was made once and restored; the pattern-file changes were
 made in `sv-examples/tb/<tb>/patterns/`, which needs no rebuild:
@@ -1099,7 +1107,7 @@ made in `sv-examples/tb/<tb>/patterns/`, which needs no rebuild:
 | The merge under an `inOrder` checker, expecting source 0's records, then 1's | `sources` | `order`, record 0 |
 | A 1-stage buffer on `out_a`, so `out_b` gets ahead | `tied` | `after_b`, record 0 (it had 0) |
 | A 3-stage slice for the 2-stage table | `cycle` | `valid` and `record`, cycle 2 |
-| `RecordChecker` loads its Lfsr on every record | `order` | `order`, record 3 |
+| `RecordChecker` loads its LFSR on every record (run again on `LFSR`, #210) | `order` | `order`, record 3 |
 | `RecordInjector` moves on whether or not a record is accepted | `order` | `order`, record 19 |
 | The tie compares `>` for `>=` | `tied` | `after_a`, record 0 |
 | `perSource` compares every record with source 0's queue | `sources` | `order`, source 1, record 0 |
@@ -1148,16 +1156,16 @@ of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 | File | What it is |
 |---|---|
 | `SFIFOWaveHarness.ts` | Replays the SFIFO spec's dual-port timing diagram: `sfifoWaveTable()` reads it with `diagramLanes()`, a `VectorPlayer` drives the four input lanes, and a `VectorChecker` checks the four output lanes, one check each, from the two pattern files written from the diagram |
-| `LfsrHarness.ts` | Three `Lfsr`s, 64 bits, 32 bits with an 8-bit output, and a loadable 32-bit one, each stepping on the player's `run`, checked by a `VectorChecker` against the xorshift model for 64 cycles, written to a pattern file per Lfsr. The player drives the loadable one's `load` and `seed_in` from `LOADS` |
+| `LFSRHarness.ts` | Five `LFSR`s, each stepping on the player's `run`, checked by a `VectorChecker` against `LFSRModel` for 160 cycles, from a pattern file per LFSR: PRBS7 past its period of 127, the 16-bit default with an advance of 8 and 8 bits out, a 33-bit polynomial given as a list with an advance of 40, the 64-bit default with an advance of 64, and a loadable 32-bit one. The player drives the loadable one's `load` and `seed_in` from `LOADS` |
 | `streamDuts.ts` | Small valid/ready DUTs for the record streams: `StreamSlice` (register stages, full rate), `StreamMerge` (two streams into one, in turn) and `StreamSplit` (one into two by a bit of the word, in input order) |
 | `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases, built by the testbench generator), `SliceCycleHarness` (cycleExact), `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
 | `AFIFOStreamHarness.ts` | The two-domain example: an `AFIFO` between an injector in domain `wr` and an inOrder checker in domain `rd`, each at its own random rate, so the FIFO fills and runs empty. `wr` is released after `rd`, and the injector's `done` crosses into `rd` through a `CDCSynchronizer` |
-| `test_tbExamples.ts` | The hand-written runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_Lfsr`, the three `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/`. Run by `make -C verilatorTB tb_examples_sim` |
+| `test_tbExamples.ts` | The hand-written runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_LFSR`, the three `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/`. Run by `make -C verilatorTB tb_examples_sim` |
 | `test_SliceOrderTB.ts` | The testbench generator's example: writes two configurations and two testcases, and generates SliceOrder for each pair in both modes under `sv-examples/tb/StreamSlice/SliceOrder/`. Its TB spec is [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md). Run by `make -C verilatorTB tb_regression_sim` |
 | `LoadBusHarness.ts`, `test_loadBusTB.ts` | The load port's test: an `AFIFO` between an injector in `wr` and a perSource checker of 3 sources in `rd`, reloaded, with memories of two depths and widths, and a testcase where one source loads no records. Run by `make -C verilatorTB tb_regression_sim` |
 | `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, and the configuration file's schema, in Node |
 | `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, and the registrations it refuses, in Node |
 | `test_RecordStream.ts` | The record-stream components' ports per option, their record layouts, the payload model and their refusals, in Node |
-| `test_Lfsr.ts` | The xorshift model against Marsaglia's paper, and `Lfsr`'s ports, name and refusals, in Node |
+| `test_checkTestStructure.ts` | `check-test-structure` on fixture trees: a building block passes in tiers 1 and 2, and any other module fails, by package path or relatively, in Node. `LFSR`'s own test is `ts/test/modules/test_LFSR.ts` |
 | `test_PatternMemory.ts` | `PatternMemory` in both modes, with the lead's burst_mix pattern file: `tb_PatternMemory_preloaded` reads the memory back after it loads the file itself, and in `tb_PatternMemory_reloaded` the testbench loads it through the load port, twice. Run by `make -C verilatorTB pattern_memory_sim` |
 | `test_patternFile.ts` | The record layouts and the pattern file writer, against the format in [pattern-files.md](pattern-files.md), including the lead's example byte for byte |
