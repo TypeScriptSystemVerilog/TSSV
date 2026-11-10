@@ -353,6 +353,11 @@ void test('CRC-16-CCITT\'s polynomial isn\'t maximal-length, so an LFSR refuses 
     "polynomial x^16 + x^12 + x^5 + 1 isn't maximal-length (it isn't primitive)")
 })
 
+void test('the spec\'s hex numbers: every term is 0x16801, and a CRC\'s 0x1021 leaves out x^16', () => {
+  assert.equal(normalizePolynomial('test', 16, 'x^16 + x^14 + x^13 + x^11 + 1').bits, 0x16801n)
+  assert.equal(normalizePolynomial('test', 16, 'x^16 + x^12 + x^5 + 1').bits, (1n << 16n) | 0x1021n)
+})
+
 // ---------------------------------------------------------------- the SV of each configuration
 
 /** The spec's IO table for a configuration, in declaration order */
