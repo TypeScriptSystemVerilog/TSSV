@@ -30,6 +30,14 @@ function ports (m: Module): string[] {
   return Object.entries(IOs).map(([name, io]) => `${io.direction} ${name}[${io.width ?? 1}]`)
 }
 
+/** Runs `f`, which must throw an Error whose message contains `text` */
+function throwsWith (f: () => unknown, text: string): void {
+  assert.throws(f, (e: unknown) => {
+    assert.ok(e instanceof Error && e.message.includes(text), `expected a message containing "${text}", got: ${String(e)}`)
+    return true
+  })
+}
+
 /** The tapped stages of a polynomial, highest first */
 const taps = (width: number, p: string | number[]): number[] => normalizePolynomial('test', width, p).taps
 
@@ -75,19 +83,19 @@ void test('leaving the polynomial out is the same module as passing the library\
   assert.equal(new LFSR({ width: 24n, seed: 5n }).name, new LFSR({ width: 24n, polynomial: MAXIMAL_LENGTH[24], seed: 5n }).name)
 })
 
-const MALFORMED: Array<[string, string | number[], RegExp]> = [
-  ['a coefficient', 'x^4 + 2x^3 + 1', /polynomial 'x\^4 \+ 2x\^3 \+ 1' has a term "2x\^3" that isn't x\^k, x or 1/],
-  ['another variable', 'y^4 + y^3 + 1', /has a term "y\^4" that isn't x\^k, x or 1/],
-  ['an empty term', 'x^4 + + 1', /has a term "" that isn't x\^k, x or 1/],
-  ['a term twice', 'x^4 + x^3 + x^3 + 1', /polynomial 'x\^4 \+ x\^3 \+ x\^3 \+ 1' has the term x\^3 twice/],
-  ['a degree other than the width', 'x^5 + x^3 + 1', /has degree 5, but the width is 4: its highest term must be x\^4/],
-  ['no 1, written as a string', 'x^4 + x^3', /polynomial 'x\^4 \+ x\^3' has no 1 \(x\^0\) term; add the 1: 'x\^4 \+ x\^3 \+ 1'/],
-  ['no 0, as in a tap list', [4, 3], /polynomial \[4, 3\] has no 1 \(x\^0\) term; a tap list, such as XAPP052's, leaves the 0 out: write \[4, 3, 0\]/],
-  ['a negative exponent', [4, -3, 0], /has an exponent -3 that isn't an integer 0 or more/],
-  ['no terms', [], /polynomial \[\] has no terms/]
+const MALFORMED: Array<[string, string | number[], string]> = [
+  ['a coefficient', 'x^4 + 2x^3 + 1', `polynomial 'x^4 + 2x^3 + 1' has a term "2x^3" that isn't x^k, x or 1`],
+  ['another variable', 'y^4 + y^3 + 1', `has a term "y^4" that isn't x^k, x or 1`],
+  ['an empty term', 'x^4 + + 1', `has a term "" that isn't x^k, x or 1`],
+  ['a term twice', 'x^4 + x^3 + x^3 + 1', "polynomial 'x^4 + x^3 + x^3 + 1' has the term x^3 twice"],
+  ['a degree other than the width', 'x^5 + x^3 + 1', 'has degree 5, but the width is 4: its highest term must be x^4'],
+  ['no 1, written as a string', 'x^4 + x^3', "polynomial 'x^4 + x^3' has no 1 (x^0) term; add the 1: 'x^4 + x^3 + 1'"],
+  ['no 0, as in a tap list', [4, 3], "polynomial [4, 3] has no 1 (x^0) term; a tap list, such as XAPP052's, leaves the 0 out: write [4, 3, 0]"],
+  ['a negative exponent', [4, -3, 0], "has an exponent -3 that isn't an integer 0 or more"],
+  ['no terms', [], 'polynomial [] has no terms']
 ]
 for (const [what, p, message] of MALFORMED) {
-  void test(`a polynomial with ${what} is refused`, () => { assert.throws(() => new LFSR({ width: 4n, polynomial: p, seed: 1n }), { message }) })
+  void test(`a polynomial with ${what} is refused`, () => { throwsWith(() => new LFSR({ width: 4n, polynomial: p, seed: 1n }), message) })
 }
 
 // ---------------------------------------------------------------- the factor table
@@ -318,8 +326,8 @@ void test('an XNOR LFSR, as XAPP052 draws it, is the complement of LFSR from the
 })
 
 void test('CRC-16-CCITT\'s polynomial isn\'t maximal-length, so an LFSR refuses it', () => {
-  assert.throws(() => new LFSR({ width: 16n, polynomial: 'x^16 + x^12 + x^5 + 1', seed: 1n }),
-    { message: /polynomial x\^16 \+ x\^12 \+ x\^5 \+ 1 isn't maximal-length \(it isn't primitive\)/ })
+  throwsWith(() => new LFSR({ width: 16n, polynomial: 'x^16 + x^12 + x^5 + 1', seed: 1n }),
+    "polynomial x^16 + x^12 + x^5 + 1 isn't maximal-length (it isn't primitive)")
 })
 
 // ---------------------------------------------------------------- the SV of each configuration
@@ -370,22 +378,22 @@ void test('allowShortPeriod builds an LFSR the checks would refuse, and doesn\'t
   assert.doesNotThrow(() => new LFSR({ width: 200n, polynomial: [200, 163, 0], seed: 1n, allowShortPeriod: true }))
 })
 
-const REFUSED: Array<[string, () => unknown, RegExp]> = [
-  ['a width of 1', () => new LFSR({ width: 1n, polynomial: 'x + 1', seed: 1n }), /width must be a bigint of 2 or more, got 1/],
-  ['a width above the library, with no polynomial', () => new LFSR({ width: 169n, seed: 1n }), /MAXIMAL_LENGTH has no polynomial for width 169 \(it covers 2 to 168\), so give one/],
-  ['a polynomial of another degree', () => new LFSR({ width: 16n, polynomial: PRBS15, seed: 1n }), /polynomial 'x\^15 \+ x\^14 \+ 1' has degree 15, but the width is 16/],
+const REFUSED: Array<[string, () => unknown, string]> = [
+  ['a width of 1', () => new LFSR({ width: 1n, polynomial: 'x + 1', seed: 1n }), 'width must be a bigint of 2 or more, got 1'],
+  ['a width above the library, with no polynomial', () => new LFSR({ width: 169n, seed: 1n }), 'MAXIMAL_LENGTH has no polynomial for width 169 (it covers 2 to 168), so give one'],
+  ['a polynomial of another degree', () => new LFSR({ width: 16n, polynomial: PRBS15, seed: 1n }), "polynomial 'x^15 + x^14 + 1' has degree 15, but the width is 16"],
   ['a polynomial that isn\'t maximal-length', () => new LFSR({ width: 4n, polynomial: 'x^4 + x^2 + 1', seed: 1n }),
-    /polynomial x\^4 \+ x\^2 \+ 1 isn't maximal-length \(it isn't primitive\), so its sequence repeats before visiting all 15 non-zero states. Use MAXIMAL_LENGTH\[4\], or pass allowShortPeriod: true/],
+    "polynomial x^4 + x^2 + 1 isn't maximal-length (it isn't primitive), so its sequence repeats before visiting all 15 non-zero states. Use MAXIMAL_LENGTH[4], or pass allowShortPeriod: true"],
   ['an advance that shortens the period', () => new LFSR({ width: 16n, seed: 1n, advance: 3n }),
-    /an advance of 3 shares the factor 3 with 2\^16 − 1 = 65535, so the sequence repeats after 21845 steps instead of 65535/],
+    'an advance of 3 shares the factor 3 with 2^16 − 1 = 65535, so the sequence repeats after 21845 steps instead of 65535'],
   ['a width the factor table doesn\'t cover', () => new LFSR({ width: 200n, polynomial: [200, 163, 0], seed: 1n }),
-    /polynomial x\^200 \+ x\^163 \+ 1 can't be checked for maximal length, since the factor table covers widths 2 to 168/],
-  ['a seed of 0, the lock-up state', () => new LFSR({ width: 16n, seed: 0n }), /seed must be a non-zero 16-bit value \(0 is the lock-up state, which an LFSR never leaves\), got 0/],
-  ['a seed wider than the state', () => new LFSR({ width: 16n, seed: 1n << 16n }), /seed must be a non-zero 16-bit value/],
-  ['an outWidth wider than the state', () => new LFSR({ width: 16n, seed: 1n, outWidth: 17n }), /outWidth must be 1 to 16, got 17/],
-  ['an outWidth of 0', () => new LFSR({ width: 16n, seed: 1n, outWidth: 0n }), /outWidth must be 1 to 16, got 0/],
-  ['an advance of 0', () => new LFSR({ width: 16n, seed: 1n, advance: 0n }), /advance must be 1 or more, got 0/]
+    "polynomial x^200 + x^163 + 1 can't be checked for maximal length, since the factor table covers widths 2 to 168"],
+  ['a seed of 0, the lock-up state', () => new LFSR({ width: 16n, seed: 0n }), 'seed must be a non-zero 16-bit value (0 is the lock-up state, which an LFSR never leaves), got 0'],
+  ['a seed wider than the state', () => new LFSR({ width: 16n, seed: 1n << 16n }), 'seed must be a non-zero 16-bit value'],
+  ['an outWidth wider than the state', () => new LFSR({ width: 16n, seed: 1n, outWidth: 17n }), 'outWidth must be 1 to 16, got 17'],
+  ['an outWidth of 0', () => new LFSR({ width: 16n, seed: 1n, outWidth: 0n }), 'outWidth must be 1 to 16, got 0'],
+  ['an advance of 0', () => new LFSR({ width: 16n, seed: 1n, advance: 0n }), 'advance must be 1 or more, got 0']
 ]
 for (const [what, f, message] of REFUSED) {
-  void test(`${what} is refused`, () => { assert.throws(f, { message }) })
+  void test(`${what} is refused`, () => { throwsWith(f, message) })
 }

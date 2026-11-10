@@ -112,11 +112,20 @@ the tiers below it, and must not name anything above it.**
   sequence is tier 1. A checker for one interface's protocol is tier 2. A DUT's latency is a
   tier-3 parameter.
 - **`scripts/check-test-structure.mjs` enforces the rule** for tiers 1 and 2:
-  - A tier-1 file may import only Node, `tssv/lib/core/`, `tssv/lib/tb/` and its own files.
+  - A tier-1 file may import only Node, `tssv/lib/core/`, `tssv/lib/tb/`, the building blocks
+    below, and its own files.
   - A tier-2 file may also import `tssv/lib/interfaces/`, and the project's `ts/test/vip/`,
     `ts/src/interfaces/` and `ts/src/tools/`.
   - So neither can import a DUT: neither TSSV's (`tssv/lib/modules/`) nor the project's
     (`ts/src/modules/`).
+  - **Building blocks** are the exception: TSSV design modules that a generic testbench
+    component uses as a part, not as a DUT. Both tiers may import one as
+    `tssv/lib/modules/<block>`, and tier 1 may reach it relatively, in `ts/src/modules/<block>/`.
+    The list is the script's `BUILDING_BLOCKS`, and today it is just
+    [`LFSR`](../modules/LFSR/LFSR-spec.md), which `Throttle` and the record streams use. A module
+    joins only when a tier-1 or tier-2 component needs it, and it must import nothing those
+    tiers may not. `ts/test/tb/test_checkTestStructure.ts` shows the script passing a building
+    block and failing any other module, in each tier.
 
 **Diagram 2: the tiers across TSSV and a project.**
 
