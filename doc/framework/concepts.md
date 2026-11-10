@@ -157,9 +157,9 @@ TSSV modules don't declare SV `parameter`s. A module's own parameters are resolv
 elaboration, so the emitted module has none.
 [`setVerilogParameter()`](../reference/Base.md#setverilogparameter) marks a parameter to be
 passed as an override (`#(.P(value))`) wherever the module is *instantiated*. That only makes
-sense for an imported SV module, which does declare it (§8). Two limits apply. The value must be
-a string, number or bigint. It must also be truthy: `0`, `''` and `false` are rejected with
-`<P> does not exist!` ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
+sense for an imported SV module, which does declare it (§8). The parameter must be an own key
+of the parameter bag, and its value must be a string, number or bigint. Values such as `0`,
+`0n` and `''` are accepted; booleans and other unsupported types are rejected.
 
 ## 3. Signals: `Sig`, `Expr` and signal metadata
 
@@ -628,7 +628,8 @@ What this means in practice:
   nothing to bind. List every port you need.
 - **Interface and `ref` ports can't be bound.** Binding one throws. A name that isn't a port of
   the module throws too.
-- **Parameter values must be truthy** (§2): `0`, `''` and `false` throw ([#85](https://github.com/TypeScriptSystemVerilog/TSSV/issues/85)).
+- **Parameter values must be strings, numbers or bigints** (§2): `0`, `0n` and `''` are valid
+  overrides; booleans and other types throw.
 
 `IpXactComponent` (`doc/modules/IpXactComponent/IpXactComponent-spec.md`) builds on the same
 header parser to wrap an SV module described by an IP-XACT component file. It does check widths:

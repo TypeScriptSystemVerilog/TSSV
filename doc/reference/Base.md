@@ -1588,7 +1588,8 @@ for an `interface` or `ref` port
 
 ###### Throws
 
-`<param> does not exist!` for a falsy entry of `params` ([Module.setVerilogParameter](#setverilogparameter))
+`unsupported type of parameter <param> in setVerilogParameter()` for an entry of
+`params` that isn't a string, number or bigint ([Module.setVerilogParameter](#setverilogparameter))
 
 ###### Throws
 
@@ -1795,8 +1796,7 @@ quoted (`doc/framework/concepts.md` §2, "SystemVerilog parameters").
 
 ###### Throws
 
-`<param> does not exist!` if the parameter is missing or falsy (`0`, `''` and
-`false` included)
+`<param> does not exist!` if the parameter is not an own key of the parameter bag
 
 ###### Throws
 

@@ -532,14 +532,13 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * {@link Module.addSystemVerilogSubmodule}, which does declare it. A string value is passed
    * quoted (`doc/framework/concepts.md` §2, "SystemVerilog parameters").
    * @param param the name of a key of {@link Module.params}
-   * @throws `<param> does not exist!` if the parameter is missing or falsy (`0`, `''` and
-   * `false` included)
+   * @throws `<param> does not exist!` if the parameter is not an own key of the parameter bag
    * @throws `unsupported type of parameter <param> in setVerilogParameter()` if its value isn't a
    * string, number or bigint
    * @group Output and utilities
    */
   setVerilogParameter (param: string): void {
-    if (!this.params[param]) {
+    if (!Object.prototype.hasOwnProperty.call(this.params, param)) {
       throw Error(`${param} does not exist!`)
     } else {
       const thisParam = this.params[param]
@@ -919,7 +918,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @throws `<port> is not a port of module <module> in <file>` for a binding to a port the module
    * doesn't have, or `<kind> port <port> of module <module> is not supported by addSystemVerilogSubmodule`
    * for an `interface` or `ref` port
-   * @throws `<param> does not exist!` for a falsy entry of `params` ({@link Module.setVerilogParameter})
+   * @throws `unsupported type of parameter <param> in setVerilogParameter()` for an entry of
+   * `params` that isn't a string, number or bigint ({@link Module.setVerilogParameter})
    * @throws whatever {@link Module.addSubmodule} throws for the instance and its bindings
    * @example An existing SV adder, with its width set
    * {@includeCode ../../doc-examples/core/addSystemVerilogSubmodule.ts#example}
