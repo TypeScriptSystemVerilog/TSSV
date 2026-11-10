@@ -1,8 +1,8 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
-import { Lfsr } from './Lfsr.js'
+import { LFSR } from '../modules/LFSR/LFSR.js'
 import { PatternMemory, type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 import { type Radix, type RecordField } from './patternRecord.js'
-import { injectorLayout, payloadSlices, SEED_FIELD, type RecordLfsr } from './recordStream.js'
+import { injectorLayout, payloadLfsr, payloadSlices, SEED_FIELD, type RecordLfsr } from './recordStream.js'
 import { drawSeed, RATE_WIDTH, Throttle, VALID_SALT } from './Throttle.js'
 
 export interface RecordInjector_Parameters extends TSSV.TSSVParameters {
@@ -19,7 +19,7 @@ export interface RecordInjector_Parameters extends TSSV.TSSVParameters {
   radix?: Radix
   /** Preloaded only: the records the file holds, 1 to `depth`. Reloaded mode reads `records`. */
   records?: number
-  /** LFSR payloads: the fields an Lfsr fills in from the seed each record stores. */
+  /** LFSR payloads: the fields an LFSR fills in from the seed each record stores. */
   lfsr?: RecordLfsr
   /** Offers each record at random, with a chance of `valid_rate` in 256 per cycle. */
   throttle?: { seed: bigint }
@@ -44,7 +44,7 @@ const INTERNAL = ['idx', 'idx_nxt', 'bound', 'more', 'allow', 'offering', 'accep
  *     number of records loaded. Load while `rst_b` is low.
  *
  * `valid` comes from a flop, and so do the stored fields (the memory's read registers). An LFSR
- * payload field comes from the Lfsr: from the record's seed through a mux, or from the Lfsr's
+ * payload field comes from the LFSR: from the record's seed through a mux, or from the LFSR's
  * state. `ready` reaches only flops, so a DUT may compute it from `valid`. `done` rises when every
  * record has been accepted.
  *
@@ -151,14 +151,14 @@ export class RecordInjector extends TSSV.Module {
     this.addSubmodule('pattern', new PatternMemory({ name: `${name}_mem`, layout, depth, mode: memory, file: params.file }), memBindings, false)
     this.memories.push({ path: 'pattern', depth, layout, mode: memory, file: params.file, records })
 
-    // LFSR payloads: the seed restarts the Lfsr, 0 continues it, and it steps when a record leaves
+    // LFSR payloads: the seed restarts the LFSR, 0 continues it, and it steps when a record leaves
     if (lfsr !== undefined) {
       const bits = slices.reduce((sum, s) => sum + s.width, 0)
       this.addSignal('payload', { width: bits })
       this.addSignal('load', { width: 1 })
       this.addAssign({ in: new Expr(`${SEED_FIELD} != ${lfsr.width ?? 64}'d0`), out: 'load' })
-      this.addSubmodule('lfsr', new Lfsr({ name: `${name}_lfsr`, width: lfsr.width, seed: lfsr.seed, outWidth: bits, loadable: true }),
-        { clk: 'clk', rst_b: 'rst_b', step: 'accepted', load: 'load', seed_in: SEED_FIELD, value: 'payload' }, false)
+      this.addSubmodule('lfsr', new LFSR({ name: `${name}_lfsr`, ...payloadLfsr(lfsr, bits) }),
+        { clk: 'clk', rst_n: 'rst_b', step: 'accepted', load: 'load', seed_in: SEED_FIELD, value: 'payload' }, false)
       for (const s of slices) {
         const bitsOf = bits === s.width ? '' : s.width === 1 ? `[${s.lo}]` : `[${s.lo + s.width - 1}:${s.lo}]`
         this.addAssign({ in: new Expr(`payload${bitsOf}`), out: s.name })

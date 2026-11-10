@@ -59,7 +59,7 @@ export const recordsOf = (objects: PatternObject[]): PatternRecord[] => objects.
 /** A slice example's record: a packet's `last` record, and 32 bits of data */
 export const SLICE_FIELDS: RecordField[] = [{ name: 'last', width: 1 }, { name: 'data', width: 32 }]
 
-/** The slice examples' LFSR payloads: an Lfsr fills `data` from each record's seed */
+/** The slice examples' LFSR payloads: an LFSR fills `data` from each record's seed */
 export const SLICE_LFSR: RecordLfsr = { fields: ['data'], seed: 0x5eed5eed5eed5eedn }
 
 /** A SliceOrder configuration's parameters: the slice's register stages. */
@@ -85,7 +85,7 @@ export function sliceOrderParameters (raw: Record<string, JsonValue>, where: str
  * TB spec: doc/framework/examples/StreamSlice-tb-spec.md. The testbench generator builds it from a
  * configuration (`stages`, and the two memories' depth, a multiple of 6) and a testcase (the
  * stimulus and expected files), in either mode. The records carry seeds, from which the injector's
- * and the checker's Lfsrs make the data (SLICE_LFSR), and TrafficPhases runs the 6 standard phases
+ * and the checker's LFSRs make the data (SLICE_LFSR), and TrafficPhases runs the 6 standard phases
  * without full_rate, depth / 6 records each, at both ends. A testcase of fewer records than the
  * depth sends what it has; the last phases are short or empty.
  *
@@ -186,7 +186,7 @@ export function sliceOrderTestcase (records: number): PatternObject[] {
 /**
  * A slice testcase, `continued`: packets of other lengths, where only the first record of every
  * third packet, from packet 1, carries a seed. Every other record carries 0, so its data continues
- * the Lfsr's sequence: record 0 continues from the Lfsr's reset seed, and a packet without a seed
+ * the LFSR's sequence: record 0 continues from the LFSR's reset seed, and a packet without a seed
  * continues from the one before it.
  */
 export function sliceContinuedTestcase (records: number): PatternObject[] {
@@ -291,7 +291,7 @@ export function sliceCycleTable (stimulus: PatternRecord[], rows: number): Cycle
 /** A merge example's record: its source, a packet's `last` record, and 16 bits of data */
 export const MERGE_FIELDS: RecordField[] = [{ name: 'src', width: 1 }, { name: 'last', width: 1 }, { name: 'data', width: 16 }]
 
-/** The merge example's LFSR payloads: a 32-bit Lfsr fills `data` */
+/** The merge example's LFSR payloads: a 32-bit LFSR fills `data` */
 export const MERGE_LFSR: RecordLfsr = { fields: ['data'], width: 32, seed: 0x600dcafen }
 
 export interface MergeSourcesHarness_Parameters {

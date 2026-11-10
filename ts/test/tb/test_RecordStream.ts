@@ -10,7 +10,8 @@
  *   - each component has the ports its options select, and no others;
  *   - the record layouts put a seed in place of the LFSR payload fields, leave out a perSource
  *     checker's source field, and add a tied checker's after fields;
- *   - the payload model restarts at a seed and continues on 0;
+ *   - the payload model restarts at a seed and continues on 0, and its LFSR steps past each payload
+ *     with its full period;
  *   - derived values, such as TrafficPhases' countWidth and drawSeed's seeds, are as documented;
  *   - each component lists its pattern memories, with their paths, depths, layouts, files and
  *     record counts, for a harness to register (TSSV#200);
@@ -19,8 +20,8 @@
 import { type Module } from 'tssv/lib/core/TSSV'
 import { RecordInjector, type RecordInjector_Parameters } from 'tssv/lib/tb/RecordInjector'
 import { RecordChecker, type RecordChecker_Parameters } from 'tssv/lib/tb/RecordChecker'
-import { checkerFields, checkerLayout, injectorLayout, lfsrPayloads, mixSeed, storedFields } from 'tssv/lib/tb/recordStream'
-import { xorshift } from 'tssv/lib/tb/xorshift'
+import { checkerFields, checkerLayout, injectorLayout, lfsrPayloads, mixSeed, payloadLfsr, storedFields } from 'tssv/lib/tb/recordStream'
+import { LFSRModel, maximalPeriod } from 'tssv/lib/modules/LFSR'
 import { Throttle, drawSeed, READY_SALT, VALID_SALT } from 'tssv/lib/tb/Throttle'
 import { TrafficPhases, STANDARD_PHASES } from 'tssv/lib/tb/TrafficPhases'
 import { test } from 'node:test'
@@ -33,11 +34,11 @@ function ports (m: Module): string[] {
 }
 
 const FIELDS = [{ name: 'src', width: 2 }, { name: 'last', width: 1 }, { name: 'data', width: 32 }]
-const LFSR = { fields: ['data'], width: 32 as const, seed: 7n }
+const LFSR = { fields: ['data'], width: 32, seed: 7n }
 
 // ---- Layouts and the payload model
 
-void test('with lfsr, a record stores a seed as wide as the Lfsr where its first payload field was', () => {
+void test('with lfsr, a record stores a seed as wide as the LFSR where its first payload field was', () => {
   assert.deepEqual(storedFields(FIELDS, LFSR), [{ name: 'src', width: 2 }, { name: 'last', width: 1 }, { name: 'seed', width: 32 }])
   assert.deepEqual(storedFields(FIELDS, { fields: ['src', 'data'], seed: 1n }), [{ name: 'seed', width: 64 }, { name: 'last', width: 1 }])
 })
@@ -49,11 +50,26 @@ void test('a perSource checker\'s records leave out the source field, and a tied
 })
 
 void test('the payload model restarts at each non-zero seed and continues on 0', () => {
-  const [a0, a1, a2] = xorshift(32, 0xabcn, 32, 3)
-  const [r0, r1] = xorshift(32, LFSR.seed, 32, 2)
+  // 32 bits of payload: the LFSR steps 32 shifts per record
+  const m = new LFSRModel({ width: 32n, advance: 32n })
+  const [a0, a1, a2] = m.values(0xabcn, 3)
+  const [r0, r1] = m.values(LFSR.seed, 2)
   // 0 first continues from the reset seed; 0xabc restarts; 0 continues from there
   assert.deepEqual(lfsrPayloads(LFSR, 32, [0n, 0n, 0xabcn, 0n, 0n]), [r0, r1, a0, a1, a2])
   assert.deepEqual(lfsrPayloads(LFSR, 8, [0xabcn]), [0xbcn])
+})
+
+void test('the payload LFSR steps the payload\'s width rounded up to a power of 2, keeping its full period', () => {
+  for (const [bits, advance] of [[1, 1n], [8, 8n], [24, 32n], [32, 32n], [33, 64n], [64, 64n]] as const) {
+    const p = payloadLfsr({ fields: ['data'], seed: 1n }, bits)
+    assert.deepEqual(p, { width: 64n, polynomial: undefined, seed: 1n, advance, outWidth: BigInt(bits), loadable: true })
+    assert.equal(maximalPeriod(64, advance), (1n << 64n) - 1n)
+  }
+  // So two payloads share no bits: the second 8-bit payload is the 8 bits shifted in after the first
+  const one = new LFSRModel({ width: 64n })
+  let s = 0x1234n
+  for (let i = 0; i < 8; i++) s = one.shift(s)
+  assert.deepEqual(lfsrPayloads({ fields: ['data'], seed: 1n }, 8, [0x1234n, 0n]), [0x34n, s & 0xffn])
 })
 
 void test('mixSeed gives dense, non-zero seeds of the width asked for', () => {
@@ -62,6 +78,12 @@ void test('mixSeed gives dense, non-zero seeds of the width asked for', () => {
     assert.ok(s > 0n && s < 1n << 32n)
   }
   assert.notEqual(mixSeed(1n), mixSeed(2n))
+  // Wider than 64 bits, from splitmix64's next outputs: the low 64 bits are the 64-bit seed's
+  for (let n = 0n; n < 16n; n++) {
+    const s = mixSeed(n, 168)
+    assert.ok(s < 1n << 168n && s >> 64n !== 0n)
+    assert.equal(s & ((1n << 64n) - 1n), mixSeed(n, 64))
+  }
 })
 
 // ---- RecordInjector
@@ -173,7 +195,7 @@ void test('STANDARD_PHASES starts and ends at full rate', () => {
 })
 
 const REFUSED: Array<[string, () => unknown, RegExp]> = [
-  ['LFSR fields wider than the Lfsr', () => injector({ lfsr: { fields: ['data', 'src'], width: 32, seed: 1n } }), /inj: the lfsr fields are 34 bits, more than a 32-bit Lfsr gives/],
+  ['LFSR fields wider than the LFSR', () => injector({ lfsr: { fields: ['data', 'src'], width: 32, seed: 1n } }), /inj: the lfsr fields are 34 bits, more than a 32-bit LFSR gives/],
   ['an LFSR field the record lacks', () => injector({ lfsr: { fields: ['payload'], seed: 1n } }), /inj: lfsr names payload, which is not a field of the record/],
   ['a field named seed, with lfsr', () => injector({ fields: [{ name: 'seed', width: 4 }, ...FIELDS], lfsr: LFSR }), /no field may have that name/],
   ['an injector field named like a port', () => injector({ fields: [{ name: 'ready', width: 1 }] }), /inj: field ready has the name of one of the injector's own signals/],

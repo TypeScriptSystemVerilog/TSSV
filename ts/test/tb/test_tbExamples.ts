@@ -6,8 +6,9 @@
 //
 //   - tb_SFIFOWave_dual_port replays the SFIFO spec's dual-port timing diagram against the RTL.
 //     Its stimulus and expected values are written from the diagram.
-//   - tb_Lfsr checks Lfsr against a model of the xorshift sequence. Its expected values are
-//     written from the model, and the loads its loadable case sees from LOADS.
+//   - tb_LFSR checks the LFSR module against its model, LFSRModel, for several polynomials,
+//     widths and advances (LFSRHarness.ts). Its expected values are written from the model, and
+//     the loads its loadable case sees from LOADS.
 //   - tb_RecordStream_* drive small valid/ready DUTs with RecordInjectors and check them with
 //     RecordCheckers (RecordStreamHarness.ts): cycle (cycleExact), sources (perSource) and tied
 //     (two tied inOrder checkers). The inOrder example with LFSR payloads and TrafficPhases,
@@ -28,7 +29,7 @@ import {
 } from './RecordStreamHarness.js'
 import { SFIFOWaveHarness, sfifoWaveTable } from './SFIFOWaveHarness.js'
 import { AFIFOStreamHarness, AFIFO_FIELDS, afifoTestcase } from './AFIFOStreamHarness.js'
-import { LfsrHarness, CASES, ROWS, caseLane, caseWidths, loadLanes } from './LfsrHarness.js'
+import { LFSRHarness, CASES, ROWS, caseDescription, caseLane, loadLanes } from './LFSRHarness.js'
 import { rmSync } from 'fs'
 
 const OUT = `${TSSV_ROOT}/sv-examples/tb`
@@ -58,26 +59,25 @@ writeManifest(`${sfifoDir}/patterns/dual_port.json`, {
   ]
 })
 
-// ---- tb_Lfsr: the loads, and each case's expected values from the xorshift model
-const lfsrDir = `${OUT}/tb_Lfsr`
+// ---- tb_LFSR: the loads, and each case's expected values from the model
+const lfsrDir = `${OUT}/tb_LFSR`
 rmSync(lfsrDir, { recursive: true, force: true })
 const loads = writePatternFile(`${lfsrDir}/patterns/stimulus.hex`, VectorPlayer.layout(loadLanes()), {
-  dut: 'Lfsr',
-  testcase: 'xorshift',
-  purpose: 'load and seed_in of each loadable Lfsr',
+  dut: 'LFSR',
+  testcase: 'sequence',
+  purpose: 'load and seed_in of each loadable LFSR',
   recordNoun: 'cycle',
   objectNoun: 'sequence',
   objects: [{ label: `${ROWS} cycles from reset`, records: VectorPlayer.records(loadLanes(), ROWS) }]
 })
-writeManifest(`${lfsrDir}/patterns/xorshift.json`, {
-  testcase: 'xorshift',
+writeManifest(`${lfsrDir}/patterns/sequence.json`, {
+  testcase: 'sequence',
   files: [{ file: 'stimulus.hex', memory: 'h.play.pattern', radix: 'h' as const, records: loads }, ...CASES.map(c => {
-    const { width, outWidth } = caseWidths(c)
     const lane = caseLane(c)
     const records = writePatternFile(`${lfsrDir}/patterns/expect_${c.tag}.hex`, VectorChecker.layout([lane]), {
-      dut: 'Lfsr',
-      testcase: 'xorshift',
-      purpose: `expected value of lfsr_${c.tag}, xorshift${width}'s low ${outWidth} bits from seed 0x${c.config.seed.toString(16)}`,
+      dut: 'LFSR',
+      testcase: 'sequence',
+      purpose: `expected value of lfsr_${c.tag}: ${caseDescription(c)}`,
       recordNoun: 'cycle',
       objectNoun: 'sequence',
       objects: [{ label: `${ROWS} steps from reset`, records: VectorChecker.records([lane], ROWS) }]
@@ -173,7 +173,7 @@ const testbenches = [
     }),
     maxCycles: 100
   }),
-  new SimTop({ name: 'tb_Lfsr', harness: new LfsrHarness({ name: 'LfsrHarness', patterns: 'patterns' }), maxCycles: 100 }),
+  new SimTop({ name: 'tb_LFSR', harness: new LFSRHarness({ name: 'LFSRHarness', patterns: 'patterns' }), maxCycles: ROWS + 40 }),
   new SimTop({
     name: 'tb_RecordStream_cycle',
     harness: new SliceCycleHarness({
