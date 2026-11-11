@@ -17,7 +17,8 @@ is how a testbench's source and checker agree on what was sent without a channel
 The module is the Fibonacci form: the state is a shift register, and the feedback goes into its
 first stage. An advance of several shifts per step costs no more clocks, only a wider XOR network
 per bit. The module checks its polynomial: it refuses one that isn't maximal-length unless told
-otherwise. It ships a library of maximal-length polynomials, so most users never write one.
+otherwise. It ships a library of maximal-length polynomials, `MAXIMAL_LENGTH_POLY` and the PRBS
+polynomials ([The library](#the-library)), so most users never write one.
 
 Polynomials are written in several conventions, and they differ in ways that matter. This spec
 defines LFSR's convention exactly ([The polynomial](#the-polynomial)), and shows how to convert
@@ -31,16 +32,17 @@ Defined in `LFSR_Parameters extends TSSVParameters`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | derived | Module name. If omitted, TSSV derives it from the other parameters, the polynomial in its canonical form. |
 | `width` | `bigint` | — | The state's width in bits, 2 or more. The polynomial can be checked for maximal length up to 168 bits ([The maximal-length check](#the-maximal-length-check)). |
-| `polynomial` | `string \| number[]` | `MAXIMAL_LENGTH[width]` | The feedback polynomial, of degree `width`: a string such as `'x^16 + x^14 + x^13 + x^11 + 1'`, or its exponents such as `[16, 14, 13, 11, 0]` ([The polynomial](#the-polynomial)). |
-| `seed` | `bigint` | — | The state after reset: a `width`-bit value other than 0. |
+| `polynomial` | `string \| number[]` | `MAXIMAL_LENGTH_POLY[width]` | The feedback polynomial, of degree `width`: a string such as `'x^16 + x^14 + x^13 + x^11 + 1'`, or its exponents such as `[16, 14, 13, 11, 0]` ([The polynomial](#the-polynomial)). The default, `MAXIMAL_LENGTH_POLY[width]`, is the library's maximal-length polynomial for the width ([The library](#the-library)). |
+| `seed` | `bigint` | — | The state after reset: a `width`-bit value other than 0. All-zeros is the lock-up state: its feedback is 0, so the LFSR would stay there ([Reset, the seed and the lock-up state](#reset-the-seed-and-the-lock-up-state)). |
 | `advance` | `bigint` | `1n` | How many shifts the state makes per step, 1 or more. Each step still takes one clock ([The advance](#the-advance)). |
-| `outWidth` | `bigint` | `width` | How many bits of the state `value` shows, from bit 0: 1 to `width`. |
+| `outWidth` | `bigint` | `width` | How many bits of the state `value` shows, 1 to `width`: `state_q[outWidth-1:0]`, the low-order bits. Bit 0 is stage 1, where the feedback enters, so these are the newest bits ([What it means](#what-it-means)). |
 | `loadable` | `boolean` | `false` | Adds `load` and `seed_in`, to restart the sequence at a seed chosen at run time ([Loading a seed](#loading-a-seed)). |
-| `allowShortPeriod` | `boolean` | `false` | Builds the LFSR even when its period isn't known to be 2<sup>`width`</sup> − 1: a polynomial that isn't maximal-length, an advance that shares a factor with 2<sup>`width`</sup> − 1, or a width above 168. It doesn't change the SV, so it isn't part of the module's name. |
+| `disablePolyChecks` | `boolean` | `false` | Skips the checks that the period is 2<sup>`width`</sup> − 1: that the polynomial is maximal-length, and that the advance shares no factor with 2<sup>`width`</sup> − 1 ([The maximal-length check](#the-maximal-length-check)). Needed above 168 bits, where a polynomial can't be checked even when it is maximal-length, and to build one that isn't, such as a CRC's. It doesn't change the SV, so it isn't part of the module's name. |
 
-Every parameter but `allowShortPeriod` is part of the derived name, with its default applied: an
+The module's name isn't an LFSR parameter. TSSV derives it, as for every module, from the
+parameters above ([concepts.md §2](../../framework/concepts.md#2-parameters-and-the-module-name)).
+Every parameter but `disablePolyChecks` is part of it, with its default applied: an
 LFSR that leaves `advance` out and one that passes `1n` are the same module. The polynomial is
 part of the name in its canonical form, so its two forms, and any spacing or order of its terms,
 give the same module. Each parameter, the canonical polynomial included, is listed in the comment
@@ -57,7 +59,7 @@ block at the top of the emitted module.
 | `step` | `input` | 1 | — | Moves the state on, by `advance` shifts, at the rising edge |
 | `load` | `input` | 1 | — | `loadable` only. Restarts the sequence at `seed_in` |
 | `seed_in` | `input` | `width` | — | `loadable` only. The seed `load` restarts at |
-| `value` | `output` | `outWidth` | — | The low `outWidth` bits of the current state |
+| `value` | `output` | `outWidth` | — | The low `outWidth` bits of the current state, `state_q[outWidth-1:0]`, or of `seed_in` while `load` is high |
 
 ---
 
@@ -101,13 +103,20 @@ x<sup>16</sup> + x<sup>5</sup> + x<sup>3</sup> + x<sup>2</sup> + 1
 ([The reciprocal](#the-reciprocal-convention)). LFSR always means the connection polynomial,
 the form that hardware references print.
 
-This is the convention of Xilinx XAPP052's tables, of Wikipedia's Fibonacci example, of the ITU-T
-PRBS definitions, and of hand-written SV such as `{l[14:0], l[15] ^ l[13] ^ l[12] ^ l[10]}`. Each
-of those is checked against LFSR in `test_LFSR.ts`.
+This is the convention of Xilinx [XAPP052](https://docs.amd.com/v/u/en-US/xapp052)'s tables, of
+[Wikipedia's Fibonacci example](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Fibonacci_LFSRs), of the ITU-T PRBS definitions, and of
+hand-written SV such as `{l[14:0], l[15] ^ l[13] ^ l[12] ^ l[10]}`. Each of those is checked against
+LFSR in `test_LFSR.ts` ([Converting from other notations](#converting-from-other-notations)).
 
 ### A worked example: x<sup>4</sup> + x<sup>3</sup> + 1
 
-`polynomial: 'x^4 + x^3 + 1'` taps stages 4 and 3, bits 3 and 2. LFSR emits:
+`polynomial: 'x^4 + x^3 + 1'` taps stages 4 and 3, bits 3 and 2:
+
+![The x^4 + x^3 + 1 LFSR: four flops, stage 1 to stage 4 (state_q[0] to state_q[3]), each moving its
+bit to the next at every step. Stages 4 and 3 feed an XOR, the x^4 and x^3 terms, and its output
+goes back into stage 1, the 1 term. value is all four bits.](LFSR-circuit-x4.drawio.svg)
+
+LFSR emits:
 
 ```systemverilog
 assign state_nxt = {state_q[2:0], state_q[3] ^ state_q[2]};
@@ -123,7 +132,7 @@ From seed `0001`, it visits all 15 non-zero states, then returns to `0001`:
 | 3 | `1001` | 8 | `0101` | 13 | `1100` |
 | 4 | `0011` | 9 | `1011` | 14 | `1000` |
 
-So it is maximal-length, and it is `MAXIMAL_LENGTH[4]`. To check that an LFSR built from a
+So it is maximal-length, and it is `MAXIMAL_LENGTH_POLY[4]`. To check that an LFSR built from a
 datasheet's polynomial is the one the datasheet means, compare its first few states with the
 datasheet's, using `new LFSRModel({ width: 4n, polynomial: 'x^4 + x^3 + 1' }).values(1n, 8)`.
 
@@ -137,8 +146,8 @@ gives the full period. LFSR refuses it:
 
 ```text
 LFSR: polynomial x^4 + x^2 + 1 isn't maximal-length (it isn't primitive), so its sequence repeats
-before visiting all 15 non-zero states. Use MAXIMAL_LENGTH[4], or pass allowShortPeriod: true to
-build it anyway
+before visiting all 15 non-zero states. Use MAXIMAL_LENGTH_POLY[4], or pass disablePolyChecks: true
+to build it anyway
 ```
 
 Most polynomials of a given degree are poor: of the 8 with x<sup>4</sup> and 1, two are primitive.
@@ -181,20 +190,21 @@ notation as its source writes it, and compares it with LFSR.
 | A polynomial, as printed by XAPP052, Wikipedia or ITU-T O.150 | x<sup>16</sup> + x<sup>14</sup> + x<sup>13</sup> + x<sup>11</sup> + 1 | The same: `'x^16 + x^14 + x^13 + x^11 + 1'` | Yes, if the source numbers stages from the input |
 | A tap list, as in XAPP052's Table 3 | `16,15,13,4` | The taps, then 0: `[16, 15, 13, 4, 0]` | With XOR feedback, yes; with XNOR, see below |
 | Hand-written SV | `{l[14:0], l[15] ^ l[13] ^ l[12] ^ l[10]}` | Each tapped bit index + 1: `[16, 14, 13, 11, 0]` | Yes, bit for bit |
-| An LFSR that shifts right, new bit at the top | Wikipedia's Fibonacci example, below | The same polynomial | Yes, with the state bit-reversed |
+| An LFSR that shifts right, new bit at the top | [Wikipedia's Fibonacci example](#wikipedias-fibonacci-example) | The same polynomial | Yes, with the state bit-reversed |
 | A Galois toggle mask, or Koopman's hex | `0xB400` | Mask bit i is x<sup>i+1</sup>, plus the 1: `'x^16 + x^14 + x^13 + x^11 + 1'` | No: the same bit sequence, but other states |
 | A characteristic polynomial | x<sup>16</sup> + x<sup>5</sup> + x<sup>3</sup> + x<sup>2</sup> + 1 | Its reciprocal: `'x^16 + x^14 + x^13 + x^11 + 1'` | Yes |
-| A CRC polynomial | CRC-16-CCITT, x<sup>16</sup> + x<sup>12</sup> + x<sup>5</sup> + 1 | Usually none: most aren't primitive | — |
+| A CRC polynomial | CRC-16-CCITT, x<sup>16</sup> + x<sup>12</sup> + x<sup>5</sup> + 1 | The same, with `disablePolyChecks: true`: most aren't primitive, so LFSR refuses them by default | Not a CRC: [no data input](#crc-polynomials) |
 
-**Hand-written SV.** In `lfsr <= {lfsr[n-2:0], <XOR of bits>}`, each bit index in the XOR is a
-stage minus 1. tssv-noc's `fpga/xmr` testbenches have two:
-`{lfsr[14:0], lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10]}` is
-x<sup>16</sup> + x<sup>14</sup> + x<sup>13</sup> + x<sup>11</sup> + 1, and
-`{lfsr[62:0], lfsr[63] ^ lfsr[62] ^ lfsr[60] ^ lfsr[59]}` is
-x<sup>64</sup> + x<sup>63</sup> + x<sup>61</sup> + x<sup>60</sup> + 1, which is also
-`MAXIMAL_LENGTH[64]`. LFSR with that polynomial and the same seed steps through the same states.
+#### Hand-written SV
 
-**XAPP052 and XNOR feedback.** XAPP052 labels its stages Q1 to Qn, "with 1 being the first stage
+In `lfsr <= {lfsr[n-2:0], <XOR of bits>}`, each bit index in the XOR is a
+stage minus 1. So `{lfsr[14:0], lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10]}` taps stages 16, 14, 13
+and 11, and is x<sup>16</sup> + x<sup>14</sup> + x<sup>13</sup> + x<sup>11</sup> + 1. LFSR with that
+polynomial and the same seed steps through the same states.
+
+#### XAPP052 and XNOR feedback
+
+[XAPP052](https://docs.amd.com/v/u/en-US/xapp052) labels its stages Q1 to Qn, "with 1 being the first stage
 of the shift register", and feeds the XNOR of the listed outputs into D1. So its taps are the
 polynomial's exponents. Its circuits use XNOR rather than XOR, which moves the lock-up state from
 all-zeros to all-ones (XAPP052: "by default the flip-flops wake up in the all-zeros state"). For
@@ -202,8 +212,11 @@ a primitive polynomial, the XNOR LFSR from seed s is the bitwise complement of t
 seed ~s. So to match an XNOR circuit bit for bit, give LFSR the seed `~s` and use `~value`. LFSR
 has no XNOR option ([Reset, the seed and the lock-up state](#reset-the-seed-and-the-lock-up-state)).
 
-**Wikipedia's Fibonacci example**, for x<sup>16</sup> + x<sup>14</sup> + x<sup>13</sup> +
-x<sup>11</sup> + 1 ("Linear-feedback shift register"), shifts right, with the new bit at the top:
+#### Wikipedia's Fibonacci example
+
+[Wikipedia's Fibonacci example](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Fibonacci_LFSRs), for
+x<sup>16</sup> + x<sup>14</sup> + x<sup>13</sup> + x<sup>11</sup> + 1, shifts right, with the new
+bit at the top:
 
 ```c
 bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1u;
@@ -213,8 +226,10 @@ lfsr = (lfsr >> 1) | (bit << 15);
 Its bit 15 is stage 1 and its bit 0 is stage 16. So it is LFSR with the same polynomial, with the
 state bit-reversed: its start state `0xACE1` is LFSR's `0x8735`, and both have period 65535.
 
-**Galois toggle masks and Koopman's tables.** A Galois LFSR XORs a mask into the state when the
-bit it shifts out is 1, as in Wikipedia's Galois example and Koopman's tables, whose page gives
+#### Galois toggle masks and Koopman's tables
+
+A Galois LFSR XORs a mask into the state when the bit it shifts out is 1, as in
+[Wikipedia's Galois example](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs) and [Koopman's tables](https://users.ece.cmu.edu/~koopman/lfsr/), whose page gives
 the loop `if (i & 1) i = (i >> 1) ^ feed;`:
 
 ```c
@@ -230,7 +245,9 @@ same sequence of bits, at another phase, and the same polynomial is maximal-leng
 The states aren't the same. To match a Galois design state for state, compare its output bits,
 not its states.
 
-**The reciprocal convention.** Some sources describe an LFSR by the characteristic polynomial of
+#### The reciprocal convention
+
+Some sources describe an LFSR by the characteristic polynomial of
 its sequence, or number its stages from the output end. Either way they print the
 **reciprocal**: x<sup>n</sup>·p(1/x), the exponents k replaced by n − k. For example,
 x<sup>16</sup> + x<sup>5</sup> + x<sup>3</sup> + x<sup>2</sup> + 1 is the reciprocal of
@@ -239,40 +256,50 @@ exactly when its reciprocal is, so the maximal-length check can't tell which one
 reciprocal gives a different maximal-length LFSR, whose bits are the same sequence backwards. If
 a source's first few states don't match LFSR's (`LFSRModel.values()`), try the reciprocal.
 
-**A hex number.** Besides toggle masks, a polynomial may be written as a hex number with every
+#### A hex number
+
+Besides toggle masks, a polynomial may be written as a hex number with every
 term (bit k is x<sup>k</sup>: `0x16801` for x<sup>16</sup> + x<sup>14</sup> + x<sup>13</sup> +
 x<sup>11</sup> + 1), or, for a CRC, without the top term (`0x1021` for CRC-16-CCITT's
 x<sup>16</sup> + x<sup>12</sup> + x<sup>5</sup> + 1). Find out which before converting.
 
-**CRC polynomials** are chosen for error detection, not for period, and most aren't primitive.
+#### CRC polynomials
+
+CRC polynomials are chosen for error detection, not for period, and most aren't primitive.
 CRC-16-CCITT's x<sup>16</sup> + x<sup>12</sup> + x<sup>5</sup> + 1 has four terms, so x + 1
-divides it, and LFSR refuses it.
+divides it, and LFSR refuses it by default. With `disablePolyChecks: true`, LFSR builds it: a
+sequence generator whose period is shorter than 2<sup>16</sup> − 1 and depends on the seed. That
+still isn't a CRC. A CRC register XORs each message bit into its feedback, and LFSR has no data
+input, so it can't compute a CRC over a message.
 
 ### The library
 
 `polynomials.ts` exports two sets of polynomials, all in LFSR's convention and all checked by
 `test_LFSR.ts`:
 
-- **`MAXIMAL_LENGTH[width]`**, one maximal-length polynomial for each width from 2 to 168, and the
-  default when `polynomial` is left out. Widths 3 to 168 are XAPP052's Table 3 (P. Alfke, *Efficient
-  Shift Registers, LFSR Counters, and Long Pseudo-Random Sequence Generators*, v1.1, 1996), which
+- **`MAXIMAL_LENGTH_POLY[width]`**, one maximal-length polynomial for each width from 2 to 168,
+  and the default when `polynomial` is left out. Widths 3 to 168 are [XAPP052](https://docs.amd.com/v/u/en-US/xapp052)'s Table 3
+  (P. Alfke, *Efficient Shift Registers, LFSR Counters, and Long Pseudo-Random Sequence
+  Generators*, v1.1, 1996), which
   gives a trinomial where it found one, otherwise a pentanomial, and for width 37 six taps.
   Width 2 is x<sup>2</sup> + x + 1, the only primitive polynomial of degree 2. Width 102 isn't
   XAPP052's: its taps `102,101,36,35` give a polynomial that isn't primitive (it factors into
   polynomials of degree 3, 34 and 65). The library has
   x<sup>102</sup> + x<sup>101</sup> + x<sup>26</sup> + x<sup>25</sup> + 1 instead, the only
   primitive polynomial of the same shape. There is no primitive trinomial of degree 102.
-- **The PRBS polynomials** of test equipment: `PRBS9` (x<sup>9</sup> + x<sup>5</sup> + 1),
-  `PRBS11` (x<sup>11</sup> + x<sup>9</sup> + 1), `PRBS15` (x<sup>15</sup> + x<sup>14</sup> + 1),
-  `PRBS20` (x<sup>20</sup> + x<sup>3</sup> + 1), `PRBS23` (x<sup>23</sup> + x<sup>18</sup> + 1)
-  and `PRBS31` (x<sup>31</sup> + x<sup>28</sup> + 1), from ITU-T O.150, and `PRBS7`
+- **The PRBS polynomials** of test equipment: `PRBS9_POLY` (x<sup>9</sup> + x<sup>5</sup> + 1),
+  `PRBS11_POLY` (x<sup>11</sup> + x<sup>9</sup> + 1),
+  `PRBS15_POLY` (x<sup>15</sup> + x<sup>14</sup> + 1),
+  `PRBS20_POLY` (x<sup>20</sup> + x<sup>3</sup> + 1),
+  `PRBS23_POLY` (x<sup>23</sup> + x<sup>18</sup> + 1)
+  and `PRBS31_POLY` (x<sup>31</sup> + x<sup>28</sup> + 1), from ITU-T O.150, and `PRBS7_POLY`
   (x<sup>7</sup> + x<sup>6</sup> + 1), which isn't in O.150 but is as widely used. These are the
   polynomials only. O.150 also says how each pattern is sent, for example inverted; take `~value`
   for that, and check the bit order a piece of equipment expects.
 
-Where `MAXIMAL_LENGTH[w]` and a PRBS constant have the same width, they may differ
-(`MAXIMAL_LENGTH[20]` is x<sup>20</sup> + x<sup>17</sup> + 1, the reciprocal of `PRBS20`). Use
-the PRBS constant to match test equipment.
+Where `MAXIMAL_LENGTH_POLY[w]` and a PRBS constant have the same width, they may differ
+(`MAXIMAL_LENGTH_POLY[20]` is x<sup>20</sup> + x<sup>17</sup> + 1, the reciprocal of
+`PRBS20_POLY`). Use the PRBS constant to match test equipment.
 
 ### The maximal-length check
 
@@ -286,8 +313,9 @@ with sympy, and the test checks it rather than trusts it: each list of factors m
 force: for every polynomial of degree 2 to 10, it is true exactly when the LFSR's period is
 2<sup>n</sup> − 1.
 
-Above 168 bits, the table has no factors, so the check can't be made: LFSR refuses the polynomial
-unless `allowShortPeriod` is set, and `MAXIMAL_LENGTH` has no default.
+Above 168 bits, the table has no factors, so the check can't be made, even for a polynomial that
+is maximal-length: LFSR refuses the polynomial unless `disablePolyChecks` is set, and
+`MAXIMAL_LENGTH_POLY` has no default.
 
 ---
 
@@ -314,12 +342,12 @@ at least `k`, so that two draws share no bits.
 The period, in steps, is (2<sup>`width`</sup> − 1) / gcd(`advance`, 2<sup>`width`</sup> − 1): an
 advance that shares a factor with 2<sup>`width`</sup> − 1 visits only some of the states. For
 example, 2<sup>16</sup> − 1 = 65535 = 3 · 5 · 17 · 257, so an advance of 3 repeats after 21845
-steps. LFSR refuses such an advance unless `allowShortPeriod` is set:
+steps. LFSR refuses such an advance unless `disablePolyChecks` is set:
 
 ```text
 LFSR: an advance of 3 shares the factor 3 with 2^16 − 1 = 65535, so the sequence repeats after
 21845 steps instead of 65535. Pick an advance with no factor in common with 65535 (any power of 2
-has none), or pass allowShortPeriod: true to build it anyway
+has none), or pass disablePolyChecks: true to build it anyway
 ```
 
 2<sup>n</sup> − 1 is odd, so a power of 2 is always safe.
@@ -330,6 +358,13 @@ A loadable LFSR has `load` and `seed_in`. While `load` is high, the current stat
 not `state_q`: `value` shows `seed_in`'s low bits in the same cycle, and a step moves the state on
 from `seed_in`. With `load` and `step` both high, the state after the edge is the one after
 `seed_in`. With `load` high and `step` low, `state_q` doesn't change, and `value` shows `seed_in`.
+
+So `load` takes effect in the cycle it is high, and a step at the next rising edge. They do
+different things: `value` always shows the current state, and `load` *selects* the current state,
+through a mux, while a step *writes* `state_q`, a flop. The record streams need the load this
+way. An injector's record and its seed come out of its pattern memory in the same cycle, and the
+payload the LFSR fills in from that seed must go out with that record. A load that went through
+`state_q` would put the payload one cycle behind its record.
 
 A `seed_in` of 0 would hold the state at 0, so whoever drives `load` leaves it low for a seed of 0.
 The record streams do this ([testbench.md](../../framework/testbench.md), "Record streams"): a
@@ -373,8 +408,9 @@ these values against the model.
 -->
 ![LFSR timing: steps, a hold, and a load](LFSR-timing.svg)
 
-_Latency from `load` to `value`: **0 clock cycles** (`value` follows `seed_in` combinationally).
-From `step` to `value`: **1 clock cycle**._
+_Latency from `load` to `value`: **0 clock cycles**, since `load` selects the current state.
+From `step` to `value`: **1 clock cycle**, since a step writes `state_q`
+([Loading a seed](#loading-a-seed))._
 
 ---
 
@@ -388,7 +424,7 @@ All of it is in `ts/src/modules/LFSR/`:
   for the bits that only move. A register holds the state, enabled by `step`.
 - **`polynomial.ts`**: the two forms of a polynomial, `normalizePolynomial()` and
   `resolvePolynomial()`, and the maximal-length check, `isPrimitive()`.
-- **`polynomials.ts`**: the library, `MAXIMAL_LENGTH` and the PRBS constants.
+- **`polynomials.ts`**: the library, `MAXIMAL_LENGTH_POLY` and the PRBS constants.
 - **`mersenneFactors.ts`**: the prime factors of 2<sup>n</sup> − 1 for n from 2 to 168.
 - **`model.ts`**: `LFSRModel`, the sequence in TypeScript. It shifts a concrete state one place at
   a time, apart from the module's symbolic construction, so a test of the RTL against it checks
@@ -435,11 +471,11 @@ TSSV's core.
 | Malformed polynomials | Each row of the table in [Writing a polynomial](#writing-a-polynomial) | Refused with its message | |
 | Factor table | n = 2 to 168 | Each list multiplies to 2<sup>n</sup> − 1, each factor prime | |
 | Maximal-length check | Every polynomial of degree 2 to 10 | `isPrimitive()` exactly when the brute-force period is 2<sup>n</sup> − 1 | |
-| The library | `MAXIMAL_LENGTH[2..168]`, PRBS7 to PRBS31 | Each primitive; brute-force period for widths up to 20 | XAPP052's width 102 is shown not primitive |
+| The library | `MAXIMAL_LENGTH_POLY[2..168]`, `PRBS7_POLY` to `PRBS31_POLY` | Each primitive; brute-force period for widths up to 20 | XAPP052's width 102 is shown not primitive |
 | The model | x<sup>4</sup> + x<sup>3</sup> + 1 and x<sup>4</sup> + x<sup>2</sup> + 1 from 0001 | The tables above | Also: period 65535 at 16 bits, advance N = N shifts, short periods with a shared factor |
 | Conversions | Each row of [Converting from other notations](#converting-from-other-notations), as its source writes it | The same states, or the same bits | |
 | Configurations | Widths 2 to 168, both forms, advances 1, 8, `width` and more, `outWidth`, `loadable` | The ports above, and SV written | |
-| Refused parameters | A non-primitive polynomial, an advance with a shared factor, width 200, seed 0, a seed or `outWidth` too wide, `advance` 0 | Refused with its message | `allowShortPeriod` builds them |
+| Refused parameters | A non-primitive polynomial, an advance with a shared factor, width 200, seed 0, a seed or `outWidth` too wide, `advance` 0 | Refused with its message | `disablePolyChecks` builds them |
 
 ### Simulation
 
@@ -471,3 +507,16 @@ With one tap dropped from the RTL's XOR network, four of its five checks fail at
   it as `rst_n: 'rst_b'`.
 - **Future:** factors for widths above 168, if an LFSR that wide is needed. The data exists
   (the Cunningham tables), and the test would check it as it checks the rest.
+
+---
+
+## References
+
+- P. Alfke, [*Efficient Shift Registers, LFSR Counters, and Long Pseudo-Random Sequence
+  Generators*](https://docs.amd.com/v/u/en-US/xapp052), Xilinx XAPP052, v1.1, 1996. Table 3, the source of `MAXIMAL_LENGTH_POLY`.
+- [Linear-feedback shift register](https://en.wikipedia.org/wiki/Linear-feedback_shift_register), Wikipedia: the
+  [Fibonacci](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Fibonacci_LFSRs) and [Galois](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs) examples.
+- P. Koopman, [Maximal Length LFSR Feedback Terms](https://users.ece.cmu.edu/~koopman/lfsr/).
+- ITU-T O.150 (05/96), [General requirements for instrumentation for performance measurements on
+  digital transmission equipment](https://www.itu.int/rec/T-REC-O.150/en): PRBS9 to PRBS31, in its
+  §5, digital test sequences.
