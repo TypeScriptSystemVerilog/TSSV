@@ -16,7 +16,7 @@ export interface RecordLfsr {
   fields: string[]
   /** The LFSR's width, 2 to 168 bits. Default 64. */
   width?: number
-  /** The LFSR's feedback polynomial (LFSR's `polynomial`). Default the library's for the width, `MAXIMAL_LENGTH[width]` */
+  /** The LFSR's feedback polynomial (LFSR's `polynomial`). Default the library's for the width, `MAXIMAL_LENGTH_POLY[width]` */
   polynomial?: Polynomial
   /** The LFSR's state after reset, which a stream whose first record has seed 0 starts from. */
   seed: bigint

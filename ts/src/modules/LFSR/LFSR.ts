@@ -15,24 +15,27 @@ export interface LFSR_Parameters extends TSSVParameters {
    * The feedback polynomial, of degree `width`, as a string (`'x^16 + x^14 + x^13 + x^11 + 1'`) or
    * as its exponents (`[16, 14, 13, 11, 0]`). The term x^k taps stage k, counted from the input,
    * which is state bit k − 1 (doc/modules/LFSR/LFSR-spec.md, "The polynomial"). Default
-   * `MAXIMAL_LENGTH[width]`, the library's polynomial for the width.
+   * `MAXIMAL_LENGTH_POLY[width]`, the library's polynomial for the width.
    */
   polynomial?: Polynomial
   /** The state after reset: a `width`-bit value other than 0, which an LFSR never leaves */
   seed: bigint
   /** How many shifts the state makes per step, 1 or more. Each step still takes one clock. Default 1 */
   advance?: bigint
-  /** Bits of the state on `value`, from bit 0: 1 to `width`. Default `width` */
+  /**
+   * How many bits of the state `value` shows, 1 to `width`: `state_q[outWidth-1:0]`, the low-order
+   * bits. Bit 0 is stage 1, where the feedback enters, so these are the newest bits. Default `width`
+   */
   outWidth?: bigint
   /** Adds `load` and `seed_in`, to restart the sequence at a seed chosen at run time. Default false */
   loadable?: boolean
   /**
-   * Builds the LFSR even when its period isn't known to be 2^width − 1: a polynomial that isn't
-   * maximal-length, an advance that shares a factor with 2^width − 1, or a width above 168, where
-   * the polynomial can't be checked. It doesn't change the SV, so it isn't in the module's name.
-   * Default false
+   * Skips the checks that the period is 2^width − 1: that the polynomial is maximal-length, and
+   * that the advance shares no factor with 2^width − 1. Needed above 168 bits, where the polynomial
+   * can't be checked even when it is maximal-length, and to build one that isn't, such as a CRC's.
+   * It doesn't change the SV, so it isn't in the module's name. Default false
    */
-  allowShortPeriod?: boolean
+  disablePolyChecks?: boolean
 }
 
 /**
@@ -82,16 +85,17 @@ export class LFSR extends Module {
     if (typeof advance !== 'bigint' || advance < 1n) {
       throw Error(`LFSR: advance must be 1 or more, got ${String(advance)}`)
     }
-    if (params.allowShortPeriod !== true) {
+    if (params.disablePolyChecks !== true) {
       const states = (1n << params.width) - 1n
-      const unless = 'or pass allowShortPeriod: true to build it anyway'
+      const unless = 'or pass disablePolyChecks: true to build it anyway'
       const primitive = isPrimitive(poly)
       if (primitive === undefined) {
-        throw Error(`LFSR: polynomial ${poly.text} can't be checked for maximal length, since the factor table covers widths 2 to 168; ${unless}`)
+        throw Error(`LFSR: polynomial ${poly.text} can't be checked for maximal length, since the factor table covers widths 2 to 168; ` +
+          'pass disablePolyChecks: true to build it unchecked')
       }
       if (!primitive) {
         throw Error(`LFSR: polynomial ${poly.text} isn't maximal-length (it isn't primitive), so its sequence repeats before visiting all ${states} non-zero states. ` +
-          `Use MAXIMAL_LENGTH[${w}], ${unless}`)
+          `Use MAXIMAL_LENGTH_POLY[${w}], ${unless}`)
       }
       const g = gcd(advance, states)
       if (g !== 1n) {

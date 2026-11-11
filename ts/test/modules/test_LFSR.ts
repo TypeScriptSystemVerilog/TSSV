@@ -16,7 +16,7 @@
  */
 import { type Module } from 'tssv/lib/core/TSSV'
 import {
-  LFSR, LFSRModel, MAXIMAL_LENGTH, PRBS7, PRBS9, PRBS11, PRBS15, PRBS20, PRBS23, PRBS31,
+  LFSR, LFSRModel, MAXIMAL_LENGTH_POLY, PRBS7_POLY, PRBS9_POLY, PRBS11_POLY, PRBS15_POLY, PRBS20_POLY, PRBS23_POLY, PRBS31_POLY,
   MERSENNE_FACTORS, isPrimitive, maximalPeriod, normalizePolynomial, type LFSR_Parameters
 } from 'tssv/lib/modules/LFSR'
 import { test } from 'node:test'
@@ -80,7 +80,7 @@ void test('x is x^1, and the terms may come in any order', () => {
 })
 
 void test('leaving the polynomial out is the same module as passing the library\'s', () => {
-  assert.equal(new LFSR({ width: 24n, seed: 5n }).name, new LFSR({ width: 24n, polynomial: MAXIMAL_LENGTH[24], seed: 5n }).name)
+  assert.equal(new LFSR({ width: 24n, seed: 5n }).name, new LFSR({ width: 24n, polynomial: MAXIMAL_LENGTH_POLY[24], seed: 5n }).name)
 })
 
 const MALFORMED: Array<[string, string | number[], string]> = [
@@ -160,13 +160,13 @@ void test('the maximal-length check agrees with the period, for every polynomial
 
 void test('every polynomial in the library is maximal-length', () => {
   for (let n = 2; n <= 168; n++) {
-    const p = MAXIMAL_LENGTH[n]
-    assert.ok(p !== undefined, `MAXIMAL_LENGTH has no polynomial for width ${n}`)
+    const p = MAXIMAL_LENGTH_POLY[n]
+    assert.ok(p !== undefined, `MAXIMAL_LENGTH_POLY has no polynomial for width ${n}`)
     assert.equal(isPrimitive(normalizePolynomial('test', n, p)), true, p)
     if (n <= 20) assert.equal(bruteForcePeriod(n, taps(n, p)), 2 ** n - 1, p)
   }
-  assert.equal(MAXIMAL_LENGTH[169], undefined)
-  for (const [width, p] of [[7, PRBS7], [9, PRBS9], [11, PRBS11], [15, PRBS15], [20, PRBS20], [23, PRBS23], [31, PRBS31]] as const) {
+  assert.equal(MAXIMAL_LENGTH_POLY[169], undefined)
+  for (const [width, p] of [[7, PRBS7_POLY], [9, PRBS9_POLY], [11, PRBS11_POLY], [15, PRBS15_POLY], [20, PRBS20_POLY], [23, PRBS23_POLY], [31, PRBS31_POLY]] as const) {
     assert.equal(isPrimitive(normalizePolynomial('test', width, p)), true, p)
     if (width <= 20) assert.equal(bruteForcePeriod(width, taps(width, p)), 2 ** width - 1, p)
   }
@@ -174,7 +174,7 @@ void test('every polynomial in the library is maximal-length', () => {
 
 void test('XAPP052\'s taps for width 102, which the library replaces, aren\'t maximal-length', () => {
   assert.equal(isPrimitive(normalizePolynomial('test', 102, [102, 101, 36, 35, 0])), false)
-  assert.equal(MAXIMAL_LENGTH[102], 'x^102 + x^101 + x^26 + x^25 + 1')
+  assert.equal(MAXIMAL_LENGTH_POLY[102], 'x^102 + x^101 + x^26 + x^25 + 1')
 })
 
 void test('a width above the factor table can\'t be checked', () => {
@@ -236,9 +236,9 @@ void test('value is the state\'s low outWidth bits', () => {
 // ---------------------------------------------------------------- the other notations, as their sources write them
 
 void test('a hand-written SV LFSR: {l[14:0], l[15] ^ l[13] ^ l[12] ^ l[10]} is x^16 + x^14 + x^13 + x^11 + 1', () => {
-  // tssv-noc's fpga/xmr/04_shapes/tb/tb_xmr_shapes.sv, run as written: bit index + 1 is the stage
+  // The spec's example, run as written: bit index + 1 is the stage
   const sv16 = (l: bigint): bigint => ((l << 1n) & 0xffffn) | (((l >> 15n) ^ (l >> 13n) ^ (l >> 12n) ^ (l >> 10n)) & 1n)
-  // tssv-noc's fpga/xmr/02_scale/gen_harness.py: {lfsr[62:0], lfsr[63] ^ lfsr[62] ^ lfsr[60] ^ lfsr[59]}
+  // A 64-bit one, {l[62:0], l[63] ^ l[62] ^ l[60] ^ l[59]}
   const sv64 = (l: bigint): bigint => ((l << 1n) & ((1n << 64n) - 1n)) | (((l >> 63n) ^ (l >> 62n) ^ (l >> 60n) ^ (l >> 59n)) & 1n)
   for (const [width, written, p, seed] of [[16n, sv16, 'x^16 + x^14 + x^13 + x^11 + 1', 0xace1n], [64n, sv64, 'x^64 + x^63 + x^61 + x^60 + 1', 0x0123456789abcdefn]] as const) {
     const m = new LFSRModel({ width, polynomial: p })
@@ -248,7 +248,7 @@ void test('a hand-written SV LFSR: {l[14:0], l[15] ^ l[13] ^ l[12] ^ l[10]} is x
       s = written(s)
     }
   }
-  assert.equal(MAXIMAL_LENGTH[64], 'x^64 + x^63 + x^61 + x^60 + 1')
+  assert.equal(MAXIMAL_LENGTH_POLY[64], 'x^64 + x^63 + x^61 + x^60 + 1')
 })
 
 void test('Wikipedia\'s Fibonacci LFSR: the same polynomial, with the state bit-reversed', () => {
@@ -333,7 +333,7 @@ void test('an XNOR LFSR, as XAPP052 draws it, is the complement of LFSR from the
   // XAPP052: stages Q1 to Qn, shifting from Q1 towards Qn, and D1 the XNOR of the tapped stages.
   // Q_k is LFSR's state bit k − 1.
   for (let n = 3; n <= 20; n++) {
-    const p = MAXIMAL_LENGTH[n] ?? ''
+    const p = MAXIMAL_LENGTH_POLY[n] ?? ''
     const tapped = taps(n, p)
     const all = (1n << BigInt(n)) - 1n
     const xnor = (q: bigint): bigint => ((q << 1n) & all) | (1n ^ tapped.reduce((x, k) => x ^ ((q >> BigInt(k - 1)) & 1n), 0n))
@@ -372,7 +372,7 @@ function specPorts (width: number, outWidth: number, loadable: boolean): string[
 const CONFIGS: LFSR_Parameters[] = [
   { width: 2n, seed: 1n },
   { width: 2n, seed: 3n, advance: 2n, loadable: true },
-  { width: 7n, polynomial: PRBS7, seed: 1n },
+  { width: 7n, polynomial: PRBS7_POLY, seed: 1n },
   { width: 7n, polynomial: [7, 6, 0], seed: 0x55n, advance: 7n, outWidth: 1n },
   { width: 16n, seed: 0xace1n },
   { width: 16n, seed: 0xace1n, advance: 8n, outWidth: 8n },
@@ -399,23 +399,23 @@ void test('loadable, outWidth and advance are each part of the module\'s name', 
   assert.equal(new LFSR({ ...base, loadable: false, outWidth: 16n, advance: 1n }).name, new LFSR(base).name)
 })
 
-void test('allowShortPeriod builds an LFSR the checks would refuse, and doesn\'t change the module', () => {
+void test('disablePolyChecks builds an LFSR the checks would refuse, and doesn\'t change the module', () => {
   const p: LFSR_Parameters = { width: 4n, polynomial: 'x^4 + x^2 + 1', seed: 1n, advance: 3n }
-  const a = new LFSR({ ...p, allowShortPeriod: true })
-  assert.equal(a.name, new LFSR({ width: 4n, polynomial: [4, 2, 0], seed: 1n, advance: 3n, allowShortPeriod: true }).name)
-  assert.doesNotThrow(() => new LFSR({ width: 200n, polynomial: [200, 163, 0], seed: 1n, allowShortPeriod: true }))
+  const a = new LFSR({ ...p, disablePolyChecks: true })
+  assert.equal(a.name, new LFSR({ width: 4n, polynomial: [4, 2, 0], seed: 1n, advance: 3n, disablePolyChecks: true }).name)
+  assert.doesNotThrow(() => new LFSR({ width: 200n, polynomial: [200, 163, 0], seed: 1n, disablePolyChecks: true }))
 })
 
 const REFUSED: Array<[string, () => unknown, string]> = [
   ['a width of 1', () => new LFSR({ width: 1n, polynomial: 'x + 1', seed: 1n }), 'width must be a bigint of 2 or more, got 1'],
-  ['a width above the library, with no polynomial', () => new LFSR({ width: 169n, seed: 1n }), 'MAXIMAL_LENGTH has no polynomial for width 169 (it covers 2 to 168), so give one'],
-  ['a polynomial of another degree', () => new LFSR({ width: 16n, polynomial: PRBS15, seed: 1n }), "polynomial 'x^15 + x^14 + 1' has degree 15, but the width is 16"],
+  ['a width above the library, with no polynomial', () => new LFSR({ width: 169n, seed: 1n }), 'MAXIMAL_LENGTH_POLY has no polynomial for width 169 (it covers 2 to 168), so give one'],
+  ['a polynomial of another degree', () => new LFSR({ width: 16n, polynomial: PRBS15_POLY, seed: 1n }), "polynomial 'x^15 + x^14 + 1' has degree 15, but the width is 16"],
   ['a polynomial that isn\'t maximal-length', () => new LFSR({ width: 4n, polynomial: 'x^4 + x^2 + 1', seed: 1n }),
-    "polynomial x^4 + x^2 + 1 isn't maximal-length (it isn't primitive), so its sequence repeats before visiting all 15 non-zero states. Use MAXIMAL_LENGTH[4], or pass allowShortPeriod: true"],
+    "polynomial x^4 + x^2 + 1 isn't maximal-length (it isn't primitive), so its sequence repeats before visiting all 15 non-zero states. Use MAXIMAL_LENGTH_POLY[4], or pass disablePolyChecks: true"],
   ['an advance that shortens the period', () => new LFSR({ width: 16n, seed: 1n, advance: 3n }),
     'an advance of 3 shares the factor 3 with 2^16 − 1 = 65535, so the sequence repeats after 21845 steps instead of 65535'],
   ['a width the factor table doesn\'t cover', () => new LFSR({ width: 200n, polynomial: [200, 163, 0], seed: 1n }),
-    "polynomial x^200 + x^163 + 1 can't be checked for maximal length, since the factor table covers widths 2 to 168"],
+    "polynomial x^200 + x^163 + 1 can't be checked for maximal length, since the factor table covers widths 2 to 168; pass disablePolyChecks: true to build it unchecked"],
   ['a seed of 0, the lock-up state', () => new LFSR({ width: 16n, seed: 0n }), 'seed must be a non-zero 16-bit value (0 is the lock-up state, which an LFSR never leaves), got 0'],
   ['a seed wider than the state', () => new LFSR({ width: 16n, seed: 1n << 16n }), 'seed must be a non-zero 16-bit value'],
   ['an outWidth wider than the state', () => new LFSR({ width: 16n, seed: 1n, outWidth: 17n }), 'outWidth must be 1 to 16, got 17'],

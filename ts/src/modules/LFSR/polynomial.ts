@@ -1,6 +1,6 @@
 // The feedback polynomial of an LFSR (doc/modules/LFSR/LFSR-spec.md, "The polynomial"): its two
 // written forms, the canonical form both become, and the exact test of whether it is maximal-length.
-import { MAXIMAL_LENGTH } from './polynomials.js'
+import { MAXIMAL_LENGTH_POLY } from './polynomials.js'
 import { MERSENNE_FACTORS } from './mersenneFactors.js'
 
 /**
@@ -88,15 +88,15 @@ export function normalizePolynomial (what: string, width: number, polynomial: Po
 
 /**
  * The polynomial for an LFSR of `width` bits: `polynomial` in canonical form, or without one, the
- * library's for the width (`MAXIMAL_LENGTH`). Checks that `width` is an integer of 2 or more.
+ * library's for the width (`MAXIMAL_LENGTH_POLY`). Checks that `width` is an integer of 2 or more.
  */
 export function resolvePolynomial (what: string, width: bigint, polynomial?: Polynomial): NormalizedPolynomial {
   // The type says bigint; this also catches a number passed from JavaScript (PARAM-5)
   if (typeof width !== 'bigint' || width < 2n) throw Error(`${what}: width must be a bigint of 2 or more, got ${String(width)}`)
   const n = Number(width)
   if (polynomial === undefined) {
-    const p = MAXIMAL_LENGTH[n]
-    if (p === undefined) throw Error(`${what}: MAXIMAL_LENGTH has no polynomial for width ${n} (it covers 2 to 168), so give one`)
+    const p = MAXIMAL_LENGTH_POLY[n]
+    if (p === undefined) throw Error(`${what}: MAXIMAL_LENGTH_POLY has no polynomial for width ${n} (it covers 2 to 168), so give one`)
     return normalizePolynomial(what, n, p)
   }
   return normalizePolynomial(what, n, polynomial)

@@ -20,7 +20,7 @@
  *     state. In its place is x^102 + x^101 + x^26 + x^25 + 1, the only primitive polynomial of the
  *     same shape (x^n + x^(n−1) + x^k + x^(k−1) + 1). There is no primitive trinomial of degree 102.
  */
-export const MAXIMAL_LENGTH: Readonly<Record<number, string>> = {
+export const MAXIMAL_LENGTH_POLY: Readonly<Record<number, string>> = {
   2: 'x^2 + x + 1',
   3: 'x^3 + x^2 + 1',
   4: 'x^4 + x^3 + 1',
@@ -197,16 +197,16 @@ export const MAXIMAL_LENGTH: Readonly<Record<number, string>> = {
 // expects before matching it.
 
 /** PRBS7, x^7 + x^6 + 1: 2^7 − 1 = 127 bits long. Not in O.150, but common in test equipment */
-export const PRBS7 = 'x^7 + x^6 + 1'
+export const PRBS7_POLY = 'x^7 + x^6 + 1'
 /** PRBS9, x^9 + x^5 + 1 (ITU-T O.150): 2^9 − 1 = 511 bits long */
-export const PRBS9 = 'x^9 + x^5 + 1'
+export const PRBS9_POLY = 'x^9 + x^5 + 1'
 /** PRBS11, x^11 + x^9 + 1 (ITU-T O.150): 2^11 − 1 = 2047 bits long */
-export const PRBS11 = 'x^11 + x^9 + 1'
+export const PRBS11_POLY = 'x^11 + x^9 + 1'
 /** PRBS15, x^15 + x^14 + 1 (ITU-T O.150): 2^15 − 1 = 32767 bits long */
-export const PRBS15 = 'x^15 + x^14 + 1'
+export const PRBS15_POLY = 'x^15 + x^14 + 1'
 /** PRBS20, x^20 + x^3 + 1 (ITU-T O.150): 2^20 − 1 = 1048575 bits long */
-export const PRBS20 = 'x^20 + x^3 + 1'
+export const PRBS20_POLY = 'x^20 + x^3 + 1'
 /** PRBS23, x^23 + x^18 + 1 (ITU-T O.150): 2^23 − 1 = 8388607 bits long */
-export const PRBS23 = 'x^23 + x^18 + 1'
+export const PRBS23_POLY = 'x^23 + x^18 + 1'
 /** PRBS31, x^31 + x^28 + 1 (ITU-T O.150): 2^31 − 1 = 2147483647 bits long */
-export const PRBS31 = 'x^31 + x^28 + 1'
+export const PRBS31_POLY = 'x^31 + x^28 + 1'

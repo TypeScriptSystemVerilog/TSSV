@@ -1,5 +1,5 @@
 import { Harness } from 'tssv/lib/tb/Harness'
-import { LFSR, LFSRModel, PRBS7, type LFSR_Parameters } from 'tssv/lib/modules/LFSR'
+import { LFSR, LFSRModel, PRBS7_POLY, type LFSR_Parameters } from 'tssv/lib/modules/LFSR'
 import { VectorPlayer, fetchWidth, type TableLane } from 'tssv/lib/tb/VectorPlayer'
 import { VectorChecker } from 'tssv/lib/tb/VectorChecker'
 
@@ -14,7 +14,7 @@ export interface LFSRCase { tag: string, config: LFSR_Parameters }
  * width, more than it and equal to it, outputs narrower than the state, and a loadable LFSR
  */
 export const CASES: LFSRCase[] = [
-  { tag: 'prbs7', config: { width: 7n, polynomial: PRBS7, seed: 1n } },
+  { tag: 'prbs7', config: { width: 7n, polynomial: PRBS7_POLY, seed: 1n } },
   { tag: 'w16_a8', config: { width: 16n, seed: 0xace1n, advance: 8n, outWidth: 8n } },
   { tag: 'w33_a40', config: { width: 33n, polynomial: [33, 20, 0], seed: 0x1_2345_6789n, advance: 40n } },
   { tag: 'w64_a64', config: { width: 64n, seed: 0x0123456789abcdefn, advance: 64n } },
