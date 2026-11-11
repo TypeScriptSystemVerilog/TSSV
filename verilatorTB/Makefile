@@ -254,7 +254,7 @@ rom_sim: tsc
 # because its pattern memories $readmemh their files by a path relative to it. SimTop ends a failed
 # run with $fatal, so a failed check exits nonzero.
 TB_EXAMPLES_DIR = ../sv-examples/tb
-TB_EXAMPLES = tb_SFIFOWave_dual_port tb_Lfsr \
+TB_EXAMPLES = tb_SFIFOWave_dual_port tb_LFSR \
   tb_RecordStream_cycle tb_RecordStream_sources tb_RecordStream_tied \
   tb_AFIFOStream_two_domains
 

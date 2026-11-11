@@ -11,36 +11,61 @@
 // So neither tier can import a DUT, TSSV's (tssv/lib/modules/) or the project's (ts/src/modules/),
 // nor a per-DUT test directory. Tier 3, a project's ts/test/<DUT>/, may import anything.
 //
-// Tier 1 is always checked: the ts/src/tb/ of the TSSV this script is in. Given a project's root,
-// the script also checks that project's tier 2; a project with no ts/test/vip/ has none to check.
+// The exception is BUILDING_BLOCKS: TSSV design modules that are building blocks, not DUTs, such as
+// LFSR. Both tiers may import them (tssv/lib/modules/<block>), and tier 1 may reach them by a
+// relative import (ts/src/modules/<block>/).
+//
+// Tier 1 is always checked: the ts/src/tb/ of the TSSV this script is in, or with --tier1 <root>,
+// of that directory instead, which is how test_checkTestStructure.ts checks the script on fixtures.
+// Given a project's root, the script also checks that project's tier 2; a project with no
+// ts/test/vip/ has none to check.
 //
 // Usage: node scripts/check-test-structure.mjs                                     (in TSSV)
 //        node node_modules/tssv/scripts/check-test-structure.mjs <project root>    (in a project)
+//        node scripts/check-test-structure.mjs --tier1 <root> [<project root>]     (on fixtures)
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { isBuiltin } from 'node:module'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const TSSV_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-
 const args = process.argv.slice(2)
-if (args.length > 1) {
-  console.error('usage: node scripts/check-test-structure.mjs [<project root>]')
+// --tier1 <root>: check that directory's ts/src/tb/ as tier 1, in place of this TSSV's
+const tier1At = args.indexOf('--tier1')
+const tier1Root = tier1At < 0 ? undefined : args.splice(tier1At, 2)[1]
+if (args.length > 1 || (tier1At >= 0 && tier1Root === undefined)) {
+  console.error('usage: node scripts/check-test-structure.mjs [--tier1 <root>] [<project root>]')
   process.exit(2)
 }
+const TSSV_ROOT = tier1Root === undefined ? resolve(dirname(fileURLToPath(import.meta.url)), '..') : resolve(tier1Root)
+
+// TSSV design modules that are building blocks, not DUTs: a testbench component of tier 1 or 2 may
+// use them. A module joins only when a generic testbench component needs it, and it must not depend
+// on anything a tier may not import.
+const BUILDING_BLOCKS = ['LFSR']
+const blockSpecs = BUILDING_BLOCKS.flatMap(b => [`tssv/lib/modules/${b}`, `tssv/lib/modules/${b}/`])
 
 // Each tier: the directory it is (under `root`), and what it may import. `tssv` lists the TSSV
-// specifiers it may name, `local` the files under `root` it may reach by a relative import.
+// specifiers it may name, `local` the files under `root` it may reach by a relative import. An entry
+// that ends in / allows everything under it; any other allows exactly that specifier.
 const TIERS = [
-  { name: 'tier 1', root: TSSV_ROOT, dir: 'ts/src/tb', tssv: ['tssv/lib/core/', 'tssv/lib/tb/'], local: ['ts/src/tb/', 'ts/src/core/'] },
+  {
+    name: 'tier 1',
+    root: TSSV_ROOT,
+    dir: 'ts/src/tb',
+    tssv: ['tssv/lib/core/', 'tssv/lib/tb/', ...blockSpecs],
+    local: ['ts/src/tb/', 'ts/src/core/', ...BUILDING_BLOCKS.map(b => `ts/src/modules/${b}/`)]
+  },
   ...args.map(root => ({
     name: 'tier 2',
     root: resolve(root),
     dir: 'ts/test/vip',
-    tssv: ['tssv/lib/core/', 'tssv/lib/tb/', 'tssv/lib/interfaces/'],
+    tssv: ['tssv/lib/core/', 'tssv/lib/tb/', 'tssv/lib/interfaces/', ...blockSpecs],
     local: ['ts/test/vip/', 'ts/src/interfaces/', 'ts/src/tools/']
   }))
 ]
+
+// Whether `target` is one of `allowed`: under an entry that ends in /, or equal to any other
+const isAllowed = (allowed, target) => allowed.some(a => a.endsWith('/') ? target.startsWith(a) : target === a)
 
 // Every .ts file under `dir`, relative to `root`
 function tsFiles (root, dir) {
@@ -76,9 +101,10 @@ for (const tier of TIERS) {
       // A relative import, as the .ts file it names, relative to the tier's root
       const target = spec.startsWith('.') ? relative(tier.root, resolve(tier.root, dirname(file), spec)).replace(/\.js$/, '.ts') : spec
       const allowed = spec.startsWith('.') ? tier.local : tier.tssv
-      if (allowed.some(prefix => target.startsWith(prefix))) continue
+      if (isAllowed(allowed, target)) continue
       console.error(`FAIL: ${where}: ${file} (${tier.name}) imports ${target}; ${tier.name} may import only Node, ` +
-        `${tier.tssv.join(', ')} and its repo's ${tier.local.join(', ')}`)
+        `${tier.tssv.filter(a => a.endsWith('/')).join(', ')}, the building blocks (${BUILDING_BLOCKS.join(', ')}) ` +
+        `and its repo's ${tier.local.join(', ')}`)
       violations++
     }
   }

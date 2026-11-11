@@ -147,8 +147,8 @@ A `RecordInjector` or `RecordChecker` ([testbench.md](testbench.md#record-stream
 stream's records, one per line, in the order they are sent or expected. Three things change a
 record's fields from the stream's:
 
-- **LFSR payloads.** The payload fields are replaced by one field `seed`, as wide as the Lfsr
-  (32 or 64 bits), where the first of them was. A non-zero seed restarts the payload sequence at
+- **LFSR payloads.** The payload fields are replaced by one field `seed`, as wide as the
+  [LFSR](../modules/LFSR/LFSR-spec.md) (`lfsr.width`, 64 bits by default), where the first of them was. A non-zero seed restarts the payload sequence at
   that seed, and 0 continues it, so a file seeded once per packet reads like this:
   ```text
   // StreamSlice, testcase seeded_packets: stimulus for s_in, a seed per packet

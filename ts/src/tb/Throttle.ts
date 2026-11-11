@@ -1,5 +1,5 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
-import { Lfsr } from './Lfsr.js'
+import { LFSR } from '../modules/LFSR/LFSR.js'
 
 /** A rate is a chance in 256 per cycle, 0 (never) to 256 (every cycle), so 9 bits. */
 export const RATE_WIDTH = 9
@@ -32,11 +32,12 @@ export interface Throttle_Parameters extends TSSV.TSSVParameters {
  *
  * Ports: `clk`, `rst_b`, `rate` in; `allow` out.
  *
- * Each cycle draws 8 bits from a 32-bit Lfsr that steps every cycle, and `allow` is
- * `{1'b0, draw} < rate`: rate 0 never allows, and rate 256 always does. The draws are uniform,
- * and two in a row are independent, so each cycle is allowed as an independent coin with
- * p = rate / 256. `allow` comes from the Lfsr's state and `rate` through a compare, so it follows
- * `rate` within the cycle.
+ * Each cycle draws 8 bits from a 32-bit LFSR that steps every cycle, 8 shifts at a time, and
+ * `allow` is `{1'b0, draw} < rate`: rate 0 never allows, and rate 256 always does. Each draw is the
+ * next 8 bits of the LFSR's sequence, so two in a row share no bits, and over its period every pair
+ * of draws comes up equally often (the all-zero pair once less). So each cycle is allowed as an
+ * independent coin with p = rate / 256. `allow` comes from the LFSR's state and `rate` through a
+ * compare, so it follows `rate` within the cycle.
  */
 export class Throttle extends TSSV.Module {
   constructor (params: Throttle_Parameters) {
@@ -54,8 +55,8 @@ export class Throttle extends TSSV.Module {
 
     // A random byte each cycle, and whether it falls under the rate
     this.addSignal('draw', { width: 8 })
-    this.addSubmodule('dice', new Lfsr({ width: 32, seed: params.seed, outWidth: 8 }),
-      { clk: 'clk', rst_b: 'rst_b', step: 1n, value: 'draw' }, false)
+    this.addSubmodule('dice', new LFSR({ width: 32n, seed: params.seed, outWidth: 8n, advance: 8n }),
+      { clk: 'clk', rst_n: 'rst_b', step: 1n, value: 'draw' }, false)
     this.addAssign({ in: new Expr(`{1'b0, draw} < rate`), out: 'allow' })
   }
 }

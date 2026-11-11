@@ -1,10 +1,10 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
 import { type CheckDetail } from './Harness.js'
-import { Lfsr } from './Lfsr.js'
+import { LFSR } from '../modules/LFSR/LFSR.js'
 import { PatternMemory, type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 import { type PatternRecord, type Radix, type RecordField, type RecordLayout } from './patternRecord.js'
 import {
-  AFTER_COUNT, AFTER_PEER, checkerLayout, payloadSlices, peerWidth, SEED_FIELD,
+  AFTER_COUNT, AFTER_PEER, checkerLayout, payloadLfsr, payloadSlices, peerWidth, SEED_FIELD,
   type PayloadSlice, type RecordLfsr, type RecordTie
 } from './recordStream.js'
 import { drawSeed, RATE_WIDTH, READY_SALT, Throttle } from './Throttle.js'
@@ -295,15 +295,15 @@ export class RecordChecker extends TSSV.Module {
       }), memBindings, false)
       this.memories.push({ path: `pattern${s}`, depth, layout, mode: memory, file: files?.[k], records: records?.[k] })
 
-      // LFSR payloads: the seed restarts the Lfsr, 0 continues it, and it steps with each record
+      // LFSR payloads: the seed restarts the LFSR, 0 continues it, and it steps with each record
       if (lfsr !== undefined) {
         const bits = slices.reduce((sum, sl) => sum + sl.width, 0)
         const lw = lfsr.width ?? 64
         this.addSignal(`payload${s}`, { width: bits })
         this.addSignal(`load${s}`, { width: 1 })
         this.addAssign({ in: new Expr(`want${s}_${SEED_FIELD} != ${lw}'d0`), out: `load${s}` })
-        this.addSubmodule(`lfsr${s}`, new Lfsr({ name: `${name}_lfsr`, width: lfsr.width, seed: lfsr.seed, outWidth: bits, loadable: true }),
-          { clk: 'clk', rst_b: 'rst_b', step: `adv${s}`, load: `load${s}`, seed_in: `want${s}_${SEED_FIELD}`, value: `payload${s}` }, false)
+        this.addSubmodule(`lfsr${s}`, new LFSR({ name: `${name}_lfsr`, ...payloadLfsr(lfsr, bits) }),
+          { clk: 'clk', rst_n: 'rst_b', step: `adv${s}`, load: `load${s}`, seed_in: `want${s}_${SEED_FIELD}`, value: `payload${s}` }, false)
       }
 
       // The whole expected record, in the order of got, and whether the record matches it

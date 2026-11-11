@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" content="&lt;mxfile host=&quot;TSSV&quot; type=&quot;device&quot;&gt;
+  &lt;diagram id=&quot;lfsr-circuit-x4&quot; name=&quot;LFSR x⁴ + x³ + 1&quot;&gt;
+    &lt;mxGraphModel dx=&quot;820&quot; dy=&quot;330&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;820&quot; pageHeight=&quot;330&quot; background=&quot;#FFFFFF&quot; math=&quot;0&quot; shadow=&quot;0&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;c3&quot; value=&quot;LFSR with x⁴ + x³ + 1: one shift per step&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=18;fontColor=#1F2328;whiteSpace=nowrap;fontStyle=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;24&quot; y=&quot;13&quot; width=&quot;413&quot; height=&quot;26&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c4&quot; value=&quot;Every flop is clocked by clk, reset to its seed bit by rst_n, and enabled by step. Thick border: flop.&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=system-ui,-apple-system,&amp;quot;Segoe UI&amp;quot;,Helvetica,Arial,sans-serif;fontSize=13;fontColor=#59636E;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;24&quot; y=&quot;40&quot; width=&quot;742&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c5&quot; value=&quot;stage 1&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;state_q[0]&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=14;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;130&quot; y=&quot;160&quot; width=&quot;110&quot; height=&quot;56&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c6&quot; value=&quot;stage 2&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;state_q[1]&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=14;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;290&quot; y=&quot;160&quot; width=&quot;110&quot; height=&quot;56&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c7&quot; value=&quot;stage 3&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;state_q[2]&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=14;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;450&quot; y=&quot;160&quot; width=&quot;110&quot; height=&quot;56&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c8&quot; value=&quot;stage 4&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size:12px&amp;quot; color=&amp;quot;#59636E&amp;quot;&amp;gt;state_q[3]&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=1;arcSize=14;html=1;fillColor=#FFFFFF;strokeColor=#57606A;strokeWidth=2.2;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#1F2328;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;610&quot; y=&quot;160&quot; width=&quot;110&quot; height=&quot;56&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c9&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;240&quot; y=&quot;188&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;290&quot; y=&quot;188&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c10&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;400&quot; y=&quot;188&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;450&quot; y=&quot;188&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c11&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;560&quot; y=&quot;188&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;610&quot; y=&quot;188&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c12&quot; value=&quot;&quot; style=&quot;shape=orEllipse;perimeter=ellipsePerimeter;html=1;fillColor=#FFFFFF;strokeColor=#BC4C00;strokeWidth=1.8;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;570&quot; y=&quot;90&quot; width=&quot;30&quot; height=&quot;30&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c13&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#BC4C00;strokeWidth=1.8;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;720&quot; y=&quot;188&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;601&quot; y=&quot;105&quot; as=&quot;targetPoint&quot;/&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;760&quot; y=&quot;188&quot;/&gt;&lt;mxPoint x=&quot;760&quot; y=&quot;105&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c14&quot; value=&quot;&quot; style=&quot;ellipse;html=1;fillColor=#BC4C00;strokeColor=none;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;581.5&quot; y=&quot;184.5&quot; width=&quot;7&quot; height=&quot;7&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c15&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#BC4C00;strokeWidth=1.8;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;585&quot; y=&quot;188&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;585&quot; y=&quot;121&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c16&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#BC4C00;strokeWidth=1.8;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;570&quot; y=&quot;105&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;130&quot; y=&quot;188&quot; as=&quot;targetPoint&quot;/&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;90&quot; y=&quot;105&quot;/&gt;&lt;mxPoint x=&quot;90&quot; y=&quot;188&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c17&quot; value=&quot;x⁴&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;768&quot; y=&quot;134&quot; width=&quot;20&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c18&quot; value=&quot;x³&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;593&quot; y=&quot;134&quot; width=&quot;20&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c19&quot; value=&quot;1&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;98&quot; y=&quot;164&quot; width=&quot;20&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c20&quot; value=&quot;feedback: state_q[3] ^ state_q[2]&quot; style=&quot;text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#BC4C00;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;208&quot; y=&quot;82&quot; width=&quot;245&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c21&quot; style=&quot;endArrow=none;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;185&quot; y=&quot;216&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;185&quot; y=&quot;252&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c22&quot; style=&quot;endArrow=none;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;345&quot; y=&quot;216&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;345&quot; y=&quot;252&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c23&quot; style=&quot;endArrow=none;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;505&quot; y=&quot;216&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;505&quot; y=&quot;252&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c24&quot; style=&quot;endArrow=none;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;665&quot; y=&quot;216&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;665&quot; y=&quot;252&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c25&quot; style=&quot;endArrow=block;endFill=1;html=1;rounded=0;edgeStyle=none;strokeColor=#0969DA;strokeWidth=2.4;&quot; edge=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;mxPoint x=&quot;185&quot; y=&quot;252&quot; as=&quot;sourcePoint&quot;/&gt;&lt;mxPoint x=&quot;790&quot; y=&quot;252&quot; as=&quot;targetPoint&quot;/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c26&quot; value=&quot;value = state_q[3:0]&quot; style=&quot;text;html=1;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=12;fontColor=#0969DA;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;642&quot; y=&quot;259&quot; width=&quot;148&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;c27&quot; value=&quot;assign state_nxt = {state_q[2:0], state_q[3] ^ state_q[2]};&quot; style=&quot;text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fontSize=13;fontColor=#1F2328;whiteSpace=nowrap;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;24&quot; y=&quot;288&quot; width=&quot;475&quot; height=&quot;21&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;
+" width="820" height="330" viewBox="0 0 820 330" role="img">
+<title>LFSR with x⁴ + x³ + 1</title>
+<desc>Four flops in a row, stage 1 to stage 4, which are state_q[0] to state_q[3]. At each step every bit moves to the next stage. Stage 4 and stage 3, the x^4 and x^3 terms, feed an XOR, whose output goes back into stage 1, the 1 term. value is all four bits.</desc>
+<defs>
+  <style>
+    :root {
+      --bg:#ffffff; --reg:#ffffff; --strong:#57606a; --text:#1f2328; --dim:#59636e;
+      --data:#0969da; --ptr:#bc4c00;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0d1117; --reg:#0d1117; --strong:#8b949e; --text:#e6edf3; --dim:#8b949e;
+        --data:#58a6ff; --ptr:#f0883e;
+      }
+    }
+    .bg     { fill:var(--bg); }
+    .reg    { fill:var(--reg); stroke:var(--strong); stroke-width:2.2; }
+    .xor    { fill:var(--bg); stroke:var(--ptr); stroke-width:1.8; }
+    .title  { fill:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:18px; font-weight:700; }
+    .d      { fill:var(--dim); font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; font-size:13px; }
+    .m      { fill:var(--text); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; }
+    .md     { fill:var(--dim); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .ldata  { fill:var(--data); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+    .lptr   { fill:var(--ptr); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; }
+    .data   { fill:none; stroke:var(--data); stroke-width:2.4; }
+    .ptr    { fill:none; stroke:var(--ptr); stroke-width:1.8; }
+    .dot-data { fill:var(--data); }
+    .dot-ptr  { fill:var(--ptr); }
+    .ah-data { fill:var(--data); }
+    .ah-ptr  { fill:var(--ptr); }
+  </style>
+  <marker id="a-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-data" d="M0,0 L10,5 L0,10 Z"/></marker>
+  <marker id="a-ptr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-ptr" d="M0,0 L10,5 L0,10 Z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="820" height="330"/>
+<text class="title" x="24" y="34" text-anchor="start">LFSR with x⁴ + x³ + 1: one shift per step</text>
+<text class="d" x="24" y="56" text-anchor="start">Every flop is clocked by clk, reset to its seed bit by rst_n, and enabled by step. Thick border: flop.</text>
+<rect class="reg" x="130" y="160" width="110" height="56" rx="8"/>
+<text class="m" x="185.0" y="184" text-anchor="middle">stage 1</text>
+<text class="md" x="185.0" y="203" text-anchor="middle">state_q[0]</text>
+<rect class="reg" x="290" y="160" width="110" height="56" rx="8"/>
+<text class="m" x="345.0" y="184" text-anchor="middle">stage 2</text>
+<text class="md" x="345.0" y="203" text-anchor="middle">state_q[1]</text>
+<rect class="reg" x="450" y="160" width="110" height="56" rx="8"/>
+<text class="m" x="505.0" y="184" text-anchor="middle">stage 3</text>
+<text class="md" x="505.0" y="203" text-anchor="middle">state_q[2]</text>
+<rect class="reg" x="610" y="160" width="110" height="56" rx="8"/>
+<text class="m" x="665.0" y="184" text-anchor="middle">stage 4</text>
+<text class="md" x="665.0" y="203" text-anchor="middle">state_q[3]</text>
+<path class="data" d="M240,188 L290,188" marker-end="url(#a-data)"/>
+<path class="data" d="M400,188 L450,188" marker-end="url(#a-data)"/>
+<path class="data" d="M560,188 L610,188" marker-end="url(#a-data)"/>
+<circle class="xor" cx="585" cy="105" r="15"/>
+<path class="xor" d="M570,105 L600,105 M585,90 L585,120"/>
+<path class="ptr" d="M720,188 L760,188 L760,105 L601,105" marker-end="url(#a-ptr)"/>
+<circle class="dot-ptr" cx="585" cy="188" r="3.5"/>
+<path class="ptr" d="M585,188 L585,121" marker-end="url(#a-ptr)"/>
+<path class="ptr" d="M570,105 L90,105 L90,188 L130,188" marker-end="url(#a-ptr)"/>
+<text class="lptr" x="768" y="150" text-anchor="start">x⁴</text>
+<text class="lptr" x="593" y="150" text-anchor="start">x³</text>
+<text class="lptr" x="98" y="180" text-anchor="start">1</text>
+<text class="lptr" x="330" y="97" text-anchor="middle">feedback: state_q[3] ^ state_q[2]</text>
+<path class="data" d="M185,216 L185,252"/>
+<path class="data" d="M345,216 L345,252"/>
+<path class="data" d="M505,216 L505,252"/>
+<path class="data" d="M665,216 L665,252"/>
+<path class="data" d="M185,252 L790,252" marker-end="url(#a-data)"/>
+<text class="ldata" x="790" y="274" text-anchor="end">value = state_q[3:0]</text>
+<text class="m" x="24" y="304" text-anchor="start">assign state_nxt = {state_q[2:0], state_q[3] ^ state_q[2]};</text>
+</svg>

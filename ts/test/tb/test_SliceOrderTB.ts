@@ -6,7 +6,7 @@
 //   - configurations/stages2.json, stages3.json: the slice's stages, both memories 48 deep;
 //   - testcases/seeded_packets/: 48 records, a seed on every packet's first record;
 //   - testcases/continued/: 44 records, seeds on every third packet only, so the data continues
-//     the Lfsr's sequence across packets, and from its reset seed at record 0.
+//     the LFSR's sequence across packets, and from its reset seed at record 0.
 //
 // That is 4 preloaded builds and 2 reloaded ones, 8 runs, listed in regression.txt.
 // verilatorTB/Makefile's tb_regression_sim builds and runs each.
