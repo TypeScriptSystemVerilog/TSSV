@@ -7,9 +7,10 @@
 > **Status:** Example. The testbench generator's example (TSSV#200), written from
 > [the TB spec template](../../templates/tb-spec-template.md).
 
-StreamSlice's other testbench, `tb_RecordStream_cycle` (`SliceCycleHarness`), checks the slice
-cycle by cycle against a table. Its cycle tables are preloaded only, and it is written by
-`test_tbExamples.ts`, not the generator, so it isn't covered here.
+StreamSlice's other testbench, SliceCycle (`SliceCycleHarness`, `ts/test/tb/test_SliceCycleTB.ts`),
+checks the slice cycle by cycle against a table. The generator builds it too, preloaded only, with
+a table for each configuration ([testbench.md](../testbench.md#a-testcase-for-some-configurations)).
+This example spec covers SliceOrder only.
 
 ---
 
@@ -149,8 +150,7 @@ StreamSlice declares no port contracts: its ready chain is combinational by desi
 One output, matched in order: the checker compares each record on `m_out` with the next expected
 record, `last` and `data`, the data regenerated from the expected seeds. A record after the last
 expected one, a missing record, and a reordered record all fail `order` or, if a record never
-arrives, `progress`. Timing is not checked: the cycle a record appears in is `tb_RecordStream_cycle`'s
-job.
+arrives, `progress`. Timing is not checked: the cycle a record appears in is SliceCycle's job.
 
 ---
 

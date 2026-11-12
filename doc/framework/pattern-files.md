@@ -7,7 +7,8 @@
 > and the readers), `ts/src/tb/PatternMemory.ts` (the memory), `ts/src/tb/recordStream.ts`
 > (record-stream layouts)
 > **Examples:** `ts/test/tb/test_patternFile.ts`, `ts/test/tb/test_PatternMemory.ts`, and the
-> example testbenches' `patterns/` folders, written by `ts/test/tb/test_tbExamples.ts`
+> example testbenches' `patterns/` folders, written by `ts/test/tb/test_tbExamples.ts` and by the
+> generator's runners (`ts/test/tb/test_*TB.ts`)
 
 A test's content lives in pattern files, not in its RTL. A generator, in any language, writes
 them offline. A `PatternMemory` in the harness holds them, one record per word. The memory reads
