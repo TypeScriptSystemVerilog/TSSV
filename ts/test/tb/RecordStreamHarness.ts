@@ -1,14 +1,16 @@
 // The record-stream examples (doc/framework/testbench.md, "Record streams"): harnesses that drive
 // a small DUT (streamDuts.ts) with RecordInjectors and check it with RecordCheckers, in each of
 // the checker's modes, and the generators that write their testcases. test_tbExamples.ts writes
-// the pattern files and the testbenches, except SliceOrder's, which test_SliceOrderTB.ts builds
-// with the testbench generator (TSSV#200).
+// the pattern files and the testbenches, except SliceOrder's and SliceCycle's, which
+// test_SliceOrderTB.ts and test_SliceCycleTB.ts build with the testbench generator (TSSV#200,
+// TSSV#223).
 //
 //   - SliceOrderHarness: an injector, a StreamSlice and an inOrder checker. The records carry
 //     seeds for LFSR payloads, and TrafficPhases throttles both ends. Built by the testbench
 //     generator, in either mode, from a configuration (the slice's stages) and a testcase.
 //   - SliceCycleHarness: an injector, a StreamSlice and a cycleExact checker, whose table stalls
-//     the slice's output.
+//     the slice's output. Built by the testbench generator, preloaded, from a configuration (the
+//     slice's stages) and a testcase whose table is for those stages.
 //   - MergeSourcesHarness: two injectors, a StreamMerge and a perSource checker.
 //   - SplitTiedHarness: an injector, a StreamSplit and two inOrder checkers, tied so that the
 //     input order is checked across the outputs.
@@ -195,26 +197,28 @@ export function sliceContinuedTestcase (records: number): PatternObject[] {
 
 // ---- SliceCycleHarness
 
-export interface SliceCycleHarness_Parameters {
-  name: string
-  records: number
-  /** Rows in the checker's table. */
-  rows: number
-  stimulus: string
-  /** The checker's `ready` column and expected values, as the SV names them. */
-  ready: string
-  expected: string
-}
-
 /**
- * SliceCycleHarness — a StreamSlice of 2 stages, driven by an injector with LFSR payloads and
- * checked by a cycleExact checker. The table stalls the output now and then, and says, cycle by
- * cycle, what the slice must show: each record two cycles after it was offered, held while the
- * output stalls, then on at full rate. Checks: `valid` and `record`.
+ * SliceCycleHarness — a StreamSlice of `stages` stages, driven by an injector with LFSR payloads
+ * and checked by a cycleExact checker. The table stalls the output now and then, and says, cycle
+ * by cycle, what the slice must show: each record `stages` cycles after it was offered, held while
+ * the output stalls, then on at full rate. Checks: `valid` and `record`.
+ *
+ * The testbench generator builds it, preloaded only, as its table is: from a configuration (the
+ * slice's `stages`, and the depths of `h.inj_s_in.pattern` and of the table's two memories,
+ * `h.chk_m_out.play.pattern` and `h.chk_m_out.chk.pattern`) and a testcase whose table is for
+ * those stages (`sliceCycleTable()`). Its records and rows are the testcase's.
+ *
+ *   inj_s_in ──{last, data}──▶ dut (StreamSlice) ──▶ chk_m_out (cycleExact: ready from its table)
  */
 export class SliceCycleHarness extends Harness {
-  constructor (params: SliceCycleHarness_Parameters) {
-    super({ name: params.name })
+  constructor (build: HarnessBuild<SliceOrderParameters>) {
+    super({ name: build.name })
+    const inj = build.memory('h.inj_s_in.pattern')
+    const ready = build.memory('h.chk_m_out.play.pattern')
+    const expected = build.memory('h.chk_m_out.chk.pattern')
+    if (ready.records !== expected.records || ready.depth !== expected.depth) {
+      throw Error(`${build.name}: the table's ready and expected files need one row count and depth, got ${ready.records} and ${expected.records} rows, depths ${ready.depth} and ${expected.depth}`)
+    }
     for (const s of ['s_in', 'm_out']) {
       this.addSignal(`${s}_valid`, { width: 1 })
       this.addSignal(`${s}_ready`, { width: 1 })
@@ -224,11 +228,12 @@ export class SliceCycleHarness extends Harness {
     }
     this.addSignal('inj_done', { width: 1 })
     this.addSignal('table_done', { width: 1 })
-    this.addSubmodule('inj_s_in', new RecordInjector({
-      name: `${params.name}_inj`, fields: SLICE_FIELDS, depth: params.records, memory: 'preloaded', file: params.stimulus, records: params.records, lfsr: SLICE_LFSR
-    }), { clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done' }, false)
+    const injector = new RecordInjector({ name: `${build.name}_inj`, fields: SLICE_FIELDS, memory: build.mode, ...inj, lfsr: SLICE_LFSR })
+    this.addSubmodule('inj_s_in', injector, {
+      clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', ...this.registerMemories('inj_s_in', injector)
+    }, false)
     this.addAssign({ in: new Expr('{s_in_last, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSlice({ name: `${params.name}_slice`, width: 33 }), {
+    this.addSubmodule('dut', new StreamSlice({ name: `${build.name}_slice`, width: 33, stages: build.config.parameters.stages }), {
       clk: 'clk',
       rst_b: 'rst_b',
       in_valid: 's_in_valid',
@@ -242,9 +247,11 @@ export class SliceCycleHarness extends Harness {
     this.addAssign({ in: new Expr('m_out_word[31:0]'), out: 'm_out_data' })
     const valid = this.check('valid', 'm_out_valid follows the table', RecordChecker.firstCycleError('chk_m_out', 'valid'))
     const record = this.check('record', 'the record on m_out follows the table', RecordChecker.firstCycleError('chk_m_out', 'record'))
-    this.addSubmodule('chk_m_out', new RecordChecker({
-      name: `${params.name}_chk`, mode: 'cycleExact', fields: SLICE_FIELDS, rows: params.rows, readyFile: params.ready, file: params.expected
-    }), {
+    // A reloaded build has no rows or files; the checker refuses that mode before it reads them
+    const checker = new RecordChecker({
+      name: `${build.name}_chk`, mode: 'cycleExact', fields: SLICE_FIELDS, rows: ready.records ?? 0, readyFile: ready.file ?? '', file: expected.file ?? '', depth: ready.depth, memory: build.mode
+    })
+    this.addSubmodule('chk_m_out', checker, {
       clk: 'clk',
       rst_b: 'rst_b',
       valid: 'm_out_valid',
@@ -253,7 +260,8 @@ export class SliceCycleHarness extends Harness {
       ready: 'm_out_ready',
       fail_valid: valid,
       fail_record: record,
-      done: 'table_done'
+      done: 'table_done',
+      ...this.registerMemories('chk_m_out', checker)
     }, false)
 
     // The end: the table has run out, and every record has been sent
@@ -266,17 +274,19 @@ export class SliceCycleHarness extends Harness {
 export const SLICE_STALLS = new Set([5, 6, 7, 12, 20, 21])
 
 /**
- * A SliceCycleHarness's table, from the slice's timing: the injector offers record 0 in row 0 and
- * one record a cycle after, the slice shows each from row 2 on, and a record leaves in each row
- * whose `ready` is high. Its data is the LFSR payload of its seed (`lfsrPayloads()`).
+ * A SliceCycleHarness's table for a slice of `stages` stages, from the slice's timing: the
+ * injector offers record 0 in row 0 and one record a cycle after, the slice shows each from row
+ * `stages` on, and a record leaves in each row whose `ready` is high. While the output stalls, the
+ * full slice stalls with it, since its ready chain is combinational. Its data is the LFSR payload
+ * of its seed (`lfsrPayloads()`).
  */
-export function sliceCycleTable (stimulus: PatternRecord[], rows: number): CycleRow[] {
+export function sliceCycleTable (stimulus: PatternRecord[], rows: number, stages: number): CycleRow[] {
   const data = lfsrPayloads(SLICE_LFSR, 32, stimulus.map(r => r.seed ?? 0n))
   const table: CycleRow[] = []
   let next = 0
   for (let r = 0; r < rows; r++) {
     const ready = !SLICE_STALLS.has(r)
-    if (r < 2 || next >= stimulus.length) {
+    if (r < stages || next >= stimulus.length) {
       table.push({ ready })
       continue
     }
