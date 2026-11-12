@@ -1,7 +1,7 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
-import { PatternMemory } from './PatternMemory.js'
+import { PatternMemory, type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 import { recordLayout, type PatternRecord, type Radix, type RecordLayout } from './patternRecord.js'
-import { fetchWidth, tableDepth, type TableLane } from './VectorPlayer.js'
+import { fetchWidth, tableAddress, tableMemoryDepth, type TableLane } from './VectorPlayer.js'
 import { type CheckDetail } from './Harness.js'
 
 /** One lane a VectorChecker compares: the input port it is read on, and its width. */
@@ -24,7 +24,20 @@ export interface VectorChecker_Parameters {
   radix?: Radix
   /** Rows before this one are not checked, and error rows are counted from it. Default 0. */
   firstRow?: number
+  /**
+   * Records the table's memory holds: at least `tableDepth(rows)`, which is the default. A
+   * generated testbench takes it from its configuration (VectorPlayer's `depth`).
+   */
+  depth?: number
+  /**
+   * The table's run mode, which a harness passes as `build.mode`. A cycle table is preloaded only,
+   * so `'reloaded'` is refused. Default `'preloaded'`.
+   */
+  memory?: PatternMemoryMode
 }
+
+/** The checker's own signals besides its ports and its lanes' signals, which a lane can't be named */
+const INTERNAL = ['care', 'checking', 'table_addr']
 
 /**
  * VectorChecker — checks lanes against a table of expected values, one row per clock cycle,
@@ -40,15 +53,24 @@ export interface VectorChecker_Parameters {
  * Per lane, `err_row_<port>`, `err_got_<port>` and `err_want_<port>` hold that first mismatch:
  * its row, counted from `firstRow`, the lane's value and the table's. They are not ports: SimTop
  * prints them by hierarchical reference (`firstError()`).
+ *
+ * The table's memory is listed in `memories`, so a harness registers it and the testbench
+ * generator can build the testbench (doc/framework/testbench.md). It is preloaded only.
  */
 export class VectorChecker extends TSSV.Module {
+  /** Its pattern memory, for a harness to register (Harness.registerMemories()): `pattern`, preloaded with the expected rows. */
+  readonly memories: ComponentMemory[] = []
+
   constructor (params: VectorChecker_Parameters) {
     super({ name: params.name })
     const rows = params.rows
+    // In reloaded mode the rows aren't known, so the mode is checked first
+    if (params.memory !== undefined) tableMemoryDepth(params.name, 2, undefined, params.memory)
     const firstRow = params.firstRow ?? 0
     const lanes = params.lanes
     if (!Number.isInteger(rows) || rows < 1) throw Error(`${params.name}: rows must be a positive integer, got ${rows}`)
     if (lanes.length === 0) throw Error(`${params.name}: a checker needs at least one lane`)
+    const depth = tableMemoryDepth(params.name, rows, params.depth, params.memory)
     const rowWidth = this.bitWidth(rows)
 
     this.IOs = {
@@ -59,25 +81,21 @@ export class VectorChecker extends TSSV.Module {
       run: { direction: 'input' }
     }
     for (const lane of lanes) {
-      if (lane.port in this.IOs || lane.port === 'care') throw Error(`${params.name}: lane ${lane.port} has the name of another port`)
+      if (lane.port in this.IOs || INTERNAL.includes(lane.port)) throw Error(`${params.name}: lane ${lane.port} has the name of another port or signal`)
       this.IOs[lane.port] = { direction: 'input', width: lane.width }
       this.IOs[`fail_${lane.port}`] = { direction: 'output' }
     }
 
     // This row's expected values and care bits, from the table's memory
-    const memBindings: Record<string, string> = { clk: 'clk', rd_addr: 'fetch', care: 'care' }
+    const memBindings: Record<string, string> = { clk: 'clk', rd_addr: tableAddress(this, depth, rows), care: 'care' }
     for (const lane of lanes) {
       this.addSignal(`expect_${lane.port}`, { width: lane.width })
       memBindings[lane.port] = `expect_${lane.port}`
     }
     this.addSignal('care', { width: lanes.length })
-    this.addSubmodule('pattern', new PatternMemory({
-      name: `${params.name}_mem`,
-      layout: VectorChecker.layout(lanes, params.radix),
-      depth: tableDepth(rows),
-      mode: 'preloaded',
-      file: params.file
-    }), memBindings, false)
+    const layout = VectorChecker.layout(lanes, params.radix)
+    this.addSubmodule('pattern', new PatternMemory({ name: `${params.name}_mem`, layout, depth, mode: 'preloaded', file: params.file }), memBindings, false)
+    this.memories.push({ path: 'pattern', depth, layout, mode: 'preloaded', file: params.file, records: rows })
 
     // Whether this cycle is checked: the table is running, on a row from firstRow up to the last
     this.addSignal('checking', { width: 1 })

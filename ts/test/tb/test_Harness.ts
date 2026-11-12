@@ -23,6 +23,7 @@ import { type ComponentMemory, type PatternMemoryMode } from 'tssv/lib/tb/Patter
 import { RecordInjector } from 'tssv/lib/tb/RecordInjector'
 import { RecordChecker } from 'tssv/lib/tb/RecordChecker'
 import { recordLayout } from 'tssv/lib/tb/patternRecord'
+import { VectorPlayer } from 'tssv/lib/tb/VectorPlayer'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -186,8 +187,8 @@ void test('bad registrations are refused', () => {
       'h: inj_s: is registered twice'],
     ['a registration after finish()', () => new PartsHarness({ name: 'h', parts: [], late: { instance: 'inj_s', component: inj('reloaded') } }),
       'h: inj_s: registerMemories() comes before finish()'],
-    ['a component with no memories', () => new PartsHarness({ name: 'h', parts: [{ instance: 'cyc', component: new RecordChecker({ name: 'h_cyc', mode: 'cycleExact', fields: SLICE, rows: 4, readyFile: 'r.hex', file: 'e.hex' }) }] }),
-      'h: cyc: has no pattern memories to register'],
+    ['a component with no memories', () => new PartsHarness({ name: 'h', parts: [{ instance: 'play', component: new VectorPlayer({ name: 'h_play', rows: 4, lanes: [] }) }] }),
+      'h: play: has no pattern memories to register'],
     ['a component that is never added', () => new PartsHarness({ name: 'h', parts: [{ instance: 'inj_s', component: inj('reloaded'), notAdded: true }] }),
       'h: inj_s is registered, but isn\'t a submodule of the harness under that name'],
     ['a component clocked by another clock', () => new PartsHarness({ name: 'h', ...two, parts: [{ instance: 'inj_s', component: inj('reloaded'), domain: 'wr', clk: 'clk_rd' }] }),
