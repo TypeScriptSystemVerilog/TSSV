@@ -53,9 +53,11 @@ export class Throttle extends TSSV.Module {
       allow: { direction: 'output' }
     }
 
-    // A random byte each cycle, and whether it falls under the rate
+    // A random byte each cycle, and whether it falls under the rate. A named Throttle names its
+    // LFSR after itself; an unnamed one leaves the LFSR its name from its parameters
     this.addSignal('draw', { width: 8 })
-    this.addSubmodule('dice', new LFSR({ width: 32n, seed: params.seed, outWidth: 8n, advance: 8n }),
+    const lfsrName = params.name === undefined ? undefined : `LFSR_${params.name}`
+    this.addSubmodule('rate_lfsr', new LFSR({ name: lfsrName, width: 32n, seed: params.seed, outWidth: 8n, advance: 8n }),
       { clk: 'clk', rst_n: 'rst_b', step: 1n, value: 'draw' }, false)
     this.addAssign({ in: new Expr(`{1'b0, draw} < rate`), out: 'allow' })
   }

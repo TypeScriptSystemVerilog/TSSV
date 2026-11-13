@@ -15,7 +15,7 @@ ts/src/tb/            Testbench framework, tier 1 (tssv/lib/tb/...): SimTop, Har
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
 ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers, the include guard for hand-written SV (`guardSV`), reading back emitted SV (`emitted`), the one filelist for a testbench outside `sv-examples/`
 ts/doc-examples/core/ One script per builder example in the core's reference (npm run docs:examples); not tests
-ts/test/tb/           Example testbenches on the testbench framework: an SFIFO timing-diagram replay and an LFSR check, both from pattern files, PatternMemory in both modes, the record streams, and SliceOrder and LoadBus, built by the testbench generator from configuration and testcase files
+ts/test/tb/           Example testbenches on the testbench framework: an LFSR check from pattern files, PatternMemory in both modes, the record streams, and SliceOrder, SliceCycle, SFIFOWave (an SFIFO timing-diagram replay) and LoadBus, built by the testbench generator from configuration and testcase files
 out/                  Compiled JS — git-ignored, rebuilt with npx tsc
 sv-examples/          Generated SystemVerilog — git-ignored, each test regenerates its own; never hand-edit
 verilatorTB/          Verilator simulation harness with C++ driver and GTKWave script

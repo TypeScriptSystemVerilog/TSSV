@@ -1,5 +1,5 @@
 import TSSV, { Expr } from 'tssv/lib/core/TSSV'
-import { PatternMemory } from './PatternMemory.js'
+import { PatternMemory, type ComponentMemory, type PatternMemoryMode } from './PatternMemory.js'
 import { recordLayout, type PatternRecord, type Radix, type RecordLayout } from './patternRecord.js'
 
 /** One lane a VectorPlayer drives: the output port that drives it, and its width. */
@@ -28,13 +28,36 @@ export interface VectorPlayer_Parameters {
   file?: string
   /** The pattern file's radix. Default `'h'`. */
   radix?: Radix
+  /**
+   * Records the table's memory holds: at least `tableDepth(rows)`, which is the default. A
+   * generated testbench takes it from its configuration, so that one build can hold tables of
+   * different lengths.
+   */
+  depth?: number
+  /**
+   * The table's run mode, which a harness passes as `build.mode`. A cycle table is preloaded only,
+   * so `'reloaded'` is refused. Default `'preloaded'`.
+   */
+  memory?: PatternMemoryMode
 }
 
-/** The table's memory: at least 2 records, the smallest a PatternMemory holds. */
+/** The smallest memory for a table of `rows` rows: at least 2 records, the smallest a PatternMemory holds. */
 export const tableDepth = (rows: number): number => Math.max(rows, 2)
 
-/** The width of a table's `fetch`, an address of its memory: for the nets a harness declares. */
+/** The width of a table's `fetch`, the row its memories read: for the nets a harness declares. */
 export const fetchWidth = (rows: number): number => Math.ceil(Math.log2(tableDepth(rows)))
+
+/**
+ * The depth of a table's memory, from a VectorPlayer's or VectorChecker's `depth` and `memory`
+ * options, checked: `depth`, at least `tableDepth(rows)`, which is the default. Throws in
+ * reloaded mode, since a cycle table is preloaded only. `what` names the component.
+ */
+export function tableMemoryDepth (what: string, rows: number, depth?: number, memory?: PatternMemoryMode): number {
+  if (memory !== undefined && memory !== 'preloaded') throw Error(`${what}: a cycle table is preloaded only, so it can't be built in ${memory} mode`)
+  const d = depth ?? tableDepth(rows)
+  if (!Number.isInteger(d) || d < tableDepth(rows)) throw Error(`${what}: depth must be an integer of at least ${tableDepth(rows)}, the table's ${rows} rows, got ${d}`)
+  return d
+}
 
 /**
  * VectorPlayer — drives a table one row per clock cycle, from a pattern memory loaded with the
@@ -55,13 +78,25 @@ export const fetchWidth = (rows: number): number => Math.ceil(Math.log2(tableDep
  *
  * Each lane comes straight from the memory's read register, a flop, so a lane may drive a reset
  * (SV guide RST-4).
+ *
+ * The table's memory is listed in `memories`, so a harness registers it and the testbench
+ * generator can build the testbench (doc/framework/testbench.md). It is preloaded only.
  */
 export class VectorPlayer extends TSSV.Module {
+  /**
+   * Its pattern memory, for a harness to register (Harness.registerMemories()): `pattern`,
+   * preloaded with the table's rows. A player without lanes has none.
+   */
+  readonly memories: ComponentMemory[] = []
+
   constructor (params: VectorPlayer_Parameters) {
     super({ name: params.name })
     const rows = params.rows
+    // In reloaded mode the rows aren't known, so the mode is checked first
+    if (params.memory !== undefined) tableMemoryDepth(params.name, 2, undefined, params.memory)
     if (!Number.isInteger(rows) || rows < 1) throw Error(`${params.name}: rows must be a positive integer, got ${rows}`)
     if (params.lanes.length > 0 && params.file === undefined) throw Error(`${params.name}: a player with lanes needs a pattern file`)
+    const depth = tableMemoryDepth(params.name, rows, params.depth, params.memory)
     const rowWidth = this.bitWidth(rows)
     const addrWidth = fetchWidth(rows)
 
@@ -74,7 +109,7 @@ export class VectorPlayer extends TSSV.Module {
       done: { direction: 'output' }
     }
     for (const lane of params.lanes) {
-      if (lane.port in this.IOs) throw Error(`${params.name}: lane ${lane.port} has the name of another port`)
+      if (lane.port in this.IOs || lane.port === 'table_addr') throw Error(`${params.name}: lane ${lane.port} has the name of another port or signal`)
       this.IOs[lane.port] = { direction: 'output', width: lane.width }
     }
 
@@ -92,16 +127,12 @@ export class VectorPlayer extends TSSV.Module {
 
     // The lanes, from the table's memory
     if (params.lanes.length > 0) {
-      const memory = new PatternMemory({
-        name: `${params.name}_mem`,
-        layout: VectorPlayer.layout(params.lanes, params.radix),
-        depth: tableDepth(rows),
-        mode: 'preloaded',
-        file: params.file
-      })
-      const bindings: Record<string, string> = { clk: 'clk', rd_addr: 'fetch' }
+      const layout = VectorPlayer.layout(params.lanes, params.radix)
+      const memory = new PatternMemory({ name: `PatternMemory_${params.name}`, layout, depth, mode: 'preloaded', file: params.file })
+      const bindings: Record<string, string> = { clk: 'clk', rd_addr: tableAddress(this, depth, rows) }
       for (const lane of params.lanes) bindings[lane.port] = lane.port
       this.addSubmodule('pattern', memory, bindings, false)
+      this.memories.push({ path: 'pattern', depth, layout, mode: 'preloaded', file: params.file, records: rows })
     }
   }
 
@@ -117,6 +148,19 @@ export class VectorPlayer extends TSSV.Module {
     }
     return Array.from({ length: rows }, (_, r) => Object.fromEntries(lanes.map(l => [l.port, l.values[r] ?? 0n])))
   }
+}
+
+/**
+ * The net that addresses a table's memory, of `depth` records, in `module`: `fetch` itself, or
+ * `table_addr`, `fetch` widened with zeros, when the memory is deeper than the table needs.
+ */
+export function tableAddress (module: TSSV.Module, depth: number, rows: number): string {
+  const fw = fetchWidth(rows)
+  const aw = module.bitWidth(depth - 1)
+  if (aw === fw) return 'fetch'
+  module.addSignal('table_addr', { width: aw })
+  module.addAssign({ in: new Expr(`{${aw - fw}'d0, fetch}`), out: 'table_addr' })
+  return 'table_addr'
 }
 
 export default VectorPlayer

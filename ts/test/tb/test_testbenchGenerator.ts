@@ -15,15 +15,24 @@
  *     records than the depth, a count the file doesn't hold, a word of the wrong width, and a
  *     preloaded harness that ignores memory();
  *   - names that would collide, a configuration or testcase twice, a bad dut or testbench name
- *     and no modes are refused, and a refused run leaves the previous output as it was.
+ *     and no modes are refused, and a refused run leaves the previous output as it was;
+ *   - a testcase that names its configurations runs only with those (TSSV#223), and a name that
+ *     isn't a configuration, none, one twice, and a configuration left with no testcase are
+ *     refused;
+ *   - a cycle table (SliceCycleHarness, a cycleExact checker) is built preloaded from its
+ *     testcase's files and rows, and a reloaded build of it is refused, by the table itself or,
+ *     for a harness that doesn't pass build.mode, by the generator.
  */
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { writeManifest, writePatternFile, type ManifestFile, type Manifest } from 'tssv/lib/tb/patternFile'
 import { checkerLayout, injectorLayout } from 'tssv/lib/tb/recordStream'
+import { RecordChecker } from 'tssv/lib/tb/RecordChecker'
 import { formatLoadList } from 'tssv/lib/tb/SimTop'
 import { writeConfiguration, type TestbenchConfiguration } from 'tssv/lib/tb/testbenchConfiguration'
-import { formatRegressionIndex, generateTestbenches, testbenchNames, type GenerateTestbenches_Parameters } from 'tssv/lib/tb/testbenchGenerator'
-import { SliceOrderHarness, SLICE_FIELDS, SLICE_LFSR, sliceOrderParameters, sliceOrderTestcase, type SliceOrderParameters } from './RecordStreamHarness.js'
+import { formatRegressionIndex, generateTestbenches, testbenchNames, type GenerateTestbenches_Parameters, type HarnessBuild } from 'tssv/lib/tb/testbenchGenerator'
+import {
+  SliceCycleHarness, SliceOrderHarness, SLICE_FIELDS, SLICE_LFSR, recordsOf, sliceCycleTable, sliceOrderParameters, sliceOrderTestcase, type SliceOrderParameters
+} from './RecordStreamHarness.js'
 import { existsSync, readFileSync, rmSync } from 'fs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -147,6 +156,83 @@ void test('a load list is refused for a preloaded harness, a memory without a fi
     { message: 'formatLoadList: the path "patterns/my expected.hex" has whitespace, which a load list can\'t hold' })
 })
 
+// ---- Testcases that name their configurations
+
+const stages3 = config('stages3', { parameters: { stages: 3 } })
+const PAIRED = `${ROOT}/paired`
+
+void test('a testcase that names configurations runs only with those; one that names none runs with every one', () => {
+  const runs = generateTestbenches(slice({
+    outRoot: PAIRED, configurations: [stages2, stages3], testcases: [full, { manifest: short, configurations: ['stages3'] }], modes: ['preloaded', 'reloaded']
+  }))
+  assert.deepEqual(runs.map(r => `${r.mode} ${r.configuration} ${r.testcase}`), [
+    'preloaded stages2 full', 'preloaded stages3 full', 'preloaded stages3 short',
+    'reloaded stages2 full', 'reloaded stages3 full', 'reloaded stages3 short'
+  ])
+  const tb = `${PAIRED}/StreamSlice/SliceOrder`
+  assert.equal(readFileSync(`${tb}/regression.txt`, 'utf8'), formatRegressionIndex(runs))
+  assert.equal(existsSync(`${tb}/preloaded/stages2/short`), false)
+  assert.equal(existsSync(`${tb}/reloaded/stages2/short`), false)
+  assert.ok(existsSync(`${tb}/reloaded/stages3/short/patterns/load.txt`))
+})
+
+// ---- Cycle tables: SliceCycle, a cycleExact checker on a 2-stage slice
+
+const CYCLE_DEPTHS = { 'h.inj_s_in.pattern': 12, 'h.chk_m_out.play.pattern': 32, 'h.chk_m_out.chk.pattern': 32 }
+const cycle2 = config('cycle2', { depths: CYCLE_DEPTHS, maxCycles: 100 })
+
+/** Writes SliceCycle testcase `name`, 12 records and a 28-row table for a 2-stage slice, and returns its manifest's path */
+function cycleTestcase (name: string): string {
+  const dir = `${IN}/testcases/${name}`
+  const stimulus = sliceOrderTestcase(12)
+  const table = RecordChecker.cycleRecords(SLICE_FIELDS, sliceCycleTable(recordsOf(stimulus), 28, 2))
+  const layouts = RecordChecker.cycleLayouts(SLICE_FIELDS)
+  const content = { dut: 'StreamSlice', testcase: name, purpose: 'a test', recordNoun: 'cycle', objectNoun: 'table' }
+  const path = `${dir}/${name}.json`
+  writeManifest(path, {
+    testcase: name,
+    files: [
+      { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', radix: 'h', records: writePatternFile(`${dir}/stimulus.hex`, injectorLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), { ...content, objects: stimulus }) },
+      { file: 'ready.hex', memory: 'h.chk_m_out.play.pattern', radix: 'h', records: writePatternFile(`${dir}/ready.hex`, layouts.ready, { ...content, objects: [{ records: table.ready }] }) },
+      { file: 'expected.hex', memory: 'h.chk_m_out.chk.pattern', radix: 'h', records: writePatternFile(`${dir}/expected.hex`, layouts.expected, { ...content, objects: [{ records: table.expected }] }) }
+    ]
+  })
+  return path
+}
+const stalls = cycleTestcase('stalls')
+
+/** The generator's parameters for SliceCycle, with `extra` in place of any of them */
+const sliceCycle = (extra: Partial<GenerateTestbenches_Parameters<SliceOrderParameters>> = {}): GenerateTestbenches_Parameters<SliceOrderParameters> => ({
+  dut: 'StreamSlice',
+  testbench: 'SliceCycle',
+  outRoot: `${ROOT}/cycle`,
+  configurations: [cycle2],
+  testcases: [stalls],
+  modes: ['preloaded'],
+  parameters: sliceOrderParameters,
+  harness: build => new SliceCycleHarness(build),
+  ...extra
+})
+
+void test('a cycle table is built preloaded, its two memories registered with the testcase\'s files and rows', () => {
+  const runs = generateTestbenches(sliceCycle())
+  assert.deepEqual(runs.map(r => `${r.mode} ${r.top}`), ['preloaded tb_SliceCycle_cycle2_stalls'])
+  const dir = `${ROOT}/cycle/StreamSlice/SliceCycle/preloaded/cycle2/stalls`
+  for (const file of ['tb_SliceCycle_cycle2_stalls.sv', 'patterns/stimulus.hex', 'patterns/ready.hex', 'patterns/expected.hex']) assert.ok(existsSync(`${dir}/${file}`), file)
+})
+
+void test('a reloaded cycle table is refused: by the table, or by the generator for a harness that doesn\'t pass build.mode', () => {
+  assert.throws(() => generateTestbenches(sliceCycle({ modes: ['reloaded'] })),
+    { message: 'tb_SliceCycle_cycle2_reloaded: RecordChecker_SliceCycle_cycle2_reloaded_m_out: a cycle table is preloaded only, so it can\'t be built in reloaded mode' })
+  // A harness that builds its components preloaded, whatever mode it is asked for
+  const preloadedAnyway = (build: HarnessBuild<SliceOrderParameters>): SliceCycleHarness =>
+    new SliceCycleHarness({ ...build, mode: 'preloaded', memory: path => ({ ...build.memory(path), file: 'patterns/x.hex', records: path === 'h.inj_s_in.pattern' ? 12 : 28 }) })
+  assert.throws(() => generateTestbenches(sliceCycle({ modes: ['reloaded'], harness: preloadedAnyway })), {
+    message: 'tb_SliceCycle_cycle2_reloaded: is built reloaded, but h.inj_s_in.pattern, h.chk_m_out.play.pattern, h.chk_m_out.chk.pattern are preloaded; ' +
+      'a harness passes build.mode to each component, and a cycle table is preloaded only'
+  })
+})
+
 // Each refusal, with the generator's parameters that cause it
 const top = 'tb_SliceOrder_stages2_reloaded'
 const refusals: Array<[string, () => Partial<GenerateTestbenches_Parameters<SliceOrderParameters>>, string]> = [
@@ -176,6 +262,14 @@ const refusals: Array<[string, () => Partial<GenerateTestbenches_Parameters<Slic
     'StreamSlice/SliceOrder: reloaded stages2 and preloaded stages2 reloaded would both be tb_SliceOrder_stages2_reloaded; rename a configuration or testcase'],
   ['a configuration twice', () => ({ configurations: [stages2, stages2] }), 'StreamSlice/SliceOrder: two configurations are named stages2'],
   ['a testcase twice', () => ({ testcases: [full, full] }), 'StreamSlice/SliceOrder: two testcases are named full'],
+  ['a testcase that names a configuration there isn\'t', () => ({ testcases: [{ manifest: full, configurations: ['stages9'] }] }),
+    'StreamSlice/SliceOrder: testcase full names configuration stages9, which isn\'t one of stages2'],
+  ['a testcase that names no configuration', () => ({ testcases: [{ manifest: full, configurations: [] }] }),
+    'StreamSlice/SliceOrder: testcase full names no configuration; leave its configurations out to run it with every one'],
+  ['a testcase that names a configuration twice', () => ({ testcases: [{ manifest: full, configurations: ['stages2', 'stages2'] }] }),
+    'StreamSlice/SliceOrder: testcase full names configuration stages2 twice'],
+  ['a configuration that runs no testcase', () => ({ configurations: [stages2, stages3], testcases: [{ manifest: full, configurations: ['stages2'] }] }),
+    'StreamSlice/SliceOrder: configuration stages3 runs no testcase; name it in a testcase\'s configurations, or leave it out'],
   ['a dut that isn\'t an SV identifier', () => ({ dut: 'Stream-Slice' }), 'generateTestbenches: dut "Stream-Slice" isn\'t an SV identifier'],
   ['a testbench that isn\'t an SV identifier', () => ({ testbench: '2Order' }), 'generateTestbenches: testbench "2Order" isn\'t an SV identifier'],
   ['no modes', () => ({ modes: [] }), 'StreamSlice/SliceOrder: modes must name each mode once, got '],

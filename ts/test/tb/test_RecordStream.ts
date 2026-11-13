@@ -14,7 +14,8 @@
  *     with its full period;
  *   - derived values, such as TrafficPhases' countWidth and drawSeed's seeds, are as documented;
  *   - each component lists its pattern memories, with their paths, depths, layouts, files and
- *     record counts, for a harness to register (TSSV#200);
+ *     record counts, for a harness to register (TSSV#200), a cycleExact checker its two tables'
+ *     (TSSV#223);
  *   - bad parameters are refused.
  */
 import { type Module } from 'tssv/lib/core/TSSV'
@@ -141,8 +142,12 @@ void test('an inOrder checker lists pattern; a perSource one lists pattern_<k> p
   ])
 })
 
-void test('a cycleExact checker lists no memories: its tables are preloaded only', () => {
-  assert.deepEqual(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex' }).memories, [])
+void test('a cycleExact checker lists its tables\' memories, play.pattern and chk.pattern: preloaded, its rows as records', () => {
+  const layouts = RecordChecker.cycleLayouts(FIELDS)
+  assert.deepEqual(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', depth: 12 }).memories, [
+    { path: 'play.pattern', depth: 12, layout: layouts.ready, mode: 'preloaded', file: 'r.hex', records: 9 },
+    { path: 'chk.pattern', depth: 12, layout: layouts.expected, mode: 'preloaded', file: 'e.hex', records: 9 }
+  ])
 })
 
 void test('a cycleExact checker has ready, a fail per lane and done out', () => {
@@ -208,6 +213,10 @@ const REFUSED: Array<[string, () => unknown, RegExp]> = [
   ['the source field as an LFSR field', () => checker({ mode: 'perSource', sourceField: 'data', sources: 2, files: ['a', 'b'], records: [1, 1], lfsr: LFSR } as Partial<RecordChecker_Parameters>), /the source field data can't be an LFSR payload field/],
   ['a tie count too narrow for the checker\'s count', () => checker({ tie: { peers: 2, countWidth: 3 } }), /chk: tie.countWidth must hold this checker's count, 4 bits, got 3/],
   ['a tied checker field named after_count', () => checker({ fields: [{ name: 'after_count', width: 4 }], tie: { peers: 2, countWidth: 4 } }), /can't have a field named after_count/],
+  ['a reloaded cycleExact checker', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', memory: 'reloaded' }),
+    /^cyc: a cycle table is preloaded only, so it can't be built in reloaded mode$/],
+  ['a cycleExact checker with tables less deep than its rows', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', depth: 8 }),
+    /^VectorPlayer_cyc: depth must be an integer of at least 9, the table's 9 rows, got 8$/],
   ['a Throttle seed of 0', () => new Throttle({ seed: 0n }), /Throttle: seed must be a non-zero 32-bit value, got 0/],
   ['a Throttle seed wider than 32 bits', () => new Throttle({ seed: 1n << 32n }), /Throttle: seed must be a non-zero 32-bit value/],
   ['a rate over 256', () => new TrafficPhases({ phases: [{ name: 'p', validRate: 257, readyRate: 1 }], recordsPerPhase: 1, timeout: 9 }), /phase p has rate 257; a rate is 0 to 256/],

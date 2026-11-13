@@ -2,6 +2,8 @@
 // generator"): from DUT configurations (testbenchConfiguration.ts) and testcases (a manifest and
 // its pattern files, patternFile.ts), it builds a project's harness under a SimTop for every pair,
 // in each run mode, and writes them under `<outRoot>/<DUT>/<testbench>/` with a regression index.
+// A testcase may name the configurations it runs with, as a cycle table's must, since its
+// expected values fit one DUT configuration; then only those pairs are built.
 // The harness itself is the project's, through a callback, so this file knows no DUT and no
 // protocol.
 //
@@ -48,14 +50,28 @@ export interface GenerateTestbenches_Parameters<P> {
   outRoot: string
   /** The configuration files (testbenchConfiguration.ts). */
   configurations: string[]
-  /** The testcases' manifests (patternFile.ts). Each manifest's files are relative to it. */
-  testcases: string[]
+  /**
+   * The testcases: each a manifest's path (patternFile.ts), whose files are relative to it, which
+   * runs with every configuration; or a manifest with the configurations it runs with, by name.
+   */
+  testcases: Array<string | PairedTestcase>
   /** The run modes to build, which the TB spec says the testbench supports. */
   modes: PatternMemoryMode[]
   /** Checks a configuration's parameters and gives them the project's type. `where` names the file. */
   parameters: (raw: Record<string, JsonValue>, where: string) => P
   /** Builds the harness, which calls `registerMemories()` for each component with pattern memories. */
   harness: (build: HarnessBuild<P>) => Harness
+}
+
+/**
+ * A testcase that runs with some of the configurations only: a cycle table, whose expected values
+ * fit one DUT configuration, or content meant for one configuration.
+ */
+export interface PairedTestcase {
+  /** The testcase's manifest (patternFile.ts). */
+  manifest: string
+  /** The configurations it runs with, by their `configuration` names. At least one. */
+  configurations: string[]
 }
 
 /** One run of a regression: a line of its index, `regression.txt`. */
@@ -140,6 +156,16 @@ export function checkTestcase (top: string, harness: Harness, manifestPath: stri
   }
 }
 
+/**
+ * Checks that a harness built in reloaded mode has only reloaded memories: one with a cycle table
+ * (VectorPlayer, VectorChecker, a cycleExact RecordChecker), which is preloaded only, can't be.
+ * A harness that passes `build.mode` to its tables is refused by them first.
+ */
+function checkReloaded (top: string, harness: Harness): void {
+  const preloaded = harness.memories.filter(m => m.mode !== 'reloaded').map(m => `h.${m.path}`)
+  if (preloaded.length > 0) throw Error(`${top}: is built reloaded, but ${preloaded.join(', ')} ${preloaded.length === 1 ? 'is' : 'are'} preloaded; a harness passes build.mode to each component, and a cycle table is preloaded only`)
+}
+
 /** Runs `build`, putting `top` in front of an error's message if it isn't already. */
 function forPair<T> (top: string, build: () => T): T {
   try {
@@ -169,15 +195,31 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
     const raw = readConfiguration(path)
     return { path, config: { ...raw, parameters: p.parameters(raw.parameters, path) } }
   })
-  const testcases = p.testcases.map(path => {
+  const testcases = p.testcases.map(t => {
+    const path = typeof t === 'string' ? t : t.manifest
     const manifest = readManifest(path)
     if (!SNAKE_CASE.test(manifest.testcase)) throw Error(`${path}: testcase ${manifest.testcase} isn't lower snake_case`)
-    return { path, manifest }
+    return { path, manifest, configurations: typeof t === 'string' ? undefined : t.configurations }
   })
-  for (const [kind, names] of [['configuration', configs.map(c => c.config.configuration)], ['testcase', testcases.map(t => t.manifest.testcase)]] as const) {
+  const configNames = configs.map(c => c.config.configuration)
+  for (const [kind, names] of [['configuration', configNames], ['testcase', testcases.map(t => t.manifest.testcase)]] as const) {
     const twice = names.find((n, i) => names.indexOf(n) !== i)
     if (twice !== undefined) throw Error(`${what}: two ${kind}s are named ${twice}`)
   }
+
+  // Which configurations each testcase runs with: those it names, or every one
+  for (const { manifest, configurations } of testcases) {
+    if (configurations === undefined) continue
+    const tc = `${what}: testcase ${manifest.testcase}`
+    if (configurations.length === 0) throw Error(`${tc} names no configuration; leave its configurations out to run it with every one`)
+    const twice = configurations.find((n, i) => configurations.indexOf(n) !== i)
+    if (twice !== undefined) throw Error(`${tc} names configuration ${twice} twice`)
+    const unknown = configurations.find(n => !configNames.includes(n))
+    if (unknown !== undefined) throw Error(`${tc} names configuration ${unknown}, which isn't one of ${configNames.join(', ')}`)
+  }
+  const runsWith = (cfg: string): typeof testcases => testcases.filter(t => t.configurations?.includes(cfg) ?? true)
+  const idle = configNames.find(cfg => runsWith(cfg).length === 0)
+  if (idle !== undefined) throw Error(`${what}: configuration ${idle} runs no testcase; name it in a testcase's configurations, or leave it out`)
 
   // Build and check every pair before writing anything
   const builds: Array<{ top: SimTop, buildDir: string, configPath: string }> = []
@@ -201,11 +243,12 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
         claim(names.top, `reloaded ${cfg}`)
         const { top, harness } = forPair(names.top, () => {
           const harness = p.harness({ config, name: names.harness, mode, memory: path => ({ depth: depth(names.top, path) }) })
+          checkReloaded(names.top, harness)
           checkConfiguration(names.top, harness, config)
           return { top: new SimTop({ name: names.top, harness, maxCycles: config.maxCycles, resetCycles: config.resetCycles }), harness }
         })
         builds.push({ top, buildDir: names.buildDir, configPath })
-        for (const { path: manifestPath, manifest } of testcases) {
+        for (const { path: manifestPath, manifest } of runsWith(cfg)) {
           const tc = testbenchNames(p.testbench, mode, cfg, manifest.testcase)
           const loadList = forPair(names.top, () => {
             checkTestcase(names.top, harness, manifestPath, manifest)
@@ -214,7 +257,7 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
           runs.push({ run: { mode, configuration: cfg, testcase: manifest.testcase, top: names.top, buildDir: names.buildDir, runDir: tc.runDir }, manifestPath, manifest, loadList })
         }
       } else {
-        for (const { path: manifestPath, manifest } of testcases) {
+        for (const { path: manifestPath, manifest } of runsWith(cfg)) {
           const names = testbenchNames(p.testbench, mode, cfg, manifest.testcase)
           claim(names.top, `preloaded ${cfg} ${manifest.testcase}`)
           const memory = (path: string): { depth: number, file: string, records: number } => {

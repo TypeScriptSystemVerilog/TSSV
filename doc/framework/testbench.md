@@ -4,8 +4,9 @@
 > loaded from files (TSSV#197), a generic injector, checker and scoreboard for valid/ready record
 > streams (TSSV#198), clocks and resets for several domains (TSSV#199), the port-contract
 > check that takes over ready isolation (TSSV#201), and the testbench generator, with DUT
-> configuration files, reloaded mode in simulation and the TB spec template (TSSV#200). Still to
-> come: an FPGA wrapper (#202).
+> configuration files, reloaded mode in simulation and the TB spec template (TSSV#200), which
+> also builds testbenches with a cycle table, from testcases that name their configurations
+> (TSSV#223). Still to come: an FPGA wrapper (#202).
 > **Code:** `ts/src/tb/`, imported as `tssv/lib/tb/<file>`
 > **Checks:** `scripts/check-harness.mjs`, `scripts/check-test-structure.mjs`, and, for the DUT,
 > `scripts/check-port-contracts.mjs`
@@ -40,8 +41,9 @@ Every testbench has the same two layers.
   - enforces a cycle timeout.
 
 **Diagram 1: the SFIFO example testbench.** It replays a timing diagram from the SFIFO spec
-against the RTL (`ts/test/tb/SFIFOWaveHarness.ts`). The test writes the diagram's lanes to two
-pattern files, which the player's and the checker's pattern memories load. Fill color is the tier,
+against the RTL (`ts/test/tb/SFIFOWaveHarness.ts`). Its testcase is the diagram's lanes, written
+to two pattern files (`ts/test/tb/test_SFIFOWaveTB.ts`), which the player's and the checker's
+pattern memories load; the testbench generator builds it. Fill color is the tier,
 grey is offline, and a red dashed border marks a sim-only block; everything else is synthesizable.
 A block inside another is instantiated in it: SimTop instantiates the harness as `h`. Solid arrows
 are ports; the dotted arrows are files, and a hierarchical read.
@@ -171,13 +173,13 @@ Tier 1, in `ts/src/tb/`:
 | `patternRecord` | (TypeScript) | | `recordFields(intf, names)` takes a record's fields from an interface; `recordLayout(fields, radix)` gives each its slot in a word, padded to whole hex digits for `$readmemh`; `packRecord()` and `unpackRecord()` |
 | `patternFile` | (TypeScript) | | `writePatternFile()` writes a pattern file a person can read (header comment, a comment per object, `_` between fields), and `writeManifest()` the testcase's JSON manifest. `readManifest()` reads a manifest back and checks it, and `readPatternWords()` reads a file's records as `$readmem` does |
 | `testbenchConfiguration` | (TypeScript) | | A DUT configuration file: `readConfiguration()`, `parseConfiguration()` and `writeConfiguration()`, checked against its schema ([The configuration file](#the-configuration-file)) |
-| `testbenchGenerator` | (TypeScript) | | `generateTestbenches()` builds the project's harness under a SimTop for every configuration and testcase in each mode, checks them, and writes them with a regression index ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)) |
-| `VectorPlayer` | `clk`, `rst_b` → `row`, `fetch`, `run`, `done`, one output per lane | `name`, `rows`, `lanes`, `file`, `radix` | Drives a table one row per cycle from a `PatternMemory` loaded with the table's pattern file. Every lane comes from the memory's read register, a flop, so a lane may drive a reset (SV guide RST-4). `done` rises after the last row. `layout()` and `records()` give a generator the file's layout and records. Timing: [below](#cycle-tables-and-their-timing) |
-| `VectorChecker` | `clk`, `rst_b`, `row`, `fetch`, `run`, one input per lane → `fail_<lane>` | `name`, `rows`, `lanes`, `file`, `radix`, `firstRow` | Compares each lane with its row of a table of expected values, read from a `PatternMemory` at the player's `fetch`. A `care` bit per lane in each row marks the don't-cares. It latches the first mismatch per lane in `err_row_`, `err_got_` and `err_want_<lane>`; `firstError()` is the detail line that prints them |
+| `testbenchGenerator` | (TypeScript) | | `generateTestbenches()` builds the project's harness under a SimTop for every configuration and testcase in each mode, or for the configurations a testcase names, checks them, and writes them with a regression index ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)) |
+| `VectorPlayer` | `clk`, `rst_b` → `row`, `fetch`, `run`, `done`, one output per lane | `name`, `rows`, `lanes`, `file`, `radix`, `depth`, `memory` | Drives a table one row per cycle from a `PatternMemory` loaded with the table's pattern file. Every lane comes from the memory's read register, a flop, so a lane may drive a reset (SV guide RST-4). `done` rises after the last row. `layout()` and `records()` give a generator the file's layout and records. It lists its memory, `pattern`, which is preloaded only. Timing: [below](#cycle-tables-and-their-timing) |
+| `VectorChecker` | `clk`, `rst_b`, `row`, `fetch`, `run`, one input per lane → `fail_<lane>` | `name`, `rows`, `lanes`, `file`, `radix`, `firstRow`, `depth`, `memory` | Compares each lane with its row of a table of expected values, read from a `PatternMemory` at the player's `fetch`. A `care` bit per lane in each row marks the don't-cares. It latches the first mismatch per lane in `err_row_`, `err_got_` and `err_want_<lane>`; `firstError()` is the detail line that prints them. It lists its memory, `pattern`, which is preloaded only |
 | `wavedromVectors` | (TypeScript) | | Reads a spec's WaveDrom diagrams. `diagramLanes()` gives one diagram on one clock as values per cycle per lane, for a `VectorPlayer` and a `VectorChecker`. `diagramTasks()` gives every diagram with a prefix, on a fast and a slow clock, as SV tasks for a hand-written testbench |
 | `testbench` | (TypeScript) | | `markTestbench(module)` marks a module as simulation-only, so the SYN-1 scan skips it. SimTop marks itself |
 | `RecordInjector` | `clk`, `rst_b`, `ready` → `valid`, one output per field, `done`; options add `valid_rate`, `limit`, and in reloaded mode the load port and `records` | `name`, `fields`, `depth`, `memory`, `file`, `radix`, `records`, `lfsr`, `throttle`, `limitWidth` | Drives a valid/ready stream of records from one pattern memory, `pattern`, in order, each until it is accepted ([Record streams](#record-streams)) |
-| `RecordChecker` | `clk`, `rst_b`, `valid`, one input per field → `ready`, `fail`, `drained`; options add `ready_rate`, `limit`, the load port, and for a tie `peer_count` in, `fail_after` and `count` out | `name`, `mode`, `fields`, `depth`, `memory`, `file`/`files`, `records`, `sourceField`, `sources`, `lfsr`, `throttle`, `limitWidth`, `tie`; cycleExact: `rows`, `readyFile`, `file` | Checks a valid/ready stream against expected records, as a scoreboard: `inOrder`, `perSource` or `cycleExact` ([Record streams](#record-streams)). `firstError()`, `firstAfterError()` and `firstCycleError()` are its detail lines |
+| `RecordChecker` | `clk`, `rst_b`, `valid`, one input per field → `ready`, `fail`, `drained`; options add `ready_rate`, `limit`, the load port, and for a tie `peer_count` in, `fail_after` and `count` out | `name`, `mode`, `fields`, `depth`, `memory`, `file`/`files`, `records`, `sourceField`, `sources`, `lfsr`, `throttle`, `limitWidth`, `tie`; cycleExact: `rows`, `readyFile`, `file`, `depth`, `memory` | Checks a valid/ready stream against expected records, as a scoreboard: `inOrder`, `perSource` or `cycleExact` ([Record streams](#record-streams)). `firstError()`, `firstAfterError()` and `firstCycleError()` are its detail lines |
 | `recordStream` | (TypeScript) | | What an injector and a checker share, for generators: `injectorLayout()` and `checkerLayout()`, the record layout of an injector's or a checker's pattern file, given the stream's fields and its options; `lfsrPayloads()`, the model of LFSR payloads; and `mixSeed()` |
 | `LFSR` (building block, `ts/src/modules/LFSR/`) | `clk`, `rst_n`, `step` → `value`; loadable: `load`, `seed_in` in | `width`, `polynomial` (default `MAXIMAL_LENGTH_POLY[width]`), `seed`, `advance`, `outWidth`, `loadable` | A linear-feedback shift register, a design module that tier 1 uses as a part ([LFSR spec](../modules/LFSR/LFSR-spec.md)). Two LFSRs with one seed produce the same values, which is how a source and its checker agree on what was sent. `LFSRModel` predicts them, for generators and tests. A loadable LFSR restarts at `seed_in` while `load` is high, showing it on `value` in that cycle |
 | `Throttle` | `clk`, `rst_b`, `rate` → `allow` | `seed` | Allows a cycle with a chance of `rate` in 256. `drawSeed(seed, salt)` gives its seed from a stream's |
@@ -240,6 +242,14 @@ A table of four rows, records m0 to m3:
 a cycle before the priming cycle; the diagram draws it at the edge. `fetch` stops at the last row,
 so every lane holds its last value from `done` on.
 
+A table's memory is as deep as its rows unless `depth` says more, as a generated testbench's
+configuration does, so that one build holds tables of different lengths. `fetch` is always as wide
+as the table's rows need; a deeper memory reads at `fetch` widened with zeros, `table_addr`, and
+the rows past the table are never read. The player and the checker list their memories, and a
+cycleExact checker lists its two tables', so a harness registers them and the generator builds the
+testbench ([below](#a-testcase-for-some-configurations)). A cycle table is preloaded only: given
+`memory: 'reloaded'`, it refuses to be built.
+
 ---
 
 ## Record streams
@@ -263,6 +273,29 @@ A protocol package and a TB spec use these names, so that a protocol's injector 
 | The checker of a DUT output `<port>` | instance `chk_<port>`; its memory `chk_<port>.pattern`, or `chk_<port>.pattern_<k>` for source k, or `chk_<port>.play.pattern` and `chk_<port>.chk.pattern` in cycleExact mode |
 | A checker's checks | `order` for `fail` (with a suffix per output when there are several), `after` for `fail_after`, `progress` for TrafficPhases' `stuck` |
 | A manifest's memory paths | the instance paths above, under `h.`: `h.inj_s_in.pattern`, `h.chk_m_out.pattern_1` |
+
+Module and instance names follow one rule, so that a harness's SV says what each part is and what
+it does there:
+
+- **A module's name is its class, then its owner.**
+  - A component a harness builds is `<Class>_<harness>`, such as `TrafficPhases_<harness>`. An
+    injector or checker adds its port, as in `RecordInjector_<harness>_s_in`. So does any
+    component the harness has more than one of: `VectorChecker_<harness>_<tag>`.
+  - A part a component builds is `<Class>_<component>`, after the component's module name. For
+    example, a RecordInjector's parts are `PatternMemory_RecordInjector_<harness>_s_in` and
+    `Throttle_RecordInjector_<harness>_s_in`, and the throttle's own LFSR is
+    `LFSR_Throttle_RecordInjector_<harness>_s_in`. The tier-1 components name their parts this
+    way.
+  - A module whose class names it from its parameters needs no name. Examples are the SFIFO DUT,
+    `SFIFO_8_4_false_false_default_1024_true`, and tssv-noc's `FlitStreamPipe_32_skidBuffer_1`.
+    A DUT that needs a name gets `<Class>_<harness>`, such as `StreamSlice_<harness>`.
+- **An instance's name says what it does in its parent.**
+  - The injector and checker of a port are `inj_<port>` and `chk_<port>`, as above.
+  - Every other checker's name starts with `chk_` too, such as tssv-noc's `chk_timing`.
+  - A cycle table's player and checker are `play` and `chk`. A `TrafficPhases` is
+    `traffic_phases`, and the DUT is `dut`.
+  - Inside the tier-1 components, the parts are `pattern`, `throttle` and `payload_lfsr`, and the
+    throttle's LFSR is `rate_lfsr`.
 
 The tier-1 components have plain ports, not interfaces. A tier-2 or tier-3 harness binds a
 field's port to an interface signal (`s_in.data`), or packs several fields into one
@@ -610,7 +643,9 @@ A testbench is built from two inputs, and a project's runner keeps them apart:
 
 `generateTestbenches()` (`testbenchGenerator.ts`) takes both as files, with a callback that builds
 the project's harness, and writes a testbench for every configuration and testcase in each run
-mode. The harness holds no test content, so the runner loops over files, not over code. The
+mode, or only for the configurations a testcase names
+([A testcase for some configurations](#a-testcase-for-some-configurations)). The harness holds no
+test content, so the runner loops over files, not over code. The
 generator itself is one function, with no name and no knowledge of any DUT or protocol (tier 1).
 SliceOrder (`ts/test/tb/test_SliceOrderTB.ts`) is the example; its TB spec is
 [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md).
@@ -796,7 +831,7 @@ component, and registers the component's memories with `registerMemories()`, spr
 bindings it returns:
 
 ```ts
-const inj = new RecordInjector({ name: `${build.name}_inj`, fields, memory: build.mode, ...build.memory('h.inj_s_in.pattern'), lfsr, throttle })
+const inj = new RecordInjector({ name: `RecordInjector_${build.name}_s_in`, fields, memory: build.mode, ...build.memory('h.inj_s_in.pattern'), lfsr, throttle })
 this.addSubmodule('inj_s_in', inj, { clk: 'clk', rst_b: 'rst_b', ..., ...this.registerMemories('inj_s_in', inj) }, false)
 ```
 
@@ -805,9 +840,40 @@ this.addSubmodule('inj_s_in', inj, { clk: 'clk', rst_b: 'rst_b', ..., ...this.re
   With one domain, it is that one.
 - `finish()` checks that each registered component was added under its name, with `clk` bound to
   its domain's clock.
-- `RecordInjector` and `RecordChecker` (inOrder, perSource) list their memories (`memories`).
-  A cycleExact checker, `VectorPlayer` and `VectorChecker` don't yet, so a testbench with a cycle
-  table can't be generated; write it as `test_tbExamples.ts` does.
+- Every tier-1 component with a pattern memory lists it (`memories`): `RecordInjector`,
+  `RecordChecker` (a cycleExact one lists its tables', `play.pattern` and `chk.pattern`),
+  `VectorPlayer` and `VectorChecker`.
+
+A cycle table takes its rows from the testcase, as its memories' `records`, and its depth from the
+configuration. It is preloaded only, so the harness passes `build.mode` to it, and the table
+refuses a reloaded build:
+
+```ts
+const t = build.memory('h.play.pattern')
+const play = new VectorPlayer({ name: `VectorPlayer_${build.name}`, rows: t.records ?? 0, lanes, memory: build.mode, depth: t.depth, file: t.file })
+this.addSubmodule('play', play, { clk: 'clk', rst_b: 'rst_b', ..., ...this.registerMemories('play', play) }, false)
+```
+
+SFIFOWave (`ts/test/tb/test_SFIFOWaveTB.ts`, Diagram 1) is the example of a player and a checker,
+and SliceCycle (`ts/test/tb/test_SliceCycleTB.ts`) of a cycleExact checker.
+
+### A testcase for some configurations
+
+By default a testcase runs with every configuration. A testcase whose content fits some
+configurations only names them, and the generator builds only those pairs, in each mode:
+
+```ts
+testcases: [
+  `${dir}/seeded_packets/seeded_packets.json`,                            // every configuration
+  { manifest: `${dir}/stalls3/stalls3.json`, configurations: ['stages3'] }  // stages3 only
+]
+```
+
+A cycle table is the usual case: its expected values say what the DUT does in each cycle, and that
+depends on the configuration. SliceCycle's table says in which cycle each record leaves the slice,
+so `stalls2` is for the 2-stage slice and `stalls3` for the 3-stage one. Paired with the other
+configuration, each would fail. A pairing is the runner's choice, not the testcase's, so the
+manifest doesn't record it.
 
 ### The load port
 
@@ -886,7 +952,10 @@ output as it was:
 - the testcase's files name exactly the harness's memories, and each exists, has the memory's
   radix, holds the records the manifest says, no more than the depth, each the memory's word width;
 - in preloaded mode, each memory loads `patterns/<file>` with the manifest's count;
-- in reloaded mode, the load list can be written: no path has whitespace;
+- in reloaded mode, every memory of the harness is reloaded, which refuses a cycle table, and the
+  load list can be written: no path has whitespace;
+- a testcase that names configurations names each once, and only configurations there are, and
+  every configuration runs at least one testcase;
 - no two runs would share a top, and no configuration or testcase is named twice.
 
 An error from building a harness is given with its top's name in front.
@@ -1015,9 +1084,9 @@ testbenches; given a SimTop that way, it fails, as it should. Each script exits 
    the TB spec and the PR which testbench and check caught each break
    ([Evidence](#evidence-that-a-check-works)).
 
-A testbench whose components don't list their memories, one with a cycle table, can't be
-generated yet. Its harness takes its pattern file paths as parameters, and a runner writes it with
-`writeSystemVerilogFiles()`, as `test_tbExamples.ts` does; in TSSV it goes in `TB_EXAMPLES`.
+A harness can also be written without the generator: it takes its pattern file paths as
+parameters, and a runner writes it with `writeSystemVerilogFiles()`, as `test_tbExamples.ts` does;
+in TSSV it goes in `TB_EXAMPLES`. A new testbench uses the generator.
 
 Expected values come from the spec, from a model of what the DUT is meant to do, or from a shared
 seed, written into pattern files by a generator. Never derive them by re-implementing the
@@ -1049,16 +1118,17 @@ PR adds or changes a check, break the DUT once per check. For each break, record
 testbench caught it and on which check, then restore the DUT. The PR shows the table.
 
 For the examples, each break below was made in the source and run against both testbenches. It
-was run first on case tables (#196), and again on pattern memories (#197), with the same results.
-Each was caught by exactly the check it targets, and the other testbench passed. The LFSR rows
-are #210's, run on the `LFSR` module and `tb_LFSR`; `tb_SFIFOWave_dual_port` passed each time:
+was run first on case tables (#196), again on pattern memories (#197), and the SFIFO rows once
+more on the generated SFIFOWave (#223), with the same results each time. Each was caught by
+exactly the check it targets, and the other testbench passed. The LFSR rows are #210's, run on
+the `LFSR` module and `tb_LFSR`; the SFIFO testbench passed each time:
 
 | Break | Caught by | On |
 |---|---|---|
-| SFIFO `full` one entry early (`fifo_cnt_q == depth - 1`) | `tb_SFIFOWave_dual_port` | `full`, cycle 5 |
-| SFIFO `empty` never set | `tb_SFIFOWave_dual_port` | `empty`, cycle 0 |
-| SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_dual_port` | `curr_depth`, cycle 0 |
-| SFIFO `bypass_q` never loaded | `tb_SFIFOWave_dual_port` | `pop_data`, cycle 3 |
+| SFIFO `full` one entry early (`fifo_cnt_q == depth - 1`) | `tb_SFIFOWave_depth4_dual_port` | `full`, cycle 5 |
+| SFIFO `empty` never set | `tb_SFIFOWave_depth4_dual_port` | `empty`, cycle 0 |
+| SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_depth4_dual_port` | `curr_depth`, cycle 0 |
+| SFIFO `bypass_q` never loaded | `tb_SFIFOWave_depth4_dual_port` | `pop_data`, cycle 3 |
 | `LFSR` with the lowest tap dropped from its XOR network | `tb_LFSR` | `w16_a8`, `w33_a40`, `w64_a64` and `load32`, cycle 1 |
 | `LFSR`'s `value` from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 10, the first load |
 | `LFSR`'s step from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 11 |
@@ -1155,15 +1225,17 @@ of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 
 | File | What it is |
 |---|---|
-| `SFIFOWaveHarness.ts` | Replays the SFIFO spec's dual-port timing diagram: `sfifoWaveTable()` reads it with `diagramLanes()`, a `VectorPlayer` drives the four input lanes, and a `VectorChecker` checks the four output lanes, one check each, from the two pattern files written from the diagram |
+| `SFIFOWaveHarness.ts`, `test_SFIFOWaveTB.ts` | Replays the SFIFO spec's dual-port timing diagram, a cycle table the testbench generator builds: the configuration is the SFIFO's width and depth, and the testcase is the diagram, which `sfifoWaveTable()` reads with `diagramLanes()` and the runner writes to two pattern files. A `VectorPlayer` drives the four input lanes, and a `VectorChecker` checks the four output lanes, one check each. Run by `make -C verilatorTB tb_regression_sim` |
 | `LFSRHarness.ts` | Five `LFSR`s, each stepping on the player's `run`, checked by a `VectorChecker` against `LFSRModel` for 160 cycles, from a pattern file per LFSR: PRBS7 past its period of 127, the 16-bit default with an advance of 8 and 8 bits out, a 33-bit polynomial given as a list with an advance of 40, the 64-bit default with an advance of 64, and a loadable 32-bit one. The player drives the loadable one's `load` and `seed_in` from `LOADS` |
 | `streamDuts.ts` | Small valid/ready DUTs for the record streams: `StreamSlice` (register stages, full rate), `StreamMerge` (two streams into one, in turn) and `StreamSplit` (one into two by a bit of the word, in input order) |
-| `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases, built by the testbench generator), `SliceCycleHarness` (cycleExact), `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
+| `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases) and `SliceCycleHarness` (cycleExact), both built by the testbench generator, `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
 | `AFIFOStreamHarness.ts` | The two-domain example: an `AFIFO` between an injector in domain `wr` and an inOrder checker in domain `rd`, each at its own random rate, so the FIFO fills and runs empty. `wr` is released after `rd`, and the injector's `done` crosses into `rd` through a `CDCSynchronizer` |
-| `test_tbExamples.ts` | The hand-written runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_SFIFOWave_dual_port`, `tb_LFSR`, the three `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/`. Run by `make -C verilatorTB tb_examples_sim` |
+| `test_tbExamples.ts` | The hand-written runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_LFSR`, the two `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/`. Run by `make -C verilatorTB tb_examples_sim` |
 | `test_SliceOrderTB.ts` | The testbench generator's example: writes two configurations and two testcases, and generates SliceOrder for each pair in both modes under `sv-examples/tb/StreamSlice/SliceOrder/`. Its TB spec is [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md). Run by `make -C verilatorTB tb_regression_sim` |
+| `test_SliceCycleTB.ts` | A cycleExact testbench the generator builds: two configurations, the 2- and 3-stage slice, and a testcase with a table for each, which names its configuration ([A testcase for some configurations](#a-testcase-for-some-configurations)). The 3-stage slice's tables are deeper than their rows, so their memories read at a widened `fetch`. Run by `make -C verilatorTB tb_regression_sim` |
 | `LoadBusHarness.ts`, `test_loadBusTB.ts` | The load port's test: an `AFIFO` between an injector in `wr` and a perSource checker of 3 sources in `rd`, reloaded, with memories of two depths and widths, and a testcase where one source loads no records. Run by `make -C verilatorTB tb_regression_sim` |
-| `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, and the configuration file's schema, in Node |
+| `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, testcases that name their configurations, and cycle tables, built preloaded and refused reloaded; and the configuration file's schema, in Node |
+| `test_cycleTable.ts` | `VectorPlayer` and `VectorChecker`: the memory each lists, a memory deeper than its table, and their refusals, in Node |
 | `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, and the registrations it refuses, in Node |
 | `test_RecordStream.ts` | The record-stream components' ports per option, their record layouts, the payload model and their refusals, in Node |
 | `test_checkTestStructure.ts` | `check-test-structure` on fixture trees: a building block passes in tiers 1 and 2, and any other module fails, by package path or relatively, in Node. `LFSR`'s own test is `ts/test/modules/test_LFSR.ts` |

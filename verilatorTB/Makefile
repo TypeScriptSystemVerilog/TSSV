@@ -254,8 +254,7 @@ rom_sim: tsc
 # because its pattern memories $readmemh their files by a path relative to it. SimTop ends a failed
 # run with $fatal, so a failed check exits nonzero.
 TB_EXAMPLES_DIR = ../sv-examples/tb
-TB_EXAMPLES = tb_SFIFOWave_dual_port tb_LFSR \
-  tb_RecordStream_cycle tb_RecordStream_sources tb_RecordStream_tied \
+TB_EXAMPLES = tb_LFSR tb_RecordStream_sources tb_RecordStream_tied \
   tb_AFIFOStream_two_domains
 
 tb_examples_sim: tsc
@@ -277,7 +276,7 @@ tb_examples_sim: tsc
 # For each index, this checks each harness (scripts/check-harness.mjs) and builds each top once,
 # into obj_dir/<DUT>/<testbench>/<top>/, then runs every line from its run folder, so a reloaded
 # build runs once per testcase. A failed run exits nonzero, as in tb_examples_sim.
-TB_REGRESSION_RUNNERS = test_SliceOrderTB test_loadBusTB
+TB_REGRESSION_RUNNERS = test_SliceOrderTB test_SliceCycleTB test_SFIFOWaveTB test_loadBusTB
 
 tb_regression_sim: tsc
 	cd ..; set -e; for r in $(TB_REGRESSION_RUNNERS); do node out/test/tb/$$r.js > /dev/null; done
