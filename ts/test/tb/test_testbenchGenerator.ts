@@ -223,7 +223,7 @@ void test('a cycle table is built preloaded, its two memories registered with th
 
 void test('a reloaded cycle table is refused: by the table, or by the generator for a harness that doesn\'t pass build.mode', () => {
   assert.throws(() => generateTestbenches(sliceCycle({ modes: ['reloaded'] })),
-    { message: 'tb_SliceCycle_cycle2_reloaded: SliceCycle_cycle2_reloaded_chk: a cycle table is preloaded only, so it can\'t be built in reloaded mode' })
+    { message: 'tb_SliceCycle_cycle2_reloaded: RecordChecker_SliceCycle_cycle2_reloaded_m_out: a cycle table is preloaded only, so it can\'t be built in reloaded mode' })
   // A harness that builds its components preloaded, whatever mode it is asked for
   const preloadedAnyway = (build: HarnessBuild<SliceOrderParameters>): SliceCycleHarness =>
     new SliceCycleHarness({ ...build, mode: 'preloaded', memory: path => ({ ...build.memory(path), file: 'patterns/x.hex', records: path === 'h.inj_s_in.pattern' ? 12 : 28 }) })

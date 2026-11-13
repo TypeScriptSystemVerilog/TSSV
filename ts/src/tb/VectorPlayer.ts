@@ -128,7 +128,7 @@ export class VectorPlayer extends TSSV.Module {
     // The lanes, from the table's memory
     if (params.lanes.length > 0) {
       const layout = VectorPlayer.layout(params.lanes, params.radix)
-      const memory = new PatternMemory({ name: `${params.name}_mem`, layout, depth, mode: 'preloaded', file: params.file })
+      const memory = new PatternMemory({ name: `PatternMemory_${params.name}`, layout, depth, mode: 'preloaded', file: params.file })
       const bindings: Record<string, string> = { clk: 'clk', rd_addr: tableAddress(this, depth, rows) }
       for (const lane of params.lanes) bindings[lane.port] = lane.port
       this.addSubmodule('pattern', memory, bindings, false)

@@ -216,7 +216,7 @@ const REFUSED: Array<[string, () => unknown, RegExp]> = [
   ['a reloaded cycleExact checker', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', memory: 'reloaded' }),
     /^cyc: a cycle table is preloaded only, so it can't be built in reloaded mode$/],
   ['a cycleExact checker with tables less deep than its rows', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', depth: 8 }),
-    /^cyc_play: depth must be an integer of at least 9, the table's 9 rows, got 8$/],
+    /^VectorPlayer_cyc: depth must be an integer of at least 9, the table's 9 rows, got 8$/],
   ['a Throttle seed of 0', () => new Throttle({ seed: 0n }), /Throttle: seed must be a non-zero 32-bit value, got 0/],
   ['a Throttle seed wider than 32 bits', () => new Throttle({ seed: 1n << 32n }), /Throttle: seed must be a non-zero 32-bit value/],
   ['a rate over 256', () => new TrafficPhases({ phases: [{ name: 'p', validRate: 257, readyRate: 1 }], recordsPerPhase: 1, timeout: 9 }), /phase p has rate 257; a rate is 0 to 256/],

@@ -133,7 +133,7 @@ export class RecordInjector extends TSSV.Module {
     if (params.throttle === undefined) {
       this.addAssign({ in: new Expr("1'b1"), out: 'allow' })
     } else {
-      this.addSubmodule('throttle', new Throttle({ name: `${name}_throttle`, seed: drawSeed(params.throttle.seed, VALID_SALT) }),
+      this.addSubmodule('throttle', new Throttle({ name: `Throttle_${name}`, seed: drawSeed(params.throttle.seed, VALID_SALT) }),
         { clk: 'clk', rst_b: 'rst_b', rate: 'valid_rate', allow: 'allow' }, false)
     }
     this.addRegister({ d: new Expr('(offering && !ready) || (more && allow)'), clk: 'clk', reset: 'rst_b', q: 'offering' })
@@ -148,7 +148,7 @@ export class RecordInjector extends TSSV.Module {
     if (memory === 'reloaded') Object.assign(memBindings, { load_en: 'load_en', load_addr: 'load_addr', load_data: 'load_data' })
     for (const f of layout.fields) memBindings[f.name] = f.name
     if (lfsr !== undefined) this.addSignal(SEED_FIELD, { width: lfsr.width ?? 64 })
-    this.addSubmodule('pattern', new PatternMemory({ name: `${name}_mem`, layout, depth, mode: memory, file: params.file }), memBindings, false)
+    this.addSubmodule('pattern', new PatternMemory({ name: `PatternMemory_${name}`, layout, depth, mode: memory, file: params.file }), memBindings, false)
     this.memories.push({ path: 'pattern', depth, layout, mode: memory, file: params.file, records })
 
     // LFSR payloads: the seed restarts the LFSR, 0 continues it, and it steps when a record leaves
@@ -157,7 +157,7 @@ export class RecordInjector extends TSSV.Module {
       this.addSignal('payload', { width: bits })
       this.addSignal('load', { width: 1 })
       this.addAssign({ in: new Expr(`${SEED_FIELD} != ${lfsr.width ?? 64}'d0`), out: 'load' })
-      this.addSubmodule('lfsr', new LFSR({ name: `${name}_lfsr`, ...payloadLfsr(lfsr, bits) }),
+      this.addSubmodule('payload_lfsr', new LFSR({ name: `LFSR_${name}`, ...payloadLfsr(lfsr, bits) }),
         { clk: 'clk', rst_n: 'rst_b', step: 'accepted', load: 'load', seed_in: SEED_FIELD, value: 'payload' }, false)
       for (const s of slices) {
         const bitsOf = bits === s.width ? '' : s.width === 1 ? `[${s.lo}]` : `[${s.lo + s.width - 1}:${s.lo}]`

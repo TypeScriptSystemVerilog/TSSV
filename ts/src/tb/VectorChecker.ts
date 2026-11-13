@@ -94,7 +94,7 @@ export class VectorChecker extends TSSV.Module {
     }
     this.addSignal('care', { width: lanes.length })
     const layout = VectorChecker.layout(lanes, params.radix)
-    this.addSubmodule('pattern', new PatternMemory({ name: `${params.name}_mem`, layout, depth, mode: 'preloaded', file: params.file }), memBindings, false)
+    this.addSubmodule('pattern', new PatternMemory({ name: `PatternMemory_${params.name}`, layout, depth, mode: 'preloaded', file: params.file }), memBindings, false)
     this.memories.push({ path: 'pattern', depth, layout, mode: 'preloaded', file: params.file, records: rows })
 
     // Whether this cycle is checked: the table is running, on a row from firstRow up to the last

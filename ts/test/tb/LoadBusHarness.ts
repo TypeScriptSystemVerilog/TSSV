@@ -71,13 +71,13 @@ export class LoadBusHarness extends Harness {
     this.addSignal('drained', { width: 1 })
 
     // The write domain: the injector, offering at 160/256, and the AFIFO's push side
-    const injector = new RecordInjector({ name: `${build.name}_inj`, fields: LOAD_BUS_FIELDS, memory: build.mode, ...inj, throttle: { seed: 0x1357n } })
+    const injector = new RecordInjector({ name: `RecordInjector_${build.name}_wr`, fields: LOAD_BUS_FIELDS, memory: build.mode, ...inj, throttle: { seed: 0x1357n } })
     this.addSubmodule('inj_wr', injector, {
       clk: 'clk_wr', rst_b: 'rst_b_wr', ready: 'wr_ready', valid: 'wr_valid', src: 'wr_src', data: 'wr_data', done: 'inj_done', valid_rate: 160n, ...this.registerMemories('inj_wr', injector, { domain: 'wr' })
     }, false)
     this.addAssign({ in: new Expr('{wr_src, wr_data}'), out: 'wr_word' })
     this.addAssign({ in: new Expr('!full'), out: 'wr_ready' })
-    this.addSubmodule('dut', new AFIFO({ name: `${build.name}_afifo`, dataWidth: 14n, depth: 4n }), {
+    this.addSubmodule('dut', new AFIFO({ name: `AFIFO_${build.name}`, dataWidth: 14n, depth: 4n }), {
       wr_clk: 'clk_wr',
       wr_rst_n: 'rst_b_wr',
       push_en: 'wr_valid',
@@ -99,7 +99,7 @@ export class LoadBusHarness extends Harness {
     const order = this.check('order', 'each source\'s records arrive once, in order, unchanged', RecordChecker.firstError('chk_rd', 'perSource'))
     const preloaded = build.mode === 'preloaded' ? { files: chk.map(m => m.file ?? ''), records: chk.map(m => m.records ?? 0) } : {}
     const checker = new RecordChecker({
-      name: `${build.name}_chk`,
+      name: `RecordChecker_${build.name}_rd`,
       mode: 'perSource',
       fields: LOAD_BUS_FIELDS,
       sourceField: 'src',
@@ -124,7 +124,7 @@ export class LoadBusHarness extends Harness {
 
     // The end: every record sent, as rd sees it, and every record received
     const injDone = this.addRegister({ d: 'inj_done', clk: 'clk_wr', reset: 'rst_b_wr' })
-    this.addSubmodule('sync_inj_done', new CDCSynchronizer({ name: `${build.name}_sync`, width: 1n }), {
+    this.addSubmodule('sync_inj_done', new CDCSynchronizer({ name: `CDCSynchronizer_${build.name}`, width: 1n }), {
       clk: 'clk_rd',
       rst_n: 'rst_b_rd',
       d: injDone.toString(),

@@ -37,7 +37,7 @@ flowchart LR
   subgraph clk["clk (period 10)"]
     inj["inj_s_in<br/>RecordInjector<br/>h.inj_s_in.pattern<br/>LFSR: data from seed"] -->|"s_in: valid, ready, {last, data}"| dut["dut<br/>StreamSlice<br/>stages from the configuration"]
     dut -->|"m_out: valid, ready, {last, data}"| chk["chk_m_out<br/>RecordChecker, inOrder<br/>h.chk_m_out.pattern<br/>LFSR: data from seed"]
-    phases["phases<br/>TrafficPhases<br/>6 phases, depth / 6 records each"] -->|"valid_rate, limit"| inj
+    phases["traffic_phases<br/>TrafficPhases<br/>6 phases, depth / 6 records each"] -->|"valid_rate, limit"| inj
     phases -->|"ready_rate, limit"| chk
     chk -->|drained| phases
   end
@@ -139,7 +139,7 @@ its stimulus.
 | Check | Component | Requires | Detail line |
 |---|---|---|---|
 | `order` | `chk_m_out` | the slice carries every record once, in order, unchanged | `record %0d: got %h, expected %h` |
-| `progress` | `phases` | every phase drains within its timeout | `phase %0d did not drain within its timeout` |
+| `progress` | `traffic_phases` | every phase drains within its timeout | `phase %0d did not drain within its timeout` |
 
 StreamSlice declares no port contracts: its ready chain is combinational by design.
 

@@ -105,7 +105,7 @@ export class SliceOrderHarness extends Harness {
     // The standard phases' rates. This harness has no check that holds only at full rate, so no
     // phase raises full_rate. A phase may take 25 cycles a record, far more than its rates need,
     // and far less than SimTop's limit, so a stuck phase fails progress, not the timeout
-    const phases = new TrafficPhases({ name: `${build.name}_phases`, phases: STANDARD_PHASES.map(({ fullRate: _, ...p }) => p), recordsPerPhase: n / 6, timeout: 25 * (n / 6) })
+    const phases = new TrafficPhases({ name: `TrafficPhases_${build.name}`, phases: STANDARD_PHASES.map(({ fullRate: _, ...p }) => p), recordsPerPhase: n / 6, timeout: 25 * (n / 6) })
     const throttle = { seed: 0xC0FFEEn }
     const limitWidth = phases.countWidth
 
@@ -124,13 +124,13 @@ export class SliceOrderHarness extends Harness {
 
     // The injector, the slice, and the checker
     const injector = new RecordInjector({
-      name: `${build.name}_inj`, fields: SLICE_FIELDS, memory: build.mode, ...inj, lfsr: SLICE_LFSR, throttle, limitWidth
+      name: `RecordInjector_${build.name}_s_in`, fields: SLICE_FIELDS, memory: build.mode, ...inj, lfsr: SLICE_LFSR, throttle, limitWidth
     })
     this.addSubmodule('inj_s_in', injector, {
       clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', valid_rate: 'valid_rate', limit: 'limit', ...this.registerMemories('inj_s_in', injector)
     }, false)
     this.addAssign({ in: new Expr('{s_in_last, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSlice({ name: `${build.name}_slice`, width: 33, stages: build.config.parameters.stages }), {
+    this.addSubmodule('dut', new StreamSlice({ name: `StreamSlice_${build.name}`, width: 33, stages: build.config.parameters.stages }), {
       clk: 'clk',
       rst_b: 'rst_b',
       in_valid: 's_in_valid',
@@ -144,7 +144,7 @@ export class SliceOrderHarness extends Harness {
     this.addAssign({ in: new Expr('m_out_word[31:0]'), out: 'm_out_data' })
     const order = this.check('order', 'the slice carries every record once, in order, unchanged', RecordChecker.firstError('chk_m_out'))
     const checker = new RecordChecker({
-      name: `${build.name}_chk`, mode: 'inOrder', fields: SLICE_FIELDS, memory: build.mode, ...chk, lfsr: SLICE_LFSR, throttle, limitWidth
+      name: `RecordChecker_${build.name}_m_out`, mode: 'inOrder', fields: SLICE_FIELDS, memory: build.mode, ...chk, lfsr: SLICE_LFSR, throttle, limitWidth
     })
     this.addSubmodule('chk_m_out', checker, {
       clk: 'clk',
@@ -161,8 +161,8 @@ export class SliceOrderHarness extends Harness {
     }, false)
 
     // The end: every record sent and received, and every phase drained
-    const progress = this.check('progress', 'every phase drains within its timeout', TrafficPhases.stuckDetail('phases'))
-    this.addSubmodule('phases', phases, {
+    const progress = this.check('progress', 'every phase drains within its timeout', TrafficPhases.stuckDetail('traffic_phases'))
+    this.addSubmodule('traffic_phases', phases, {
       clk: 'clk',
       rst_b: 'rst_b',
       drained: 'drained',
@@ -228,12 +228,12 @@ export class SliceCycleHarness extends Harness {
     }
     this.addSignal('inj_done', { width: 1 })
     this.addSignal('table_done', { width: 1 })
-    const injector = new RecordInjector({ name: `${build.name}_inj`, fields: SLICE_FIELDS, memory: build.mode, ...inj, lfsr: SLICE_LFSR })
+    const injector = new RecordInjector({ name: `RecordInjector_${build.name}_s_in`, fields: SLICE_FIELDS, memory: build.mode, ...inj, lfsr: SLICE_LFSR })
     this.addSubmodule('inj_s_in', injector, {
       clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', ...this.registerMemories('inj_s_in', injector)
     }, false)
     this.addAssign({ in: new Expr('{s_in_last, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSlice({ name: `${build.name}_slice`, width: 33, stages: build.config.parameters.stages }), {
+    this.addSubmodule('dut', new StreamSlice({ name: `StreamSlice_${build.name}`, width: 33, stages: build.config.parameters.stages }), {
       clk: 'clk',
       rst_b: 'rst_b',
       in_valid: 's_in_valid',
@@ -249,7 +249,7 @@ export class SliceCycleHarness extends Harness {
     const record = this.check('record', 'the record on m_out follows the table', RecordChecker.firstCycleError('chk_m_out', 'record'))
     // A reloaded build has no rows or files; the checker refuses that mode before it reads them
     const checker = new RecordChecker({
-      name: `${build.name}_chk`, mode: 'cycleExact', fields: SLICE_FIELDS, rows: ready.records ?? 0, readyFile: ready.file ?? '', file: expected.file ?? '', depth: ready.depth, memory: build.mode
+      name: `RecordChecker_${build.name}_m_out`, mode: 'cycleExact', fields: SLICE_FIELDS, rows: ready.records ?? 0, readyFile: ready.file ?? '', file: expected.file ?? '', depth: ready.depth, memory: build.mode
     })
     this.addSubmodule('chk_m_out', checker, {
       clk: 'clk',
@@ -338,7 +338,7 @@ export class MergeSourcesHarness extends Harness {
     const sources: Array<['a' | 'b', bigint, bigint]> = [['a', 0x1234n, 160n], ['b', 0x5678n, 96n]]
     sources.forEach(([s, seed, rate], k) => {
       this.addSubmodule(`inj_${s}`, new RecordInjector({
-        name: `${params.name}_inj_${s}`, fields: MERGE_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus[k], records: n, lfsr: MERGE_LFSR, throttle: { seed }
+        name: `RecordInjector_${params.name}_${s}`, fields: MERGE_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus[k], records: n, lfsr: MERGE_LFSR, throttle: { seed }
       }), {
         clk: 'clk',
         rst_b: 'rst_b',
@@ -352,7 +352,7 @@ export class MergeSourcesHarness extends Harness {
       }, false)
       this.addAssign({ in: new Expr(`{${s}_src, ${s}_last, ${s}_data}`), out: `${s}_word` })
     })
-    this.addSubmodule('dut', new StreamMerge({ name: `${params.name}_merge`, width: 18 }), {
+    this.addSubmodule('dut', new StreamMerge({ name: `StreamMerge_${params.name}`, width: 18 }), {
       clk: 'clk',
       rst_b: 'rst_b',
       a_valid: 'a_valid',
@@ -372,7 +372,7 @@ export class MergeSourcesHarness extends Harness {
 
     const order = this.check('order', 'each source\'s records arrive once, in order, unchanged', RecordChecker.firstError('chk_m_out', 'perSource'))
     this.addSubmodule('chk_m_out', new RecordChecker({
-      name: `${params.name}_chk`,
+      name: `RecordChecker_${params.name}_m_out`,
       mode: 'perSource',
       fields: MERGE_FIELDS,
       sourceField: 'src',
@@ -454,10 +454,10 @@ export class SplitTiedHarness extends Harness {
       this.addSignal(`count_${s}`, { width: countWidth })
     }
     this.addSubmodule('inj_s_in', new RecordInjector({
-      name: `${params.name}_inj`, fields: SPLIT_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus, records: n
+      name: `RecordInjector_${params.name}_s_in`, fields: SPLIT_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus, records: n
     }), { clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', dst: 's_in_dst', data: 's_in_data', done: 'inj_done' }, false)
     this.addAssign({ in: new Expr('{s_in_dst, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSplit({ name: `${params.name}_split`, width: 17, selBit: 16 }), {
+    this.addSubmodule('dut', new StreamSplit({ name: `StreamSplit_${params.name}`, width: 17, selBit: 16 }), {
       in_valid: 's_in_valid',
       in_data: 's_in_word',
       in_ready: 's_in_ready',
@@ -479,7 +479,7 @@ export class SplitTiedHarness extends Harness {
       const order = this.check(`order_${s}`, `out_${s} carries its records once, in order, unchanged`, RecordChecker.firstError(`chk_out_${s}`))
       const after = this.check(`after_${s}`, `each record on out_${s} comes after the records on the other output sent before it`, RecordChecker.firstAfterError(`chk_out_${s}`))
       this.addSubmodule(`chk_out_${s}`, new RecordChecker({
-        name: `${params.name}_chk_${s}`,
+        name: `RecordChecker_${params.name}_out_${s}`,
         mode: 'inOrder',
         fields: SPLIT_FIELDS,
         depth: n,

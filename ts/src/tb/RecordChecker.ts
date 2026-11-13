@@ -246,7 +246,7 @@ export class RecordChecker extends TSSV.Module {
       this.addAssign({ in: new Expr("1'b1"), out: 'ready' })
     } else {
       this.addSignal('allow', { width: 1 })
-      this.addSubmodule('throttle', new Throttle({ name: `${name}_throttle`, seed: drawSeed(params.throttle.seed, READY_SALT) }),
+      this.addSubmodule('throttle', new Throttle({ name: `Throttle_${name}`, seed: drawSeed(params.throttle.seed, READY_SALT) }),
         { clk: 'clk', rst_b: 'rst_b', rate: 'ready_rate', allow: 'allow' }, false)
       this.addRegister({ d: 'allow', clk: 'clk', reset: 'rst_b', q: 'ready' })
     }
@@ -298,7 +298,7 @@ export class RecordChecker extends TSSV.Module {
       }
       this.addRegister({ d: `idx_nxt${s}`, clk: 'clk', reset: 'rst_b', q: `idx${s}` })
       this.addSubmodule(`pattern${s}`, new PatternMemory({
-        name: `${name}_mem${s}`, layout, depth, mode: memory, file: files?.[k]
+        name: `PatternMemory_${name}${s}`, layout, depth, mode: memory, file: files?.[k]
       }), memBindings, false)
       this.memories.push({ path: `pattern${s}`, depth, layout, mode: memory, file: files?.[k], records: records?.[k] })
 
@@ -309,7 +309,7 @@ export class RecordChecker extends TSSV.Module {
         this.addSignal(`payload${s}`, { width: bits })
         this.addSignal(`load${s}`, { width: 1 })
         this.addAssign({ in: new Expr(`want${s}_${SEED_FIELD} != ${lw}'d0`), out: `load${s}` })
-        this.addSubmodule(`lfsr${s}`, new LFSR({ name: `${name}_lfsr`, ...payloadLfsr(lfsr, bits) }),
+        this.addSubmodule(`payload_lfsr${s}`, new LFSR({ name: `LFSR_${name}`, ...payloadLfsr(lfsr, bits) }),
           { clk: 'clk', rst_n: 'rst_b', step: `adv${s}`, load: `load${s}`, seed_in: `want${s}_${SEED_FIELD}`, value: `payload${s}` }, false)
       }
 
@@ -422,7 +422,7 @@ export class RecordChecker extends TSSV.Module {
     this.addSignal('fetch', { width: fetchWidth(rows) })
     this.addSignal('run', { width: 1 })
     const play = new VectorPlayer({
-      name: `${name}_play`, rows, lanes: [{ port: 'ready', width: 1 }], file: params.readyFile, radix: params.radix, depth, memory
+      name: `VectorPlayer_${name}`, rows, lanes: [{ port: 'ready', width: 1 }], file: params.readyFile, radix: params.radix, depth, memory
     })
     this.addSubmodule('play', play, { clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', done: 'done', ready: 'ready' }, false)
 
@@ -430,7 +430,7 @@ export class RecordChecker extends TSSV.Module {
     this.addSignal('record', { width: rw })
     this.addAssign({ in: new Expr(fields.length === 1 ? fields[0]?.name ?? '' : `{${fields.map(f => f.name).join(', ')}}`), out: 'record' })
     const chk = new VectorChecker({
-      name: `${name}_chk`, rows, lanes: [{ port: 'valid', width: 1 }, { port: 'record', width: rw }], file: params.file, radix: params.radix, depth, memory
+      name: `VectorChecker_${name}`, rows, lanes: [{ port: 'valid', width: 1 }, { port: 'record', width: rw }], file: params.file, radix: params.radix, depth, memory
     })
     this.addSubmodule('chk', chk, { clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', valid: 'valid', record: 'record', fail_valid: 'fail_valid', fail_record: 'fail_record' }, false)
 

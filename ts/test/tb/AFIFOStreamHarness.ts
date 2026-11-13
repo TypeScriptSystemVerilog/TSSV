@@ -66,11 +66,11 @@ export class AFIFOStreamHarness extends Harness {
 
     // The write domain: the injector, offering at 160/256, and the AFIFO's push side
     this.addSubmodule('inj_wr', new RecordInjector({
-      name: `${params.name}_inj`, fields: AFIFO_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus, records: n, throttle: { seed: 0x1357n }
+      name: `RecordInjector_${params.name}_wr`, fields: AFIFO_FIELDS, depth: n, memory: 'preloaded', file: params.stimulus, records: n, throttle: { seed: 0x1357n }
     }), { clk: 'clk_wr', rst_b: 'rst_b_wr', ready: 'wr_ready', valid: 'wr_valid', last: 'wr_last', data: 'wr_data', done: 'inj_done', valid_rate: 160n }, false)
     this.addAssign({ in: new Expr('{wr_last, wr_data}'), out: 'wr_word' })
     this.addAssign({ in: new Expr('!full'), out: 'wr_ready' })
-    this.addSubmodule('dut', new AFIFO({ name: `${params.name}_afifo`, dataWidth: 17n, depth: 4n }), {
+    this.addSubmodule('dut', new AFIFO({ name: `AFIFO_${params.name}`, dataWidth: 17n, depth: 4n }), {
       wr_clk: 'clk_wr',
       wr_rst_n: 'rst_b_wr',
       push_en: 'wr_valid',
@@ -91,7 +91,7 @@ export class AFIFOStreamHarness extends Harness {
     this.addAssign({ in: new Expr('rd_word[15:0]'), out: 'rd_data' })
     const order = this.check('order', 'the AFIFO carries every record once, in order, unchanged', RecordChecker.firstError('chk_rd'))
     this.addSubmodule('chk_rd', new RecordChecker({
-      name: `${params.name}_chk`, mode: 'inOrder', fields: AFIFO_FIELDS, depth: n, memory: 'preloaded', file: params.expected, records: n, throttle: { seed: 0x2468n }
+      name: `RecordChecker_${params.name}_rd`, mode: 'inOrder', fields: AFIFO_FIELDS, depth: n, memory: 'preloaded', file: params.expected, records: n, throttle: { seed: 0x2468n }
     }), {
       clk: 'clk_rd',
       rst_b: 'rst_b_rd',
@@ -106,7 +106,7 @@ export class AFIFOStreamHarness extends Harness {
 
     // The end: every record sent, as rd sees it, and every record received
     const injDone = this.addRegister({ d: 'inj_done', clk: 'clk_wr', reset: 'rst_b_wr' })
-    this.addSubmodule('sync_inj_done', new CDCSynchronizer({ name: `${params.name}_sync`, width: 1n }), {
+    this.addSubmodule('sync_inj_done', new CDCSynchronizer({ name: `CDCSynchronizer_${params.name}`, width: 1n }), {
       clk: 'clk_rd',
       rst_n: 'rst_b_rd',
       d: injDone.toString(),

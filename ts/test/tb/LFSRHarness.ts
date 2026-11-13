@@ -92,7 +92,7 @@ export class LFSRHarness extends Harness {
     this.addSignal('load', { width: 1 })
     this.addSignal('seed_in', { width: 32 })
     this.addSubmodule('play', new VectorPlayer({
-      name: `${params.name}_play`,
+      name: `VectorPlayer_${params.name}`,
       rows: ROWS,
       lanes: loadLanes(),
       file: `${params.patterns}/stimulus.hex`
@@ -108,7 +108,7 @@ export class LFSRHarness extends Harness {
         { clk: 'clk', rst_n: 'rst_b', step: 'run', value: valueNet, ...loads }, false)
       const failNet = this.check(tag, caseDescription(c), VectorChecker.firstError(`chk_${tag}`, 'value', 'cycle'))
       this.addSubmodule(`chk_${tag}`, new VectorChecker({
-        name: `${params.name}_chk_${tag}`,
+        name: `VectorChecker_${params.name}_${tag}`,
         rows: ROWS,
         lanes: [{ port: 'value', width: outWidth }],
         file: `${params.patterns}/expect_${tag}.hex`

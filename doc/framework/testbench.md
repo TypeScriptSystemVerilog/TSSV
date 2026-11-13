@@ -274,6 +274,29 @@ A protocol package and a TB spec use these names, so that a protocol's injector 
 | A checker's checks | `order` for `fail` (with a suffix per output when there are several), `after` for `fail_after`, `progress` for TrafficPhases' `stuck` |
 | A manifest's memory paths | the instance paths above, under `h.`: `h.inj_s_in.pattern`, `h.chk_m_out.pattern_1` |
 
+Module and instance names follow one rule, so that a harness's SV says what each part is and what
+it does there:
+
+- **A module's name is its class, then its owner.**
+  - A component a harness builds is `<Class>_<harness>`, such as `TrafficPhases_<harness>`. An
+    injector or checker adds its port, as in `RecordInjector_<harness>_s_in`. So does any
+    component the harness has more than one of: `VectorChecker_<harness>_<tag>`.
+  - A part a component builds is `<Class>_<component>`, after the component's module name. For
+    example, a RecordInjector's parts are `PatternMemory_RecordInjector_<harness>_s_in` and
+    `Throttle_RecordInjector_<harness>_s_in`, and the throttle's own LFSR is
+    `LFSR_Throttle_RecordInjector_<harness>_s_in`. The tier-1 components name their parts this
+    way.
+  - A module whose class names it from its parameters needs no name. Examples are the SFIFO DUT,
+    `SFIFO_8_4_false_false_default_1024_true`, and tssv-noc's `FlitStreamPipe_32_skidBuffer_1`.
+    A DUT that needs a name gets `<Class>_<harness>`, such as `StreamSlice_<harness>`.
+- **An instance's name says what it does in its parent.**
+  - The injector and checker of a port are `inj_<port>` and `chk_<port>`, as above.
+  - Every other checker's name starts with `chk_` too, such as tssv-noc's `chk_timing`.
+  - A cycle table's player and checker are `play` and `chk`. A `TrafficPhases` is
+    `traffic_phases`, and the DUT is `dut`.
+  - Inside the tier-1 components, the parts are `pattern`, `throttle` and `payload_lfsr`, and the
+    throttle's LFSR is `rate_lfsr`.
+
 The tier-1 components have plain ports, not interfaces. A tier-2 or tier-3 harness binds a
 field's port to an interface signal (`s_in.data`), or packs several fields into one
 (`{src, payload}`), so tier 1 needs no stream interface of its own.
@@ -808,7 +831,7 @@ component, and registers the component's memories with `registerMemories()`, spr
 bindings it returns:
 
 ```ts
-const inj = new RecordInjector({ name: `${build.name}_inj`, fields, memory: build.mode, ...build.memory('h.inj_s_in.pattern'), lfsr, throttle })
+const inj = new RecordInjector({ name: `RecordInjector_${build.name}_s_in`, fields, memory: build.mode, ...build.memory('h.inj_s_in.pattern'), lfsr, throttle })
 this.addSubmodule('inj_s_in', inj, { clk: 'clk', rst_b: 'rst_b', ..., ...this.registerMemories('inj_s_in', inj) }, false)
 ```
 
@@ -827,7 +850,7 @@ refuses a reloaded build:
 
 ```ts
 const t = build.memory('h.play.pattern')
-const play = new VectorPlayer({ name: `${build.name}_play`, rows: t.records ?? 0, lanes, memory: build.mode, depth: t.depth, file: t.file })
+const play = new VectorPlayer({ name: `VectorPlayer_${build.name}`, rows: t.records ?? 0, lanes, memory: build.mode, depth: t.depth, file: t.file })
 this.addSubmodule('play', play, { clk: 'clk', rst_b: 'rst_b', ..., ...this.registerMemories('play', play) }, false)
 ```
 
