@@ -5,12 +5,16 @@
  *   - a driven lane holds its last value until a row changes it, from its initial value;
  *   - a checked lane is checked only in the rows that name it, and is a don't-care elsewhere;
  *   - each case becomes one pattern-file object, labelled with the case's label;
+ *   - writeDirectedTestcase() writes both pattern files and a manifest that loads them;
  *   - lanes, values and cases that don't fit are refused, naming the case and the row.
  */
-import { directedTable, tableObjects, type DirectedCase } from 'tssv/lib/tb/directedTable'
-import { formatPatternFile } from 'tssv/lib/tb/patternFile'
+import { directedTable, tableObjects, writeDirectedTestcase, type DirectedCase } from 'tssv/lib/tb/directedTable'
+import { formatPatternFile, readManifest, readPatternWords } from 'tssv/lib/tb/patternFile'
 import { VectorChecker } from 'tssv/lib/tb/VectorChecker'
 import { VectorPlayer } from 'tssv/lib/tb/VectorPlayer'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
@@ -81,6 +85,28 @@ void test('the two pattern files have a commented object per case, in the cases\
     '0_55_1',
     ''
   ])
+})
+
+void test('writeDirectedTestcase writes both pattern files and a manifest that loads them into the player and the checker', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'directedTable-'))
+  try {
+    const manifest = writeDirectedTestcase({ dut: 'Mux', testcase: 'directed', dir, lanes: LANES, cases: CASES })
+    assert.equal(manifest, `${dir}/directed.json`)
+    assert.deepEqual(readManifest(manifest), {
+      testcase: 'directed',
+      files: [
+        { file: 'stimulus.hex', memory: 'h.play.pattern', radix: 'h', records: 4 },
+        { file: 'expected.hex', memory: 'h.chk.pattern', radix: 'h', records: 4 }
+      ]
+    })
+    assert.deepEqual(readPatternWords(`${dir}/stimulus.hex`, 'h'), ['0aa', '1aa', '1aa', '155'])
+    assert.deepEqual(readPatternWords(`${dir}/expected.hex`, 'h'), ['0002', '1aa3', '0000', '0551'])
+    assert.match(readFileSync(`${dir}/expected.hex`, 'utf8'), /^\/\/ Mux, testcase directed: /) // starts with the header's first line, `// Mux, testcase directed: `
+    writeDirectedTestcase({ dut: 'Mux', testcase: 'other', dir, lanes: LANES, cases: CASES, player: 'h.p.pattern', checker: 'h.c.pattern' })
+    assert.deepEqual(readManifest(`${dir}/other.json`).files.map(f => f.memory), ['h.p.pattern', 'h.c.pattern'])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 void test('tableObjects refuses objects whose rows don\'t add up to the records', () => {

@@ -3,10 +3,11 @@
 // and expects some of the checker's. directedTable() turns the rows into the table by column, as
 // VectorPlayer.records() and VectorChecker.records() take it, and tableObjects() slices their
 // records back into a pattern-file object per case, so each case's comment in the file is its label.
-import { type PatternObject } from './patternFile.js'
-import { type PatternRecord } from './patternRecord.js'
-import { type DriveLane, type TableLane } from './VectorPlayer.js'
-import { type CheckLane } from './VectorChecker.js'
+// writeDirectedTestcase() does both, and writes a testcase's two pattern files and its manifest.
+import { writeManifest, writePatternFile, type PatternFileContent, type PatternObject } from './patternFile.js'
+import { type PatternRecord, type Radix } from './patternRecord.js'
+import { VectorPlayer, type DriveLane, type TableLane } from './VectorPlayer.js'
+import { VectorChecker, type CheckLane } from './VectorChecker.js'
 
 /** A lane's value: a bigint, or a number that is a safe integer. Never negative. */
 export type LaneValue = bigint | number
@@ -136,4 +137,49 @@ export function tableObjects (records: PatternRecord[], objects: TableObject[]):
     start += rows
     return object
   })
+}
+
+/** A testcase written as a directed table, for `writeDirectedTestcase()`. */
+export interface DirectedTestcase {
+  /** The block under test, for the pattern files' header: `FlitStreamDemux`. */
+  dut: string
+  testcase: string
+  /** The folder the testcase is written to: its two pattern files and its manifest, `<testcase>.json`. */
+  dir: string
+  lanes: { driven: DriveLane[], checked: CheckLane[] }
+  cases: DirectedCase[]
+  options?: DirectedTableOptions
+  /** The player's memory, from the testbench's top. Default `h.play.pattern`. */
+  player?: string
+  /** The checker's memory, from the testbench's top. Default `h.chk.pattern`. */
+  checker?: string
+  /** The pattern files' radix. Default `'h'`. */
+  radix?: Radix
+}
+
+/**
+ * Writes testcase `t` to `t.dir`: `stimulus.hex`, the player's table, `expected.hex`, the
+ * checker's, each with a commented object per case, and the manifest `<testcase>.json`, which
+ * loads them into `t.player` and `t.checker`. Returns the manifest's path, for the testbench
+ * generator. Throws as `directedTable()` does.
+ */
+export function writeDirectedTestcase (t: DirectedTestcase): string {
+  const table = directedTable(t.lanes, t.cases, t.options)
+  const radix = t.radix ?? 'h'
+  const content = (purpose: string, records: PatternRecord[]): PatternFileContent => ({
+    dut: t.dut, testcase: t.testcase, purpose, recordNoun: 'cycle', objectNoun: 'case', objects: tableObjects(records, table.objects)
+  })
+  const stimulus = writePatternFile(`${t.dir}/stimulus.hex`, VectorPlayer.layout(t.lanes.driven, radix),
+    content('the driven lanes, a case at a time', VectorPlayer.records(table.driven, table.rows)))
+  const expected = writePatternFile(`${t.dir}/expected.hex`, VectorChecker.layout(t.lanes.checked, radix),
+    content('the expected values of the checked lanes, a case at a time; a care bit of 0 is a don\'t-care', VectorChecker.records(table.checked, table.rows)))
+  const manifest = `${t.dir}/${t.testcase}.json`
+  writeManifest(manifest, {
+    testcase: t.testcase,
+    files: [
+      { file: 'stimulus.hex', memory: t.player ?? 'h.play.pattern', radix, records: stimulus },
+      { file: 'expected.hex', memory: t.checker ?? 'h.chk.pattern', radix, records: expected }
+    ]
+  })
+  return manifest
 }
