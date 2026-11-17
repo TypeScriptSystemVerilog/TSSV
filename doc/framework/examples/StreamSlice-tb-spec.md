@@ -8,7 +8,7 @@
 > [the TB spec template](../../templates/tb-spec-template.md).
 
 StreamSlice's other testbench, SliceCycle (`SliceCycleHarness`, `ts/test/tb/test_SliceCycleTB.ts`),
-checks the slice cycle by cycle against a table. The generator builds it too, preloaded only, with
+checks the slice cycle by cycle against a table. The generator builds it too, in both modes, with
 a table for each configuration ([testbench.md](../testbench.md#a-testcase-for-some-configurations)).
 This example spec covers SliceOrder only.
 
