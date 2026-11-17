@@ -176,6 +176,7 @@ Tier 1, in `ts/src/tb/`:
 | `testbenchGenerator` | (TypeScript) | | `generateTestbenches()` builds the project's harness under a SimTop for every configuration and testcase in each mode, or for the configurations a testcase names, checks them, and writes them with a regression index ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)) |
 | `VectorPlayer` | `clk`, `rst_b` → `row`, `fetch`, `run`, `done`, one output per lane; in reloaded mode the load port and `records` in | `name`, `rows` (preloaded), `lanes`, `file` (preloaded), `radix`, `depth`, `memory` | Drives a table one row per cycle from a `PatternMemory` loaded with the table's pattern file. Every lane comes from the memory's read register, a flop, so a lane may drive a reset (SV guide RST-4). `done` rises after the last row. `layout()` and `records()` give a generator the file's layout and records. It lists its memory, `pattern`. Reloaded, it reads its row count on `records`. Timing: [below](#cycle-tables-and-their-timing) |
 | `VectorChecker` | `clk`, `rst_b`, `row`, `fetch`, `run`, one input per lane → `fail_<lane>`; in reloaded mode the load port and `records` in | `name`, `rows` (preloaded), `lanes`, `file` (preloaded), `radix`, `firstRow`, `depth`, `memory` | Compares each lane with its row of a table of expected values, read from a `PatternMemory` at the player's `fetch`. A `care` bit per lane in each row marks the don't-cares. It latches the first mismatch per lane in `err_row_`, `err_got_` and `err_want_<lane>`; `firstError()` is the detail line that prints them. It lists its memory, `pattern`. Reloaded, it reads its own row count on `records`, which the generator requires to be the player's |
+| `directedTable` | (TypeScript) | | A cycle table written as rows, for a directed test: `directedTable()` turns cases of rows, each driving some lanes and expecting others, into a player's and a checker's lanes, `tableObjects()` slices their records into a pattern-file object per case, and `writeDirectedTestcase()` writes a testcase's two pattern files and its manifest ([Directed tables](#directed-tables)) |
 | `wavedromVectors` | (TypeScript) | | Reads a spec's WaveDrom diagrams. `diagramLanes()` gives one diagram on one clock as values per cycle per lane, for a `VectorPlayer` and a `VectorChecker`. `diagramTasks()` gives every diagram with a prefix, on a fast and a slow clock, as SV tasks for a hand-written testbench |
 | `testbench` | (TypeScript) | | `markTestbench(module)` marks a module as simulation-only, so the SYN-1 scan skips it. SimTop marks itself |
 | `RecordInjector` | `clk`, `rst_b`, `ready` → `valid`, one output per field, `done`; options add `valid_rate`, `limit`, and in reloaded mode the load port and `records` | `name`, `fields`, `depth`, `memory`, `file`, `radix`, `records`, `lfsr`, `throttle`, `limitWidth` | Drives a valid/ready stream of records from one pattern memory, `pattern`, in order, each until it is accepted ([Record streams](#record-streams)) |
@@ -264,6 +265,101 @@ rows when preloaded and the depth when reloaded (`tableSize()`), so the player a
 need one depth in reloaded mode.
 
 `firstRow` is a parameter in both modes: it is the harness's lead-in, the same for every testcase.
+
+### Directed tables
+
+A cycle table can come from a spec's timing diagram (`wavedromVectors`), or be written by hand as
+a directed test: a list of short cases, each a few rows. Each row is one cycle. It drives some of
+the player's lanes and expects some of the checker's.
+
+`directedTable()` is TypeScript that a runner calls when it writes a testcase. **It generates no
+hardware.** The harness still holds the same `VectorPlayer` and `VectorChecker`, which read their
+pattern files a row per clock and can't tell how the files were written. `directedTable()` is a
+front end for writing the table, as `diagramLanes()` is for a diagram. Both produce the table by
+column (`TableLane[]`: each lane's value in every row), the form that the player's and checker's
+`records()` helpers take:
+
+```text
+cases, written as rows             drive some lanes, expect others        TypeScript, in the runner
+  │  directedTable()
+  ▼
+TableLane[], by column             each lane's value in every row
+  │  VectorPlayer.records(), VectorChecker.records()
+  ▼
+PatternRecord[]
+  │  tableObjects(), writePatternFile()
+  ▼
+stimulus.hex, expected.hex         one commented object per case
+  │  $readmem, in simulation
+  ▼
+VectorPlayer, VectorChecker        a row per clock                        SV, in the harness
+```
+
+What `directedTable()` adds is three rules that keep a hand-written table short:
+
+- **A driven lane holds its last value until a row changes it.** So a row names only the inputs it
+  changes. Before the first row a lane is 0, or the value `initial` gives it. `VectorPlayer.records()`
+  on its own writes a missing value as 0, so every row would have to repeat every input.
+- **A checked lane is checked only in the rows that name it.** So a row names only the outputs it is
+  about. In every other row the lane is a don't-care, and its care bit is 0.
+- **Each case keeps its label.** `tableObjects()` slices the player's and the checker's records into
+  one pattern-file object per case, labelled with the case's label. So each case is commented in
+  both files: `// case 1: T2 sel 1 forwards input 0, 3 cycles`.
+
+A row may name nothing: a cycle in which nothing changes and nothing is checked. This case, for
+example:
+
+```ts
+{ label: 'T2 sel 1 forwards input 0', rows: [
+  { drive: { sel: 1 }, expect: { out_valid: 1 } },
+  {},
+  { drive: { in_0_data: 0x55 }, expect: { out_data: 0x55 } }
+] }
+```
+
+becomes these columns, with `in_0_data` 0xaa from the row before. A dash is a don't-care:
+
+| Lane | Row 0 | Row 1 | Row 2 |
+|---|---|---|---|
+| `sel`, driven | 1 | 1 | 1 |
+| `in_0_data`, driven | aa | aa | 55 |
+| `out_valid`, checked | 1 | — | — |
+| `out_data`, checked | — | — | 55 |
+
+`writeDirectedTestcase()` runs the whole TypeScript half of that path for a generated testbench's
+testcase. It writes:
+- `stimulus.hex` and `expected.hex`;
+- the manifest that loads them into the player and the checker, by default `h.play.pattern` and
+  `h.chk.pattern`.
+
+It returns the manifest's path, for `generateTestbenches()`:
+
+```ts
+const lanes = {
+  driven: [{ port: 'sel', width: 2 }, { port: 'in_0_data', width: 8 }],
+  checked: [{ port: 'out_valid', width: 1 }, { port: 'out_data', width: 8 }]
+}
+const manifest = writeDirectedTestcase({
+  dut: 'Mux',
+  testcase: 'directed',
+  dir: `${out}/testcases/directed`,
+  lanes,
+  cases: [
+    { label: 'T1 sel 0 is idle', rows: [{ drive: { in_0_data: 0xaa }, expect: { out_valid: 0 } }] },
+    { label: 'T2 sel 1 forwards input 0', rows: [{ drive: { sel: 1 }, expect: { out_valid: 1, out_data: 0xaa } }] }
+  ]
+})
+```
+
+`directedTable()`, and so `writeDirectedTestcase()`, refuses, naming the case and the row:
+- a lane that isn't one of the driven lanes (in `drive`) or the checked lanes (in `expect`);
+- a value that is negative, isn't an integer, or doesn't fit its lane.
+
+They also refuse no cases, a case with no rows, and an empty label.
+
+The table's timing is a cycle table's: a combinational DUT's outputs in row r follow its inputs in
+row r. A DUT with state sees row 0 through reset and the priming cycle unless it takes its reset
+from a lane.
 
 ---
 
@@ -1265,6 +1361,7 @@ of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 | `test_SliceCycleTB.ts` | A cycleExact testbench the generator builds in both modes: two configurations, the 2- and 3-stage slice, and a testcase with a table for each, which names its configuration ([A testcase for some configurations](#a-testcase-for-some-configurations)), so each reloaded build runs one testcase. The 3-stage slice's preloaded tables are deeper than their rows, so their memories read at a widened `fetch`. Run by `make -C verilatorTB tb_regression_sim` |
 | `LoadBusHarness.ts`, `test_loadBusTB.ts` | The load port's test: an `AFIFO` between an injector in `wr` and a perSource checker of 3 sources in `rd`, reloaded, with memories of two depths and widths, and a testcase where one source loads no records. Run by `make -C verilatorTB tb_regression_sim` |
 | `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, testcases that name their configurations, and cycle tables in both modes, with the tables' one row count; and the configuration file's schema, in Node |
+| `test_directedTable.ts` | `directedTable()`, `tableObjects()` and `writeDirectedTestcase()`: driven lanes hold, unnamed checked lanes are don't-cares, a pattern-file object per case, the files and manifest a testcase gets, and the refusals, in Node |
 | `test_cycleTable.ts` | `VectorPlayer` and `VectorChecker` in both modes: the memory each lists, a memory deeper than its table, a reloaded table's ports, and their refusals, in Node |
 | `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, a component whose memories differ in width, and the registrations it refuses, in Node |
 | `test_RecordStream.ts` | The record-stream components' ports per option and mode, a cycleExact checker's included, their record layouts, the payload model and their refusals, in Node |
