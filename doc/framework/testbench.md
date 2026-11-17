@@ -1147,17 +1147,18 @@ PR adds or changes a check, break the DUT once per check. For each break, record
 testbench caught it and on which check, then restore the DUT. The PR shows the table.
 
 For the examples, each break below was made in the source and run against both testbenches. It
-was run first on case tables (#196), again on pattern memories (#197), and the SFIFO rows once
-more on the generated SFIFOWave (#223), with the same results each time. Each was caught by
+was run first on case tables (#196), again on pattern memories (#197), the SFIFO rows once more
+on the generated SFIFOWave (#223), and again on its reloaded build, with the diagram loaded at
+run time (#225), with the same results each time. Each was caught by
 exactly the check it targets, and the other testbench passed. The LFSR rows are #210's, run on
 the `LFSR` module and `tb_LFSR`; the SFIFO testbench passed each time:
 
 | Break | Caught by | On |
 |---|---|---|
-| SFIFO `full` one entry early (`fifo_cnt_q == depth - 1`) | `tb_SFIFOWave_depth4_dual_port` | `full`, cycle 5 |
-| SFIFO `empty` never set | `tb_SFIFOWave_depth4_dual_port` | `empty`, cycle 0 |
-| SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_depth4_dual_port` | `curr_depth`, cycle 0 |
-| SFIFO `bypass_q` never loaded | `tb_SFIFOWave_depth4_dual_port` | `pop_data`, cycle 3 |
+| SFIFO `full` one entry early (`fifo_cnt_q == depth - 1`) | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `full`, cycle 5 |
+| SFIFO `empty` never set | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `empty`, cycle 0 |
+| SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `curr_depth`, cycle 0 |
+| SFIFO `bypass_q` never loaded | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `pop_data`, cycle 3 |
 | `LFSR` with the lowest tap dropped from its XOR network | `tb_LFSR` | `w16_a8`, `w33_a40`, `w64_a64` and `load32`, cycle 1 |
 | `LFSR`'s `value` from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 10, the first load |
 | `LFSR`'s step from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 11 |
