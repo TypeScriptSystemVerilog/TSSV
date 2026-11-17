@@ -18,8 +18,9 @@ export type PatternMemoryMode = 'preloaded' | 'reloaded'
  *
  * A reloaded component loads its memories through one load port: `load_en`, `load_addr` and
  * `load_data`, plus `load_src` when it has more than one memory, which selects memory k of
- * `memories` with `load_src` = k. Its `records` input holds one count per memory, memory k's in
- * bits [k*w +: w], w = bitWidth(depth).
+ * `memories` with `load_src` = k. Its memories have one depth. `load_data` is as wide as the
+ * widest memory's word, and a narrower memory takes its low bits. Its `records` input holds one
+ * count per memory, memory k's in bits [k*w +: w], w = bitWidth(depth).
  */
 export interface ComponentMemory {
   /** Its instance path inside the component: `pattern`, or `pattern_<k>` for a checker's source k. */
@@ -32,6 +33,12 @@ export interface ComponentMemory {
   file?: string
   /** Preloaded only: the record count compiled into the component. */
   records?: number
+  /**
+   * A cycle table's memory, a record per row (VectorPlayer, VectorChecker, a cycleExact
+   * RecordChecker). A harness's tables step through one set of rows, so the testbench generator
+   * requires a testcase to give each of them the same record count.
+   */
+  table?: boolean
 }
 
 export interface PatternMemory_Parameters extends TSSV.TSSVParameters {

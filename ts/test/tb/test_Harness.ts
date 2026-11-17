@@ -13,7 +13,8 @@
  *   - registered memories get paths from the harness, load_sel values in order, and packed
  *     record counts; a preloaded harness's ports don't change;
  *   - a reloaded harness gets a load port as wide as its deepest and widest memories need, and a
- *     load net per component port;
+ *     load net per component port; a component whose memories differ in width, a cycleExact
+ *     checker's two tables, gets load_data as wide as the widest (TSSV#225);
  *   - each memory loads in its component's domain;
  *   - bad registrations are refused.
  */
@@ -151,6 +152,17 @@ void test('each reloaded component gets a load net per load port, at the port\'s
   assert.equal(width(h, 'load_src_inj_s'), undefined)
 })
 
+void test('a component whose memories differ in width gets load_data as wide as the widest: a cycleExact checker\'s two tables', () => {
+  // The ready table's word is 4 bits and the expected table's 44; each holds 12 rows, a 4-bit count
+  const cyc = new RecordChecker({ name: 'h_cyc', mode: 'cycleExact', fields: SOURCED, depth: 12, memory: 'reloaded' })
+  const h = new PartsHarness({ name: 'cyc', parts: [{ instance: 'chk_m', component: cyc }] })
+  assert.deepEqual(h.memories.map(m => [m.path, m.layout.wordWidth, m.select, m.recordsLo, m.recordsWidth]), [
+    ['chk_m.play.pattern', 4, 0, 0, 4], ['chk_m.chk.pattern', 44, 1, 4, 4]
+  ])
+  assert.deepEqual(['load_en_chk_m', 'load_src_chk_m', 'load_addr_chk_m', 'load_data_chk_m', 'records_chk_m'].map(n => width(h, n)), [1, 1, 4, 44, 8])
+  assert.deepEqual(h.loadPort, { selWidth: 1, addrWidth: 4, dataWidth: 44, recordsWidth: 8 })
+})
+
 void test('one reloaded memory has a 1-bit select', () => {
   assert.deepEqual(new PartsHarness({ name: 'one', parts: [{ instance: 'inj_s', component: inj('reloaded') }] }).loadPort, { selWidth: 1, addrWidth: 3, dataWidth: 44, recordsWidth: 4 })
 })
@@ -178,6 +190,15 @@ class Portless extends TSSV.Module {
   }
 }
 
+/** A component whose two reloaded memories differ in depth, so they can't share its load port */
+class TwoDepths extends TSSV.Module {
+  readonly memories: ComponentMemory[] = [4, 8].map((depth, k) => ({ path: `pattern_${k}`, depth, layout: recordLayout([{ name: 'data', width: 8 }]), mode: 'reloaded' }))
+  constructor () {
+    super({ name: 'two_depths' })
+    this.IOs = { clk: { direction: 'input', isClock: 'posedge' } }
+  }
+}
+
 void test('bad registrations are refused', () => {
   const two = { domains: [{ name: 'wr', period: 10 }, { name: 'rd', period: 14 }], reportDomain: 'rd' }
   const refused: Array<[string, () => Harness, string]> = [
@@ -200,7 +221,9 @@ void test('bad registrations are refused', () => {
     ['a domain the harness doesn\'t have', () => new PartsHarness({ name: 'h', ...two, parts: [{ instance: 'inj_s', component: inj('reloaded'), domain: 'io' }] }),
       'h: inj_s: domain io isn\'t one of the harness\'s domains'],
     ['a reloaded component without its load port', () => new PartsHarness({ name: 'h', parts: [{ instance: 'p', component: new Portless() }] }),
-      'h: p: a reloaded component needs input load_en of 1 bits, got none']
+      'h: p: a reloaded component needs input load_en of 1 bits, got none'],
+    ['a reloaded component whose memories differ in depth', () => new PartsHarness({ name: 'h', parts: [{ instance: 'p', component: new TwoDepths() }] }),
+      'h: p: its memories differ in depth, so they can\'t share one load port']
   ]
   for (const [what, build, message] of refused) assert.throws(build, { message }, what)
 })

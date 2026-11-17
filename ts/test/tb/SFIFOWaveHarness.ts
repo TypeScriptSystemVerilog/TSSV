@@ -78,15 +78,14 @@ export function sfifoWaveTable (svg: string, config: SFIFOWaveParameters): SFIFO
  * but `clk`. The testcase is a diagram, written as two pattern files by `sfifoWaveTable()`: a
  * VectorPlayer, `play`, drives the input lanes from `h.play.pattern`, and a VectorChecker, `chk`,
  * checks each output lane against `h.chk.pattern`, as a check of its own. The table has as many
- * rows as the testcase's files have records. A lane marked x in a cycle is driven 0, or not
- * checked in it. A diagram starts with `rst_n` low, so the SFIFO is in reset through the
+ * rows as the testcase's files have records: compiled in when preloaded, read on `records` when
+ * reloaded, where one build runs every diagram that fits its memories. A lane marked x in a cycle
+ * is driven 0, or not checked in it. A diagram starts with `rst_n` low, so the SFIFO is in reset through the
  * harness's reset, the player's priming cycle and the diagram's cycle 0, which is the player's
  * row 0. `rst_n` comes from the player's memory read register, a flop (SV guide RST-4).
  *
  *   play ──rst_n, push_en, pop_en, push_data──▶ dut (SFIFO) ──pop_data, empty, full, curr_depth──▶ chk
  *     └──────────────────────── row, fetch, run ─────────────────────────────────────────────────┘
- *
- * A cycle table is preloaded only, so the generator builds it in preloaded mode.
  */
 export class SFIFOWaveHarness extends Harness {
   constructor (build: HarnessBuild<SFIFOWaveParameters>) {
@@ -96,8 +95,10 @@ export class SFIFOWaveHarness extends Harness {
     const stimulus = build.memory('h.play.pattern')
     const expected = build.memory('h.chk.pattern')
     if (stimulus.records !== expected.records) throw Error(`${build.name}: the stimulus has ${stimulus.records} rows, but the expected values ${expected.records}`)
-    // A reloaded build has no records or files; the player refuses that mode before it reads them
-    const rows = stimulus.records ?? 0
+    // A reloaded table is sized by its depth, so the player's and the checker's must agree
+    if (build.mode === 'reloaded' && stimulus.depth !== expected.depth) throw Error(`${build.name}: a reloaded table needs one depth, but the stimulus has ${stimulus.depth} and the expected values ${expected.depth}`)
+    // The rows the table's nets are sized for: its rows, or when reloaded as many as it holds
+    const size = stimulus.records ?? stimulus.depth
 
     // One net per SFIFO port, named after it, between the DUT and the player or checker
     const dutBindings: Record<string, string> = { clk: 'clk' }
@@ -113,12 +114,12 @@ export class SFIFOWaveHarness extends Harness {
       checkerBindings[`fail_${port}`] = this.check(port, `${port} follows the testcase's diagram`, VectorChecker.firstError('chk', port, 'cycle'))
     }
 
-    this.addSignal('row', { width: this.bitWidth(rows) })
-    this.addSignal('fetch', { width: fetchWidth(rows) })
+    this.addSignal('row', { width: this.bitWidth(size) })
+    this.addSignal('fetch', { width: fetchWidth(size) })
     this.addSignal('run', { width: 1 })
-    const play = new VectorPlayer({ name: `VectorPlayer_${build.name}`, rows, lanes: driven, memory: build.mode, depth: stimulus.depth, file: stimulus.file })
+    const play = new VectorPlayer({ name: `VectorPlayer_${build.name}`, rows: stimulus.records, lanes: driven, memory: build.mode, depth: stimulus.depth, file: stimulus.file })
     this.addSubmodule('play', play, { ...playerBindings, ...this.registerMemories('play', play) }, false)
-    const chk = new VectorChecker({ name: `VectorChecker_${build.name}`, rows, lanes: checked, memory: build.mode, depth: expected.depth, file: expected.file ?? '' })
+    const chk = new VectorChecker({ name: `VectorChecker_${build.name}`, rows: expected.records, lanes: checked, memory: build.mode, depth: expected.depth, file: expected.file })
     this.addSubmodule('chk', chk, { ...checkerBindings, ...this.registerMemories('chk', chk) }, false)
     this.addSubmodule('dut', new SFIFO({ dataWidth: BigInt(config.dataWidth), depth: BigInt(config.depth) }), dutBindings, false)
     this.finish()

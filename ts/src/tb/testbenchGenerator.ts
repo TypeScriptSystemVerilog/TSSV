@@ -3,7 +3,7 @@
 // its pattern files, patternFile.ts), it builds a project's harness under a SimTop for every pair,
 // in each run mode, and writes them under `<outRoot>/<DUT>/<testbench>/` with a regression index.
 // A testcase may name the configurations it runs with, as a cycle table's must, since its
-// expected values fit one DUT configuration; then only those pairs are built.
+// expected values fit one DUT configuration; then only those pairs are built, in each mode.
 // The harness itself is the project's, through a callback, so this file knows no DUT and no
 // protocol.
 //
@@ -129,9 +129,11 @@ export function checkConfiguration (top: string, harness: Harness, config: Testb
 /**
  * Checks testcase `manifest`, read from `manifestPath`, against `harness`: its files name exactly
  * the harness's pattern memories, and each file exists, has the memory's radix, holds the records
- * the manifest says, no more than the memory's depth, each with the memory's word width. In
- * preloaded mode, each memory must also load `patterns/<file>` with the manifest's record count,
- * which a harness that ignores `memory()` breaks.
+ * the manifest says, no more than the memory's depth, each with the memory's word width. The
+ * harness's cycle tables (ComponentMemory.table) step through one set of rows, so their files
+ * hold one record count, at least 1: a short expected file would leave the last rows unchecked.
+ * In preloaded mode, each memory must also load `patterns/<file>` with the manifest's record
+ * count, which a harness that ignores `memory()` breaks.
  */
 export function checkTestcase (top: string, harness: Harness, manifestPath: string, manifest: Manifest): void {
   const what = `${top}: testcase ${manifest.testcase} (${manifestPath})`
@@ -154,16 +156,24 @@ export function checkTestcase (top: string, harness: Harness, manifestPath: stri
       throw Error(`${what}: ${path} loads ${m.file ?? 'no file'} with ${m.records ?? 'no'} records, not patterns/${f.file} with ${f.records}; build it from memory()`)
     }
   }
+  const tables = harness.memories.filter(m => m.table === true).map(m => {
+    const path = `h.${m.path}`
+    return { path, records: manifest.files.find(f => f.memory === path)?.records ?? 0 }
+  })
+  const rows = tables[0]?.records
+  if (rows !== undefined && (rows === 0 || tables.some(t => t.records !== rows))) {
+    const counts = tables.map(t => `${t.path} ${t.records}`).join(', ')
+    throw Error(`${what}: the harness's cycle tables need one row count, at least 1, but the files hold ${counts}`)
+  }
 }
 
 /**
- * Checks that a harness built in reloaded mode has only reloaded memories: one with a cycle table
- * (VectorPlayer, VectorChecker, a cycleExact RecordChecker), which is preloaded only, can't be.
- * A harness that passes `build.mode` to its tables is refused by them first.
+ * Checks that a harness built in reloaded mode has only reloaded memories, which a harness that
+ * builds a component preloaded whatever `build.mode` says breaks.
  */
 function checkReloaded (top: string, harness: Harness): void {
   const preloaded = harness.memories.filter(m => m.mode !== 'reloaded').map(m => `h.${m.path}`)
-  if (preloaded.length > 0) throw Error(`${top}: is built reloaded, but ${preloaded.join(', ')} ${preloaded.length === 1 ? 'is' : 'are'} preloaded; a harness passes build.mode to each component, and a cycle table is preloaded only`)
+  if (preloaded.length > 0) throw Error(`${top}: is built reloaded, but ${preloaded.join(', ')} ${preloaded.length === 1 ? 'is' : 'are'} preloaded; a harness passes build.mode to each component`)
 }
 
 /** Runs `build`, putting `top` in front of an error's message if it isn't already. */
