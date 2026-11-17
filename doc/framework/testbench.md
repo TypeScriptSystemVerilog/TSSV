@@ -254,20 +254,65 @@ testbench ([below](#a-testcase-for-some-configurations)). A cycle table is prelo
 ### Directed tables
 
 A cycle table can come from a spec's timing diagram (`wavedromVectors`), or be written by hand as
-a directed test. A directed test is a list of short cases. Each row of a case is one cycle: it
-drives some of the player's lanes and expects some of the checker's. `directedTable()` turns the
-rows into the table by column, the form `VectorPlayer.records()` and `VectorChecker.records()`
-take:
+a directed test: a list of short cases, each a few rows. Each row is one cycle. It drives some of
+the player's lanes and expects some of the checker's.
 
-- A driven lane holds its last value until a row changes it. Before the first row it is 0, or
-  the value `initial` gives it.
-- A checked lane is checked only in the rows that name it. In every other row it is a
-  don't-care, so its care bit is 0.
-- A row may name nothing: a cycle in which nothing changes and nothing is checked.
+`directedTable()` is TypeScript that a runner calls when it writes a testcase. **It generates no
+hardware.** The harness still holds the same `VectorPlayer` and `VectorChecker`, which read their
+pattern files a row per clock and can't tell how the files were written. `directedTable()` is a
+front end for writing the table, as `diagramLanes()` is for a diagram. Both produce the table by
+column (`TableLane[]`: each lane's value in every row), the form that the player's and checker's
+`records()` helpers take:
 
-`tableObjects()` then slices the player's and the checker's records into one pattern-file object
-per case, labelled with the case's label. So each case is commented in both files.
-`writeDirectedTestcase()` does all of it for a generated testbench's testcase. It writes:
+```text
+cases, written as rows             drive some lanes, expect others        TypeScript, in the runner
+  │  directedTable()
+  ▼
+TableLane[], by column             each lane's value in every row
+  │  VectorPlayer.records(), VectorChecker.records()
+  ▼
+PatternRecord[]
+  │  tableObjects(), writePatternFile()
+  ▼
+stimulus.hex, expected.hex         one commented object per case
+  │  $readmem, in simulation
+  ▼
+VectorPlayer, VectorChecker        a row per clock                        SV, in the harness
+```
+
+What `directedTable()` adds is three rules that keep a hand-written table short:
+
+- **A driven lane holds its last value until a row changes it.** So a row names only the inputs it
+  changes. Before the first row a lane is 0, or the value `initial` gives it. `VectorPlayer.records()`
+  on its own writes a missing value as 0, so every row would have to repeat every input.
+- **A checked lane is checked only in the rows that name it.** So a row names only the outputs it is
+  about. In every other row the lane is a don't-care, and its care bit is 0.
+- **Each case keeps its label.** `tableObjects()` slices the player's and the checker's records into
+  one pattern-file object per case, labelled with the case's label. So each case is commented in
+  both files: `// case 1: T2 sel 1 forwards input 0, 3 cycles`.
+
+A row may name nothing: a cycle in which nothing changes and nothing is checked. This case, for
+example:
+
+```ts
+{ label: 'T2 sel 1 forwards input 0', rows: [
+  { drive: { sel: 1 }, expect: { out_valid: 1 } },
+  {},
+  { drive: { in_0_data: 0x55 }, expect: { out_data: 0x55 } }
+] }
+```
+
+becomes these columns, with `in_0_data` 0xaa from the row before. A dash is a don't-care:
+
+| Lane | Row 0 | Row 1 | Row 2 |
+|---|---|---|---|
+| `sel`, driven | 1 | 1 | 1 |
+| `in_0_data`, driven | aa | aa | 55 |
+| `out_valid`, checked | 1 | — | — |
+| `out_data`, checked | — | — | 55 |
+
+`writeDirectedTestcase()` runs the whole TypeScript half of that path for a generated testbench's
+testcase. It writes:
 - `stimulus.hex` and `expected.hex`;
 - the manifest that loads them into the player and the checker, by default `h.play.pattern` and
   `h.chk.pattern`.
@@ -285,17 +330,17 @@ const manifest = writeDirectedTestcase({
   dir: `${out}/testcases/directed`,
   lanes,
   cases: [
-    { label: 'T1: sel 0 is idle', rows: [{ drive: { in_0_data: 0xaa }, expect: { out_valid: 0 } }] },
-    { label: 'T2: sel 1 forwards input 0', rows: [{ drive: { sel: 1 }, expect: { out_valid: 1, out_data: 0xaa } }] }
+    { label: 'T1 sel 0 is idle', rows: [{ drive: { in_0_data: 0xaa }, expect: { out_valid: 0 } }] },
+    { label: 'T2 sel 1 forwards input 0', rows: [{ drive: { sel: 1 }, expect: { out_valid: 1, out_data: 0xaa } }] }
   ]
 })
 ```
 
-It refuses, naming the case and the row:
+`directedTable()`, and so `writeDirectedTestcase()`, refuses, naming the case and the row:
 - a lane that isn't one of the driven lanes (in `drive`) or the checked lanes (in `expect`);
 - a value that is negative, isn't an integer, or doesn't fit its lane.
 
-It also refuses no cases, a case with no rows, and an empty label.
+They also refuse no cases, a case with no rows, and an empty label.
 
 The table's timing is a cycle table's: a combinational DUT's outputs in row r follow its inputs in
 row r. A DUT with state sees row 0 through reset and the priming cycle unless it takes its reset
