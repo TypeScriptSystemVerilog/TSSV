@@ -20,8 +20,9 @@
  *     isn't a configuration, none, one twice, and a configuration left with no testcase are
  *     refused;
  *   - a cycle table (SliceCycleHarness, a cycleExact checker) is built preloaded from its
- *     testcase's files and rows, and a reloaded build of it is refused, by the table itself or,
- *     for a harness that doesn't pass build.mode, by the generator.
+ *     testcase's files and rows, and reloaded once per configuration, where only the testcases
+ *     that name it run (TSSV#225); a harness that builds preloaded whatever build.mode says is
+ *     refused, and so is a testcase whose tables hold different row counts, or none.
  */
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { writeManifest, writePatternFile, type ManifestFile, type Manifest } from 'tssv/lib/tb/patternFile'
@@ -176,16 +177,21 @@ void test('a testcase that names configurations runs only with those; one that n
   assert.ok(existsSync(`${tb}/reloaded/stages3/short/patterns/load.txt`))
 })
 
-// ---- Cycle tables: SliceCycle, a cycleExact checker on a 2-stage slice
+// ---- Cycle tables: SliceCycle, a cycleExact checker on a 2- or 3-stage slice
 
 const CYCLE_DEPTHS = { 'h.inj_s_in.pattern': 12, 'h.chk_m_out.play.pattern': 32, 'h.chk_m_out.chk.pattern': 32 }
 const cycle2 = config('cycle2', { depths: CYCLE_DEPTHS, maxCycles: 100 })
+const cycle3 = config('cycle3', { parameters: { stages: 3 }, depths: CYCLE_DEPTHS, maxCycles: 100 })
 
-/** Writes SliceCycle testcase `name`, 12 records and a 28-row table for a 2-stage slice, and returns its manifest's path */
-function cycleTestcase (name: string): string {
+/**
+ * Writes SliceCycle testcase `name`, 12 records and a 28-row table for a slice of `stages`
+ * stages, and returns its manifest's path. `readyRows` and `expectedRows` keep the first rows of
+ * each table file only, for a testcase whose tables differ.
+ */
+function cycleTestcase (name: string, stages = 2, readyRows = 28, expectedRows = 28): string {
   const dir = `${IN}/testcases/${name}`
   const stimulus = sliceOrderTestcase(12)
-  const table = RecordChecker.cycleRecords(SLICE_FIELDS, sliceCycleTable(recordsOf(stimulus), 28, 2))
+  const table = RecordChecker.cycleRecords(SLICE_FIELDS, sliceCycleTable(recordsOf(stimulus), 28, stages))
   const layouts = RecordChecker.cycleLayouts(SLICE_FIELDS)
   const content = { dut: 'StreamSlice', testcase: name, purpose: 'a test', recordNoun: 'cycle', objectNoun: 'table' }
   const path = `${dir}/${name}.json`
@@ -193,13 +199,14 @@ function cycleTestcase (name: string): string {
     testcase: name,
     files: [
       { file: 'stimulus.hex', memory: 'h.inj_s_in.pattern', radix: 'h', records: writePatternFile(`${dir}/stimulus.hex`, injectorLayout(SLICE_FIELDS, { lfsr: SLICE_LFSR }), { ...content, objects: stimulus }) },
-      { file: 'ready.hex', memory: 'h.chk_m_out.play.pattern', radix: 'h', records: writePatternFile(`${dir}/ready.hex`, layouts.ready, { ...content, objects: [{ records: table.ready }] }) },
-      { file: 'expected.hex', memory: 'h.chk_m_out.chk.pattern', radix: 'h', records: writePatternFile(`${dir}/expected.hex`, layouts.expected, { ...content, objects: [{ records: table.expected }] }) }
+      { file: 'ready.hex', memory: 'h.chk_m_out.play.pattern', radix: 'h', records: writePatternFile(`${dir}/ready.hex`, layouts.ready, { ...content, objects: [{ records: table.ready.slice(0, readyRows) }] }) },
+      { file: 'expected.hex', memory: 'h.chk_m_out.chk.pattern', radix: 'h', records: writePatternFile(`${dir}/expected.hex`, layouts.expected, { ...content, objects: [{ records: table.expected.slice(0, expectedRows) }] }) }
     ]
   })
   return path
 }
 const stalls = cycleTestcase('stalls')
+const stalls3 = cycleTestcase('stalls3', 3)
 
 /** The generator's parameters for SliceCycle, with `extra` in place of any of them */
 const sliceCycle = (extra: Partial<GenerateTestbenches_Parameters<SliceOrderParameters>> = {}): GenerateTestbenches_Parameters<SliceOrderParameters> => ({
@@ -221,15 +228,47 @@ void test('a cycle table is built preloaded, its two memories registered with th
   for (const file of ['tb_SliceCycle_cycle2_stalls.sv', 'patterns/stimulus.hex', 'patterns/ready.hex', 'patterns/expected.hex']) assert.ok(existsSync(`${dir}/${file}`), file)
 })
 
-void test('a reloaded cycle table is refused: by the table, or by the generator for a harness that doesn\'t pass build.mode', () => {
-  assert.throws(() => generateTestbenches(sliceCycle({ modes: ['reloaded'] })),
-    { message: 'tb_SliceCycle_cycle2_reloaded: RecordChecker_SliceCycle_cycle2_reloaded_m_out: a cycle table is preloaded only, so it can\'t be built in reloaded mode' })
-  // A harness that builds its components preloaded, whatever mode it is asked for
+void test('a cycle table is built reloaded once per configuration, running only the testcases that name it', () => {
+  const runs = generateTestbenches(sliceCycle({
+    outRoot: `${ROOT}/cycle_paired`,
+    configurations: [cycle2, cycle3],
+    testcases: [{ manifest: stalls, configurations: ['cycle2'] }, { manifest: stalls3, configurations: ['cycle3'] }],
+    modes: ['preloaded', 'reloaded']
+  }))
+  assert.deepEqual(runs.map(r => `${r.mode} ${r.configuration} ${r.testcase} ${r.top}`), [
+    'preloaded cycle2 stalls tb_SliceCycle_cycle2_stalls', 'preloaded cycle3 stalls3 tb_SliceCycle_cycle3_stalls3',
+    'reloaded cycle2 stalls tb_SliceCycle_cycle2_reloaded', 'reloaded cycle3 stalls3 tb_SliceCycle_cycle3_reloaded'
+  ])
+  const tb = `${ROOT}/cycle_paired/StreamSlice/SliceCycle`
+  assert.equal(existsSync(`${tb}/reloaded/cycle2/stalls3`), false)
+  assert.equal(existsSync(`${tb}/reloaded/cycle3/stalls`), false)
+  // The table's two memories load in order, each with the testcase's 28 rows
+  assert.equal(readFileSync(`${tb}/reloaded/cycle2/stalls/patterns/load.txt`, 'utf8'), 'testcase stalls\n' +
+    'h.inj_s_in.pattern 12 patterns/stimulus.hex\nh.chk_m_out.play.pattern 28 patterns/ready.hex\nh.chk_m_out.chk.pattern 28 patterns/expected.hex\n')
+})
+
+void test('a reloaded build of a harness that builds its tables preloaded anyway is refused', () => {
   const preloadedAnyway = (build: HarnessBuild<SliceOrderParameters>): SliceCycleHarness =>
     new SliceCycleHarness({ ...build, mode: 'preloaded', memory: path => ({ ...build.memory(path), file: 'patterns/x.hex', records: path === 'h.inj_s_in.pattern' ? 12 : 28 }) })
   assert.throws(() => generateTestbenches(sliceCycle({ modes: ['reloaded'], harness: preloadedAnyway })), {
     message: 'tb_SliceCycle_cycle2_reloaded: is built reloaded, but h.inj_s_in.pattern, h.chk_m_out.play.pattern, h.chk_m_out.chk.pattern are preloaded; ' +
-      'a harness passes build.mode to each component, and a cycle table is preloaded only'
+      'a harness passes build.mode to each component'
+  })
+})
+
+void test('a testcase whose tables hold different row counts, or none, is refused in either mode', () => {
+  const short = cycleTestcase('short_expected', 2, 28, 27)
+  const empty = cycleTestcase('no_rows', 2, 0, 0)
+  for (const mode of ['reloaded', 'preloaded'] as const) {
+    const top = mode === 'reloaded' ? 'tb_SliceCycle_cycle2_reloaded' : 'tb_SliceCycle_cycle2_short_expected'
+    // A preloaded SliceCycleHarness refuses the mismatch itself; the generator checks it in a reloaded build
+    const message = mode === 'reloaded'
+      ? `${top}: testcase short_expected (${short}): the harness's cycle tables need one row count, at least 1, but the files hold h.chk_m_out.play.pattern 28, h.chk_m_out.chk.pattern 27`
+      : `${top}: SliceCycle_cycle2_short_expected: the table's ready and expected files need one row count and depth, got 28 and 27 rows, depths 32 and 32`
+    assert.throws(() => generateTestbenches(sliceCycle({ modes: [mode], testcases: [short] })), { message }, mode)
+  }
+  assert.throws(() => generateTestbenches(sliceCycle({ modes: ['reloaded'], testcases: [empty] })), {
+    message: `tb_SliceCycle_cycle2_reloaded: testcase no_rows (${empty}): the harness's cycle tables need one row count, at least 1, but the files hold h.chk_m_out.play.pattern 0, h.chk_m_out.chk.pattern 0`
   })
 })
 

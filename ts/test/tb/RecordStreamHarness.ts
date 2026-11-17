@@ -203,10 +203,11 @@ export function sliceContinuedTestcase (records: number): PatternObject[] {
  * by cycle, what the slice must show: each record `stages` cycles after it was offered, held while
  * the output stalls, then on at full rate. Checks: `valid` and `record`.
  *
- * The testbench generator builds it, preloaded only, as its table is: from a configuration (the
- * slice's `stages`, and the depths of `h.inj_s_in.pattern` and of the table's two memories,
+ * The testbench generator builds it in either mode: from a configuration (the slice's `stages`,
+ * and the depths of `h.inj_s_in.pattern` and of the table's two memories,
  * `h.chk_m_out.play.pattern` and `h.chk_m_out.chk.pattern`) and a testcase whose table is for
- * those stages (`sliceCycleTable()`). Its records and rows are the testcase's.
+ * those stages (`sliceCycleTable()`). Its records and rows are the testcase's: compiled in when
+ * preloaded, read on `records` when reloaded.
  *
  *   inj_s_in ──{last, data}──▶ dut (StreamSlice) ──▶ chk_m_out (cycleExact: ready from its table)
  */
@@ -247,9 +248,9 @@ export class SliceCycleHarness extends Harness {
     this.addAssign({ in: new Expr('m_out_word[31:0]'), out: 'm_out_data' })
     const valid = this.check('valid', 'm_out_valid follows the table', RecordChecker.firstCycleError('chk_m_out', 'valid'))
     const record = this.check('record', 'the record on m_out follows the table', RecordChecker.firstCycleError('chk_m_out', 'record'))
-    // A reloaded build has no rows or files; the checker refuses that mode before it reads them
+    // A reloaded build has no rows or files: the checker reads its rows on records
     const checker = new RecordChecker({
-      name: `RecordChecker_${build.name}_m_out`, mode: 'cycleExact', fields: SLICE_FIELDS, rows: ready.records ?? 0, readyFile: ready.file ?? '', file: expected.file ?? '', depth: ready.depth, memory: build.mode
+      name: `RecordChecker_${build.name}_m_out`, mode: 'cycleExact', fields: SLICE_FIELDS, rows: ready.records, readyFile: ready.file, file: expected.file, depth: ready.depth, memory: build.mode
     })
     this.addSubmodule('chk_m_out', checker, {
       clk: 'clk',

@@ -1,8 +1,8 @@
-// SliceCycle, a cycleExact testbench that the testbench generator builds (TSSV#223;
+// SliceCycle, a cycleExact testbench that the testbench generator builds (TSSV#223, #225;
 // doc/framework/testbench.md, "Configurations, testcases and the generator"). Its table fits one
 // slice: it says in which cycle each record leaves, which depends on the slice's stages. So each
-// testcase names the configuration it runs with, and the generator builds only those pairs,
-// preloaded, as a cycle table is, under sv-examples/tb/StreamSlice/SliceCycle/:
+// testcase names the configuration it runs with, and the generator builds only those pairs, in
+// both modes, under sv-examples/tb/StreamSlice/SliceCycle/:
 //
 //   - configurations/stages2.json, stages3.json: the slice's stages, the injector's memory 12
 //     deep, and the table's two memories 32 deep for stages2 and 40 deep for stages3. 40 is more
@@ -10,7 +10,9 @@
 //   - testcases/stalls2/, stalls3/: the same 12 records, with a seed per packet, and a table of
 //     28 rows for each slice, in which the output stalls for 3, 1 and 2 cycles (sliceCycleTable()).
 //
-// Two runs, listed in regression.txt. verilatorTB/Makefile's tb_regression_sim builds and runs each.
+// Four runs, listed in regression.txt: each pair preloaded, and each in its configuration's
+// reloaded build, which runs only the testcase that names it. verilatorTB/Makefile's
+// tb_regression_sim builds and runs each.
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { writeManifest, writePatternFile, type PatternFileContent, type PatternObject } from 'tssv/lib/tb/patternFile'
 import { RecordChecker } from 'tssv/lib/tb/RecordChecker'
@@ -76,7 +78,7 @@ const runs = generateTestbenches({
   outRoot: OUT,
   configurations,
   testcases: [...TABLE_DEPTH.keys()].map(stages => writeTestcase(stages, stimulus)),
-  modes: ['preloaded'],
+  modes: ['preloaded', 'reloaded'],
   parameters: sliceOrderParameters,
   harness: build => new SliceCycleHarness(build)
 })
