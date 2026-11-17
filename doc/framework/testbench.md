@@ -6,7 +6,7 @@
 > check that takes over ready isolation (TSSV#201), and the testbench generator, with DUT
 > configuration files, reloaded mode in simulation and the TB spec template (TSSV#200), which
 > also builds testbenches with a cycle table, from testcases that name their configurations
-> (TSSV#223). Still to come: an FPGA wrapper (#202).
+> (TSSV#223), in both modes (TSSV#225). Still to come: an FPGA wrapper (#202).
 > **Code:** `ts/src/tb/`, imported as `tssv/lib/tb/<file>`
 > **Checks:** `scripts/check-harness.mjs`, `scripts/check-test-structure.mjs`, and, for the DUT,
 > `scripts/check-port-contracts.mjs`
@@ -174,8 +174,8 @@ Tier 1, in `ts/src/tb/`:
 | `patternFile` | (TypeScript) | | `writePatternFile()` writes a pattern file a person can read (header comment, a comment per object, `_` between fields), and `writeManifest()` the testcase's JSON manifest. `readManifest()` reads a manifest back and checks it, and `readPatternWords()` reads a file's records as `$readmem` does |
 | `testbenchConfiguration` | (TypeScript) | | A DUT configuration file: `readConfiguration()`, `parseConfiguration()` and `writeConfiguration()`, checked against its schema ([The configuration file](#the-configuration-file)) |
 | `testbenchGenerator` | (TypeScript) | | `generateTestbenches()` builds the project's harness under a SimTop for every configuration and testcase in each mode, or for the configurations a testcase names, checks them, and writes them with a regression index ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)) |
-| `VectorPlayer` | `clk`, `rst_b` → `row`, `fetch`, `run`, `done`, one output per lane | `name`, `rows`, `lanes`, `file`, `radix`, `depth`, `memory` | Drives a table one row per cycle from a `PatternMemory` loaded with the table's pattern file. Every lane comes from the memory's read register, a flop, so a lane may drive a reset (SV guide RST-4). `done` rises after the last row. `layout()` and `records()` give a generator the file's layout and records. It lists its memory, `pattern`, which is preloaded only. Timing: [below](#cycle-tables-and-their-timing) |
-| `VectorChecker` | `clk`, `rst_b`, `row`, `fetch`, `run`, one input per lane → `fail_<lane>` | `name`, `rows`, `lanes`, `file`, `radix`, `firstRow`, `depth`, `memory` | Compares each lane with its row of a table of expected values, read from a `PatternMemory` at the player's `fetch`. A `care` bit per lane in each row marks the don't-cares. It latches the first mismatch per lane in `err_row_`, `err_got_` and `err_want_<lane>`; `firstError()` is the detail line that prints them. It lists its memory, `pattern`, which is preloaded only |
+| `VectorPlayer` | `clk`, `rst_b` → `row`, `fetch`, `run`, `done`, one output per lane; in reloaded mode the load port and `records` in | `name`, `rows` (preloaded), `lanes`, `file` (preloaded), `radix`, `depth`, `memory` | Drives a table one row per cycle from a `PatternMemory` loaded with the table's pattern file. Every lane comes from the memory's read register, a flop, so a lane may drive a reset (SV guide RST-4). `done` rises after the last row. `layout()` and `records()` give a generator the file's layout and records. It lists its memory, `pattern`. Reloaded, it reads its row count on `records`. Timing: [below](#cycle-tables-and-their-timing) |
+| `VectorChecker` | `clk`, `rst_b`, `row`, `fetch`, `run`, one input per lane → `fail_<lane>`; in reloaded mode the load port and `records` in | `name`, `rows` (preloaded), `lanes`, `file` (preloaded), `radix`, `firstRow`, `depth`, `memory` | Compares each lane with its row of a table of expected values, read from a `PatternMemory` at the player's `fetch`. A `care` bit per lane in each row marks the don't-cares. It latches the first mismatch per lane in `err_row_`, `err_got_` and `err_want_<lane>`; `firstError()` is the detail line that prints them. It lists its memory, `pattern`. Reloaded, it reads its own row count on `records`, which the generator requires to be the player's |
 | `wavedromVectors` | (TypeScript) | | Reads a spec's WaveDrom diagrams. `diagramLanes()` gives one diagram on one clock as values per cycle per lane, for a `VectorPlayer` and a `VectorChecker`. `diagramTasks()` gives every diagram with a prefix, on a fast and a slow clock, as SV tasks for a hand-written testbench |
 | `testbench` | (TypeScript) | | `markTestbench(module)` marks a module as simulation-only, so the SYN-1 scan skips it. SimTop marks itself |
 | `RecordInjector` | `clk`, `rst_b`, `ready` → `valid`, one output per field, `done`; options add `valid_rate`, `limit`, and in reloaded mode the load port and `records` | `name`, `fields`, `depth`, `memory`, `file`, `radix`, `records`, `lfsr`, `throttle`, `limitWidth` | Drives a valid/ready stream of records from one pattern memory, `pattern`, in order, each until it is accepted ([Record streams](#record-streams)) |
@@ -247,8 +247,23 @@ configuration does, so that one build holds tables of different lengths. `fetch`
 as the table's rows need; a deeper memory reads at `fetch` widened with zeros, `table_addr`, and
 the rows past the table are never read. The player and the checker list their memories, and a
 cycleExact checker lists its two tables', so a harness registers them and the generator builds the
-testbench ([below](#a-testcase-for-some-configurations)). A cycle table is preloaded only: given
-`memory: 'reloaded'`, it refuses to be built.
+testbench ([below](#a-testcase-for-some-configurations)).
+
+A table runs in either mode:
+
+- **Preloaded**, its rows are compiled in: `rows` and `file` are parameters, and `row` and
+  `fetch` are as wide as the rows need.
+- **Reloaded**, a testcase loads the table at run time, so one build runs every table that fits its
+  memories. The player and the checker each read the row count on `records`, from the harness's
+  load port, and `done`, the stop of `fetch` and the checker's window compare against it. `depth`
+  is required, and sizes the table: `row` and `records` are bitWidth(depth) bits, and `fetch` is the
+  memory's address. A reloaded player needs lanes, since without them it has no memory to load.
+
+A harness sizes the `row` and `fetch` nets between a player and its checkers by the same size, the
+rows when preloaded and the depth when reloaded (`tableSize()`), so the player and its checkers
+need one depth in reloaded mode.
+
+`firstRow` is a parameter in both modes: it is the harness's lead-in, the same for every testcase.
 
 ---
 
@@ -353,7 +368,10 @@ which gives `valid` and the record it expects in each cycle. A VectorPlayer, `pl
 `valid`, and the record, its fields in order as one value. Where the expected file has `valid`
 low, the record is a don't-care. The checker reports per lane, `fail_valid` and `fail_record`
 (`firstCycleError()`), and `done` rises after the last row. `RecordChecker.cycleRecords()` writes
-both files from a list of rows, each with `ready` and the record expected, if any.
+both files from a list of rows, each with `ready` and the record expected, if any. Reloaded mode
+adds the load port and `records`: `load_src` 0 loads the ready table and 1 the expected table,
+whose word is the wider, and `records` holds the two tables' row counts, the ready table's in the
+low bits.
 
 ### LFSR payloads
 
@@ -844,13 +862,17 @@ this.addSubmodule('inj_s_in', inj, { clk: 'clk', rst_b: 'rst_b', ..., ...this.re
   `RecordChecker` (a cycleExact one lists its tables', `play.pattern` and `chk.pattern`),
   `VectorPlayer` and `VectorChecker`.
 
-A cycle table takes its rows from the testcase, as its memories' `records`, and its depth from the
-configuration. It is preloaded only, so the harness passes `build.mode` to it, and the table
-refuses a reloaded build:
+A cycle table takes its depth from the configuration, and its rows from the testcase: as `rows`,
+its memories' `records`, when preloaded, and at run time on `records` when reloaded. The harness
+passes `build.mode` and the memory's options to it, and sizes its nets by the rows, or reloaded
+by the depth:
 
 ```ts
 const t = build.memory('h.play.pattern')
-const play = new VectorPlayer({ name: `VectorPlayer_${build.name}`, rows: t.records ?? 0, lanes, memory: build.mode, depth: t.depth, file: t.file })
+const size = t.records ?? t.depth // the rows, or reloaded as many as the table holds
+this.addSignal('row', { width: this.bitWidth(size) })
+this.addSignal('fetch', { width: fetchWidth(size) })
+const play = new VectorPlayer({ name: `VectorPlayer_${build.name}`, rows: t.records, lanes, memory: build.mode, depth: t.depth, file: t.file })
 this.addSubmodule('play', play, { clk: 'clk', rst_b: 'rst_b', ..., ...this.registerMemories('play', play) }, false)
 ```
 
@@ -892,8 +914,10 @@ so the harness lints clean under `-Wall`:
 The harness decodes it into each component's own load port: `load_en_<inst>` when `load_sel` names
 one of the component's memories, `load_src_<inst>` = `load_sel` minus its first select for a
 component with several, the low bits of `load_addr` and `load_data`, and its slice of `records`.
-A harness with no reloaded memories has no load port, and its SV is as before. The FPGA wrapper
-(#202) maps the same port to MMIO.
+A component's memories share one depth, so they share its `load_addr`. Its `load_data` is as wide
+as the widest of them, and a narrower memory takes the low bits, as a cycleExact checker's ready
+table does. A harness with no reloaded memories has no load port, and its SV is as before. The
+FPGA wrapper (#202) maps the same port to MMIO.
 
 ### SimTop's loader
 
@@ -951,9 +975,14 @@ output as it was:
   with;
 - the testcase's files name exactly the harness's memories, and each exists, has the memory's
   radix, holds the records the manifest says, no more than the depth, each the memory's word width;
+- the harness's cycle tables, its players', its checkers' and a cycleExact checker's two, hold one
+  row count, at least 1. Each table reads its own count in reloaded mode, so an expected file
+  shorter than the stimulus would otherwise leave the last rows unchecked. A harness's tables step
+  through one set of rows, so a harness with two tables of different lengths is refused;
 - in preloaded mode, each memory loads `patterns/<file>` with the manifest's count;
-- in reloaded mode, every memory of the harness is reloaded, which refuses a cycle table, and the
-  load list can be written: no path has whitespace;
+- in reloaded mode, every memory of the harness is reloaded, which a harness that builds a
+  component preloaded whatever `build.mode` says breaks, and the load list can be written: no path
+  has whitespace;
 - a testcase that names configurations names each once, and only configurations there are, and
   every configuration runs at least one testcase;
 - no two runs would share a top, and no configuration or testcase is named twice.
@@ -1118,17 +1147,18 @@ PR adds or changes a check, break the DUT once per check. For each break, record
 testbench caught it and on which check, then restore the DUT. The PR shows the table.
 
 For the examples, each break below was made in the source and run against both testbenches. It
-was run first on case tables (#196), again on pattern memories (#197), and the SFIFO rows once
-more on the generated SFIFOWave (#223), with the same results each time. Each was caught by
+was run first on case tables (#196), again on pattern memories (#197), the SFIFO rows once more
+on the generated SFIFOWave (#223), and again on its reloaded build, with the diagram loaded at
+run time (#225), with the same results each time. Each was caught by
 exactly the check it targets, and the other testbench passed. The LFSR rows are #210's, run on
 the `LFSR` module and `tb_LFSR`; the SFIFO testbench passed each time:
 
 | Break | Caught by | On |
 |---|---|---|
-| SFIFO `full` one entry early (`fifo_cnt_q == depth - 1`) | `tb_SFIFOWave_depth4_dual_port` | `full`, cycle 5 |
-| SFIFO `empty` never set | `tb_SFIFOWave_depth4_dual_port` | `empty`, cycle 0 |
-| SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_depth4_dual_port` | `curr_depth`, cycle 0 |
-| SFIFO `bypass_q` never loaded | `tb_SFIFOWave_depth4_dual_port` | `pop_data`, cycle 3 |
+| SFIFO `full` one entry early (`fifo_cnt_q == depth - 1`) | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `full`, cycle 5 |
+| SFIFO `empty` never set | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `empty`, cycle 0 |
+| SFIFO `curr_depth` with bit 0 flipped | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `curr_depth`, cycle 0 |
+| SFIFO `bypass_q` never loaded | `tb_SFIFOWave_depth4_dual_port` and `tb_SFIFOWave_depth4_reloaded` | `pop_data`, cycle 3 |
 | `LFSR` with the lowest tap dropped from its XOR network | `tb_LFSR` | `w16_a8`, `w33_a40`, `w64_a64` and `load32`, cycle 1 |
 | `LFSR`'s `value` from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 10, the first load |
 | `LFSR`'s step from `state_q`, not the seed being loaded | `tb_LFSR` | `load32`, cycle 11 |
@@ -1225,19 +1255,19 @@ of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 
 | File | What it is |
 |---|---|
-| `SFIFOWaveHarness.ts`, `test_SFIFOWaveTB.ts` | Replays the SFIFO spec's dual-port timing diagram, a cycle table the testbench generator builds: the configuration is the SFIFO's width and depth, and the testcase is the diagram, which `sfifoWaveTable()` reads with `diagramLanes()` and the runner writes to two pattern files. A `VectorPlayer` drives the four input lanes, and a `VectorChecker` checks the four output lanes, one check each. Run by `make -C verilatorTB tb_regression_sim` |
+| `SFIFOWaveHarness.ts`, `test_SFIFOWaveTB.ts` | Replays the SFIFO spec's dual-port timing diagram, a cycle table the testbench generator builds in both modes: the configuration is the SFIFO's width and depth, and the testcase is the diagram, which `sfifoWaveTable()` reads with `diagramLanes()` and the runner writes to two pattern files. A `VectorPlayer` drives the four input lanes, and a `VectorChecker` checks the four output lanes, one check each. Run by `make -C verilatorTB tb_regression_sim` |
 | `LFSRHarness.ts` | Five `LFSR`s, each stepping on the player's `run`, checked by a `VectorChecker` against `LFSRModel` for 160 cycles, from a pattern file per LFSR: PRBS7 past its period of 127, the 16-bit default with an advance of 8 and 8 bits out, a 33-bit polynomial given as a list with an advance of 40, the 64-bit default with an advance of 64, and a loadable 32-bit one. The player drives the loadable one's `load` and `seed_in` from `LOADS` |
 | `streamDuts.ts` | Small valid/ready DUTs for the record streams: `StreamSlice` (register stages, full rate), `StreamMerge` (two streams into one, in turn) and `StreamSplit` (one into two by a bit of the word, in input order) |
 | `RecordStreamHarness.ts` | The record-stream harnesses and their generators: `SliceOrderHarness` (inOrder, with LFSR payloads and TrafficPhases) and `SliceCycleHarness` (cycleExact), both built by the testbench generator, `MergeSourcesHarness` (perSource) and `SplitTiedHarness` (two tied checkers) |
 | `AFIFOStreamHarness.ts` | The two-domain example: an `AFIFO` between an injector in domain `wr` and an inOrder checker in domain `rd`, each at its own random rate, so the FIFO fills and runs empty. `wr` is released after `rd`, and the injector's `done` crosses into `rd` through a `CDCSynchronizer` |
 | `test_tbExamples.ts` | The hand-written runner: writes each testcase's pattern files and manifest to `patterns/`, wraps each harness in a `SimTop`, and writes `tb_LFSR`, the two `tb_RecordStream_*` and `tb_AFIFOStream_two_domains` to `sv-examples/tb/`. Run by `make -C verilatorTB tb_examples_sim` |
 | `test_SliceOrderTB.ts` | The testbench generator's example: writes two configurations and two testcases, and generates SliceOrder for each pair in both modes under `sv-examples/tb/StreamSlice/SliceOrder/`. Its TB spec is [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md). Run by `make -C verilatorTB tb_regression_sim` |
-| `test_SliceCycleTB.ts` | A cycleExact testbench the generator builds: two configurations, the 2- and 3-stage slice, and a testcase with a table for each, which names its configuration ([A testcase for some configurations](#a-testcase-for-some-configurations)). The 3-stage slice's tables are deeper than their rows, so their memories read at a widened `fetch`. Run by `make -C verilatorTB tb_regression_sim` |
+| `test_SliceCycleTB.ts` | A cycleExact testbench the generator builds in both modes: two configurations, the 2- and 3-stage slice, and a testcase with a table for each, which names its configuration ([A testcase for some configurations](#a-testcase-for-some-configurations)), so each reloaded build runs one testcase. The 3-stage slice's preloaded tables are deeper than their rows, so their memories read at a widened `fetch`. Run by `make -C verilatorTB tb_regression_sim` |
 | `LoadBusHarness.ts`, `test_loadBusTB.ts` | The load port's test: an `AFIFO` between an injector in `wr` and a perSource checker of 3 sources in `rd`, reloaded, with memories of two depths and widths, and a testcase where one source loads no records. Run by `make -C verilatorTB tb_regression_sim` |
-| `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, testcases that name their configurations, and cycle tables, built preloaded and refused reloaded; and the configuration file's schema, in Node |
-| `test_cycleTable.ts` | `VectorPlayer` and `VectorChecker`: the memory each lists, a memory deeper than its table, and their refusals, in Node |
-| `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, and the registrations it refuses, in Node |
-| `test_RecordStream.ts` | The record-stream components' ports per option, their record layouts, the payload model and their refusals, in Node |
+| `test_testbenchGenerator.ts`, `test_testbenchConfiguration.ts` | The generator's names, index, output, load list and refusals, testcases that name their configurations, and cycle tables in both modes, with the tables' one row count; and the configuration file's schema, in Node |
+| `test_cycleTable.ts` | `VectorPlayer` and `VectorChecker` in both modes: the memory each lists, a memory deeper than its table, a reloaded table's ports, and their refusals, in Node |
+| `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, a component whose memories differ in width, and the registrations it refuses, in Node |
+| `test_RecordStream.ts` | The record-stream components' ports per option and mode, a cycleExact checker's included, their record layouts, the payload model and their refusals, in Node |
 | `test_checkTestStructure.ts` | `check-test-structure` on fixture trees: a building block passes in tiers 1 and 2, and any other module fails, by package path or relatively, in Node. `LFSR`'s own test is `ts/test/modules/test_LFSR.ts` |
 | `test_PatternMemory.ts` | `PatternMemory` in both modes, with the lead's burst_mix pattern file: `tb_PatternMemory_preloaded` reads the memory back after it loads the file itself, and in `tb_PatternMemory_reloaded` the testbench loads it through the load port, twice. Run by `make -C verilatorTB pattern_memory_sim` |
 | `test_patternFile.ts` | The record layouts and the pattern file writer, against the format in [pattern-files.md](pattern-files.md), including the lead's example byte for byte |

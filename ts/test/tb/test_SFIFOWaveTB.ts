@@ -1,14 +1,16 @@
-// SFIFOWave, a cycle-table testbench that the testbench generator builds (TSSV#223;
+// SFIFOWave, a cycle-table testbench that the testbench generator builds (TSSV#223, #225;
 // doc/framework/testbench.md, "Configurations, testcases and the generator"). The runner writes
-// the configuration and the testcase as files, and the generator builds the testbench, preloaded,
-// as a cycle table is, under sv-examples/tb/SFIFO/SFIFOWave/:
+// the configuration and the testcase as files, and the generator builds the testbench in both
+// modes under sv-examples/tb/SFIFO/SFIFOWave/:
 //
 //   - configurations/depth4.json: the SFIFO the diagrams are drawn for, 4 deep and 8 bits wide,
 //     for the diagram's letter labels, with both table memories 16 deep;
 //   - testcases/dual_port/: the SFIFO spec's dual-port timing diagram, as the player's stimulus
 //     and the checker's expected values (sfifoWaveTable()).
 //
-// One run, listed in regression.txt. verilatorTB/Makefile's tb_regression_sim builds and runs it.
+// Two runs, one per mode, listed in regression.txt: the preloaded build with the diagram compiled
+// in, and the reloaded build, which loads it at run time. verilatorTB/Makefile's tb_regression_sim
+// builds and runs each.
 import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { writeManifest, writePatternFile, type PatternFileContent } from 'tssv/lib/tb/patternFile'
 import { type PatternRecord } from 'tssv/lib/tb/patternRecord'
@@ -57,7 +59,7 @@ const runs = generateTestbenches({
   outRoot: OUT,
   configurations: [configuration],
   testcases: [`${dir}/dual_port.json`],
-  modes: ['preloaded'],
+  modes: ['preloaded', 'reloaded'],
   parameters: sfifoWaveParameters,
   harness: build => new SFIFOWaveHarness(build)
 })

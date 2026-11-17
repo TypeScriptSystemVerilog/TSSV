@@ -15,7 +15,7 @@
  *   - derived values, such as TrafficPhases' countWidth and drawSeed's seeds, are as documented;
  *   - each component lists its pattern memories, with their paths, depths, layouts, files and
  *     record counts, for a harness to register (TSSV#200), a cycleExact checker its two tables'
- *     (TSSV#223);
+ *     (TSSV#223), in either mode (TSSV#225);
  *   - bad parameters are refused.
  */
 import { type Module } from 'tssv/lib/core/TSSV'
@@ -145,14 +145,32 @@ void test('an inOrder checker lists pattern; a perSource one lists pattern_<k> p
 void test('a cycleExact checker lists its tables\' memories, play.pattern and chk.pattern: preloaded, its rows as records', () => {
   const layouts = RecordChecker.cycleLayouts(FIELDS)
   assert.deepEqual(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', depth: 12 }).memories, [
-    { path: 'play.pattern', depth: 12, layout: layouts.ready, mode: 'preloaded', file: 'r.hex', records: 9 },
-    { path: 'chk.pattern', depth: 12, layout: layouts.expected, mode: 'preloaded', file: 'e.hex', records: 9 }
+    { path: 'play.pattern', depth: 12, layout: layouts.ready, mode: 'preloaded', file: 'r.hex', records: 9, table: true },
+    { path: 'chk.pattern', depth: 12, layout: layouts.expected, mode: 'preloaded', file: 'e.hex', records: 9, table: true }
+  ])
+})
+
+void test('a reloaded cycleExact checker lists its tables\' memories reloaded, with no files or counts', () => {
+  const layouts = RecordChecker.cycleLayouts(FIELDS)
+  assert.deepEqual(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, depth: 12, memory: 'reloaded' }).memories, [
+    { path: 'play.pattern', depth: 12, layout: layouts.ready, mode: 'reloaded', file: undefined, records: undefined, table: true },
+    { path: 'chk.pattern', depth: 12, layout: layouts.expected, mode: 'reloaded', file: undefined, records: undefined, table: true }
   ])
 })
 
 void test('a cycleExact checker has ready, a fail per lane and done out', () => {
   assert.deepEqual(ports(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex' })), [
     'input clk[1]', 'input rst_b[1]', 'input valid[1]', 'input src[2]', 'input last[1]', 'input data[32]', 'output ready[1]', 'output fail_valid[1]', 'output fail_record[1]', 'output done[1]'
+  ])
+})
+
+void test('a reloaded cycleExact checker adds a load port for its two tables and a row count for each', () => {
+  // The ready word is 4 bits; the expected word, valid, the 35-bit record and 2 care bits in hex slots, 44.
+  // records holds two counts of 0 to 12, 4 bits each
+  assert.deepEqual(ports(new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, depth: 12, memory: 'reloaded' })), [
+    'input clk[1]', 'input rst_b[1]', 'input valid[1]', 'input src[2]', 'input last[1]', 'input data[32]',
+    'input load_en[1]', 'input load_src[1]', 'input load_addr[4]', 'input load_data[44]', 'input records[8]',
+    'output ready[1]', 'output fail_valid[1]', 'output fail_record[1]', 'output done[1]'
   ])
 })
 
@@ -213,10 +231,18 @@ const REFUSED: Array<[string, () => unknown, RegExp]> = [
   ['the source field as an LFSR field', () => checker({ mode: 'perSource', sourceField: 'data', sources: 2, files: ['a', 'b'], records: [1, 1], lfsr: LFSR } as Partial<RecordChecker_Parameters>), /the source field data can't be an LFSR payload field/],
   ['a tie count too narrow for the checker\'s count', () => checker({ tie: { peers: 2, countWidth: 3 } }), /chk: tie.countWidth must hold this checker's count, 4 bits, got 3/],
   ['a tied checker field named after_count', () => checker({ fields: [{ name: 'after_count', width: 4 }], tie: { peers: 2, countWidth: 4 } }), /can't have a field named after_count/],
-  ['a reloaded cycleExact checker', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', memory: 'reloaded' }),
-    /^cyc: a cycle table is preloaded only, so it can't be built in reloaded mode$/],
+  ['a reloaded cycleExact checker given rows', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, depth: 12, memory: 'reloaded' }),
+    /^cyc: a reloaded table reads its row count on records, not from rows$/],
+  ['a reloaded cycleExact checker given files', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, readyFile: 'r.hex', file: 'e.hex', depth: 12, memory: 'reloaded' }),
+    /^cyc: a reloaded cycleExact checker loads its tables through its load port, not from files$/],
+  ['a reloaded cycleExact checker without a depth', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, memory: 'reloaded' }),
+    /^cyc: a reloaded table needs depth, an integer of at least 2, got undefined$/],
+  ['a preloaded cycleExact checker without its ready file', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, file: 'e.hex' }),
+    /^cyc: a preloaded cycleExact checker needs readyFile and file$/],
   ['a cycleExact checker with tables less deep than its rows', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: FIELDS, rows: 9, readyFile: 'r.hex', file: 'e.hex', depth: 8 }),
-    /^VectorPlayer_cyc: depth must be an integer of at least 9, the table's 9 rows, got 8$/],
+    /^cyc: depth must be an integer of at least 9, the table's 9 rows, got 8$/],
+  ['a cycleExact field named records, in either mode', () => new RecordChecker({ name: 'cyc', mode: 'cycleExact', fields: [{ name: 'records', width: 4 }], rows: 9, readyFile: 'r.hex', file: 'e.hex' }),
+    /^cyc: field records has the name of one of the checker's own signals$/],
   ['a Throttle seed of 0', () => new Throttle({ seed: 0n }), /Throttle: seed must be a non-zero 32-bit value, got 0/],
   ['a Throttle seed wider than 32 bits', () => new Throttle({ seed: 1n << 32n }), /Throttle: seed must be a non-zero 32-bit value/],
   ['a rate over 256', () => new TrafficPhases({ phases: [{ name: 'p', validRate: 257, readyRate: 1 }], recordsPerPhase: 1, timeout: 9 }), /phase p has rate 257; a rate is 0 to 256/],

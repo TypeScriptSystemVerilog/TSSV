@@ -9,7 +9,7 @@ import {
 } from './recordStream.js'
 import { drawSeed, RATE_WIDTH, READY_SALT, Throttle } from './Throttle.js'
 import { VectorChecker } from './VectorChecker.js'
-import { VectorPlayer, fetchWidth, tableMemoryDepth, type TableLane } from './VectorPlayer.js'
+import { VectorPlayer, fetchWidth, tableSize, type TableLane } from './VectorPlayer.js'
 
 /**
  * What a RecordChecker requires of the records that arrive:
@@ -67,17 +67,24 @@ export interface PerSourceChecker_Parameters extends RecordChecker_Common {
 
 export interface CycleExactChecker_Parameters extends RecordChecker_Base {
   mode: 'cycleExact'
-  /** Rows in each file: one per cycle, from the cycle after the priming cycle (VectorPlayer). */
-  rows: number
-  /** The ready file: `ready` in each cycle, as the SV names it (`cycleLayouts().ready`, `cycleRecords()`). */
-  readyFile: string
-  /** The expected file: `valid` and the record in each cycle, as the SV names it (`cycleLayouts().expected`). */
-  file: string
-  /** Records each table's memory holds: at least the table's, the default (VectorPlayer's `depth`). */
+  /**
+   * Preloaded only: rows in each file, one per cycle, from the cycle after the priming cycle
+   * (VectorPlayer). A reloaded checker reads each table's row count on `records`.
+   */
+  rows?: number
+  /** Preloaded only: the ready file, `ready` in each cycle, as the SV names it (`cycleLayouts().ready`, `cycleRecords()`). */
+  readyFile?: string
+  /** Preloaded only: the expected file, `valid` and the record in each cycle, as the SV names it (`cycleLayouts().expected`). */
+  file?: string
+  /**
+   * Records each table's memory holds (VectorPlayer's `depth`). Preloaded: at least the table's
+   * rows, which is the default. Reloaded: required.
+   */
   depth?: number
   /**
-   * The tables' run mode, which a harness passes as `build.mode`. A cycle table is preloaded only,
-   * so `'reloaded'` is refused. Default `'preloaded'`.
+   * How the tables' memories get their rows, which a harness passes as `build.mode`: from the
+   * files (preloaded), or through a load port, with the row counts on `records` (reloaded).
+   * Default `'preloaded'`.
    */
   memory?: PatternMemoryMode
 }
@@ -98,6 +105,11 @@ const PORTS = ['clk', 'rst_b', 'valid', 'ready', 'ready_rate', 'limit', 'load_en
 /** The module's own signals besides its ports, which a field can't be named either */
 const INTERNAL = ['delivered', 'got', 'miss', 'early', 'expected', 'allow', 'sel', 'idx', 'idx_nxt', 'exhausted', 'adv', 'rd_addr',
   'want', 'ok', 'payload', 'load', 'had', 'after_ok']
+
+/** A cycleExact checker's own signals besides its fields, which a field can't be named */
+const CYCLE_SIGNALS = ['clk', 'rst_b', 'valid', 'ready', 'record', 'fail_valid', 'fail_record', 'done', 'row', 'fetch', 'run',
+  'load_en', 'load_src', 'load_addr', 'load_data', 'records', 'load_en_play', 'load_en_chk', 'load_data_play', 'load_data_chk',
+  'records_play', 'records_chk']
 
 /** `values` selected by one-hot `sels`, as an AND-OR of `width`-bit values */
 function andOr (sels: string[], values: string[], width: number): string {
@@ -148,17 +160,20 @@ function bitsOf (value: string, total: number, lo: number, width: number): strin
  * Mode `cycleExact` is the cycle table on a stream, from two files with a row per cycle: a
  * VectorPlayer, `play`, drives `ready` from the ready file, and a VectorChecker, `chk`, checks
  * `valid` and the record, the fields in order as one value, against the expected file, with the
- * record a don't-care where the expected file has `valid` low (`cycleRecords()`). Its ports are `clk`, `rst_b`, `valid` and the fields in; `ready`,
- * `fail_valid`, `fail_record` and `done` out, a fail per lane as VectorChecker has
- * (`firstCycleError()`). Row 0 is the cycle after the priming cycle (doc/framework/testbench.md,
+ * record a don't-care where the expected file has `valid` low (`cycleRecords()`). Its ports are
+ * `clk`, `rst_b`, `valid` and the fields in; `ready`, `fail_valid`, `fail_record` and `done` out,
+ * a fail per lane as VectorChecker has (`firstCycleError()`). In reloaded mode also `load_en`,
+ * `load_src`, `load_addr`, `load_data` and `records` in: `load_src` 0 loads the ready table and 1
+ * the expected table, whose word is the wider, and `records` holds their row counts, the ready
+ * table's in the low bits. Row 0 is the cycle after the priming cycle (doc/framework/testbench.md,
  * "Cycle tables and their timing").
  */
 export class RecordChecker extends TSSV.Module {
   declare params: RecordChecker_Parameters
   /**
    * Its pattern memories, for a harness to register (Harness.registerMemories()): `pattern`, or
-   * `pattern_<k>` per source in perSource mode. In cycleExact mode, its two tables' memories,
-   * both preloaded: `play.pattern` (the ready file) and `chk.pattern` (the expected file).
+   * `pattern_<k>` per source in perSource mode. In cycleExact mode, its two tables' memories:
+   * `play.pattern` (the ready table) and `chk.pattern` (the expected table).
    */
   readonly memories: ComponentMemory[] = []
   constructor (params: RecordChecker_Parameters) {
@@ -395,16 +410,18 @@ export class RecordChecker extends TSSV.Module {
 
   /** cycleExact: a VectorPlayer drives `ready` from the ready file, and a VectorChecker checks the rest */
   private buildCycleTable (params: CycleExactChecker_Parameters): void {
-    const { name, fields, rows, depth, memory } = params
-    // In reloaded mode the rows aren't known, so the mode is checked first
-    if (memory !== undefined) tableMemoryDepth(name, 2, undefined, memory)
-    if (!Number.isInteger(rows) || rows < 1) throw Error(`${name}: rows must be a positive integer, got ${rows}`)
+    const { name, fields, rows, readyFile, file } = params
+    const mode = params.memory ?? 'preloaded'
+    const { depth, size } = tableSize(name, rows, params.depth, mode)
+    if (mode === 'preloaded' && (readyFile === undefined || file === undefined)) throw Error(`${name}: a preloaded cycleExact checker needs readyFile and file`)
+    if (mode === 'reloaded' && (readyFile !== undefined || file !== undefined)) throw Error(`${name}: a reloaded cycleExact checker loads its tables through its load port, not from files`)
     for (const f of fields) {
-      if (['clk', 'rst_b', 'valid', 'ready', 'record', 'fail_valid', 'fail_record', 'done', 'row', 'fetch', 'run'].includes(f.name)) {
-        throw Error(`${name}: field ${f.name} has the name of one of the checker's own signals`)
-      }
+      if (CYCLE_SIGNALS.includes(f.name)) throw Error(`${name}: field ${f.name} has the name of one of the checker's own signals`)
     }
     const rw = fields.reduce((sum, f) => sum + f.width, 0)
+    const layouts = RecordChecker.cycleLayouts(fields, params.radix)
+    const cw = this.bitWidth(depth) // a table's row count
+    const dataWidth = Math.max(layouts.ready.wordWidth, layouts.expected.wordWidth)
 
     this.IOs = {
       clk: { direction: 'input', isClock: 'posedge' },
@@ -412,27 +429,60 @@ export class RecordChecker extends TSSV.Module {
       valid: { direction: 'input' }
     }
     for (const f of fields) this.IOs[f.name] = { direction: 'input', width: f.width }
+    if (mode === 'reloaded') {
+      this.IOs.load_en = { direction: 'input' }
+      this.IOs.load_src = { direction: 'input' }
+      this.IOs.load_addr = { direction: 'input', width: this.bitWidth(depth - 1) }
+      this.IOs.load_data = { direction: 'input', width: dataWidth }
+      this.IOs.records = { direction: 'input', width: 2 * cw }
+    }
     this.IOs.ready = { direction: 'output' }
     this.IOs.fail_valid = { direction: 'output' }
     this.IOs.fail_record = { direction: 'output' }
     this.IOs.done = { direction: 'output' }
 
+    // Reloaded: each table's load port, from the checker's, and its row count, from records. The
+    // ready table's word is the narrower, so it takes the low bits of load_data
+    const load = (table: 'play' | 'chk', k: number, wordWidth: number): Record<string, string> => {
+      if (mode === 'preloaded') return {}
+      this.addSignal(`load_en_${table}`, { width: 1 })
+      this.addAssign({ in: new Expr(`load_en && load_src == 1'd${k}`), out: `load_en_${table}` })
+      this.addSignal(`load_data_${table}`, { width: wordWidth })
+      this.addAssign({ in: new Expr(bitsOf('load_data', dataWidth, 0, wordWidth)), out: `load_data_${table}` })
+      this.addSignal(`records_${table}`, { width: cw })
+      this.addAssign({ in: new Expr(bitsOf('records', 2 * cw, k * cw, cw)), out: `records_${table}` })
+      return { load_en: `load_en_${table}`, load_addr: 'load_addr', load_data: `load_data_${table}`, records: `records_${table}` }
+    }
+
     // The row for this cycle, and ready from the ready file
-    this.addSignal('row', { width: this.bitWidth(rows) })
-    this.addSignal('fetch', { width: fetchWidth(rows) })
+    this.addSignal('row', { width: this.bitWidth(size) })
+    this.addSignal('fetch', { width: fetchWidth(size) })
     this.addSignal('run', { width: 1 })
     const play = new VectorPlayer({
-      name: `VectorPlayer_${name}`, rows, lanes: [{ port: 'ready', width: 1 }], file: params.readyFile, radix: params.radix, depth, memory
+      name: `VectorPlayer_${name}`, rows, lanes: [{ port: 'ready', width: 1 }], file: readyFile, radix: params.radix, depth, memory: mode
     })
-    this.addSubmodule('play', play, { clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', done: 'done', ready: 'ready' }, false)
+    this.addSubmodule('play', play, {
+      clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', done: 'done', ready: 'ready', ...load('play', 0, layouts.ready.wordWidth)
+    }, false)
 
     // valid and the whole record, checked against the expected file
     this.addSignal('record', { width: rw })
     this.addAssign({ in: new Expr(fields.length === 1 ? fields[0]?.name ?? '' : `{${fields.map(f => f.name).join(', ')}}`), out: 'record' })
     const chk = new VectorChecker({
-      name: `VectorChecker_${name}`, rows, lanes: [{ port: 'valid', width: 1 }, { port: 'record', width: rw }], file: params.file, radix: params.radix, depth, memory
+      name: `VectorChecker_${name}`, rows, lanes: [{ port: 'valid', width: 1 }, { port: 'record', width: rw }], file, radix: params.radix, depth, memory: mode
     })
-    this.addSubmodule('chk', chk, { clk: 'clk', rst_b: 'rst_b', row: 'row', fetch: 'fetch', run: 'run', valid: 'valid', record: 'record', fail_valid: 'fail_valid', fail_record: 'fail_record' }, false)
+    this.addSubmodule('chk', chk, {
+      clk: 'clk',
+      rst_b: 'rst_b',
+      row: 'row',
+      fetch: 'fetch',
+      run: 'run',
+      valid: 'valid',
+      record: 'record',
+      fail_valid: 'fail_valid',
+      fail_record: 'fail_record',
+      ...load('chk', 1, layouts.expected.wordWidth)
+    }, false)
 
     // The two tables' memories, by their paths in this checker
     for (const [instance, table] of [['play', play], ['chk', chk]] as const) {

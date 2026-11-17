@@ -98,6 +98,9 @@ export interface Harness_Parameters {
   reportDomain?: string
 }
 
+/** The widest word of `memories`: a component's `load_data`, which a narrower memory takes the low bits of. */
+const widestWord = (memories: readonly ComponentMemory[]): number => Math.max(...memories.map(m => m.layout.wordWidth))
+
 /**
  * Checks a harness's domains (ClockDomain), and returns its report domain: undefined for a
  * harness without domains.
@@ -241,7 +244,8 @@ export class Harness extends TSSV.Module {
    * In preloaded mode it only records the memories, and returns no bindings. In reloaded mode it
    * also declares the component's load nets, `load_en_<instance>`, `load_addr_<instance>`,
    * `load_data_<instance>`, `load_src_<instance>` (with several memories) and
-   * `records_<instance>`, which `finish()` drives from the harness's load port.
+   * `records_<instance>`, which `finish()` drives from the harness's load port. A component's
+   * memories have one depth; `load_data_<instance>` is as wide as the widest of them.
    * @param options.domain the clock domain the component runs in, whose clock loads its
    * memories. Required with two or more domains; with one, it is that one.
    */
@@ -275,13 +279,13 @@ export class Harness extends TSSV.Module {
     const first = mems[0]
     if (first === undefined) return {}
     for (const m of mems) {
-      if (m.depth !== first.depth || m.layout.wordWidth !== first.layout.wordWidth) throw Error(`${what}: its memories differ in depth or width, so they can't share one load port`)
+      if (m.depth !== first.depth) throw Error(`${what}: its memories differ in depth, so they can't share one load port`)
     }
     const want: Array<[string, number]> = [
       ['load_en', 1],
       ...(mems.length > 1 ? [['load_src', this.bitWidth(mems.length - 1)] as [string, number]] : []),
       ['load_addr', this.bitWidth(first.depth - 1)],
-      ['load_data', first.layout.wordWidth],
+      ['load_data', widestWord(mems)],
       ['records', mems.length * this.bitWidth(first.depth)]
     ]
     const ports = component.ports().plain
@@ -374,7 +378,7 @@ export class Harness extends TSSV.Module {
         this.addAssign({ in: new Expr(srcWidth === sw && first.select === 0 ? 'load_sel' : `${srcWidth}'(${offset})`), out: `load_src_${instance}` })
       }
       this.addAssign({ in: new Expr(low('load_addr', port.addrWidth, this.bitWidth(first.depth - 1))), out: `load_addr_${instance}` })
-      this.addAssign({ in: new Expr(low('load_data', port.dataWidth, first.layout.wordWidth)), out: `load_data_${instance}` })
+      this.addAssign({ in: new Expr(low('load_data', port.dataWidth, widestWord(own))), out: `load_data_${instance}` })
       this.addAssign({ in: new Expr(low('records', port.recordsWidth, own.length * first.recordsWidth, first.recordsLo)), out: `records_${instance}` })
     }
   }

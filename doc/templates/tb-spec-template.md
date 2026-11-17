@@ -113,7 +113,7 @@ _How each output's records are matched to what was sent: in order (inOrder), per
 
 ## Run modes
 
-_Which run modes the testbenches support, and why: `preloaded` builds one testbench per configuration and testcase, with the testcase compiled in; `reloaded` builds one per configuration, and SimTop loads each testcase at run time. A testbench whose pattern memories include preloaded-only ones (cycle tables) supports preloaded only. State any limit, such as the most records a testcase may hold (the depths)._
+_Which run modes the testbenches support, and why: `preloaded` builds one testbench per configuration and testcase, with the testcase compiled in; `reloaded` builds one per configuration, and SimTop loads each testcase at run time. Every tier-1 component, a cycle table's included, supports both. State any limit, such as the most records a testcase may hold (the depths), or the rows a cycle table may have._
 
 | Mode | Supported | Builds | Notes |
 |---|---|---|---|
