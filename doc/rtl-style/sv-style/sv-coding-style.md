@@ -4,8 +4,8 @@ Rules for the SystemVerilog that TSSV modules emit. They apply to everything a m
 and most of all to the raw SV strings passed to `addCombAlways()`, `addSequentialAlways()`,
 `addLatchAlways()`, `addBody()` and the constructor `body`. The builders type-check signal
 names, but not those strings. `writeSystemVerilogFiles()` checks the always blocks in them
-against some of the rules, COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4, and
-fails generation on a violation (`rules.json` lists each rule's checks).
+against some of the rules, COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2, RST-4 and RST-5,
+and fails generation on a violation (`rules.json` lists each rule's checks).
 
 Rules for the TypeScript that generates the SV, such as which builder to use and how to
 compute widths, are in the TSSV coding guide,
@@ -27,6 +27,7 @@ Before you open a PR that touches generated RTL:
 - [ ] Every local variable in an always block is `automatic` or uninitialized (COMB-2)
 - [ ] `=` only in comb blocks; in sequential blocks, `<=` for registers and `=` only for block-local `automatic` temporaries (COMB-3, SEQ-1)
 - [ ] Each signal is driven from exactly one place (COMB-5)
+- [ ] Every flop has an async reset, or a reset waiver that gives a reason (RST-5)
 - [ ] Every literal has a width, `+ - *` are written plain, and a deliberate wrap has one outer cast (WIDTH-1 to WIDTH-3)
 - [ ] Carries and signs survive: full-width intermediates, mixed signedness converted, `>>>` only on signed values, compares of one width and signedness (WIDTH-4 to WIDTH-6, WIDTH-9, WIDTH-10)
 - [ ] `verilator --lint-only -Wall` on the pinned Verilator (5.052) is clean for the generated `.sv` (LINT-1)
@@ -522,10 +523,64 @@ active-high and active-low, inside a module.
 
 **RST-3 (SHOULD): Reset control state; leave wide datapath registers unreset.**
 Reset FSM state, valid bits, counters and pointers. A data register that's always
-written before it's read doesn't need a reset. Omitting it saves area and reset fan-out.
+written before it's read, and that no control state depends on, doesn't need a reset. Omitting
+it saves area and reset fan-out. Name it in a reset waiver with that reason (RST-5).
 
 **RST-4 (MUST): Never generate a reset in logic.** Don't use a combinational expression
 as a reset. Reset synchronizers live in a dedicated, reviewed module.
+
+**RST-5 (MUST): Give every flop an async reset, unless a reset waiver names it.** Every
+register that a sequential block assigns must be assigned in the reset branch of an async reset.
+
+- A sync reset doesn't count. A module that needs one (MOD-4's exception) waives its flops.
+- A waiver gives a reason. Waive a memory, or a datapath register that RST-3 leaves unreset.
+- Declare a waiver in the module's TypeScript, next to the register:
+  `addResetWaiver('data_q', 'RST-3: datapath, read only while vld_q is high')`. The module's SV
+  lists its waivers in a comment block, so a review sees each one.
+- A waiver names the register as the SV writes it, with any member selects (`bus.data`), and
+  without index or part selects (`mem` for `mem[addr]`).
+- `writeSystemVerilogFiles()` checks every module it writes, in TSSV and in any project that uses
+  it. It fails on a flop with no async reset and no waiver, and on a waiver that names no such
+  flop. A project needs no other command.
+- A module marked as a testbench (`markTestbench()`, [`testbench.md`](../../framework/testbench.md))
+  is exempt, as it is from SYN-1: it is never hardware.
+
+<!-- lint: dont
+input  logic       clk
+input  logic       en
+output logic [3:0] cnt_q
+-->
+```systemverilog
+// Don't: cnt_q has no reset, so it starts at X
+always_ff @(posedge clk) begin : cnt_reg
+  if (en) cnt_q <= cnt_q + 4'd1;
+end
+```
+
+<!-- lint: do
+input  logic       clk
+input  logic       rst_n
+input  logic       vld_in
+input  logic [7:0] d
+output logic       vld_q
+output logic [7:0] data_q
+-->
+```systemverilog
+// Do: the valid bit resets. The data it qualifies has a waiver, which the SV lists
+// ------------------------------------------------------------------
+// Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+// ------------------------------------------------------------------
+// data_q: RST-3: datapath, read only while vld_q is high
+// ------------------------------------------------------------------
+always_ff @(posedge clk or negedge rst_n) begin : vld_reg
+  if (!rst_n) vld_q <= 1'b0;
+  else        vld_q <= vld_in;
+end
+
+always_ff @(posedge clk) begin : data_reg
+  if (vld_in) data_q <= d;
+end
+```
 
 ## 4. Latches
 

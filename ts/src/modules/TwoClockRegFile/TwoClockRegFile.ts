@@ -73,9 +73,11 @@ export class TwoClockRegFile extends Module {
         if (a_we) mem[a_addr] <= a_data_in;
     end
     `)
+    this.addResetWaiver('mem', 'memory')
 
     // read port: b_clk domain, registered
     this.addRegister({ d: new Expr('mem[b_addr]'), clk: 'b_clk', en: 'b_re', q: 'b_data_out' })
+    this.addResetWaiver('b_data_out', 'memory read data; a register file macro\'s read register has no reset')
   }
 }
 

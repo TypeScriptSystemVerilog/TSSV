@@ -2,14 +2,18 @@
 // The SV guide's SYN-1 keeps `initial`, `#` delays and system tasks out of RTL, and says they
 // are fine in testbenches. The generated-SV checks (doc/rtl-style/sv-style/tools/sv-scans.mjs)
 // can't tell the two apart by name, so a test script marks each testbench module it writes, and
-// SYN-1 skips the modules that carry the marker. Every other check still applies to them.
+// SYN-1 skips the modules that carry the marker. So does RST-5, which writeSystemVerilogFiles()
+// checks: a testbench is never hardware, so its flops need no reset. Every other check still
+// applies to them.
 import { type Module } from 'tssv/lib/core/TSSV'
+import { TESTBENCH_MARKER } from 'tssv/lib/core/ModuleCheck'
 
 /**
  * The comment that marks a module as a testbench. It goes inside the module, between its header
- * and `endmodule`. `sv-scans.mjs` matches `// tssv: testbench` at the start of a line.
+ * and `endmodule`. `sv-scans.mjs` matches `// tssv: testbench` at the start of a line, and
+ * writeSystemVerilogFiles() a line that is exactly this comment.
  */
-export const TESTBENCH_MARKER = '// tssv: testbench (simulation only; SYN-1 does not apply)'
+export { TESTBENCH_MARKER }
 
 /** Adds {@link TESTBENCH_MARKER} to `module`'s body, and returns `module`. */
 export function markTestbench<M extends Module> (module: M): M {

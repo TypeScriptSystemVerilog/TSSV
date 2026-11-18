@@ -194,6 +194,7 @@ export class SRAM extends Module {
     ${writeBlock('mem_write', ports === '1rw' ? 'a' : 'b')}
 `)
     }
+    this.addResetWaiver('mem', 'memory')
 
     // ---------------------------------------------------------------- reads
     // A read port registers mem[<p>_addr] while <p>_re is high, and holds it otherwise.
@@ -218,6 +219,7 @@ export class SRAM extends Module {
     begin : ${p}_read${read}
     end
 `)
+      this.addResetWaiver(`${p}_data_out`, 'memory read data; an SRAM macro\'s read register has no reset')
     }
 
     // ---------------------------------------------------------------- assertions

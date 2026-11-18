@@ -9,6 +9,7 @@
 import { Module, Expr } from 'tssv/lib/core/TSSV'
 import { readFileSync } from 'fs'
 import { moduleSV } from 'tssv/test/models/emitted'
+import { markTestbench } from 'tssv/lib/tb/testbench'
 
 const OUT = 'sv-examples/rtl_style'
 
@@ -95,6 +96,7 @@ function counter (name: string, reset: 'lowasync' | 'highasync' | 'lowsync' | 'h
   m.addSignal('cnt_nxt', { width: 8 })
   m.addAssign({ in: new Expr("cnt_q + 8'd1"), out: 'cnt_nxt' })
   m.addRegister({ d: 'cnt_nxt', clk: 'clk', reset: rst, en: 'en', q: 'cnt_q' })
+  if (reset === 'lowsync' || reset === 'highsync') m.addResetWaiver('cnt_q', 'a sync reset, for SEQ-5\'s sync-reset header')
   return m
 }
 
@@ -316,6 +318,7 @@ check('COMB-2', 'writeSystemVerilogFiles rejects an initialized static local fro
   } as const
   const seq = new Module({ name: 'comb2_seq' }, { ...ports })
   seq.addSequentialAlways({ clk: 'clk', outputs: ['q'] }, 'begin : q_reg\n  logic t = 1\'b0;\n  q <= d;\nend\n')
+  seq.addResetWaiver('q', 'breaks only COMB-2')
   expectThrows(() => moduleSV(seq), /COMB-2/)
   const latch = new Module({ name: 'comb2_latch' }, { ...ports })
   latch.addLatchAlways({ outputs: ['q'] }, 'begin : q_latch\n  logic t = 1\'b0;\n  if (en) q = d;\nend\n')
@@ -400,6 +403,7 @@ const twoClocks = (name: string, rst: { direction: 'input', isReset?: 'lowasync'
 
 check('SEQ-4', 'writeSystemVerilogFiles rejects a block sensitive to two clocks', () => {
   const m = twoClocks('seq4_dont')
+  m.addResetWaiver('qa', 'breaks only SEQ-4')
   m.addBody(`
   always_ff @(posedge clk_a or posedge clk_b) begin : sync
     qa <= da;
@@ -410,6 +414,7 @@ check('SEQ-4', 'writeSystemVerilogFiles rejects a block sensitive to two clocks'
 
 check('SEQ-4', 'writeSystemVerilogFiles rejects a block on both edges of its clock', () => {
   const m = twoClocks('seq4_edges_dont')
+  m.addResetWaiver('qa', 'breaks only SEQ-4')
   m.addBody(`
   always_ff @(posedge clk_a or negedge clk_a) begin : ddr
     qa <= da;
@@ -420,6 +425,8 @@ check('SEQ-4', 'writeSystemVerilogFiles rejects a block on both edges of its clo
 
 check('SEQ-4', 'writeSystemVerilogFiles takes an async reset not marked isReset for a second clock', () => {
   const m = twoClocks('seq4_unmarked_dont', { direction: 'input' })
+  // rst_n isn't marked isReset, so the check sees no reset branch
+  m.addResetWaiver('qa', 'breaks only SEQ-4')
   m.addBody(`
   always_ff @(posedge clk_a or negedge rst_n) begin : a_reg
     if (!rst_n) qa <= 1'b0;
@@ -469,6 +476,7 @@ check('SEQ-5', 'writeSystemVerilogFiles rejects an async reset missing from the 
 
 check('SEQ-5', 'writeSystemVerilogFiles rejects a sync reset in the event control', () => {
   const m = stateModule('seq5_raw_sync_dont', 'lowsync')
+  m.addResetWaiver('st_q', 'breaks only SEQ-5')
   m.addBody(stateBody('posedge clk or negedge rst_n'))
   expectThrows(() => moduleSV(m), /a sync reset, but it's in the event control.*SEQ-5/)
 })
@@ -585,11 +593,13 @@ check('RST-2', 'writeSystemVerilogFiles rejects registers of two reset kinds', (
   const m = twoResets('rst2_dont')
   m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
   m.addRegister({ d: 'b', clk: 'clk', reset: 'srst' })
+  m.addResetWaiver('b_q', 'breaks only RST-2')
   expectThrows(() => moduleSV(m), /rst_n, which is lowasync.*srst, which is highsync.*RST-2/)
 })
 
 check('RST-2', 'writeSystemVerilogFiles rejects addRegister and addSequentialAlways with two reset kinds', () => {
   const m = twoResets('rst2_seq_dont')
+  m.addResetWaiver('y', 'breaks only RST-2')
   m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
   m.addSequentialAlways({ clk: 'clk', reset: 'srst', outputs: ['y'] }, 'begin : y_reg\n  if (srst) y <= \'0;\n  else y <= {a, b};\nend\n')
   expectThrows(() => moduleSV(m), /RST-2/)
@@ -597,6 +607,7 @@ check('RST-2', 'writeSystemVerilogFiles rejects addRegister and addSequentialAlw
 
 check('RST-2', 'writeSystemVerilogFiles rejects raw SV with two reset kinds', () => {
   const m = twoResets('rst2_raw_dont')
+  m.addResetWaiver('y', 'breaks only RST-2')
   m.addBody(`
   always_ff @(posedge clk or negedge rst_n) begin : a_reg
     if (!rst_n) y[0] <= 1'b0;
@@ -608,6 +619,7 @@ ${srstBlock}`)
 
 check('RST-2', 'writeSystemVerilogFiles rejects raw SV and addRegister with two reset kinds', () => {
   const m = twoResets('rst2_mixed_dont')
+  m.addResetWaiver('y', 'breaks only RST-2')
   m.addRegister({ d: 'a', clk: 'clk', reset: 'rst_n' })
   m.addBody(srstBlock)
   expectThrows(() => moduleSV(m), /RST-2/)
@@ -712,5 +724,86 @@ check('RST-4', 'writeSystemVerilogFiles accepts a reset from a register', () => 
 `)
   m.addAssign({ in: new Expr('sync_q[1]'), out: 'rst_sync_n' })
   m.addRegister({ d: 'd', clk: 'clk', reset: 'rst_sync_n', en: 'clr', q: 'q' })
+  m.addResetWaiver('sync_q', 'a sync reset, for a reset from a register')
+  m.addResetWaiver('q', 'a sync reset, for a reset from a register')
   emit(m)
+})
+
+// RST-5: every flop has an async reset, unless a waiver names it (#231).
+// A valid bit with a reset, and the data it qualifies
+const stage = (name: string): Module => new Module({ name }, {
+  clk: { direction: 'input', isClock: 'posedge' },
+  rst_n: { direction: 'input', isReset: 'lowasync' },
+  vld_in: { direction: 'input' },
+  d: { direction: 'input', width: 8 },
+  vld_out: { direction: 'output' },
+  q: { direction: 'output', width: 8 }
+})
+const stageRegisters = (m: Module): void => {
+  m.addRegister({ d: 'vld_in', clk: 'clk', reset: 'rst_n', q: 'vld_out' })
+  m.addRegister({ d: 'd', clk: 'clk', en: 'vld_in', q: 'q' })
+}
+
+check('RST-5', 'writeSystemVerilogFiles rejects a register with no reset, naming the module, the register and the rule', () => {
+  const m = stage('rst5_dont')
+  stageRegisters(m)
+  expectThrows(() => moduleSV(m), /^rst5_dont: always_ff @\( posedge clk \): q has no reset \(RST-5: give every flop an async reset, or waive it with addResetWaiver\)$/)
+})
+
+check('RST-5', 'addResetWaiver lets a register go without a reset, and the SV lists the waiver', () => {
+  const m = stage('rst5_waiver_do')
+  stageRegisters(m)
+  m.addResetWaiver('q', 'RST-3: datapath, read only while vld_out is high')
+  const sv = emit(m)
+  expect(sv.includes('// Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()'), 'no reset waiver block')
+  expect(sv.includes('// q: RST-3: datapath, read only while vld_out is high'), 'the waiver is not listed')
+})
+
+check('RST-5', 'writeSystemVerilogFiles rejects a waiver that names no flop without an async reset', () => {
+  const m = stage('rst5_stale_dont')
+  stageRegisters(m)
+  m.addResetWaiver('q', 'RST-3: datapath, read only while vld_out is high')
+  m.addResetWaiver('vld_out', 'a register with a reset')
+  expectThrows(() => moduleSV(m), /^rst5_stale_dont: reset waiver for vld_out names no flop without an async reset \(RST-5: remove the waiver\)$/)
+})
+
+check('RST-5', 'writeSystemVerilogFiles rejects a register reset only by a sync reset', () => {
+  const m = new Module({ name: 'rst5_sync_dont' }, {
+    clk: { direction: 'input', isClock: 'posedge' },
+    srst: { direction: 'input', isReset: 'highsync' },
+    d: { direction: 'input' },
+    q: { direction: 'output' }
+  })
+  m.addRegister({ d: 'd', clk: 'clk', reset: 'srst', q: 'q' })
+  expectThrows(() => moduleSV(m), /q is reset only by srst, a sync reset \(highsync\) \(RST-5/)
+})
+
+check('RST-5', 'writeSystemVerilogFiles rejects a register its block\'s reset branch leaves out', () => {
+  const m = stage('rst5_branch_dont')
+  m.addSequentialAlways({ clk: 'clk', reset: 'rst_n', outputs: ['vld_out', 'q'] }, `
+  begin : stage_reg
+    if (!rst_n) vld_out <= 1'b0;
+    else begin
+      vld_out <= vld_in;
+      q <= d;
+    end
+  end
+`)
+  expectThrows(() => moduleSV(m), /q isn't assigned in the reset branch of rst_n \(RST-5/)
+})
+
+check('RST-5', 'a module marked as a testbench needs no reset', () => {
+  const m = markTestbench(stage('rst5_testbench'))
+  stageRegisters(m)
+  moduleSV(m)
+})
+
+check('RST-5', 'addResetWaiver rejects an empty reason, a name with a select, and a second waiver for one register', () => {
+  const m = stage('rst5_api')
+  expectThrows(() => { m.addResetWaiver('q', ' ') }, /^rst5_api: reset waiver for q needs a reason, on one line$/)
+  expectThrows(() => { m.addResetWaiver('q', 'two\nlines') }, /needs a reason, on one line/)
+  expectThrows(() => { m.addResetWaiver('mem[0]', 'memory') }, /^rst5_api: reset waiver for mem\[0\]: name a variable, or a member of one, such as q or bus\.data$/)
+  m.addResetWaiver('q', 'datapath')
+  expectThrows(() => { m.addResetWaiver('q', 'datapath') }, /^rst5_api: reset waiver for q is already declared$/)
+  expect(JSON.stringify(m.resetWaivers) === JSON.stringify([{ register: 'q', reason: 'datapath' }]), `resetWaivers: ${JSON.stringify(m.resetWaivers)}`)
 })

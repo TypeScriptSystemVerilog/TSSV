@@ -77,6 +77,7 @@ export class ReadyPaths extends TSSV.Module {
     this.buffer('b', { inValid: 'b_in_valid', outReady: 'b_out_ready', inReady: 'b_in_ready', outValid: 'b_out_valid' }, true)
     this.buffer('s', { inValid: 's_in.valid', outReady: 's_out.ready', inReady: 's_in.ready', outValid: 's_out.valid' }, false)
     this.addRegister({ d: 's_in.data', clk: 'clk', en: new Expr('s_in.valid && s_in.ready'), q: 's_out.data' })
+    this.addResetWaiver('s_out.data', 'RST-3: datapath, read only while s_out.valid is high')
     for (const lane of [0, 1]) {
       for (const sig of ['in_ready', 'out_valid']) this.addSignal(`v${lane}_${sig}`, { width: 1 })
       this.buffer(`v${lane}`, {

@@ -245,8 +245,8 @@ export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
     this.addSignal('sum_nxt', { width: accumulatorWidth, isSigned: true })
     this.addSignal('sum_q', { width: accumulatorWidth, isSigned: true })
     this.addAssign({ in: new TSSV.Expr(accumulatorWidth < fullWidth ? `${accumulatorWidth}'(${sum})` : sum), out: 'sum_nxt' })
-    // datapath register, read only while valid_sum_q is high: no reset (RST-3)
     this.addRegister({ d: 'sum_nxt', clk: 'clk', en: 'en', q: 'sum_q' })
+    this.addResetWaiver('sum_q', 'RST-3: datapath, read only while valid_sum_q is high')
 
     // 5. round, saturate and register the output. One extra bit holds rounding's carry
     let rounded = 'sum_q'
@@ -258,8 +258,8 @@ export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
     this.addSignal('saturated', { width: outWidth, isSigned: true })
     this.addSaturate({ in: rounded, out: 'saturated' })
     this.addSignal('data_out_q', { width: outWidth, isSigned: true })
-    // datapath register, read only while valid_out_q is high: no reset (RST-3)
     this.addRegister({ d: 'saturated', clk: 'clk', en: 'en', q: 'data_out_q' })
+    this.addResetWaiver('data_out_q', 'RST-3: datapath, read only while valid_out_q is high')
 
     // 5. output stream: every beat is a whole packet with every byte valid
     this.addAssign({ in: new TSSV.Expr('valid_out_q'), out: 'm_axis.TVALID' })
