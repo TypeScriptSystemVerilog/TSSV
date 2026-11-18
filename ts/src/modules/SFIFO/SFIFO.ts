@@ -155,6 +155,7 @@ export class SFIFO extends Module {
       this.addAssign({ in: new Expr('push_fire && empty'), out: 'load_bypass' })
     }
     this.addRegister({ d: 'push_data', clk: 'clk', en: 'load_bypass', q: 'bypass_q' })
+    this.addResetWaiver('bypass_q', 'RST-3: datapath, read only while the FIFO isn\'t empty')
 
     if (depth === 1n) {
       // A one-entry FIFO only ever holds the head, so it needs no SRAM or pointers

@@ -129,6 +129,8 @@ export class testMem extends Module {
     end          
 `
     )
+    this.addResetWaiver('mem', 'memory')
+    this.addResetWaiver('data_out', 'memory read data')
   }
 }
 

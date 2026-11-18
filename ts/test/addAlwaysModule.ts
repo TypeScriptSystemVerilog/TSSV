@@ -47,6 +47,9 @@ export class addAlways extends Module {
             end
         `
     this.addSequentialAlways({ clk: 'clk', reset: 'rst_b', outputs: ['data_out2'] }, seq_body2)
+    // the bodies test the headers addSequentialAlways writes, so they have no reset branch
+    this.addResetWaiver('data_out', 'a test of addSequentialAlways headers, with no reset branch')
+    this.addResetWaiver('data_out2', 'a test of addSequentialAlways headers, with no reset branch')
 
     // always_comb test
 

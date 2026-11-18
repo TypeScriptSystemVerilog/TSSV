@@ -11,6 +11,12 @@ export interface Write {
   target: string
   /** the variables the target names: `q` for `q[3:0]` or `q.f`, `a` and `b` for `{a, b}` */
   names: string[]
+  /**
+   * the registers the target names: each variable with its member selects, without its index and
+   * part selects. `q` for `q[3:0]`, `mem` for `mem[addr]`, `bus.DATA_RD` for `bus.DATA_RD`, `s.f` for
+   * `s[1].f`, `a` and `b.f` for `{a, b.f[2]}`
+   */
+  refs: string[]
   /** the identifiers the assignment reads; for `+=` and `++`, the target's too */
   reads: string[]
 }
@@ -77,12 +83,21 @@ const defined = (s: string | undefined): s is string => s !== undefined
 // The variable a reference starts from: `q` for `q[3:0]` or `q.f`
 const rootName = (ref: CSTNode): string | undefined => identifier(child(ref, 'kLocalRoot'))
 
-// The variables an assignment target names. A select's index is read, not assigned, so the
-// search stops at each reference.
-function targetNames (node: CSTNode): string[] {
-  if (node.tag === 'kReference') return [rootName(node)].filter(defined)
-  return kids(node).flatMap(targetNames)
+// The register a reference names: its variable and member selects, without index or part selects
+function registerName (ref: CSTNode): string | undefined {
+  const root = rootName(ref)
+  if (root === undefined) return undefined
+  const members = kids(ref).filter((k) => k.tag === 'kHierarchyExtension').map((h) => identifier(h))
+  return members.every(defined) ? [root, ...members].join('.') : undefined
 }
+
+// What an assignment target names: each reference's variable, or its register. A select's index
+// is read, not assigned, so the search stops at each reference.
+function targets (node: CSTNode, name: (ref: CSTNode) => string | undefined): string[] {
+  if (node.tag === 'kReference') return [name(node)].filter(defined)
+  return kids(node).flatMap((k) => targets(k, name))
+}
+const targetNames = (node: CSTNode): string[] => targets(node, rootName)
 
 // The identifiers an expression reads
 const readNames = (node: CSTNode): string[] => findAll(node, 'kReference').map(rootName).filter(defined)
@@ -102,6 +117,7 @@ function writes (src: Buffer, node: CSTNode, out: Write[] = []): Write[] {
       kind: node.tag === 'kNonblockingAssignmentStatement' ? 'nonblocking' : 'blocking',
       target: sourceText(src, c),
       names: targetNames(c),
+      refs: targets(c, registerName),
       reads: read.flatMap(readNames)
     })
   }

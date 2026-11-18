@@ -56,6 +56,8 @@ const design = new Module(
   end
 `)
 
+design.addResetWaiver('q', 'a test of SYN-1, with no reset')
+
 // A testbench for it, using what SYN-1 bans from RTL: `initial`, a delay and system tasks
 const tb = markTestbench(new Module(
   { name: 'syn1_tb' },
