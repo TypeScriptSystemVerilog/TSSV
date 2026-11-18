@@ -20,6 +20,16 @@
 // Given a project's root, the script also checks that project's tier 2; a project with no
 // ts/test/vip/ has none to check.
 //
+// Given a project's root, it also checks that no TS-side test reads a file (doc/framework/
+// testbench.md, "What TS-side tests may check"): no .ts file under the project's ts/test/ uses an
+// fs function that reads a file's content. TSSV returns a module's SV only as files, so a test that
+// reads no file cannot read the SV. A read of something else, such as a spec, is allowed when its
+// line, or the line above it, says what it reads:
+//
+//   // test-structure: reads <what>, not generated SV
+//
+// TSSV's own ts/test/ is not checked: its tests that read emitted SV predate the rule.
+//
 // Usage: node scripts/check-test-structure.mjs                                     (in TSSV)
 //        node node_modules/tssv/scripts/check-test-structure.mjs <project root>    (in a project)
 //        node scripts/check-test-structure.mjs --tier1 <root> [<project root>]     (on fixtures)
@@ -84,6 +94,95 @@ function imports (path) {
   return [...imported, ...reexported].map(m => m[1])
 }
 
+// ---- No TS-side test reads a file
+
+// The fs functions that read a file's content, from 'fs' or 'node:fs', and from their promises API
+// ('fs/promises', or fs's `promises` export)
+const FS_READS = ['readFileSync', 'readFile', 'createReadStream', 'readSync', 'read']
+const PROMISE_READS = ['readFile']
+
+// A comment saying what a read reads: `// test-structure: reads <what>, not generated SV`
+const WAIVER = /\/\/\s*test-structure:\s*reads\s+\S.*,\s*not generated SV/
+
+// The text of `text` with its comments blanked, newlines kept, so that line numbers still match
+function stripComments (text) {
+  // A block comment, /* ... */ over any number of lines
+  const noBlocks = text.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+  // A line comment, from // to the end of its line
+  return noBlocks.replace(/\/\/[^\n]*/g, c => ' '.repeat(c.length))
+}
+
+// Escapes `s` for use inside a RegExp
+const reEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * What the file's code imports from fs that can read a file: `direct`, local names bound to a read
+ * function, and `spaces`, local names of a namespace or default import with the read functions
+ * reached through it
+ */
+function fsBindings (code) {
+  const direct = []
+  const spaces = []
+  // A static import from fs, 'node:fs', 'fs/promises' or 'node:fs/promises', over several lines if
+  // need be: group 1 is the import clause, group 2 is '/promises' when it is the promises API
+  for (const m of code.matchAll(/^\s*import\s+(?!type\s)([^'";]*?)\s+from\s+['"](?:node:)?fs(\/promises)?['"]/gm)) {
+    const clause = m[1]
+    const reads = m[2] === undefined ? FS_READS : PROMISE_READS
+    // The named imports, between braces
+    const named = /\{([^}]*)\}/.exec(clause)
+    for (const spec of named === null ? [] : named[1].split(',')) {
+      // One named import, `name` or `name as alias`, not a type: group 1 the name, group 2 the alias
+      const n = /^\s*(?!type\s)(\w+)(?:\s+as\s+(\w+))?\s*$/.exec(spec)
+      if (n === null) continue
+      const local = n[2] ?? n[1]
+      if (reads.includes(n[1])) direct.push({ local, name: n[1] })
+      // fs's promises API, imported by name
+      if (m[2] === undefined && n[1] === 'promises') spaces.push({ local, reads: PROMISE_READS })
+    }
+    // A namespace import, `* as name`: group 1 the name
+    const ns = /\*\s*as\s+(\w+)/.exec(clause)
+    // A default import, the name the clause starts with (before any comma or brace): group 1
+    const def = /^\s*(\w+)\s*(?:,|$)/.exec(clause)
+    for (const local of [ns?.[1], def?.[1]]) {
+      if (local === undefined) continue
+      spaces.push({ local, reads })
+      if (m[2] === undefined) spaces.push({ local: `${local}.promises`, reads: PROMISE_READS })
+    }
+  }
+  return { direct, spaces }
+}
+
+/** Each read in the file at `path`, unwaived: its 1-based line number and what it uses */
+function reads (path) {
+  const text = readFileSync(path, 'utf8')
+  const lines = text.split('\n')
+  const code = stripComments(text).split('\n')
+  const { direct, spaces } = fsBindings(code.join('\n'))
+  const patterns = [
+    // A use of a read function imported by name, anywhere but its import
+    ...direct.map(d => ({ re: new RegExp(`(?<![\\w.])${reEscape(d.local)}\\b`), what: d.name })),
+    // A read function reached through a namespace or default import, `fs.readFileSync`
+    ...spaces.map(s => ({ re: new RegExp(`(?<![\\w.])${reEscape(s.local)}\\.(${s.reads.join('|')})\\b`), what: null })),
+    // fs loaded at run time, with require('fs') or import('node:fs/promises'), where this check
+    // cannot see which functions it uses
+    { re: /\b(?:require|import)\s*\(\s*['"](?:node:)?fs(?:\/promises)?['"]\s*\)/, what: 'fs loaded at run time' }
+  ]
+  // The code with its import statements blanked, since an import is not a use. A static import,
+  // `import <clause> from '<spec>'` over several lines if need be, or `import '<spec>'`
+  const uses = code.join('\n').replace(/^\s*import\s+(?:[^'";]*?\sfrom\s+)?['"][^'"]+['"]/gm, s => s.replace(/[^\n]/g, ' '))
+  const found = []
+  uses.split('\n').forEach((line, i) => {
+    for (const p of patterns) {
+      const m = p.re.exec(line)
+      if (m === null) continue
+      if (WAIVER.test(lines[i]) || (i > 0 && WAIVER.test(lines[i - 1]))) break
+      found.push({ line: i + 1, what: p.what ?? m[1] })
+      break
+    }
+  })
+  return found
+}
+
 let violations = 0
 const checked = []
 for (const tier of TIERS) {
@@ -109,5 +208,33 @@ for (const tier of TIERS) {
     }
   }
 }
-if (violations > 0) process.exit(1)
-console.log(`PASS: ${checked.join(' and ')} import only the tiers below them`)
+if (violations === 0) console.log(`PASS: ${checked.join(' and ')} import only the tiers below them`)
+
+// Each project's TS-side tests read no file but those they name
+let readViolations = 0
+for (const root of args.map(r => resolve(r))) {
+  const where = basename(root)
+  if (!existsSync(join(root, 'ts/test'))) {
+    console.log(`${where}: no ts/test/, so no TS-side tests to check`)
+    continue
+  }
+  let waived = 0
+  const before = readViolations
+  for (const file of tsFiles(root, 'ts/test')) {
+    const text = readFileSync(join(root, file), 'utf8')
+    waived += text.split('\n').filter(l => WAIVER.test(l)).length
+    for (const r of reads(join(root, file))) {
+      console.error(`FAIL: ${where}: ${file}:${r.line} (TS-side test) reads a file, with ${r.what}`)
+      readViolations++
+    }
+  }
+  if (readViolations === before) {
+    console.log(`PASS: ${where}'s ts/test/ reads no files${waived > 0 ? `, but for ${waived} it names as not generated SV` : ''}`)
+  }
+}
+if (readViolations > 0) {
+  console.error('A TS-side test never reads the generated SV (TSSV\'s doc/framework/testbench.md, "What TS-side tests ' +
+    'may check"). A read of anything else says what it reads, on its line or the line above:\n' +
+    '  // test-structure: reads <what>, not generated SV')
+}
+if (violations + readViolations > 0) process.exit(1)

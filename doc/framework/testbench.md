@@ -1160,7 +1160,7 @@ make -C verilatorTB pattern_memory_sim            # PatternMemory, preloaded and
 In a project, through its link to TSSV, from the project's root:
 
 ```bash
-node node_modules/tssv/scripts/check-test-structure.mjs .    # TSSV's tier 1 and the project's tier 2
+node node_modules/tssv/scripts/check-test-structure.mjs .    # TSSV's tier 1, the project's tier 2, and its TS-side tests read no files
 node node_modules/tssv/scripts/check-harness.mjs sv-examples/<DUT>/<tb>/<tb>.sv ...
 node node_modules/tssv/scripts/check-port-contracts.mjs sv-examples   # the DUTs' port contracts
 ```
@@ -1233,6 +1233,23 @@ simulation, by a harness. People read the generated SV in the PR comments
 (`doc/process/issue-workflow.md` §5), and no test parses it. TSSV's older tests, which read
 emitted SV through `ts/test/models/emitted.ts`, predate this framework; moving them onto it is
 separate work.
+
+**`scripts/check-test-structure.mjs` enforces this in a project.** Given the project's root, it
+fails on any `.ts` file under the project's `ts/test/` that reads a file's content:
+`readFileSync`, `readFile`, `createReadStream`, `readSync` or `read`, whether imported by name,
+through a namespace or default import, from `fs/promises` or fs's `promises`, or with `fs`
+loaded at run time. TSSV gives a module's SV only as files, so a test that reads no file can't
+read the SV. `existsSync`, `writeFileSync` and the other calls that read no content pass.
+
+A test that reads something other than the generated SV says what, on the read's line or the
+line above:
+
+```ts
+// test-structure: reads the spec's timing diagrams, not generated SV
+const spec = readFileSync(specPath, 'utf8')
+```
+
+TSSV's own `ts/test/` isn't checked, for the reason above.
 
 ---
 
@@ -1365,6 +1382,6 @@ of `clk_wr` after it. Without the wait, `rst_b_wr` is released at 40.
 | `test_cycleTable.ts` | `VectorPlayer` and `VectorChecker` in both modes: the memory each lists, a memory deeper than its table, a reloaded table's ports, and their refusals, in Node |
 | `test_Harness.ts` | A harness's ports with and without domains, its report domain, and the domain declarations it refuses; its registered memories, its load port's widths, a component whose memories differ in width, and the registrations it refuses, in Node |
 | `test_RecordStream.ts` | The record-stream components' ports per option and mode, a cycleExact checker's included, their record layouts, the payload model and their refusals, in Node |
-| `test_checkTestStructure.ts` | `check-test-structure` on fixture trees: a building block passes in tiers 1 and 2, and any other module fails, by package path or relatively, in Node. `LFSR`'s own test is `ts/test/modules/test_LFSR.ts` |
+| `test_checkTestStructure.ts` | `check-test-structure` on fixture trees: a building block passes in tiers 1 and 2, and any other module fails, by package path or relatively, in Node. A project's TS-side test fails when it reads a file, by each way fs can be imported or loaded, and passes when it reads nothing or says what it reads. `LFSR`'s own test is `ts/test/modules/test_LFSR.ts` |
 | `test_PatternMemory.ts` | `PatternMemory` in both modes, with the lead's burst_mix pattern file: `tb_PatternMemory_preloaded` reads the memory back after it loads the file itself, and in `tb_PatternMemory_reloaded` the testbench loads it through the load port, twice. Run by `make -C verilatorTB pattern_memory_sim` |
 | `test_patternFile.ts` | The record layouts and the pattern file writer, against the format in [pattern-files.md](pattern-files.md), including the lead's example byte for byte |
