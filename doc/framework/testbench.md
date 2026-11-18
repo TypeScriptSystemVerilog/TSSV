@@ -1225,7 +1225,9 @@ A test that runs in Node without a simulator, for a module tested this way, uses
 `node:assert`. It checks only what the TSSV object model or the module's TypeScript exposes:
 
 - **Parameter validation:** `assert.throws` with the error message the spec promises.
-- **Port and modport shape**, where the spec defines it (TSSV guide TEST-2).
+- **Port and modport shape**, where the spec defines it (TSSV guide TEST-2): `ports()`.
+- **Hierarchy**, where the spec defines it: which submodules a module instantiates, each one's
+  module, and how its ports are bound, from `submoduleInstances()`.
 - **Derived names and other TypeScript-visible results.**
 
 **It never reads, regexes or string-matches the generated SV.** Behaviour is checked in

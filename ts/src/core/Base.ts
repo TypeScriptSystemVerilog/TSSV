@@ -671,6 +671,25 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   }
 
   /**
+   * This module's submodule instances, by instance name, in the order {@link Module.addSubmodule}
+   * added them: each one's `module`, and its `bindings`, what each of its ports is bound to by port
+   * name, auto-bound ports included. A test reads a module's hierarchy here, not from the SV the module generates
+   * (doc/framework/testbench.md, "What TS-side tests may check").
+   * @returns a new record on each call, with copies of the bindings, so changing it changes no
+   * submodule
+   * @group Hierarchy
+   */
+  submoduleInstances (): Record<string, {
+    /** the instantiated module */
+    module: Module
+    /** what each of the submodule's ports is bound to, by port name */
+    bindings: Record<string, string | Sig | bigint>
+  }> {
+    return Object.fromEntries(Object.entries(this.submodules).map(([instance, { module, bindings }]) =>
+      [instance, { module, bindings: { ...bindings } }]))
+  }
+
+  /**
    * The `<name>.contracts.json` that writeSystemVerilogFiles() writes for a module with port
    * contracts: a wrapper of every port left open, and one per contract with its loop closed.
    */

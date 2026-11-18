@@ -1373,6 +1373,30 @@ endmodule
 
 #### Hierarchy
 
+##### submoduleInstances()
+
+```ts
+submoduleInstances(): Record<string, {
+  module: Module;
+  bindings: Record<string, string | Sig | bigint>;
+}>;
+```
+
+This module's submodule instances, by instance name, in the order [Module.addSubmodule](#addsubmodule)
+added them: each one's `module`, and its `bindings`, what each of its ports is bound to by port
+name, auto-bound ports included. A test reads a module's hierarchy here, not from the SV the module generates
+(doc/framework/testbench.md, "What TS-side tests may check").
+
+###### Returns
+
+`Record`\<`string`, \{
+  `module`: [`Module`](#module);
+  `bindings`: `Record`\<`string`, `string` \| [`Sig`](#sig) \| `bigint`\>;
+\}\>
+
+a new record on each call, with copies of the bindings, so changing it changes no
+submodule
+
 ##### addSubmodule()
 
 ```ts
