@@ -765,7 +765,8 @@ SliceOrder (`ts/test/tb/test_SliceOrderTB.ts`) is the example; its TB spec is
 [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md).
 
 **The DUT is built once per configuration.** A runner also gives the generator `buildDut`, a
-function that builds the DUT from a configuration alone. The generator calls it once per
+function that builds the DUT from a configuration alone: one module, or a list of modules that
+the harness wires together, such as a serializer and a deserializer back to back. The generator calls it once per
 configuration, writes the DUT to `dut/<configuration>/`, and passes it to every harness of that
 configuration as `build.dut`, which the harness instantiates as it is (`harnessDut(build)`). Each
 build folder leaves the DUT out and finds it on the include path. So the DUT's RTL is written,

@@ -24,10 +24,11 @@
  *     that name it run (TSSV#225); a harness that builds preloaded whatever build.mode says is
  *     refused, and so is a testcase whose tables hold different row counts, or none;
  *   - with buildDut, each configuration's DUT is written once to dut/<configuration>/ and no build
- *     folder holds it, while the index keeps its format (TSSV#239); a harness that ignores
- *     build.dut and a buildDut that throws are refused, and harnessDut() needs a DUT.
+ *     folder holds it, while the index keeps its format (TSSV#239), and so is each module of a DUT
+ *     given as a list; a harness that ignores build.dut, a buildDut that throws and one that
+ *     returns no module are refused, and harnessDut() needs a DUT.
  */
-import { TSSV_ROOT } from 'tssv/lib/core/TSSV'
+import { type Module, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { writeManifest, writePatternFile, type ManifestFile, type Manifest } from 'tssv/lib/tb/patternFile'
 import { checkerLayout, injectorLayout } from 'tssv/lib/tb/recordStream'
 import { RecordChecker } from 'tssv/lib/tb/RecordChecker'
@@ -290,6 +291,18 @@ void test('with buildDut, each configuration\'s DUT is written once to dut/<conf
   assert.equal(readFileSync(`${tb}/regression.txt`, 'utf8'), formatRegressionIndex(runs))
 })
 
+void test('a DUT given as a list of modules: each is written to dut/<configuration>/ and left out of every build', () => {
+  const root = `${ROOT}/withDutList`
+  const tb = `${root}/StreamSlice/SliceOrder`
+  const runs = generateTestbenches<SliceOrderParameters, Module[]>({
+    ...slice({ outRoot: root, modes: ['preloaded', 'reloaded'] }),
+    buildDut: c => [streamSliceDut(c.parameters)],
+    harness: build => new SliceOrderHarness({ ...build, dut: harnessDut(build)[0] })
+  })
+  assert.ok(existsSync(`${tb}/dut/stages2/StreamSlice_33_2.sv`))
+  for (const r of runs) assert.equal(existsSync(`${tb}/${r.buildDir}/StreamSlice_33_2.sv`), false, r.buildDir)
+})
+
 void test('a run without buildDut has no DUT folder, and harnessDut() needs a DUT', () => {
   assert.ok(generateTestbenches(slice({ modes: ['preloaded', 'reloaded'] })).every(r => r.dutDir === undefined))
   assert.equal(existsSync(`${TB}/dut`), false)
@@ -339,8 +352,10 @@ const refusals: Array<[string, () => Partial<GenerateTestbenches_Parameters<Slic
   ['parameters the project refuses', () => ({ configurations: [config('wide', { configuration: 'wide', parameters: { stages: 2, width: 8 } })] }),
     `${IN}/configurations/wide.json: parameters has width; a SliceOrder configuration has only stages`],
   ['a harness that ignores build.dut', () => ({ buildDut: c => streamSliceDut(c.parameters), harness: build => new SliceOrderHarness({ ...build, dut: undefined }) }),
-    `${top}: the harness doesn't instantiate build.dut; get it with harnessDut(build)`],
-  ['a buildDut that throws', () => ({ buildDut: () => { throw Error('no such slice') } }), 'StreamSlice/SliceOrder: configuration stages2: no such slice']
+    `${top}: the harness doesn't instantiate StreamSlice_33_2 from build.dut; get it with harnessDut(build)`],
+  ['a buildDut that throws', () => ({ buildDut: () => { throw Error('no such slice') } }), 'StreamSlice/SliceOrder: configuration stages2: no such slice'],
+  // A buildDut typed for one module can't return an empty list, so the list is cast to it
+  ['a buildDut that returns no module', () => ({ buildDut: () => [] as unknown as Module }), 'StreamSlice/SliceOrder: configuration stages2: buildDut returned no module']
 ]
 for (const [what, extra, message] of refusals) {
   void test(`refused: ${what}, leaving the previous output as it was`, () => {
