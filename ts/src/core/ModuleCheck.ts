@@ -1,10 +1,26 @@
 // The SV-guide rules writeSystemVerilogFiles() enforces on each module it emits, whether its SV
-// came from a builder or is raw SV: COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4.
-// ModuleBody.ts reads the module's SV. The module's signal table says which signals are resets,
-// of which kind, and which are constants.
+// came from a builder or is raw SV: COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2, RST-4 and
+// RST-5. ModuleBody.ts reads the module's SV. The module's signal table says which signals are
+// resets, of which kind, and which are constants; its reset waivers say which flops may go
+// without an async reset.
 import { type AlwaysBlock, readModuleBody } from './ModuleBody.js'
 
 type ResetKind = 'lowasync' | 'highasync' | 'lowsync' | 'highsync'
+
+/**
+ * The comment that marks a module as a testbench: a test harness or a simulation model, not RTL.
+ * `markTestbench()` (`tssv/lib/tb/testbench`) puts it on a line of its own in the module's body.
+ * SYN-1 and RST-5 skip a module that carries it.
+ */
+export const TESTBENCH_MARKER = '// tssv: testbench (simulation only; SYN-1 does not apply)'
+
+/** A flop that may go without an async reset (SV guide RST-5), and why. */
+export interface ResetWaiver {
+  /** the register as the SV writes it, with any member selects: `data_q`, `mem`, `bus.DATA_RD` */
+  register: string
+  /** why it needs no async reset */
+  reason: string
+}
 
 /** What emission knows about a module beyond its SV. */
 export interface ModuleTable {
@@ -16,6 +32,10 @@ export interface ModuleTable {
   interfaces: string[]
   /** each submodule port that is a reset (`isReset`), and what the module binds to it */
   resetBindings: Array<{ instance: string, port: string, binding: string }>
+  /** the flops the module lets go without an async reset (RST-5) */
+  resetWaivers: readonly ResetWaiver[]
+  /** the module is a testbench ({@link TESTBENCH_MARKER}), so RST-5 doesn't apply */
+  testbench: boolean
 }
 
 interface Reset {
@@ -25,6 +45,8 @@ interface Reset {
 
 const isAsync = (kind: ResetKind): boolean => kind === 'lowasync' || kind === 'highasync'
 const isLow = (kind: ResetKind): boolean => kind === 'lowasync' || kind === 'lowsync'
+// register `ref` is `name`, or a member of it: `s.f` and `s.f.g` are under `s`
+const under = (ref: string, name: string): boolean => ref === name || ref.startsWith(`${name}.`)
 
 // A signal, a bit, part or member of one, or either inverted: the root signal's name, or
 // undefined for any other expression. `!rst_n`, `~(rst_q[1])` and `bus.PRESETn` are wiring, not
@@ -60,6 +82,8 @@ export function checkModule (table: ModuleTable, src: string): void {
 
   // The resets each sequential block uses: in its event control, or to select a branch
   const used = new Map<AlwaysBlock, Reset[]>()
+  // The reset waivers that name a flop with no async reset
+  const waived = new Set<string>()
   for (const block of module.blocks) {
     // COMB-2: a local declared with an initializer is static unless it's automatic
     const decl = block.initialized.find((d) => !d.automatic)
@@ -116,6 +140,35 @@ export function checkModule (table: ModuleTable, src: string): void {
           fail(block, `${write.target} resets to ${signal}, a signal (SEQ-6: reset values must be constants)`)
         }
       }
+    }
+
+    // RST-5: every flop has an async reset, unless a waiver names it. An async reset missing from
+    // the event control is SEQ-5's error, so it still counts here.
+    if (table.testbench) continue
+    const resetBy = (r: Reset): string[] => resetWrites(block, r).flatMap((w) => w.refs)
+    const covered = blockResets.filter((r) => isAsync(r.kind)).flatMap(resetBy)
+    const flops = new Set(block.writes.flatMap((w) => w.refs).filter((ref) => !block.locals.has(ref.split('.')[0] ?? ref)))
+    for (const ref of flops) {
+      if (covered.some((name) => under(ref, name))) continue
+      const waiver = table.resetWaivers.find((w) => under(ref, w.register))
+      if (waiver !== undefined) {
+        waived.add(waiver.register)
+        continue
+      }
+      const sync = blockResets.find((r) => !isAsync(r.kind) && resetBy(r).some((name) => under(ref, name)))
+      let why = 'has no reset'
+      if (sync !== undefined) why = `is reset only by ${sync.name}, a sync reset (${sync.kind})`
+      else if (blockResets.length > 0) why = `isn't assigned in the reset branch of ${blockResets.map((r) => r.name).join(' or ')}`
+      fail(block, `${ref} ${why} (RST-5: give every flop an async reset, or waive it with addResetWaiver)`)
+    }
+  }
+
+  // RST-5: each waiver names a flop with no async reset
+  for (const w of table.resetWaivers) {
+    if (table.testbench) {
+      fail(undefined, `reset waiver for ${w.register}, but the module is a testbench, which RST-5 doesn't check (remove the waiver)`)
+    } else if (!waived.has(w.register)) {
+      fail(undefined, `reset waiver for ${w.register} names no flop without an async reset (RST-5: remove the waiver)`)
     }
   }
 

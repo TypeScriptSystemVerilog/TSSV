@@ -357,6 +357,9 @@ Further rules:
   | `'highsync'` | nothing | `rst` |
 
 - `resetVal` defaults to `0n` and is written as an unsized literal (`'d3`, `-'d3`).
+- A flop with no `reset`, or with a sync one, needs a reset waiver
+  ([`addResetWaiver`](../reference/Base.md#addresetwaiver)), or emission throws (SV guide RST-5;
+  "Reset waivers" below).
 - If `q` is omitted, `d` must be a plain signal; the flop is named `<d>_q` and copies `d`'s
   metadata. With an `Expr` as `d`, pass `q`.
 - `addSequentialAlways` is the hand-written alternative: you write the body and it adds (or
@@ -464,8 +467,9 @@ formatter off.
 
 The SV alone can't tell a sync reset from an enable, or an async reset from a second clock, so the
 check also reads the module's signal table: which signals are resets (`isReset`), of which kind,
-and which are constants, and which submodule ports are resets. The rules it enforces, COMB-2,
-COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6, RST-2 and RST-4, are listed in the JSDoc of
+and which are constants, and which submodule ports are resets, and the module's reset waivers
+("Reset waivers", below). The rules it enforces, COMB-2, COMB-3, SEQ-1, SEQ-4, SEQ-5, SEQ-6,
+RST-2, RST-4 and RST-5, are listed in the JSDoc of
 [`writeSystemVerilogFiles()`](../reference/Base.md#writesystemverilogfiles). What it can't see, review still covers
 (each rule's `reason` in `doc/rtl-style/sv-style/rules.json`): a reset not marked `isReset`, a
 reset branch under a `case`, and resets generated in imported SV or carried in an interface.
@@ -530,6 +534,35 @@ and combinational ready paths:
 
 The JSON file isn't SV, so it isn't among the paths `writeSystemVerilogFiles()` returns, and a
 module without contracts writes nothing new.
+
+### Reset waivers
+
+Every flop needs an async reset (SV guide RST-5). The check on each module finds every register
+a sequential block assigns, and fails on one that no async reset's branch assigns. A sync reset
+doesn't count. A flop that needs no reset, such as a memory or a datapath register (RST-3), gets a
+waiver, declared next to the register:
+
+```typescript
+this.addRegister({ d: 'd', clk: 'clk', en: 'vld_in', q: 'data_q' })
+this.addResetWaiver('data_q', 'RST-3: datapath, read only while vld_q is high')
+```
+
+- **What a waiver names.** The register as the SV writes it: a variable, or a member of an
+  interface or struct (`bus.DATA_RD`). Index and part selects don't count: `mem` covers
+  `mem[addr]`. A waiver for a variable covers its members.
+- **The SV lists the waivers.** A `// Reset waivers` comment block after the port contracts gives
+  one line per waiver, `// data_q: RST-3: datapath, read only while vld_q is high`. So the SV a PR
+  shows lists every waiver for review.
+- **A waiver must name an unreset flop.** A waiver that names no flop without an async reset
+  fails too, so the waivers can't go stale. A module that creates a register only in some
+  configurations declares its waiver only in those, for instance in the loop that builds it.
+- **Testbenches are exempt.** A module marked with `markTestbench()` (`ts/src/tb/testbench.ts`) is
+  simulation-only, so its flops need no reset and it takes no waivers. The check reads the marker,
+  a line in the module's SV. A synthesizable harness part, such as `PatternMemory`, is checked.
+
+The check is part of emission, so it runs on every module a test or a project writes. It needs no
+command of its own. Its evidence is `ts/test/test_moduleCheck.ts` and the RST-5 checks in
+`ts/test/rtl_style/test_rtl_style_builders.ts`.
 
 ### Formatting with Verible
 

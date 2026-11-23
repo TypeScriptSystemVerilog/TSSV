@@ -1,8 +1,9 @@
 import { type ModuleTable, checkModule } from 'tssv/lib/core/ModuleCheck'
 
-// Unit test of the SV-guide checks emission runs on each module (issue #166), for
+// Unit test of the SV-guide checks emission runs on each module (issues #166, #231), for
 // cases a module built with the builders can't easily reach: resets wired through interfaces and
-// chains, a cycle of assignments, and an error that lists several violations.
+// chains, a cycle of assignments, flops that are interface members, and an error that lists
+// several violations.
 // ts/test/rtl_style/test_rtl_style_builders.ts checks each rule through writeSystemVerilogFiles().
 
 let failures = 0
@@ -28,7 +29,7 @@ function checkThrows (what: string, fn: () => void, pattern: RegExp): void {
 }
 
 const table = (signals: ModuleTable['signals'], extra: Partial<ModuleTable> = {}): ModuleTable => ({
-  name: 'm', signals, interfaces: [], resetBindings: [], ...extra
+  name: 'm', signals, interfaces: [], resetBindings: [], resetWaivers: [], testbench: false, ...extra
 })
 const sv = (items: string): string => `module m;\n${items}\nendmodule\n`
 const flop = (rst: string): string => `
@@ -68,6 +69,85 @@ checkThrows('a reset to an interface signal', () => {
     else q <= d;
   end`))
 }, /q resets to bus, a signal \(SEQ-6/)
+
+// RST-5: every flop has an async reset, unless a waiver names it
+const rst5 = /\(RST-5: give every flop an async reset, or waive it with addResetWaiver\)$/
+const asyncReset = { ...clocked, rst_n: { direction: 'input', isReset: 'lowasync' as const } }
+const unreset = sv(`
+  always_ff @(posedge clk) begin : q_reg
+    q <= d;
+  end`)
+const waive = (register: string): Partial<ModuleTable> => ({ resetWaivers: [{ register, reason: 'datapath' }] })
+checkThrows('a flop in a block with no reset', () => {
+  checkModule(table(asyncReset), unreset)
+}, new RegExp(`^Error: m: always_ff @\\(posedge clk\\) begin : q_reg: q has no reset ${rst5.source}`))
+checkPasses('a waiver for it', () => { checkModule(table(asyncReset, waive('q')), unreset) })
+checkThrows('a flop the reset branch leaves out', () => {
+  checkModule(table({ ...asyncReset, p: {} }), sv(`
+  always_ff @(posedge clk or negedge rst_n) begin : q_reg
+    if (!rst_n) q <= 1'b0;
+    else begin
+      q <= d;
+      p[3:0] <= d;
+    end
+  end`))
+}, new RegExp(`p isn't assigned in the reset branch of rst_n ${rst5.source}`))
+checkThrows('a flop reset only by a sync reset', () => {
+  checkModule(table({ ...clocked, srst: { direction: 'input', isReset: 'highsync' } }), sv(`
+  always_ff @(posedge clk) begin : q_reg
+    if (srst) q <= 1'b0;
+    else q <= d;
+  end`))
+}, new RegExp(`q is reset only by srst, a sync reset \\(highsync\\) ${rst5.source}`))
+checkPasses('a memory, waived', () => {
+  checkModule(table({ ...asyncReset, mem: {}, a: {} }, waive('mem')), sv(`
+  always_ff @(posedge clk) begin : mem_write
+    mem[a] <= d;
+  end`))
+})
+// An interface member is a flop of its own: resetting bus.a doesn't reset bus.b
+const busFlops = sv(`
+  always_ff @(posedge clk or negedge rst_n) begin : bus_reg
+    if (!rst_n) bus.a <= 1'b0;
+    else begin
+      bus.a <= d;
+      bus.b <= d;
+    end
+  end`)
+checkThrows('an interface member the reset branch leaves out', () => {
+  checkModule(table(asyncReset, { interfaces: ['bus'] }), busFlops)
+}, /bus\.b isn't assigned in the reset branch of rst_n \(RST-5/)
+checkPasses('a waiver for the member', () => {
+  checkModule(table(asyncReset, { interfaces: ['bus'], ...waive('bus.b') }), busFlops)
+})
+checkPasses('a waiver for the interface covers its members', () => {
+  checkModule(table(asyncReset, { interfaces: ['bus'], ...waive('bus') }), sv(`
+  always_ff @(posedge clk) begin : bus_reg
+    bus.a <= d;
+    bus.b <= d;
+  end`))
+})
+checkThrows('a waiver for a flop with an async reset', () => {
+  checkModule(table(asyncReset, waive('q')), sv(flop('rst_n')))
+}, /^Error: m: reset waiver for q names no flop without an async reset \(RST-5: remove the waiver\)$/)
+checkThrows('a waiver that names nothing', () => {
+  checkModule(table(asyncReset, { resetWaivers: [{ register: 'q', reason: 'datapath' }, { register: 'nothing', reason: 'typo' }] }), unreset)
+}, /^Error: m: reset waiver for nothing names no flop without an async reset \(RST-5: remove the waiver\)$/)
+checkPasses('a testbench needs no reset', () => {
+  checkModule(table(asyncReset, { testbench: true }), unreset)
+})
+checkThrows('a waiver in a testbench', () => {
+  checkModule(table(asyncReset, { testbench: true, ...waive('q') }), unreset)
+}, /reset waiver for q, but the module is a testbench, which RST-5 doesn't check \(remove the waiver\)/)
+checkPasses('a block local is not a flop', () => {
+  checkModule(table(asyncReset), sv(`
+  always_ff @(posedge clk or negedge rst_n) begin : q_reg
+    automatic logic t;
+    t = d;
+    if (!rst_n) q <= 1'b0;
+    else q <= t;
+  end`))
+})
 
 // One error lists every violation, each with its block's header
 checkThrows('several violations', () => {

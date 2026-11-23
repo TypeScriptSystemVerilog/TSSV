@@ -416,7 +416,8 @@ this.addRegister({ d: 'd', clk: 'clk', reset: 'rst_n', q: 'q' })
 **MOD-4 (SHOULD): Default to an active-low asynchronous reset named `rst_n`.**
 Declare it as `rst_n: { direction: 'input', isReset: 'lowasync' }`. This matches the existing
 modules. Use a different kind only when the target library or the surrounding design requires
-it. The SV guide's reset rules (RST-2 to RST-4) still apply.
+it. The SV guide's reset rules (RST-2 to RST-5) still apply: with a sync reset, every flop needs a
+reset waiver (RST-5).
 
 <!-- ts: do body emits "if (!rst_n)"
 clk: { direction: 'input', isClock: 'posedge' }

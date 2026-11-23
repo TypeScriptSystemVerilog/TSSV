@@ -86,6 +86,7 @@ export class ROM extends Module {
         end
       end
     `)
+    this.addResetWaiver('data_out', 'ROM read data; a ROM macro\'s read register has no reset')
 
     if (this.rcf_path !== '') {
       fs.writeFileSync(`${this.rcf_path}/${this.name}.rcf`, words.map(word => word.toString(2).padStart(w, '0')).join('\n'))

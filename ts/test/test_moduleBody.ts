@@ -48,6 +48,11 @@ check('targets', summary(comb('begin\n  {a, {b, c}} = x;\n  mem[idx] <= \'0;\n  
   ['blocking', 's.f', ['s'], ['x', 'i']]
 ])
 
+// a target's registers keep member selects and drop index and part selects (SV guide RST-5)
+check('registers', comb('begin\n  q[3:0] <= d;\n  mem[a[1]] <= d;\n  bus.DATA_RD <= d;\n  {x, y.f[2]} <= d;\n  s[1].f.g <= d;\nend\n').writes.map((w) => w.refs), [
+  ['q'], ['mem'], ['bus.DATA_RD'], ['x', 'y.f'], ['s.f.g']
+])
+
 // statements under any case label, including one in parentheses
 check('case labels', summary(comb('unique case (sel)\n  (A | B): y <= 1\'b1;\n  default: y = 1\'b0;\nendcase\n').writes), [
   ['nonblocking', 'y', ['y'], []],

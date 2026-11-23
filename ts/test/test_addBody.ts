@@ -39,20 +39,19 @@ function check (label: string, actual: string, expected: string): void {
 
 // --- Test 1: common indent stripped, leading/trailing blank lines removed ---
 const m1 = new Module({ name: 'test_normalize' }, {
-  clk: { direction: 'input', isClock: 'posedge' },
   out: { direction: 'output', width: 8 },
   in: { direction: 'input', width: 8 }
 })
 m1.addBody(`
-        always_ff @(posedge clk) begin
-          out <= in;
+        always_comb begin
+          out = in;
         end
 `)
 check(
   'normalize strips common indent and blank lines',
   emittedBody(m1),
-`   always_ff @(posedge clk) begin
-     out <= in;
+`   always_comb begin
+     out = in;
    end
 `
 )
@@ -86,23 +85,21 @@ m3.writeSystemVerilogFiles(OUT)
 
 // --- Test 4: addBody normalizes and indents body content ---
 const m4ref = new Module({ name: 'test_equiv_ref' }, {
-  clk: { direction: 'input', isClock: 'posedge' },
   out: { direction: 'output', width: 8 },
   in: { direction: 'input', width: 8 }
 })
 // the body addBody() should produce, appended as is
 m4ref.addBody(
-`   always_ff @(posedge clk) begin
-     out <= in;
+`   always_comb begin
+     out = in;
    end`, { indentMode: 'verbatim' })
 const m4 = new Module({ name: 'test_equiv_addBody' }, {
-  clk: { direction: 'input', isClock: 'posedge' },
   out: { direction: 'output', width: 8 },
   in: { direction: 'input', width: 8 }
 })
 m4.addBody(`
-  always_ff @(posedge clk) begin
-    out <= in;
+  always_comb begin
+    out = in;
   end
 `)
 
@@ -128,15 +125,14 @@ m5.writeSystemVerilogFiles(OUT)
 
 // --- Test 6: default engine is verible (output is verible-verilog-format formatted) ---
 const m6 = new Module({ name: 'test_engine_default' }, {
-  clk: { direction: 'input', isClock: 'posedge' },
   out: { direction: 'output', width: 4 },
   in: { direction: 'input', width: 4 }
 })
-m6.addBody('always_ff @(posedge clk) begin\n      out <=    in;\nend\n', { indentMode: 'verbatim' })
+m6.addBody('always_comb begin\n      out =    in;\nend\n', { indentMode: 'verbatim' })
 const sv = readFileSync(m6.writeSystemVerilogFiles(OUT).at(-1) ?? '', 'utf8')
 const hasModule = sv.includes('module test_engine_default')
 const hasEndmodule = sv.includes('endmodule')
-const isFormatted = sv.includes('    out <= in;')
+const isFormatted = sv.includes('    out = in;')
 if (hasModule && hasEndmodule && isFormatted) {
   console.log('PASS: writeSystemVerilogFiles formats output with default engine=verible')
   passed++

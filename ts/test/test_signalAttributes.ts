@@ -66,6 +66,8 @@ class AttrDemo extends Module {
     end
     `)
     this.addRegister({ d: 'vec', clk: 'clk' })
+    this.addResetWaiver('mem', 'memory')
+    this.addResetWaiver('vec_q', 'a test of signal attributes, with no reset')
     this.addBody(`
     assign vec = mem[sel];
     assign flag = ^vec_q;

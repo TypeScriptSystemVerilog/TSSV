@@ -584,7 +584,8 @@ addRegister(io): Sig;
 add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
 (SV guide SEQ-6). Emission checks the `always_ff` block the register goes in,
 as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
-reset in the module (RST-2).
+reset in the module (RST-2). A register with no `reset`, or a sync one, needs a reset waiver
+([addResetWaiver](#addresetwaiver), RST-5).
 
 ###### Parameters
 
@@ -674,6 +675,109 @@ endmodule
 
 `endif //!DEF__RegisterExample__
 ```
+
+##### addResetWaiver()
+
+```ts
+addResetWaiver(register, reason): void;
+```
+
+Lets one flop go without an async reset (SV guide RST-5). Every flop needs one, except a flop a
+waiver names: a memory, or a datapath register that's always written before it's read and that
+no control state depends on (RST-3). A flop reset only by a sync reset needs a waiver too.
+[Module.writeSystemVerilogFiles](#writesystemverilogfiles) checks each module's flops, and throws for a flop with no
+async reset that no waiver names, and for a waiver that names no such flop. So declare a waiver
+only in the configurations that create its register, for instance in the loop that builds it.
+The module's SV lists its waivers in a comment block after its port contracts.
+
+`register` names the register as the SV writes it: a variable, or a member of an interface or
+struct (`bus.DATA_RD`), without index or part selects (`mem` covers `mem[addr]`). A waiver for
+a variable covers its members. It needn't be in the module's signal table, so it can name a
+variable that raw SV declares.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `register` | `string` \| [`Sig`](#sig) | the flop that needs no async reset |
+| `reason` | `string` | why it needs none, such as `'memory'` or `'RST-3: datapath, read only while valid_q is set'` |
+
+###### Returns
+
+`void`
+
+###### Throws
+
+`<module>: reset waiver for <register> needs a reason, on one line` for an empty
+reason, or one with a line break
+
+###### Throws
+
+`<module>: reset waiver for <register>: name a variable, or a member of one, such as
+q or bus.data` for any other register name
+
+###### Throws
+
+`<module>: reset waiver for <register> is already declared` for a waiver declared twice
+
+###### Example
+
+**A memory and its registered read data, with no reset port**
+
+```ts
+// Neither flop has a reset: a memory, and its read data
+m.addResetWaiver('mem', 'memory')
+m.addResetWaiver('rdata', 'memory read data')
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__ResetWaiverExample__
+`define DEF__ResetWaiverExample__
+
+module ResetWaiverExample (
+    input logic clk,
+    input logic we,
+    input logic [1:0] addr,
+    input logic [7:0] wdata,
+    output logic [7:0] rdata
+);
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // mem: memory
+  // rdata: memory read data
+  // ------------------------------------------------------------------
+  logic [7:0] mem[0:3];
+
+  always_ff @(posedge clk) begin : mem_write
+    if (we) mem[addr] <= wdata;
+  end
+
+  always_ff @(posedge clk) begin
+    rdata <= mem[addr];
+  end
+
+endmodule
+
+`endif //!DEF__ResetWaiverExample__
+```
+
+##### resetWaivers
+
+###### Get Signature
+
+```ts
+get resetWaivers(): readonly ResetWaiver[];
+```
+
+The reset waivers this module declares ([addResetWaiver](#addresetwaiver)), in the order declared, as copies
+
+###### Returns
+
+readonly [`ResetWaiver`](#resetwaiver)[]
 
 #### Combinational logic
 
@@ -2000,6 +2104,10 @@ are constants. The rules:
   and each signal bound to a submodule's reset port. Each must be driven by a submodule
   output or a sequential block, or be assigned one of those or an input: as it is, one bit
   of it, or inverted (`!r`, `~r`).
+- RST-5: every flop has an async reset: each register a sequential block assigns is assigned
+  in the reset branch of an async reset, unless a reset waiver ([addResetWaiver](#addresetwaiver)) names
+  it. A sync reset doesn't count. Each waiver must name such a flop. A module marked as a
+  testbench (`markTestbench()`, `tssv/lib/tb/testbench`) is exempt.
 
 ###### Parameters
 
@@ -2245,7 +2353,7 @@ The `io` of [Module.addRegister](#addregister): the register's inputs, its outpu
 | ------ | ------ | ------ |
 | <a id="d"></a> `d` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | the D input: a signal, or an expression. With an expression, `q` is required |
 | <a id="clk"></a> `clk` | `string` \| [`Sig`](#sig) | the clock; it must carry `isClock` metadata, whose edge the register uses |
-| <a id="reset"></a> `reset?` | `string` \| [`Sig`](#sig) | the reset; it must carry `isReset` metadata, which gives its polarity and whether it is asynchronous. Without it, the register has no reset |
+| <a id="reset"></a> `reset?` | `string` \| [`Sig`](#sig) | the reset; it must carry `isReset` metadata, which gives its polarity and whether it is asynchronous. Without it, the register has no reset, and needs a reset waiver ([Module.addResetWaiver](#addresetwaiver)); so does a register with a sync reset (SV guide RST-5) |
 | <a id="resetval"></a> `resetVal?` | `bigint` | the value `q` takes on reset; default 0, written as `'0`. Any other value is written as a literal sized to `q`. It must be a bigint constant (SV guide SEQ-6) |
 | <a id="en"></a> `en?` | `string` \| [`Sig`](#sig) \| [`Expr`](#expr) | the clock enable: `q` loads `d` only while it is high. Without it, `q` loads `d` on every clock edge |
 | <a id="q"></a> `q?` | `string` \| [`Sig`](#sig) | the Q output, an existing signal or port. Default: a new internal signal `<d>_q` with `d`'s width, signedness and other metadata, except its attributes |
@@ -2265,6 +2373,19 @@ How [Module.writeSystemVerilogFiles](#writesystemverilogfiles) formats the SV it
 | <a id="veribleflags"></a> `veribleFlags?` | `string`[] | extra command-line flags for the formatter |
 | <a id="failonformaterror"></a> `failOnFormatError?` | `boolean` | on a formatter failure (Verible missing, a timeout, a crash, or a syntax error), throw rather than warn and return the text unformatted. It covers only the formatter: a syntax error in a module fails the check `writeSystemVerilogFiles()` runs on that module first, whatever this says. |
 | <a id="formattimeoutms"></a> `formatTimeoutMs?` | `number` | how long the formatter may run on one file, in milliseconds; default 60000 |
+
+***
+
+### ResetWaiver
+
+A flop that may go without an async reset (SV guide RST-5), and why.
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="register"></a> `register` | `string` | the register as the SV writes it, with any member selects: `data_q`, `mem`, `bus.DATA_RD` |
+| <a id="reason"></a> `reason` | `string` | why it needs no async reset |
 
 ## Type Aliases
 

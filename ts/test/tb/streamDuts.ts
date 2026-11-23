@@ -50,6 +50,7 @@ export class StreamSlice extends TSSV.Module {
       this.addAssign({ in: new Expr(`!v_${i} || ${rOut}`), out: `r_${i}` })
       this.addRegister({ d: vIn, clk: 'clk', reset: 'rst_b', en: `r_${i}`, q: `v_${i}` })
       this.addRegister({ d: dIn, clk: 'clk', en: new Expr(`r_${i} && ${vIn}`), q: `d_${i}` })
+      this.addResetWaiver(`d_${i}`, `RST-3: datapath, read only while v_${i} is high`)
     }
     this.addAssign({ in: new Expr('r_0'), out: 'in_ready' })
     this.addAssign({ in: new Expr(`v_${stages - 1}`), out: 'out_valid' })

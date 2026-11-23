@@ -73,7 +73,8 @@ const PLAIN_PATH = /^[^"\\\n]+$/
  * holds it; the edge on which `load_en` is high writes it to `load_addr`.
  *
  * The memory has no reset. In preloaded mode its contents come from the file at configuration.
- * Each field output is a register that holds whatever it read last.
+ * Each field output is a register that holds whatever it read last, with no reset either; the
+ * module waives both (SV guide RST-5).
  */
 export class PatternMemory extends TSSV.Module {
   declare params: PatternMemory_Parameters
@@ -118,6 +119,7 @@ export class PatternMemory extends TSSV.Module {
           end
         end
       `)
+      this.addResetWaiver('mem', 'memory')
     }
 
     // The read: each field registered straight from the word at rd_addr, with the address inline
@@ -132,6 +134,7 @@ export class PatternMemory extends TSSV.Module {
         ${reads.join('\n        ')}
       end
     `)
+    for (const f of layout.fields) this.addResetWaiver(f.name, 'memory read data; block RAM\'s read register has no reset')
   }
 }
 

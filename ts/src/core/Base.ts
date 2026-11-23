@@ -4,9 +4,11 @@ import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { basename, join } from 'path'
 import { type SVModuleHeader, parseSVModules, selectSVModule } from './SVModuleHeader.js'
 import { expandSVFileList, guardSVImport, importGuard } from './SVFileList.js'
-import { type ModuleTable, checkModule } from './ModuleCheck.js'
+import { type ModuleTable, type ResetWaiver, TESTBENCH_MARKER, checkModule } from './ModuleCheck.js'
 import { type ContractManifest, type ModulePorts, type PortContract, contractText, resolveContract, wrapperSV } from './PortContract.js'
 import { runVerible } from '../tools/formatters/verible.js'
+
+export type { ResetWaiver } from './ModuleCheck.js'
 
 /**
  * IntRange type allows specifify a type that allows a range of integer values
@@ -295,7 +297,8 @@ export interface RegisterIO {
   clk: string | Sig
   /**
    * the reset; it must carry `isReset` metadata, which gives its polarity and whether it is
-   * asynchronous. Without it, the register has no reset
+   * asynchronous. Without it, the register has no reset, and needs a reset waiver
+   * ({@link Module.addResetWaiver}); so does a register with a sync reset (SV guide RST-5)
    */
   reset?: string | Sig
   /**
@@ -495,6 +498,9 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
 
   // The port contracts declared on this module, in the order declared
   private readonly contracts: PortContract[] = []
+
+  // The reset waivers declared on this module, in the order declared
+  private readonly waivers: ResetWaiver[] = []
 
   /**
      * base constructor
@@ -1092,7 +1098,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * add a DFF register(can be multi-bit) to the d input. `resetVal` must be a bigint constant
      * (SV guide SEQ-6). Emission checks the `always_ff` block the register goes in,
      * as it checks every always block, so `reset` must be the same kind (`isReset`) as every other
-     * reset in the module (RST-2).
+     * reset in the module (RST-2). A register with no `reset`, or a sync one, needs a reset waiver
+     * ({@link addResetWaiver}, RST-5).
      *
      * @remarks
      * Registers that share the same clock, reset and enable are merged into one `always_ff`
@@ -1210,6 +1217,55 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       return new Sig(qName)
     }
     return qName
+  }
+
+  /**
+   * Lets one flop go without an async reset (SV guide RST-5). Every flop needs one, except a flop a
+   * waiver names: a memory, or a datapath register that's always written before it's read and that
+   * no control state depends on (RST-3). A flop reset only by a sync reset needs a waiver too.
+   * {@link Module.writeSystemVerilogFiles} checks each module's flops, and throws for a flop with no
+   * async reset that no waiver names, and for a waiver that names no such flop. So declare a waiver
+   * only in the configurations that create its register, for instance in the loop that builds it.
+   * The module's SV lists its waivers in a comment block after its port contracts.
+   *
+   * `register` names the register as the SV writes it: a variable, or a member of an interface or
+   * struct (`bus.DATA_RD`), without index or part selects (`mem` covers `mem[addr]`). A waiver for
+   * a variable covers its members. It needn't be in the module's signal table, so it can name a
+   * variable that raw SV declares.
+   * @param register the flop that needs no async reset
+   * @param reason why it needs none, such as `'memory'` or `'RST-3: datapath, read only while
+   * valid_q is set'`
+   * @throws `<module>: reset waiver for <register> needs a reason, on one line` for an empty
+   * reason, or one with a line break
+   * @throws `<module>: reset waiver for <register>: name a variable, or a member of one, such as
+   * q or bus.data` for any other register name
+   * @throws `<module>: reset waiver for <register> is already declared` for a waiver declared twice
+   * @example A memory and its registered read data, with no reset port
+   * {@includeCode ../../doc-examples/core/addResetWaiver.ts#example}
+   *
+   * The SystemVerilog it emits:
+   *
+   * {@includeCode ../../../doc/examples/core/addResetWaiver/ResetWaiverExample.sv}
+   * @group Registers
+   */
+  addResetWaiver (register: string | Sig, reason: string): void {
+    const name = register.toString()
+    // the reason is printed in a one-line SV comment
+    if (reason.trim() === '' || /[\r\n]/.test(reason)) throw Error(`${this.name}: reset waiver for ${name} needs a reason, on one line`)
+    // A variable and its member selects: q, bus.DATA_RD, s.f.g
+    if (!/^[A-Za-z_][\w$]*(\.[A-Za-z_][\w$]*)*$/.test(name)) {
+      throw Error(`${this.name}: reset waiver for ${name}: name a variable, or a member of one, such as q or bus.data`)
+    }
+    if (this.waivers.some(w => w.register === name)) throw Error(`${this.name}: reset waiver for ${name} is already declared`)
+    this.waivers.push({ register: name, reason })
+  }
+
+  /**
+   * The reset waivers this module declares ({@link addResetWaiver}), in the order declared, as copies
+   * @group Registers
+   */
+  get resetWaivers (): readonly ResetWaiver[] {
+    return this.waivers.map(w => ({ ...w }))
   }
 
   /**
@@ -2191,6 +2247,21 @@ ${caseAssignments}
     ].join('\n')
   }
 
+  /**
+   * The comment block that names this module's reset waivers in its SV, after the port contracts,
+   * or '' for a module without waivers.
+   */
+  private formatResetWaiversAsVerilogComment (): string {
+    if (this.waivers.length === 0) return ''
+    return [
+      '\n   // ------------------------------------------------------------------',
+      '   // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()',
+      '   // ------------------------------------------------------------------',
+      ...this.waivers.map(w => `   // ${w.register}: ${w.reason}`),
+      '   // ------------------------------------------------------------------\n'
+    ].join('\n')
+  }
+
   private applyFormatter (sv: string): string {
     if (Module.formatterConfig.engine === 'verible') {
       return runVerible(sv, Module.formatterConfig)
@@ -2276,6 +2347,10 @@ ${caseAssignments}
    *   and each signal bound to a submodule's reset port. Each must be driven by a submodule
    *   output or a sequential block, or be assigned one of those or an input: as it is, one bit
    *   of it, or inverted (`!r`, `~r`).
+   * - RST-5: every flop has an async reset: each register a sequential block assigns is assigned
+   *   in the reset branch of an async reset, unless a reset waiver ({@link addResetWaiver}) names
+   *   it. A sync reset doesn't count. Each waiver must name such a flop. A module marked as a
+   *   testbench (`markTestbench()`, `tssv/lib/tb/testbench`) is exempt.
    * @param outDir the directory to write to, created if it doesn't exist
    * @returns the paths written, each after every file it includes, so this module's is last
    * @throws `writeSystemVerilogFiles: <name> was imported with addSystemVerilogSubmodule(), ...`
@@ -2569,7 +2644,7 @@ ${bindingsArray.join(',\n')}
    (
 ${IOString}
    );
-${opt(this.formatParametersAsVerilogComment(this.params))}${opt(this.formatPortContractsAsVerilogComment())}${opt(signalString)}
+${opt(this.formatParametersAsVerilogComment(this.params))}${opt(this.formatPortContractsAsVerilogComment())}${opt(this.formatResetWaiversAsVerilogComment())}${opt(signalString)}
 ${opt(this.body)}${opt(generatedBody)}
 endmodule
 `
@@ -2582,7 +2657,14 @@ endmodule
         if (module.IOs[port]?.isReset) resetBindings.push({ instance, port, binding: bindings[port].toString() })
       }
     }
-    checkModule({ name: this.name, signals: { ...this.IOs, ...this.signals }, interfaces: Object.keys(this.interfaces), resetBindings }, moduleString)
+    checkModule({
+      name: this.name,
+      signals: { ...this.IOs, ...this.signals },
+      interfaces: Object.keys(this.interfaces),
+      resetBindings,
+      resetWaivers: this.resetWaivers,
+      testbench: moduleString.split('\n').some(line => line.trim() === TESTBENCH_MARKER)
+    }, moduleString)
 
     return moduleString
   }

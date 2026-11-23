@@ -80,6 +80,7 @@ class Leaf extends Module {
       q: { direction: 'output', width: params.width }
     }
     this.addRegister({ d: 'd', clk: 'clk', q: 'q' })
+    this.addResetWaiver('q', 'a test of file emission, with no reset')
   }
 }
 
@@ -95,6 +96,7 @@ class MidA extends Module {
     }
     this.addInterface('mem', new Memory(MEMORY, 'inward'))
     this.addRegister({ d: 'mem.ADDR', clk: 'clk', en: 'mem.RE', q: 'mem.DATA_RD' })
+    this.addResetWaiver('mem.DATA_RD', 'a test of file emission, with no reset')
     this.addAssign({ in: new Expr("1'b1"), out: 'mem.READY' })
     this.addSubmodule('u_leaf8', new Leaf({ width: 8 }), { clk: 'clk', d: 'a_d', q: 'a_q' }, false)
     this.addSubmodule('u_leaf16', new Leaf({ width: 16 }), { clk: 'clk', d: 'b_d', q: 'b_q' }, false)
@@ -263,6 +265,7 @@ class Named extends Module {
     super({ name })
     this.IOs = { clk: CLK, d: { direction: 'input' }, q: { direction: 'output' } }
     this.addRegister({ d: 'd', clk: 'clk', q: 'q' })
+    this.addResetWaiver('q', 'a test of file emission, with no reset')
   }
 }
 

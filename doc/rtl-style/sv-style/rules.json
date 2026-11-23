@@ -43,6 +43,10 @@
     "checks": ["module", "review"],
     "reason": "writeSystemVerilogFiles() rejects a reset assigned an expression or assigned in a combinational block, in the module that generates it. Review has to catch a reset that isn't marked isReset or bound to a submodule's reset port, one generated in imported SV, and one carried in an interface."
   },
+  "RST-5": {
+    "checks": ["lint", "module", "review"],
+    "reason": "Verilator doesn't flag a flop with no reset. writeSystemVerilogFiles() rejects a flop that no async reset's branch assigns and no reset waiver names, and a waiver that names no such flop. Review has to judge each waiver's reason, and catch what the check can't see: a reset branch under a case or under a condition other than a plain test of the reset, a reset not marked isReset, a vector that its reset branch resets only in part, and flops in imported SV."
+  },
   "LATCH-1": { "movedTo": "BUILD-5" },
   "WIDTH-1": { "checks": ["width"] },
   "WIDTH-2": { "checks": ["width"] },
