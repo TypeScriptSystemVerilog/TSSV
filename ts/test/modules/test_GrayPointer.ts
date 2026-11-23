@@ -82,7 +82,7 @@ let configs = header
 const configList: string[] = []
 TB_CONFIGS.forEach((c, i) => {
   const p = new GrayPointer({ width: c.width, syncStages: c.syncStages })
-  const files = p.writeSystemVerilogFiles(`${OUT}/${p.name}`)
+  const files = p.writeSystemVerilogFiles(`${OUT}/dut/${p.name}`)
   const ports = Object.keys((p as unknown as { IOs: Record<string, unknown> }).IOs).sort().join(' ')
   check(`${p.name}: ports match the spec`, ports === SPEC_PORTS, `got: ${ports}\n  spec: ${SPEC_PORTS}`)
   const top = readFileSync(files[files.length - 1] ?? '', 'utf8')

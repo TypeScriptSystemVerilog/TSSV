@@ -45,8 +45,8 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** emit an AFIFO one module per file under sv-examples/AFIFO/<name>/ and return the paths, the AFIFO's last */
-const emit = (f: AFIFO): string[] => f.writeSystemVerilogFiles(`${OUT}/${f.name}`)
+/** emit an AFIFO one module per file under sv-examples/AFIFO/dut/<name>/ and return the paths, the AFIFO's last */
+const emit = (f: AFIFO): string[] => f.writeSystemVerilogFiles(`${OUT}/dut/${f.name}`)
 const portsOf = (f: AFIFO): string => Object.keys((f as unknown as { IOs: Record<string, unknown> }).IOs).sort().join(' ')
 const fileOf = (files: string[], module: string): string => {
   const path = files.find(p => p.endsWith(`/${module}.sv`))

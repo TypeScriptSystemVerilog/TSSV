@@ -1,7 +1,7 @@
 // Generate the FIR configurations, the inputs for verilatorTB/tb_FIR.sv, and tb_lpFIR:
 //
 // 1. Each configuration in CONFIGS, one definition per file with a lint wrapper that includes it
-//    (sv-examples/FIR/<name>/), checking its ports against the spec's IO tables and its
+//    (sv-examples/FIR/dut/<name>/), checking its ports against the spec's IO tables and its
 //    accumulator width against the accumulatorWidth default (TEST-2)
 // 2. Parameter values the constructor must reject (PARAM-5), and parameters that must or mustn't
 //    name the same module (PARAM-2)
@@ -118,7 +118,7 @@ for (const c of CONFIGS) {
   const accWidth = c.params.accumulatorWidth ?? specAccumulatorWidth(c.params)
   check(`${c.cfg}: sum_q is ${accWidth} bits`, signals.sum_q?.width === accWidth, `sum_q is ${signals.sum_q?.width} bits`)
 
-  const dir = `${OUT}/${fir.name}`
+  const dir = `${OUT}/dut/${fir.name}`
   const design = writeLintWrapped(fir, dir, GENERATOR)
   check(`${c.cfg}: no WIDTH waiver (LINT-3)`, design.every(f => !readFileSync(f, 'utf8').includes('lint_off WIDTH')))
   configList.push(`${c.cfg} ${design[design.length - 1] ?? ''}`)

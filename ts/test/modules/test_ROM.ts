@@ -1,6 +1,6 @@
 // Generate the ROM variants and the inputs for verilatorTB/tb_ROM.sv:
 //
-// 1. Every configuration below, each emitted to sv-examples/ROM/<name>/<name>.sv, its ports checked
+// 1. Every configuration below, each emitted to sv-examples/ROM/dut/<name>/<name>.sv, its ports checked
 //    against the spec, and its words against the ones the spec's parsing rules give. Then the init
 //    data the constructor rejects.
 // 2. sv-examples/ROM/tb/:
@@ -74,13 +74,13 @@ function initFile (name: string, lines: string[]): string {
 interface TbConfig { name: string, dataWidth: number, words: bigint[], file: string }
 const tbConfigs: TbConfig[] = []
 
-// Writes `rom` under sv-examples/ROM/<name>/, checks its file against the spec (its ports, its
+// Writes `rom` under sv-examples/ROM/dut/<name>/, checks its file against the spec (its ports, its
 // words in the case table, no `undefined` (#127)), and returns its SV.
 function emitRom (rom: ROM, dataWidth: number, words: bigint[]): string {
   let file = ''
   let sv = ''
   try {
-    file = rom.writeSystemVerilogFiles(`${OUT}/${rom.name}`).at(-1) ?? ''
+    file = rom.writeSystemVerilogFiles(`${OUT}/dut/${rom.name}`).at(-1) ?? ''
     sv = readFileSync(file, 'utf8')
   } catch (err) {
     console.error(err)

@@ -20,9 +20,9 @@ const SPEC = 'doc/modules/SFIFO/SFIFO-spec.md'
 const TB_DIR = 'sv-examples/SFIFO/tb'
 const DATA_WIDTH = 8n
 
-/** write a FIFO one module per file under sv-examples/SFIFO/<name>/ and return the path of its own file */
+/** write a FIFO one module per file under sv-examples/SFIFO/dut/<name>/ and return the path of its own file */
 function emit (fifo: SFIFO): string {
-  return fifo.writeSystemVerilogFiles(`sv-examples/SFIFO/${fifo.name}`).at(-1) ?? ''
+  return fifo.writeSystemVerilogFiles(`sv-examples/SFIFO/dut/${fifo.name}`).at(-1) ?? ''
 }
 
 /** the port list the spec's IO tables give for a configuration */
@@ -55,7 +55,7 @@ for (const simult of [true, false]) {
   const fifo = new SFIFO({ dataWidth: DATA_WIDTH, depth: 4n, macroConfig: 'hd', minMacroBits: 2048n })
   emit(fifo)
   const { submodules } = fifo as unknown as { submodules: Record<string, { module: { name: string } }> }
-  const sv = readFileSync(`sv-examples/SFIFO/${fifo.name}/${submodules.u_sram?.module.name ?? ''}.sv`, 'utf8')
+  const sv = readFileSync(`sv-examples/SFIFO/dut/${fifo.name}/${submodules.u_sram?.module.name ?? ''}.sv`, 'utf8')
   for (const want of ['// macroConfig = hd', '// minMacroBits = 2048n']) {
     if (!sv.includes(want)) throw Error(`${fifo.name}: its SRAM's parameters don't include "${want}"`)
   }

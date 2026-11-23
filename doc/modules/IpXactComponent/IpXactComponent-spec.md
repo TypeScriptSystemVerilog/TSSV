@@ -197,7 +197,7 @@ endmodule
 
 ### The generated wrapper
 
-The wrapper module, as the test writes it to `sv-examples/IpXactComponent/adderComponent/adderComponent.sv`, inside its guard and include block:
+The wrapper module, as the test writes it to `sv-examples/IpXactComponent/dut/adderComponent/adderComponent.sv`, inside its guard and include block:
 
 ```systemverilog
 module adderComponent (
@@ -258,9 +258,9 @@ The script wraps three sample components. Each pairs an IP-XACT XML file, which 
 
 | Component | XML | SystemVerilog | Output |
 |---|---|---|---|
-| `axiComponent` | `ts/test/modules/IpxactComponent/AXI/axiSample.xml` | `ts/test/modules/IpxactComponent/AXI/architectureSample.sv` | `sv-examples/IpXactComponent/axiComponent/` |
-| `apbComponent` | `ts/test/modules/IpxactComponent/APB/apbSample.xml` | `ts/test/modules/IpxactComponent/APB/apbArchitecture.sv` | `sv-examples/IpXactComponent/apbComponent/` |
-| `adderComponent` | `ts/test/modules/IpxactComponent/Adder/adder.xml` | `ts/test/modules/IpxactComponent/Adder/apb_adder.sv` | `sv-examples/IpXactComponent/adderComponent/` |
+| `axiComponent` | `ts/test/modules/IpxactComponent/AXI/axiSample.xml` | `ts/test/modules/IpxactComponent/AXI/architectureSample.sv` | `sv-examples/IpXactComponent/dut/axiComponent/` |
+| `apbComponent` | `ts/test/modules/IpxactComponent/APB/apbSample.xml` | `ts/test/modules/IpxactComponent/APB/apbArchitecture.sv` | `sv-examples/IpXactComponent/dut/apbComponent/` |
+| `adderComponent` | `ts/test/modules/IpxactComponent/Adder/adder.xml` | `ts/test/modules/IpxactComponent/Adder/apb_adder.sv` | `sv-examples/IpXactComponent/dut/adderComponent/` |
 
 Each is instantiated as in the example. For each component, the script writes one definition per file with `writeSystemVerilogFiles()`: the wrapper (`<component>.sv`), the interface its ports use, and the sample's SV file, copied untouched inside its `SVIMPORT__` guard. It also writes a lint wrapper, `<component>_lint_top.sv`, that instantiates the interfaces and includes `<component>.sv`, for `verilator --lint-only -Wall +define+USE_INCLUDES`.
 
@@ -283,7 +283,7 @@ Run it from the repo root:
 ```bash
 npx tsc
 node out/test/modules/IpxactComponent/componentExample.js
-verilator --lint-only -Wall doc/rtl-style/sv-style/common_waivers.vlt +define+USE_INCLUDES +incdir+sv-examples/IpXactComponent/axiComponent sv-examples/IpXactComponent/axiComponent/axiComponent_lint_top.sv
+verilator --lint-only -Wall doc/rtl-style/sv-style/common_waivers.vlt +define+USE_INCLUDES +incdir+sv-examples/IpXactComponent/dut/axiComponent sv-examples/IpXactComponent/dut/axiComponent/axiComponent_lint_top.sv
 ```
 
 The last command also reports the sample module's own findings, all of them in `architectureSample.sv`, and none in the wrapper.

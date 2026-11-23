@@ -41,9 +41,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write a synchronizer's SV under sv-examples/CDCSynchronizer/<name>/ and return its own file's text and path */
+/** write a synchronizer's SV under sv-examples/CDCSynchronizer/dut/<name>/ and return its own file's text and path */
 function emit (s: CDCSynchronizer): { sv: string, path: string } {
-  const path = s.writeSystemVerilogFiles(`${OUT}/${s.name}`).at(-1) ?? ''
+  const path = s.writeSystemVerilogFiles(`${OUT}/dut/${s.name}`).at(-1) ?? ''
   return { sv: readFileSync(path, 'utf8'), path }
 }
 

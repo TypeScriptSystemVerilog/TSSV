@@ -207,7 +207,7 @@ _Latency from `rd_en` and `addr` to `data_out`: **1 clock cycle**._
 ## Test Plan
 
 **Test script:** `ts/test/modules/test_ROM.ts`
-**Output:** `sv-examples/ROM/<name>/<name>.sv`; the init files the script writes for its own cases, in `sv-examples/ROM/init/`
+**Output:** `sv-examples/ROM/dut/<name>/<name>.sv`; the init files the script writes for its own cases, in `sv-examples/ROM/init/`
 
 The script checks every configuration's ports against [IO Ports](#io-ports), that each expected word is in the case table, and that the SV has no `undefined` (#127). It exits nonzero on any failure.
 
