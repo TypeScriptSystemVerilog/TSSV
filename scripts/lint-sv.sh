@@ -9,6 +9,11 @@
 # its own: its lint reaches everything it includes. An included file is never linted alone, since
 # one with interface ports can't be a top.
 #
+# A generated testbench's build folder, <dir>/preloaded/<configuration>/<testcase>/ or
+# <dir>/reloaded/<configuration>/, finds its DUT in <dir>/dut/<configuration>/ when its runner gave
+# the testbench generator a buildDut (dutDirOf() in doc/rtl-style/tools/verilator.mjs). Its
+# includes are resolved there too, and its lint puts that folder on the include path.
+#
 # A Verilator filelist, <top>.f, ties generated SV to a testbench outside sv-examples/
 # (ts/test/models/lintFilelist.ts). Each filelist is linted with -F, and the .sv files it names
 # aren't tops.
@@ -34,6 +39,15 @@ fi
 passed=0
 failures=()
 declare -A grouped
+
+# dut_dir <dir>: the DUT folder of build folder <dir>, if it has one that exists
+dut_dir() {
+  if [[ $1 =~ ^(.*)/(preloaded|reloaded)/([^/]+)(/.*)?$ ]]; then
+    local d="${BASH_REMATCH[1]}/dut/${BASH_REMATCH[3]}"
+    [ -d "$d" ] && echo "$d"
+  fi
+  return 0
+}
 
 # lint <label> <verilator args...>
 lint() {
@@ -62,19 +76,24 @@ svfiles=()
 while IFS= read -r -d '' file; do svfiles+=("$file"); done \
   < <(find sv-examples -path sv-examples/rtl_style_ts -prune -o -name "*.sv" -print0 | sort -z)
 
-# The files another file includes, each from the including file's directory
+# The files another file includes, each from the including file's directory, or from its DUT
+# folder if it isn't there
 declare -A included
 for file in "${svfiles[@]}"; do
   dir=$(dirname "$file")
+  dut=$(dut_dir "$dir")
   # sed prints <file> from each include line, `include "<file>"
   while IFS= read -r inc; do
-    included[$(realpath -m --relative-to=. "$dir/$inc")]=1
+    path="$dir/$inc"
+    [[ ! -e $path && -n $dut && -e "$dut/$inc" ]] && path="$dut/$inc"
+    included[$(realpath -m --relative-to=. "$path")]=1
   done < <(sed -n 's/^[[:space:]]*`include[[:space:]]*"\([^"]*\)".*/\1/p' "$file")
 done
 
 for file in "${svfiles[@]}"; do
   [[ -n ${grouped[$file]} || -n ${included[$file]} ]] && continue
-  lint "$file" +define+USE_INCLUDES "+incdir+$(dirname "$file")" "$file"
+  dut=$(dut_dir "$(dirname "$file")")
+  lint "$file" +define+USE_INCLUDES "+incdir+$(dirname "$file")" ${dut:+"+incdir+$dut"} "$file"
 done
 
 echo ""

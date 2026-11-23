@@ -275,7 +275,9 @@ tb_examples_sim: tsc
 # every run: `mode configuration testcase top buildDir runDir`, the folders relative to the index.
 # For each index, this checks each harness (scripts/check-harness.mjs) and builds each top once,
 # into obj_dir/<DUT>/<testbench>/<top>/, then runs every line from its run folder, so a reloaded
-# build runs once per testcase. A failed run exits nonzero, as in tb_examples_sim.
+# build runs once per testcase. A build also puts the configuration's DUT folder,
+# <DUT>/<testbench>/dut/<configuration>/, on the include path when it exists: the runner gave the
+# generator a buildDut. A failed run exits nonzero, as in tb_examples_sim.
 TB_REGRESSION_RUNNERS = test_SliceOrderTB test_SliceCycleTB test_SFIFOWaveTB test_loadBusTB
 
 tb_regression_sim: tsc
@@ -285,7 +287,8 @@ tb_regression_sim: tsc
 	  while read -r mode cfg tc top build run; do \
 	    case "$$built" in *" $$top "*) ;; *) \
 	      (cd .. && node scripts/check-harness.mjs $${d#../}/$$build/$$top.sv) < /dev/null; \
-	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build $$d/$$build/$$top.sv \
+	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build \
+	        $$([ -d $$d/dut/$$cfg ] && echo -I$$d/dut/$$cfg) $$d/$$build/$$top.sv \
 	        > $$o/$$top.build.log 2>&1 < /dev/null || { cat $$o/$$top.build.log; exit 1; }; \
 	      built="$$built$$top ";; \
 	    esac; \

@@ -18,6 +18,11 @@
  *         file per definition, and the testbench lints with USE_INCLUDES naming only its file
  * Test 7: names that differ only in case, and names that aren't identifiers, throw before
  *         anything is written
+ * Test 8: a DUT written to a folder of its own, and a testbench written to another with
+ *         `omit: [dut]`: the testbench's folder leaves out the DUT and what only it reaches,
+ *         keeps what another module also instantiates, still includes the DUT, and lints with
+ *         both folders on the include path; omitting a module the top doesn't reach, or the top
+ *         itself, throws
  */
 import { Module, Expr, type TSSVParameters, TSSV_ROOT } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
@@ -128,7 +133,7 @@ class MidB extends Module {
 }
 
 class Top extends Module {
-  constructor () {
+  constructor (a: MidA = new MidA()) {
     super({ name: 'Top' })
     this.IOs = {
       clk: CLK,
@@ -148,7 +153,7 @@ class Top extends Module {
       g_q: { direction: 'output', width: 8 }
     }
     this.addInterface('w_mem', new Memory(MEMORY))
-    this.addSubmodule('u_a', new MidA(),
+    this.addSubmodule('u_a', a,
       { clk: 'clk', a_d: 'a_d', a_q: 'a_q', b_d: 'b_d', b_q: 'b_q', mem: 'w_mem' }, false)
     this.addSubmodule('u_b', new MidB(), {
       clk: 'clk',
@@ -294,6 +299,49 @@ const identError = errorOf(new Pair('ok_name', 'bad-name'), `${OUT}/errors/ident
 check('a name that isn\'t an identifier throws, naming it and its parent',
   identError.includes('module bad-name') && identError.includes('used by Pair'), identError)
 check('nothing is written when emission throws', !existsSync(`${OUT}/errors`))
+
+// ---- Test 8: a DUT in a folder of its own, omitted from the testbench's -----------------------
+// Laid out as the testbench generator lays out a build and its DUT, <dir>/preloaded/<cfg>/ and
+// <dir>/dut/<cfg>/, so that scripts/lint-sv.sh and check-generated-sv find the DUT as well.
+const SPLIT_DUT = `${OUT}/omit/dut/split`
+const SPLIT_TB = `${OUT}/omit/preloaded/split`
+const dutA = new MidA()
+const splitDut = dutA.writeSystemVerilogFiles(SPLIT_DUT).map(f => basename(f, '.sv'))
+const splitTb = new Top(dutA).writeSystemVerilogFiles(SPLIT_TB, { omit: [dutA] }).map(f => basename(f, '.sv'))
+check('the DUT\'s folder holds the DUT and everything it reaches',
+  sorted(new Set(splitDut)) === sorted(new Set(['MidA', 'Leaf_8', 'Leaf_16', 'memory_rd_only_32_32'])), splitDut.join(', '))
+check('the testbench\'s folder leaves out the omitted module and what only it reaches',
+  !splitTb.includes('MidA') && !splitTb.includes('Leaf_16'), splitTb.join(', '))
+check('a module that a written module also instantiates is still written',
+  splitTb.includes('Leaf_8') && splitTb.includes('MidB'), splitTb.join(', '))
+check('the parent still includes the omitted module',
+  includes(readFileSync(`${SPLIT_TB}/Top.sv`, 'utf8')).includes('MidA'))
+if (probe.status === 0) {
+  const run = spawnSync('verilator', ['--lint-only', '-Wall', `${TSSV_ROOT}/doc/rtl-style/sv-style/common_waivers.vlt`,
+    '+define+USE_INCLUDES', `+incdir+${SPLIT_TB}`, `+incdir+${SPLIT_DUT}`, `${SPLIT_TB}/Top.sv`], { encoding: 'utf8' })
+  check('the testbench lints with both folders on the include path', run.status === 0, `${run.stdout}${run.stderr}`)
+}
+const strangerError = ((): string => {
+  try {
+    new Top().writeSystemVerilogFiles(`${OUT}/errors/omit`, { omit: [new MidA()] })
+  } catch (e) {
+    return (e as Error).message
+  }
+  return ''
+})()
+check('omitting a module the top doesn\'t reach throws, naming it',
+  strangerError === 'writeSystemVerilogFiles: Top can\'t omit MidA: it doesn\'t instantiate it, directly or through a submodule', strangerError)
+const selfTop = new Top()
+const selfError = ((): string => {
+  try {
+    selfTop.writeSystemVerilogFiles(`${OUT}/errors/omit`, { omit: [selfTop] })
+  } catch (e) {
+    return (e as Error).message
+  }
+  return ''
+})()
+check('omitting the top itself throws', selfError === 'writeSystemVerilogFiles: Top can\'t omit itself', selfError)
+check('nothing is written when an omission throws', !existsSync(`${OUT}/errors`))
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

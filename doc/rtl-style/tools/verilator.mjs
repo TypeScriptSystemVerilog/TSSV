@@ -1,7 +1,7 @@
 // Shared helpers for the doc/rtl-style checks of both guides: the Verilator pin, linting and simulation.
 
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,15 +37,42 @@ export function requirePinnedVerilator () {
 // (+incdir+<dir>), so naming a top file brings in everything it reaches.
 export const USE_INCLUDES = '+define+USE_INCLUDES'
 
+// A generated testbench's build folder, <dir>/preloaded/<configuration>/<testcase>/ or
+// <dir>/reloaded/<configuration>/, finds its DUT in <dir>/dut/<configuration>/ when its runner gave
+// the testbench generator a buildDut (ts/src/tb/testbenchGenerator.ts, DUT_DIR). Returns that DUT
+// folder for directory `dir` if it exists, otherwise undefined. scripts/lint-sv.sh and
+// verilatorTB/Makefile's tb_regression_sim follow the same rule.
+export function dutDirOf (dir) {
+  const m = /^(.*)\/(?:preloaded|reloaded)\/([^/]+)(?:\/.*)?$/.exec(dir)
+  if (m === null) return undefined
+  const dut = join(m[1], 'dut', m[2])
+  return existsSync(dut) ? dut : undefined
+}
+
+// The include path of SV file `file`: its own directory, then its DUT folder if it has one.
+export function includeDirs (file) {
+  const dir = dirname(file)
+  const dut = dutDirOf(dir)
+  return dut === undefined ? [dir] : [dir, dut]
+}
+
+// The file that an include line in `file`, `include "<name>", names: the first directory of
+// includeDirs(file) that holds it, or `file`'s own directory if none does.
+export function resolveInclude (file, name) {
+  const dirs = includeDirs(file)
+  return dirs.map((d) => join(d, name)).find((p) => existsSync(p)) ?? join(dirs[0], name)
+}
+
 // The lint tops among `files`, SV paths: each file that no file in `files` includes. A file
-// includes another by name, from its own directory. A top's lint reaches everything it includes,
-// so an included file is never linted alone: one with interface ports would fail as a top.
+// includes another by name, from its include path (includeDirs()). A top's lint reaches
+// everything it includes, so an included file is never linted alone: one with interface ports
+// would fail as a top.
 export function lintTops (files) {
   const included = new Set()
   for (const file of files) {
     // An include line, `include "<file>", capturing <file>
     for (const m of readFileSync(file, 'utf8').matchAll(/^[ \t]*`include[ \t]+"([^"]+)"/gm)) {
-      included.add(join(dirname(file), m[1]))
+      included.add(resolveInclude(file, m[1]))
     }
   }
   return files.filter((f) => !included.has(join(f)))

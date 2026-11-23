@@ -764,6 +764,16 @@ generator itself is one function, with no name and no knowledge of any DUT or pr
 SliceOrder (`ts/test/tb/test_SliceOrderTB.ts`) is the example; its TB spec is
 [examples/StreamSlice-tb-spec.md](examples/StreamSlice-tb-spec.md).
 
+**The DUT is built once per configuration.** A runner also gives the generator `buildDut`, a
+function that builds the DUT from a configuration alone. The generator calls it once per
+configuration, writes the DUT to `dut/<configuration>/`, and passes it to every harness of that
+configuration as `build.dut`, which the harness instantiates as it is (`harnessDut(build)`). Each
+build folder leaves the DUT out and finds it on the include path. So the DUT's RTL is written,
+and reviewed, once per configuration, not once per testcase and run mode, and a DUT is never named
+after a run. Each `dut/<configuration>/` folder holds the DUT's whole hierarchy and nothing from a
+testbench, and a build compiles it as a unit, so module names need to be unique only within it.
+Without `buildDut`, each harness builds its own DUT and every build folder holds a copy.
+
 ### The flow
 
 **Diagram 3: generating and running testbenches.** The runner writes the two kinds of input file.
@@ -1040,10 +1050,17 @@ Under `<outRoot>/<DUT>/<testbench>/`, `sv-examples/tb/StreamSlice/SliceOrder/` f
 regression.txt                         a line per run
 configurations/<cfg>.json              the runner's input
 testcases/<tc>/<tc>.json + files       the runner's input
+dut/<cfg>/                             the configuration's DUT, with buildDut: every module and interface it reaches
 preloaded/<cfg>/<tc>/                  the SV, <cfg>.json, patterns/<tc>.json and its files
 reloaded/<cfg>/                        the SV, <cfg>.json
 reloaded/<cfg>/<tc>/patterns/          <tc>.json, its files, load.txt
 ```
+
+With `buildDut`, a build folder's SV leaves the DUT out, and its harness still includes the DUT's
+file by name: a build puts `dut/<cfg>/` on the include path beside the build folder. The index
+doesn't list the DUT folder, since it follows from the configuration's name. TSSV's harness and
+lint checks (`check-harness.mjs`, `scripts/lint-sv.sh`, `check-generated-sv.mjs`) find it the same
+way, through `dutDirOf()` in `doc/rtl-style/tools/verilator.mjs`, so they take no extra argument.
 
 | Mode | SimTop | Harness | Build | Run in |
 |---|---|---|---|---|
@@ -1190,18 +1207,22 @@ testbenches; given a SimTop that way, it fails, as it should. Each script exits 
    takes a `HarnessBuild`, builds each component with the mode and `build.memory()`, and registers
    each component's memories with `registerMemories()`
    ([Configurations, testcases and the generator](#configurations-testcases-and-the-generator)).
+   It instantiates the DUT it is given, `harnessDut(build)`, and doesn't build one of its own.
+   (TSSV's example harnesses take `build.dut` and fall back to building the same DUT, because
+   `test_testbenchGenerator.ts` also builds them without `buildDut`.)
 4. **The configurations and testcases.** The runner writes each configuration with
    `writeConfiguration()`, and each testcase's pattern files and manifest
    ([pattern-files.md](pattern-files.md)) with `writePatternFile()` and `writeManifest()`, using a
    record stream's `injectorLayout()` and `checkerLayout()`. A generator in another language
    writes the same files.
 5. **The runner** calls `generateTestbenches()` with the DUT and testbench names, the files, the
-   modes the TB spec supports, the project's parameter check, and the harness. It writes to
+   modes the TB spec supports, the project's parameter check, the harness, and `buildDut`, which
+   builds the DUT from a configuration and names it by its parameters. It writes to
    `sv-examples/tb/<DUT>/<testbench>/`, on a path that starts at the repo's root
    (`` `${TSSV_ROOT}/sv-examples/tb` `` in TSSV). Pick `maxCycles` well above the cycles the test
    needs: it is the only timeout.
 6. **Build and run.** For each line of `regression.txt`,
-   `verilator --binary --timing +define+USE_INCLUDES -I<build> <build>/<top>.sv` builds the top,
+   `verilator --binary --timing +define+USE_INCLUDES -I<build> -Idut/<cfg> <build>/<top>.sv` builds the top,
    once, and it runs from the line's run folder, where its pattern file paths lead; its exit
    status is the result. Run `check-harness` on it too. In TSSV, add the runner to
    `TB_REGRESSION_RUNNERS` in `verilatorTB/Makefile`, and `tb_regression_sim` does all of this.

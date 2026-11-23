@@ -12,10 +12,17 @@
 //   - Reloaded: one build per configuration, run once per testcase. Each testcase's folder holds
 //     its files and the load list SimTop reads at run time.
 //
+// With `buildDut`, the runner builds each configuration's DUT once, and the generator writes it to
+// `dut/<configuration>/`, a folder of its own: the DUT's whole hierarchy and nothing from a
+// testbench. Every build of that configuration instantiates the same DUT but leaves it out of its
+// own folder, and finds it on the include path. So a DUT is written once per configuration, not
+// once per testcase and run mode, and a reviewer reads it in one place.
+//
 // Everything is built and checked before anything is written, so a bad configuration or testcase
 // leaves the previous output as it was.
 import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { basename, dirname, join } from 'path'
+import { type Module } from 'tssv/lib/core/TSSV'
 import { type Harness } from './Harness.js'
 import { type PatternMemoryMode } from './PatternMemory.js'
 import { readManifest, readPatternWords, SNAKE_CASE, type Manifest } from './patternFile.js'
@@ -36,6 +43,12 @@ export interface HarnessBuild<P> {
    * memory the configuration or the testcase has no entry for.
    */
   memory: (path: string) => { depth: number, file?: string, records?: number }
+  /**
+   * The configuration's DUT, which the runner's `buildDut` built, for the harness to instantiate
+   * as it is: {@link harnessDut} returns it. Every build of the configuration gets the same one.
+   * Undefined when the runner gives no `buildDut`.
+   */
+  dut?: Module
 }
 
 export interface GenerateTestbenches_Parameters<P> {
@@ -61,6 +74,13 @@ export interface GenerateTestbenches_Parameters<P> {
   parameters: (raw: Record<string, JsonValue>, where: string) => P
   /** Builds the harness, which calls `registerMemories()` for each component with pattern memories. */
   harness: (build: HarnessBuild<P>) => Harness
+  /**
+   * Builds the DUT from a configuration alone, so it can't be named after a run. Called once per
+   * configuration. The generator passes the DUT to every harness of the configuration as
+   * `build.dut`, writes it once to `dut/<configuration>/` (`DUT_DIR`), and leaves it out of every
+   * build folder. Without it, each harness builds its own DUT and every build folder holds a copy.
+   */
+  buildDut?: (config: TestbenchConfiguration<P>) => Module
 }
 
 /**
@@ -85,10 +105,39 @@ export interface GeneratedTestbench {
   buildDir: string
   /** The folder to run the build in, where `patterns/` is, relative to the index's folder. */
   runDir: string
+  /**
+   * The folder with the configuration's DUT, `dut/<configuration>`, relative to the index's folder,
+   * when the runner gave `buildDut`. A build puts it on the include path beside `buildDir`. The
+   * index doesn't list it: it follows from the configuration's name.
+   */
+  dutDir?: string
 }
 
 /** The regression index's file name, in `<outRoot>/<dut>/<testbench>/`. */
 export const REGRESSION_INDEX = 'regression.txt'
+
+/**
+ * The folder, in `<outRoot>/<dut>/<testbench>/`, that holds a folder per configuration with its
+ * DUT, when the runner gives `buildDut`. The build folders beside it, `preloaded/<configuration>/`
+ * and `reloaded/<configuration>/`, find their DUT in `dut/<configuration>/`. TSSV's lint and
+ * harness checks (doc/rtl-style/tools/verilator.mjs, `dutDirOf()`) and the regression builds
+ * follow the same rule.
+ */
+export const DUT_DIR = 'dut'
+
+/** A configuration's DUT folder, relative to `<outRoot>/<dut>/<testbench>/`. */
+export function dutDir (configuration: string): string {
+  return `${DUT_DIR}/${configuration}`
+}
+
+/**
+ * The DUT a harness instantiates when the runner gives `buildDut`: `build.dut`. Throws if there is
+ * none, so a harness written for `buildDut` can't quietly build a DUT of its own.
+ */
+export function harnessDut (build: { name: string, dut?: Module }): Module {
+  if (build.dut === undefined) throw Error(`${build.name}: the harness instantiates build.dut, so give generateTestbenches a buildDut`)
+  return build.dut
+}
 
 // An SV identifier: a letter or '_', then letters, digits and '_'
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/
@@ -189,8 +238,9 @@ function forPair<T> (top: string, build: () => T): T {
 /**
  * Generates the testbenches of every configuration and testcase in each mode, under
  * `<outRoot>/<dut>/<testbench>/`, and writes the regression index, `regression.txt`, a line per
- * run. Removes the `preloaded/` and `reloaded/` folders there first, and nothing else. Returns
- * the runs, as the index lists them.
+ * run. With `buildDut`, each configuration's DUT goes to `dut/<configuration>/` once, and the
+ * build folders leave it out. Removes the `preloaded/`, `reloaded/` and `dut/` folders there
+ * first, and nothing else. Returns the runs, as the index lists them.
  */
 export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): GeneratedTestbench[] {
   for (const [key, value] of [['dut', p.dut], ['testbench', p.testbench]]) {
@@ -231,8 +281,25 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
   const idle = configNames.find(cfg => runsWith(cfg).length === 0)
   if (idle !== undefined) throw Error(`${what}: configuration ${idle} runs no testcase; name it in a testcase's configurations, or leave it out`)
 
+  // Each configuration's DUT, built once from the configuration alone, before any harness
+  const duts = new Map<string, Module>()
+  const buildDut = p.buildDut
+  if (buildDut !== undefined) {
+    for (const { config } of configs) {
+      try {
+        duts.set(config.configuration, buildDut(config))
+      } catch (e) {
+        throw Error(`${what}: configuration ${config.configuration}: ${(e as Error).message}`)
+      }
+    }
+  }
+  // Checks that a harness instantiates the DUT it was given, so the build folder can leave it out
+  const checkDut = (top: string, harness: Harness, dut: Module | undefined): void => {
+    if (dut !== undefined && !harness.instantiates(dut)) throw Error(`${top}: the harness doesn't instantiate build.dut; get it with harnessDut(build)`)
+  }
+
   // Build and check every pair before writing anything
-  const builds: Array<{ top: SimTop, buildDir: string, configPath: string }> = []
+  const builds: Array<{ top: SimTop, buildDir: string, configPath: string, dut?: Module }> = []
   const runs: Array<{ run: GeneratedTestbench, manifestPath: string, manifest: Manifest, loadList?: string }> = []
   const tops = new Map<string, string>() // a top's name, and the build it names
   const claim = (top: string, build: string): void => {
@@ -243,6 +310,8 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
   for (const mode of p.modes) {
     for (const { path: configPath, config } of configs) {
       const cfg = config.configuration
+      const dut = duts.get(cfg)
+      const dutFolder = dut === undefined ? {} : { dutDir: dutDir(cfg) }
       const depth = (top: string, path: string): number => {
         const d = config.depths[path]
         if (d === undefined) throw Error(`${top}: configuration ${cfg} has no depth for ${path}`)
@@ -252,19 +321,20 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
         const names = testbenchNames(p.testbench, mode, cfg, '')
         claim(names.top, `reloaded ${cfg}`)
         const { top, harness } = forPair(names.top, () => {
-          const harness = p.harness({ config, name: names.harness, mode, memory: path => ({ depth: depth(names.top, path) }) })
+          const harness = p.harness({ config, name: names.harness, mode, memory: path => ({ depth: depth(names.top, path) }), dut })
+          checkDut(names.top, harness, dut)
           checkReloaded(names.top, harness)
           checkConfiguration(names.top, harness, config)
           return { top: new SimTop({ name: names.top, harness, maxCycles: config.maxCycles, resetCycles: config.resetCycles }), harness }
         })
-        builds.push({ top, buildDir: names.buildDir, configPath })
+        builds.push({ top, buildDir: names.buildDir, configPath, dut })
         for (const { path: manifestPath, manifest } of runsWith(cfg)) {
           const tc = testbenchNames(p.testbench, mode, cfg, manifest.testcase)
           const loadList = forPair(names.top, () => {
             checkTestcase(names.top, harness, manifestPath, manifest)
             return formatLoadList(harness, manifest)
           })
-          runs.push({ run: { mode, configuration: cfg, testcase: manifest.testcase, top: names.top, buildDir: names.buildDir, runDir: tc.runDir }, manifestPath, manifest, loadList })
+          runs.push({ run: { mode, configuration: cfg, testcase: manifest.testcase, top: names.top, buildDir: names.buildDir, runDir: tc.runDir, ...dutFolder }, manifestPath, manifest, loadList })
         }
       } else {
         for (const { path: manifestPath, manifest } of runsWith(cfg)) {
@@ -276,24 +346,27 @@ export function generateTestbenches<P> (p: GenerateTestbenches_Parameters<P>): G
             return { depth: depth(names.top, path), file: `patterns/${f.file}`, records: f.records }
           }
           const top = forPair(names.top, () => {
-            const harness = p.harness({ config, name: names.harness, mode, memory })
+            const harness = p.harness({ config, name: names.harness, mode, memory, dut })
+            checkDut(names.top, harness, dut)
             checkConfiguration(names.top, harness, config)
             checkTestcase(names.top, harness, manifestPath, manifest)
             return new SimTop({ name: names.top, harness, maxCycles: config.maxCycles, resetCycles: config.resetCycles })
           })
-          builds.push({ top, buildDir: names.buildDir, configPath })
-          runs.push({ run: { mode, configuration: cfg, testcase: manifest.testcase, top: names.top, buildDir: names.buildDir, runDir: names.runDir }, manifestPath, manifest })
+          builds.push({ top, buildDir: names.buildDir, configPath, dut })
+          runs.push({ run: { mode, configuration: cfg, testcase: manifest.testcase, top: names.top, buildDir: names.buildDir, runDir: names.runDir, ...dutFolder }, manifestPath, manifest })
         }
       }
     }
   }
 
-  // Write: each build's SV and configuration, each run's patterns, and the index
+  // Write: each configuration's DUT, each build's SV without it and its configuration, each run's
+  // patterns, and the index
   const outDir = join(p.outRoot, p.dut, p.testbench)
-  for (const mode of ['preloaded', 'reloaded']) rmSync(join(outDir, mode), { recursive: true, force: true })
+  for (const folder of ['preloaded', 'reloaded', DUT_DIR]) rmSync(join(outDir, folder), { recursive: true, force: true })
+  for (const [cfg, dut] of duts) dut.writeSystemVerilogFiles(join(outDir, dutDir(cfg)))
   for (const b of builds) {
     const dir = join(outDir, b.buildDir)
-    b.top.writeSystemVerilogFiles(dir)
+    b.top.writeSystemVerilogFiles(dir, { omit: b.dut === undefined ? [] : [b.dut] })
     copyFileSync(b.configPath, join(dir, basename(b.configPath)))
   }
   for (const r of runs) {

@@ -235,6 +235,14 @@ export class Harness extends TSSV.Module {
   }
 
   /**
+   * Whether `module` is one of this harness's own submodules. The testbench generator checks
+   * that a harness instantiates the DUT it was given (`HarnessBuild.dut`).
+   */
+  instantiates (module: TSSV.Module): boolean {
+    return Object.values(this.submodules).some(s => s.module === module)
+  }
+
+  /**
    * Registers the pattern memories of `component`, instance `instance` of this harness, and
    * returns the bindings its load port needs, to spread into its `addSubmodule()` call:
    *
