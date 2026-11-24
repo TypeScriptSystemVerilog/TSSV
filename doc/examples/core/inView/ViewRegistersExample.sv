@@ -1,0 +1,46 @@
+`ifndef DEF__ViewRegistersExample__
+`define DEF__ViewRegistersExample__
+`ifdef USE_INCLUDES
+`ifdef TSSV_SIM
+`include "SaturationMonitor.sv"
+`endif
+`endif //USE_INCLUDES
+
+module ViewRegistersExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+`ifdef TSSV_SIM
+  logic [7:0] d_q;
+  logic [7:0] d_qq;
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      d_q  <= '0;
+      d_qq <= '0;
+    end else begin
+      d_q  <= d;
+      d_qq <= d_q;
+    end
+
+  SaturationMonitor u_mon (
+      .value(d_qq),
+      .clk  (clk)
+  );
+
+`endif
+
+endmodule
+
+`endif //!DEF__ViewRegistersExample__

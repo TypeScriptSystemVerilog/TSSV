@@ -1,0 +1,54 @@
+`ifndef DEF__SiblingConstantExample__
+`define DEF__SiblingConstantExample__
+`ifdef USE_INCLUDES
+`include "LimitCheck.sv"
+`endif //USE_INCLUDES
+
+module SiblingConstantExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic fail,
+    output logic vendor_fail
+);
+  const logic [7:0] const_w8u100 = 8'd100;
+
+
+  LimitCheck u_chk (
+      .value(d),
+      .limit(const_w8u100),
+      .fail (fail),
+      .clk  (clk),
+      .rst_b(rst_b)
+  );
+
+`ifdef TSSV_XILINX
+  const logic [7:0] const_w8u50 = 8'd50;
+
+  LimitCheck u_x_chk (
+      .value(d),
+      .limit(const_w8u50),
+      .fail (vendor_fail),
+      .clk  (clk),
+      .rst_b(rst_b)
+  );
+
+`elsif TSSV_ALTERA
+  const logic [7:0] const_w8u50_v2 = 8'd50;
+
+  LimitCheck u_a_chk (
+      .value(d),
+      .limit(const_w8u50_v2),
+      .fail (vendor_fail),
+      .clk  (clk),
+      .rst_b(rst_b)
+  );
+
+`else
+  assign vendor_fail = 1'b0;
+
+`endif
+
+endmodule
+
+`endif //!DEF__SiblingConstantExample__

@@ -1,0 +1,24 @@
+`ifndef DEF__LimitCheck__
+`define DEF__LimitCheck__
+
+module LimitCheck (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] value,
+    input logic [7:0] limit,
+    output logic fail
+);
+  logic over;
+
+  assign over = value > limit;
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      fail <= '0;
+    end else begin
+      fail <= over;
+    end
+
+endmodule
+
+`endif //!DEF__LimitCheck__

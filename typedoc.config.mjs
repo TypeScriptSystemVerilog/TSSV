@@ -48,6 +48,7 @@ export default {
     'Sequential logic',
     'Arithmetic',
     'Hierarchy',
+    'Views',
     'Raw SystemVerilog',
     'Output and utilities',
     'Enumerations', 'Classes', 'Interfaces', 'Type Aliases', 'Constructors',

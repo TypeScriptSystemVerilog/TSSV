@@ -13,6 +13,8 @@
  * Test 5: a view with lint off (#232): a module reached only through it is written unchecked,
  *         and the same module reached from the top level throws
  * Test 6: the null view: Heavy's stub, and both ways a build picks it up in place of Heavy
+ * Test 7: the view examples under doc/examples/core/ (`npm run docs:examples`) lint clean with
+ *         each set of their views defined, and with none
  */
 import { Module, Expr, TSSV_ROOT, type TSSVParameters, type ViewCondition } from 'tssv/lib/core/TSSV'
 import { Memory } from 'tssv/lib/interfaces/Memory'
@@ -245,6 +247,20 @@ const simOnlyError = errorOf(() => new SimOnlyTop(true).writeSystemVerilogFiles(
 check('a module reached only through a view with lint off is written without the SV-guide check', simOnlyError === '', simOnlyError)
 const checkedError = errorOf(() => new SimOnlyTop(false).writeSystemVerilogFiles(`${OUT}/errors/checked`))
 check('the same module reached from the top level is checked, and fails RST-5', checkedError.includes('SloppyCheck') && checkedError.includes('RST-5'), checkedError)
+// A linted view is checked with its macro defined, and the error names the macro
+class XilinxNoReset extends Module {
+  constructor () {
+    super({ name: 'XilinxNoReset' })
+    this.IOs = { clk: CLK, rst_b: RST, d: BYTE_IN, q: BYTE_OUT }
+    this.views({
+      TSSV_XILINX: () => { this.addRegister({ d: 'd', clk: 'clk', q: 'q' }) },
+      default: () => { this.addRegister({ d: 'd', clk: 'clk', reset: 'rst_b', q: 'q' }) }
+    })
+  }
+}
+const viewError = errorOf(() => new XilinxNoReset().writeSystemVerilogFiles(`${OUT}/errors/view`))
+check('a linted view that breaks the SV guide throws, naming its macro',
+  viewError.includes('RST-5') && viewError.endsWith('(with TSSV_XILINX defined)'), viewError)
 if (haveVerilator) {
   const run = verilator([...lintArgs, '--top-module', 'SimOnlyTop', '+define+USE_INCLUDES', `+incdir+${OUT}/sim_only`, `${OUT}/sim_only/SimOnlyTop.sv`])
   check('SimOnlyTop\'s synthesizable view lints clean without reading SloppyCheck.sv', run.ok, run.out)
@@ -314,6 +330,38 @@ if (haveVerilator) {
   // The reverse order on the include path picks the real Heavy: the order is what selects
   const reverse = reads(['+define+USE_INCLUDES', `+incdir+${GEN}`, `+incdir+${NULL}`, `${GEN}/NullTop.sv`])
   check('the generated folder ahead of the null one compiles the real Heavy', !reverse.stub && reverse.real && reverse.leaf, JSON.stringify(reverse))
+}
+
+// ---- Test 7: the view examples lint clean -------------------------------------------------
+// Each example's top, under doc/examples/core/<example>/, and the sets of views it is linted
+// with besides none
+const EXAMPLES: Array<{ example: string, top: string, sets: string[][] }> = [
+  { example: 'inView', top: 'InViewExample', sets: [['TSSV_SIM']] },
+  { example: 'inView', top: 'ViewListExample', sets: [['TSSV_SIM'], ['TSSV_FPV'], ['TSSV_SIM', 'TSSV_FPV']] },
+  { example: 'inView', top: 'ViewRegistersExample', sets: [['TSSV_SIM']] },
+  { example: 'inView', top: 'ViewLayoutExample', sets: [['TSSV_SIM'], ['TSSV_SIM', 'TSSV_TRACE']] },
+  { example: 'views', top: 'ViewsExample', sets: [['TSSV_SIM']] },
+  { example: 'views', top: 'ViewsNoDefaultExample', sets: [['TSSV_SIM'], ['TSSV_FPV'], ['TSSV_SIM', 'TSSV_FPV']] },
+  { example: 'views', top: 'NestedViewsExample', sets: [['TSSV_XILINX'], ['TSSV_XILINX', 'TSSV_ULTRASCALE']] },
+  { example: 'views', top: 'SharedConstantExample', sets: [['TSSV_SIM']] },
+  { example: 'views', top: 'SiblingConstantExample', sets: [['TSSV_XILINX'], ['TSSV_ALTERA']] },
+  { example: 'views', top: 'ViewIncludesExample', sets: [['TSSV_SIM'], ['TSSV_FPV'], ['TSSV_SIM', 'TSSV_FPV']] },
+  { example: 'activeViews', top: 'ActiveViewsExample', sets: [['TSSV_SIM']] },
+  { example: 'activeViews', top: 'ActiveViewsNestedExample', sets: [['TSSV_XILINX'], ['TSSV_XILINX', 'TSSV_ULTRASCALE']] },
+  { example: 'defineView', top: 'DefineViewExample', sets: [['TSSV_SIM']] },
+  { example: 'setNullView', top: 'NullViewExample', sets: [] }
+]
+if (haveVerilator) {
+  for (const { example, top, sets } of EXAMPLES) {
+    const dir = `${TSSV_ROOT}/doc/examples/core/${example}`
+    for (const defines of [[], ...sets]) {
+      const lint = verilator([...lintArgs, '--top-module', top, '+define+USE_INCLUDES', ...defineArgs(defines), `+incdir+${dir}`, `${dir}/${top}.sv`])
+      check(`example ${top} lints clean with ${defines.length === 0 ? 'no view' : defines.join(' and ')} defined`, lint.ok, lint.out)
+    }
+  }
+  const nullStub = `${TSSV_ROOT}/doc/examples/core/setNullView/null/NullViewExample.sv`
+  const stubLint = verilator([...lintArgs, '--top-module', 'NullViewExample', nullStub])
+  check('example NullViewExample\'s null view lints clean', stubLint.ok, stubLint.out)
 }
 
 console.log(`\n${passed} passed, ${failed} failed`)

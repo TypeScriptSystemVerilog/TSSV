@@ -10,9 +10,12 @@ import { type Module } from 'tssv/lib/core/TSSV'
  * `doc/examples/core/<example>/`
  * @param example the example's name: its file's name, which is the builder it shows
  * @param module the example's top module
+ * @param options `nullViewDir`: a folder under the example's, for the null views of the modules
+ * that opt in (see {@link Module.setNullView})
+ * @returns the paths written, as {@link Module.writeSystemVerilogFiles} returns them
  */
-export function writeExample (example: string, module: Module): void {
+export function writeExample (example: string, module: Module, options: { nullViewDir?: string } = {}): string[] {
   const dir = join('doc/examples/core', example)
   mkdirSync(dir, { recursive: true })
-  module.writeSystemVerilogFiles(dir)
+  return module.writeSystemVerilogFiles(dir, options.nullViewDir !== undefined ? { nullViewDir: join(dir, options.nullViewDir) } : {})
 }

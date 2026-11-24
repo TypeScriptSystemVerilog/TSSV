@@ -579,6 +579,12 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * written without the SV-guide check, and the per-view checks leave it out.
    * @param name the view's macro
    * @param options how the view's RTL is checked
+   * @example A simulation-only view, not checked against the SV guide
+   * {@includeCode ../../doc-examples/core/defineView.ts#example}
+   *
+   * The SystemVerilog it emits. CycleTracer.sv is written without the SV-guide check:
+   *
+   * {@includeCode ../../../doc/examples/core/defineView/DefineViewExample.sv}
    * @group Views
    */
   static defineView (name: string, options: ViewOptions): void {
@@ -593,6 +599,18 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @param views the macros, any one of which selects the RTL
    * @param build the add* calls to make in the view
    * @throws `view <name> is not a legal macro name`, or `inView: no views` for an empty list
+   * @example A monitor that only a simulation build compiles
+   * {@includeCode ../../doc-examples/core/inView.ts#example}
+   *
+   * The SystemVerilog it emits:
+   *
+   * {@includeCode ../../../doc/examples/core/inView/InViewExample.sv}
+   * @example Either of two views
+   * {@includeCode ../../doc-examples/core/inView.ts#list}
+   *
+   * The SystemVerilog it emits, with the RTL repeated:
+   *
+   * {@includeCode ../../../doc/examples/core/inView/ViewListExample.sv}
    * @group Views
    */
   inView (views: string[], build: () => void): void {
@@ -607,6 +625,18 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * defines none of them, so it can tie off what the other branches drive.
    * @param branches the add* calls for each view, and for `default`
    * @throws `views: no views` without a branch other than `default`
+   * @example A check's fail, tied to 0 in every build but simulation
+   * {@includeCode ../../doc-examples/core/views.ts#example}
+   *
+   * The SystemVerilog it emits:
+   *
+   * {@includeCode ../../../doc/examples/core/views/ViewsExample.sv}
+   * @example A view nested in another
+   * {@includeCode ../../doc-examples/core/views.ts#nested}
+   *
+   * The SystemVerilog it emits:
+   *
+   * {@includeCode ../../../doc/examples/core/views/NestedViewsExample.sv}
    * @group Views
    */
   views (branches: Record<string, () => void>): void {
@@ -624,6 +654,14 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * The conditions of the view scope the next add* call goes in, outermost first; empty at the
    * module's top level. Framework code reads it to tag what it records, such as a check that
    * exists only in a simulation-only view.
+   * @example A harness's check() that records which checks only simulation has
+   * {@includeCode ../../doc-examples/core/activeViews.ts#example}
+   *
+   * The SystemVerilog it emits:
+   *
+   * {@includeCode ../../../doc/examples/core/activeViews/ActiveViewsExample.sv}
+   * @example The conditions at each level of nesting
+   * {@includeCode ../../doc-examples/core/activeViews.ts#values}
    * @group Views
    */
   get activeViews (): readonly ViewCondition[] {
@@ -637,6 +675,12 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * reads nothing below it.
    * @param options `ties`: the value each output is tied to, by port name; the default is 0
    * @throws `<module>: null view: ...` for a tie that names no output port
+   * @example A stub with one output tied to 1
+   * {@includeCode ../../doc-examples/core/setNullView.ts#example}
+   *
+   * The null view it writes, null/NullViewExample.sv:
+   *
+   * {@includeCode ../../../doc/examples/core/setNullView/null/NullViewExample.sv}
    * @group Views
    */
   setNullView (options: { ties?: Record<string, bigint> } = {}): void {

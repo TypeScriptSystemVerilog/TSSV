@@ -1737,6 +1737,570 @@ endmodule
 `endif //!DEF__SVImportExample__
 ```
 
+#### Views
+
+##### defineView()
+
+```ts
+static defineView(name, options): void;
+```
+
+Declares how a view's RTL is checked, for every module. A view that is never declared is
+linted. A simulation-only view sets `lint: false`: the modules reached only through it are
+written without the SV-guide check, and the per-view checks leave it out.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `name` | `string` | the view's macro |
+| `options` | [`ViewOptions`](#viewoptions) | how the view's RTL is checked |
+
+###### Returns
+
+`void`
+
+###### Example
+
+**A simulation-only view, not checked against the SV guide**
+
+```ts
+// TSSV_SIM's RTL is for simulation only: it isn't checked against the SV guide. Without this
+// line, writing the module throws, because tracer, a CycleTracer, breaks RST-5
+Module.defineView('TSSV_SIM', { lint: false })
+m.inView(['TSSV_SIM'], () => {
+  m.addSubmodule('u_trace', tracer, { value: 'q' })
+})
+```
+
+The SystemVerilog it emits. CycleTracer.sv is written without the SV-guide check:
+
+```sv
+`ifndef DEF__DefineViewExample__
+`define DEF__DefineViewExample__
+`ifdef USE_INCLUDES
+`ifdef TSSV_SIM
+`include "CycleTracer.sv"
+`endif
+`endif //USE_INCLUDES
+
+module DefineViewExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+`ifdef TSSV_SIM
+
+  CycleTracer u_trace (
+      .value(q),
+      .clk  (clk)
+  );
+
+`endif
+
+endmodule
+
+`endif //!DEF__DefineViewExample__
+```
+
+##### inView()
+
+```ts
+inView(views, build): void;
+```
+
+Builds RTL that is compiled only when one of `views` is defined. Every add* call made inside
+`build` is tagged with the view, and emission wraps what it wrote in `` `ifdef `` (several
+views: `` `ifdef `` / `` `elsif ``, with the RTL repeated). Calls nest: an `inView()` inside
+another needs both. A signal declared inside a view can be used only inside it.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `views` | `string`[] | the macros, any one of which selects the RTL |
+| `build` | () => `void` | the add* calls to make in the view |
+
+###### Returns
+
+`void`
+
+###### Throws
+
+`view <name> is not a legal macro name`, or `inView: no views` for an empty list
+
+###### Examples
+
+**A monitor that only a simulation build compiles**
+
+```ts
+// monitor is a SaturationMonitor, with ports clk and value. Only a build that defines
+// TSSV_SIM compiles the instance, and only that build reads SaturationMonitor.sv
+m.inView(['TSSV_SIM'], () => {
+  m.addSubmodule('u_mon', monitor, { value: 'q' })
+})
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__InViewExample__
+`define DEF__InViewExample__
+`ifdef USE_INCLUDES
+`ifdef TSSV_SIM
+`include "SaturationMonitor.sv"
+`endif
+`endif //USE_INCLUDES
+
+module InViewExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+`ifdef TSSV_SIM
+
+  SaturationMonitor u_mon (
+      .value(q),
+      .clk  (clk)
+  );
+
+`endif
+
+endmodule
+
+`endif //!DEF__InViewExample__
+```
+
+**Either of two views**
+
+```ts
+// Simulation and formal builds both compile the monitor
+list.inView(['TSSV_SIM', 'TSSV_FPV'], () => {
+  list.addSubmodule('u_mon', monitor, { value: 'q' })
+})
+```
+
+The SystemVerilog it emits, with the RTL repeated:
+
+```sv
+`ifndef DEF__ViewListExample__
+`define DEF__ViewListExample__
+`ifdef USE_INCLUDES
+`ifdef TSSV_SIM
+`include "SaturationMonitor.sv"
+`elsif TSSV_FPV
+`include "SaturationMonitor.sv"
+`endif
+`endif //USE_INCLUDES
+
+module ViewListExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+`ifdef TSSV_SIM
+
+  SaturationMonitor u_mon (
+      .value(q),
+      .clk  (clk)
+  );
+
+`elsif TSSV_FPV
+
+  SaturationMonitor u_mon (
+      .value(q),
+      .clk  (clk)
+  );
+
+`endif
+
+endmodule
+
+`endif //!DEF__ViewListExample__
+```
+
+##### views()
+
+```ts
+views(branches): void;
+```
+
+Builds RTL for several views, one of which is compiled: `` `ifdef A `` / `` `elsif B `` /
+`` `else ``. Each key but `default` is a view's macro; `default` is built for a build that
+defines none of them, so it can tie off what the other branches drive.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `branches` | `Record`\<`string`, () => `void`\> | the add* calls for each view, and for `default` |
+
+###### Returns
+
+`void`
+
+###### Throws
+
+`views: no views` without a branch other than `default`
+
+###### Examples
+
+**A check's fail, tied to 0 in every build but simulation**
+
+```ts
+// check is a LimitCheck, with ports clk, rst_b, value, limit and fail. A simulation build
+// drives fail from it; every other build ties fail to 0
+m.views({
+  TSSV_SIM: () => {
+    m.addSubmodule('u_chk', check, { value: 'q', limit: 200n, fail: 'fail' })
+  },
+  default: () => {
+    m.addAssign({ in: new Expr("1'b0"), out: 'fail' })
+  }
+})
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__ViewsExample__
+`define DEF__ViewsExample__
+`ifdef USE_INCLUDES
+`ifdef TSSV_SIM
+`include "LimitCheck.sv"
+`endif
+`endif //USE_INCLUDES
+
+module ViewsExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q,
+    output logic fail
+);
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+`ifdef TSSV_SIM
+  const logic [7:0] const_w8u200 = 8'd200;
+
+  LimitCheck u_chk (
+      .value(q),
+      .limit(const_w8u200),
+      .fail (fail),
+      .clk  (clk),
+      .rst_b(rst_b)
+  );
+
+`else
+  assign fail = 1'b0;
+
+`endif
+
+endmodule
+
+`endif //!DEF__ViewsExample__
+```
+
+**A view nested in another**
+
+```ts
+// Every build registers d. A Xilinx build registers it again, and an UltraScale part, one of
+// Xilinx's, a third time
+nested.addSignal('d_q', { width: 8 })
+nested.addRegister({ d: 'd', clk: 'clk', reset: 'rst_b', q: 'd_q' })
+nested.views({
+  TSSV_XILINX: () => {
+    nested.addSignal('x_q', { width: 8 })
+    nested.addRegister({ d: 'd_q', clk: 'clk', reset: 'rst_b', q: 'x_q' })
+    nested.views({
+      TSSV_ULTRASCALE: () => {
+        nested.addRegister({ d: 'x_q', clk: 'clk', reset: 'rst_b', q: 'q' })
+      },
+      default: () => {
+        nested.addAssign({ in: new Expr('x_q'), out: 'q' })
+      }
+    })
+  },
+  default: () => {
+    nested.addAssign({ in: new Expr('d_q'), out: 'q' })
+  }
+})
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__NestedViewsExample__
+`define DEF__NestedViewsExample__
+
+module NestedViewsExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+  logic [7:0] d_q;
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      d_q <= '0;
+    end else begin
+      d_q <= d;
+    end
+
+`ifdef TSSV_XILINX
+  logic [7:0] x_q;
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      x_q <= '0;
+    end else begin
+      x_q <= d_q;
+    end
+
+`ifdef TSSV_ULTRASCALE
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= x_q;
+    end
+
+`else
+  assign q = x_q;
+
+`endif
+
+`else
+  assign q = d_q;
+
+`endif
+
+endmodule
+
+`endif //!DEF__NestedViewsExample__
+```
+
+##### activeViews
+
+###### Get Signature
+
+```ts
+get activeViews(): readonly ViewCondition[];
+```
+
+The conditions of the view scope the next add* call goes in, outermost first; empty at the
+module's top level. Framework code reads it to tag what it records, such as a check that
+exists only in a simulation-only view.
+
+###### Examples
+
+**A harness's check() that records which checks only simulation has**
+
+```ts
+// A harness's check() records each check it adds, and whether only a simulation build has it
+const checks: Array<{ name: string, simOnly: boolean }> = []
+function addCheck (name: string, value: string, limit: bigint, fail: string): void {
+  const simOnly = m.activeViews.some(c => 'anyOf' in c && c.anyOf.includes('TSSV_SIM'))
+  checks.push({ name, simOnly })
+  m.addSubmodule(`u_${name}`, check, { value, limit, fail })
+}
+
+addCheck('d_limit', 'd', 200n, 'fail')
+m.views({
+  TSSV_SIM: () => { addCheck('q_limit', 'q', 100n, 'sim_fail') },
+  default: () => { m.addAssign({ in: new Expr("1'b0"), out: 'sim_fail' }) }
+})
+// checks: [{ name: 'd_limit', simOnly: false }, { name: 'q_limit', simOnly: true }]
+```
+
+The SystemVerilog it emits:
+
+```sv
+`ifndef DEF__ActiveViewsExample__
+`define DEF__ActiveViewsExample__
+`ifdef USE_INCLUDES
+`include "LimitCheck.sv"
+`endif //USE_INCLUDES
+
+module ActiveViewsExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q,
+    output logic fail,
+    output logic sim_fail
+);
+  const logic [7:0] const_w8u200 = 8'd200;
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+  LimitCheck u_d_limit (
+      .value(d),
+      .limit(const_w8u200),
+      .fail (fail),
+      .clk  (clk),
+      .rst_b(rst_b)
+  );
+
+`ifdef TSSV_SIM
+  const logic [7:0] const_w8u100 = 8'd100;
+
+  LimitCheck u_q_limit (
+      .value(q),
+      .limit(const_w8u100),
+      .fail (sim_fail),
+      .clk  (clk),
+      .rst_b(rst_b)
+  );
+
+`else
+  assign sim_fail = 1'b0;
+
+`endif
+
+endmodule
+
+`endif //!DEF__ActiveViewsExample__
+```
+
+**The conditions at each level of nesting**
+
+```ts
+const seen: Record<string, readonly ViewCondition[]> = {}
+seen.top = n.activeViews
+n.addSignal('d_q', { width: 8 })
+n.addRegister({ d: 'd', clk: 'clk', reset: 'rst_b', q: 'd_q' })
+n.views({
+  TSSV_XILINX: () => {
+    n.addSignal('x_q', { width: 8 })
+    n.addRegister({ d: 'd_q', clk: 'clk', reset: 'rst_b', q: 'x_q' })
+    n.views({
+      TSSV_ULTRASCALE: () => {
+        seen.ultrascale = n.activeViews
+        n.addRegister({ d: 'x_q', clk: 'clk', reset: 'rst_b', q: 'q' })
+      },
+      default: () => {
+        seen.otherXilinx = n.activeViews
+        n.addAssign({ in: new Expr('x_q'), out: 'q' })
+      }
+    })
+  },
+  default: () => {
+    seen.generic = n.activeViews
+    n.addAssign({ in: new Expr('d_q'), out: 'q' })
+  }
+})
+// seen.top:         []
+// seen.ultrascale:  [{ anyOf: ['TSSV_XILINX'] }, { anyOf: ['TSSV_ULTRASCALE'] }]
+// seen.otherXilinx: [{ anyOf: ['TSSV_XILINX'] }, { noneOf: ['TSSV_ULTRASCALE'] }]
+// seen.generic:     [{ noneOf: ['TSSV_XILINX'] }]
+```
+
+###### Returns
+
+readonly [`ViewCondition`](#viewcondition)[]
+
+##### setNullView()
+
+```ts
+setNullView(options?): void;
+```
+
+Opts this module into a null view: a stub with the same ports and include guard, which
+[writeSystemVerilogFiles](#writesystemverilogfiles) writes to `options.nullViewDir` when it is given. A build that
+reads the stub first, or finds it first on `+incdir+`, uses it in place of the module and
+reads nothing below it.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options` | \{ `ties?`: `Record`\<`string`, `bigint`\>; \} | `ties`: the value each output is tied to, by port name; the default is 0 |
+| `options.ties?` | `Record`\<`string`, `bigint`\> | - |
+
+###### Returns
+
+`void`
+
+###### Throws
+
+`<module>: null view: ...` for a tie that names no output port
+
+###### Example
+
+**A stub with one output tied to 1**
+
+```ts
+// The stub ties ready to 1 and q, which has no tie here, to 0
+m.setNullView({ ties: { ready: 1n } })
+// writeExample calls m.writeSystemVerilogFiles(dir, { nullViewDir: `${dir}/null` }): the
+// stub is null/NullViewExample.sv, beside the generated NullViewExample.sv
+writeExample('setNullView', m, { nullViewDir: 'null' })
+```
+
+The null view it writes, null/NullViewExample.sv:
+
+```sv
+`ifndef DEF__NullViewExample__
+`define DEF__NullViewExample__
+
+module NullViewExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q,
+    output logic ready
+);
+  // Null view of NullViewExample: outputs tied off, inputs unused, nothing below it
+  logic unused_inputs;
+  assign unused_inputs = &{1'b0, clk, rst_b, d, 1'b0};
+  assign q = '0;
+  assign ready = 1'd1;
+endmodule
+
+`endif //!DEF__NullViewExample__
+```
+
 #### Raw SystemVerilog
 
 ##### addBody()
@@ -2122,8 +2686,9 @@ are constants. The rules:
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `outDir` | `string` | the directory to write to, created if it doesn't exist |
-| `options` | \{ `omit?`: [`Module`](#module)\<[`TSSVParameters`](#tssvparameters), [`IOSignals`](#iosignals)\>[]; \} | `omit`: modules written somewhere else, included but not written here |
+| `options` | \{ `omit?`: [`Module`](#module)\<[`TSSVParameters`](#tssvparameters), [`IOSignals`](#iosignals)\>[]; `nullViewDir?`: `string`; \} | `omit`: modules written somewhere else, included but not written here |
 | `options.omit?` | [`Module`](#module)\<[`TSSVParameters`](#tssvparameters), [`IOSignals`](#iosignals)\>[] | - |
+| `options.nullViewDir?` | `string` | - |
 
 ###### Returns
 
@@ -2398,6 +2963,18 @@ A flop that may go without an async reset (SV guide RST-5), and why.
 | <a id="register"></a> `register` | `string` | the register as the SV writes it, with any member selects: `data_q`, `mem`, `bus.DATA_RD` |
 | <a id="reason"></a> `reason` | `string` | why it needs no async reset |
 
+***
+
+### ViewOptions
+
+How a view's RTL is checked
+
+#### Properties
+
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="lint"></a> `lint?` | `boolean` | whether the view's RTL is linted and checked against the SV guide (default true). A simulation-only view (#232) sets it false: the modules reached only through it are written unchecked, and builds that leave its macro undefined never read them. |
+
 ## Type Aliases
 
 ### IntRange
@@ -2503,3 +3080,48 @@ type Interfaces = Record<string, Interface>;
 ```
 
 A module's interface instances, by instance name
+
+***
+
+### ViewCondition
+
+```ts
+type ViewCondition = 
+  | {
+  anyOf: readonly string[];
+}
+  | {
+  noneOf: readonly string[];
+};
+```
+
+The condition one view scope adds to its enclosing scope: any of `anyOf` defined, or, for the
+`default` branch of [Module.views](#views), none of `noneOf` defined.
+
+#### Union Members
+
+##### Type Literal
+
+```ts
+{
+  anyOf: readonly string[];
+}
+```
+
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `anyOf` | readonly `string`[] | the views, any one of which selects the RTL |
+
+***
+
+##### Type Literal
+
+```ts
+{
+  noneOf: readonly string[];
+}
+```
+
+| Name | Type | Description |
+| ------ | ------ | ------ |
+| `noneOf` | readonly `string`[] | the views of a `default` branch's group: the RTL is selected when none is defined |

@@ -1,0 +1,35 @@
+`ifndef DEF__NullViewExample__
+`define DEF__NullViewExample__
+`ifdef USE_INCLUDES
+`include "NullViewStage.sv"
+`endif //USE_INCLUDES
+
+module NullViewExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q,
+    output logic ready
+);
+  logic [7:0] mid;
+  const logic one = 1'd1;
+
+  assign ready = one;
+
+  NullViewStage u_stage0 (
+      .d(d),
+      .q(mid),
+      .clk(clk),
+      .rst_b(rst_b)
+  );
+
+  NullViewStage u_stage1 (
+      .d(mid),
+      .q(q),
+      .clk(clk),
+      .rst_b(rst_b)
+  );
+
+endmodule
+
+`endif //!DEF__NullViewExample__

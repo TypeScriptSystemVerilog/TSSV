@@ -1,0 +1,20 @@
+`ifndef DEF__CycleTracer__
+`define DEF__CycleTracer__
+
+module CycleTracer (
+    input logic clk,
+    input logic [7:0] value
+);
+  logic [31:0] cycle;
+  logic [31:0] cycle_next;
+
+  assign cycle_next = cycle + 1;
+  always_ff @(posedge clk) $display("%0d: value %0d", cycle, value);
+
+  always_ff @(posedge clk) begin
+    cycle <= cycle_next;
+  end
+
+endmodule
+
+`endif //!DEF__CycleTracer__

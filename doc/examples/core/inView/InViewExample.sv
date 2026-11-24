@@ -1,0 +1,35 @@
+`ifndef DEF__InViewExample__
+`define DEF__InViewExample__
+`ifdef USE_INCLUDES
+`ifdef TSSV_SIM
+`include "SaturationMonitor.sv"
+`endif
+`endif //USE_INCLUDES
+
+module InViewExample (
+    input logic clk,
+    input logic rst_b,
+    input logic [7:0] d,
+    output logic [7:0] q
+);
+
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      q <= '0;
+    end else begin
+      q <= d;
+    end
+
+`ifdef TSSV_SIM
+
+  SaturationMonitor u_mon (
+      .value(q),
+      .clk  (clk)
+  );
+
+`endif
+
+endmodule
+
+`endif //!DEF__InViewExample__
