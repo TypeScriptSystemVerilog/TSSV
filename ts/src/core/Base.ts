@@ -666,8 +666,8 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   // Throws unless an item tagged with `scope` can be used from the current scope
   private checkVisible (what: string, scope: ViewScope | undefined, caller?: string): void {
     if (scope === undefined || (this.currentView?.isWithin(scope) ?? false)) return
-    throw Error(`${this.name}: ${what} is declared in view ${scope.path().map(describeCondition).join(' and ')}, ` +
-      `so it can't be used ${this.currentView === undefined ? 'outside it' : 'in view ' + describeCondition(this.currentView.condition)}` +
+    throw Error(`${this.name}: ${what} is declared in ${[...scope.path()].reverse().map(describeCondition).join(', within ')}, ` +
+      `so it can't be used ${this.currentView === undefined ? 'outside it' : 'in ' + describeCondition(this.currentView.condition)}` +
       (caller !== undefined ? ` (${caller})` : ''))
   }
 

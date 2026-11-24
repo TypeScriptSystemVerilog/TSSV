@@ -6,7 +6,15 @@
  * The condition one view scope adds to its enclosing scope: any of `anyOf` defined, or, for the
  * `default` branch of {@link Module.views}, none of `noneOf` defined.
  */
-export type ViewCondition = { anyOf: readonly string[] } | { noneOf: readonly string[] }
+export type ViewCondition =
+  | {
+    /** the views, any one of which selects the RTL */
+    anyOf: readonly string[]
+  }
+  | {
+    /** the views of a `default` branch's group: the RTL is selected when none is defined */
+    noneOf: readonly string[]
+  }
 
 /** How a view's RTL is checked */
 export interface ViewOptions {
@@ -79,9 +87,9 @@ export function isSelected (scope: ViewScope | undefined, defines: ReadonlySet<s
     'anyOf' in c ? c.anyOf.some(v => defines.has(v)) : c.noneOf.every(v => !defines.has(v)))
 }
 
-/** a condition as people read it, for error messages */
+/** a condition as people read it, for error messages: `view A or B`, `the default branch beside A and B` */
 export function describeCondition (condition: ViewCondition): string {
-  return 'anyOf' in condition ? condition.anyOf.join(' or ') : `none of ${condition.noneOf.join(', ')}`
+  return 'anyOf' in condition ? `view ${condition.anyOf.join(' or ')}` : `the default branch beside ${condition.noneOf.join(' and ')}`
 }
 
 /**
