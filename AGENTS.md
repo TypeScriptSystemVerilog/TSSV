@@ -10,7 +10,7 @@ TSSV (TypeScript SystemVerilog) is a meta-HDL framework that generates synthesiz
 ts/src/core/          Framework base classes: Module, Sig, Expr, Interface, Registers
 ts/src/modules/       Pre-built parameterized modules, one folder each (FIR, SRAM, SFIFO, AFIFO, ROM, LZC, LFSR, AXI4XBar, shift, IpXactComponent, APB_to_Memory, ...)
 ts/src/interfaces/    Signal-bundle definitions — AMBA 2–5 (100+ specs), TileLink, Memory
-ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV), cpu_convert
+ts/src/tools/         CLI utilities: xml_interface_build (XML→TSSV)
 ts/src/tb/            Testbench framework, tier 1 (tssv/lib/tb/...): SimTop, Harness, PatternMemory with its record layouts (patternRecord) and pattern file writer (patternFile), VectorPlayer, VectorChecker, WaveDrom replay vectors (wavedromVectors), directed tables written as rows (directedTable), the record-stream injector and checker (RecordInjector, RecordChecker, recordStream), Throttle, TrafficPhases, the testbench marker (markTestbench). Throttle and the record streams use LFSR, a building block in ts/src/modules/
 ts/test/              Runnable demo scripts; each writes its output under sv-examples/
 ts/test/models/       Shared test helpers: Memory bus models (slave, master BFM), a generator of self-checking RegisterBlock testbenches, lint wrappers, the include guard for hand-written SV (`guardSV`), reading back emitted SV (`emitted`), the one filelist for a testbench outside `sv-examples/`
@@ -58,7 +58,6 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `doc/templates/module-spec-template.md` | The template for a new module's spec |
 | `doc/templates/tb-spec-template.md` | The template for a DUT's TB spec, `doc/modules/<DUT>/<DUT>-tb-spec.md`: block diagram, clocks, configurations, each interface's pattern format, testcases, checks, how outputs are matched, run modes, evidence |
 | `doc/tutorials/fir.md` | FIR walkthrough: every construct in the module and its testbench, then compile, generate and simulate |
-| `doc/tools/cpu_convert.md` | `cpu_convert`: extracting SRAMs from third-party RTL into TSSV SRAM libraries |
 | `doc/rtl-style/README.md` | Index of the two style guides and their checks (`npm run check:rtl-style`) |
 | `doc/rtl-style/sv-style/sv-coding-style.md` | SV guide: rules for the SystemVerilog a module emits (`COMB`, `SEQ`, `RST`, `LATCH`, `WIDTH`, `SYN`, `LINT` rule IDs) |
 | `doc/rtl-style/tssv-style/tssv-coding-style.md` | TSSV guide: rules for the TypeScript that generates it: parameters and widths, module structure, builder choice, naming, tests (`PARAM`, `MOD`, `BUILD`, `IDENT`, `TEST` rule IDs) |
@@ -193,7 +192,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 | AMBA 2–5 interfaces | Complete | 100+ files across AHB, APB, ATB, AXI, AXI4, ACE, CHI, CXS, LPI, GFB, LTI, P/Q-Channel |
 | TileLink + Memory interfaces | Complete | |
 | Built-in modules | Complete | FIR, SRAM, SFIFO, AFIFO, TwoClockRegFile, GrayPointer, CDCSynchronizer, ROM, LZC, LFSR, AXI4XBar, shift, IpXactComponent, APB_to_Memory |
-| CLI tools | Complete | `xml_interface_build`, `cpu_convert` |
+| CLI tools | Complete | `xml_interface_build` |
 | Verilator simulation harness | Complete | `verilatorTB/` — full TS→SV→binary→VCD flow |
 | Testbench framework (`ts/src/tb/`) | Tier 1, pattern memories, record streams | `SimTop`, `Harness`, `VectorPlayer`, `VectorChecker`, `wavedromVectors`, `markTestbench`, and the checks `check-harness` and `check-test-structure` (#196). `PatternMemory`, preloaded or reloaded, and the pattern file writer; the cycle tables read pattern memories (#197). `RecordInjector` and `RecordChecker` (inOrder, perSource, cycleExact, ties), LFSR payloads, `Throttle` and `TrafficPhases` (#198). Clocks and resets for several domains, with a two-domain AFIFO example (#199). Ready isolation as a port contract, `addNoCombinationalPathContract()`, checked by `check-port-contracts` (#201). The testbench generator from DUT configuration files and testcases, a harness's load port and SimTop's loader for reloaded mode in simulation, and the TB spec template (#200); cycle tables built by the generator, from testcases that name their configurations (#223), in both modes (#225). Tier 1's `Lfsr` (xorshift) replaced by the `LFSR` module (`ts/src/modules/LFSR/`: any width, a polynomial library to width 168, a maximal-length check, an advance of any number of shifts per step, and `LFSRModel`), which tiers 1 and 2 may import as a building block (#210). Directed cycle tables written as rows, a pattern-file object per case (`directedTable`, #226). The FPGA wrapper comes next (#202) |
 | Verible integration | Complete | Default formatter for emitted SV (`ts/src/tools/formatters/verible.ts`); SV import header parser (`ts/src/core/SVModuleHeader.ts`); SV-guide check of each emitted module (`ts/src/core/ModuleBody.ts` reads it, `ts/src/core/ModuleCheck.ts` checks it) |
