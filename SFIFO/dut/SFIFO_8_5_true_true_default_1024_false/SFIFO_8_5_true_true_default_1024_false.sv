@@ -1,0 +1,129 @@
+`ifndef DEF__SFIFO_8_5_true_true_default_1024_false__
+`define DEF__SFIFO_8_5_true_true_default_1024_false__
+`ifdef USE_INCLUDES
+`include "SFIFO_8_5_true_true_default_1024_false_sram.sv"
+`endif //USE_INCLUDES
+
+module SFIFO_8_5_true_true_default_1024_false (
+    input logic clk,
+    input logic rst_n,
+    input logic [7:0] push_data,
+    output logic [7:0] pop_data,
+    output logic empty,
+    output logic full,
+    output logic [2:0] curr_depth,
+    input logic en,
+    input logic push1_pop0,
+    input logic [2:0] almost_full_depth,
+    output logic almost_full,
+    input logic [2:0] almost_empty_depth,
+    output logic almost_empty
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 8n
+  // depth = 5n
+  // inclAlmostEmpty = true
+  // inclAlmostFull = true
+  // macroConfig = default
+  // minMacroBits = 1024n
+  // simultPushPop = false
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // bypass_q: RST-3: datapath, read only while the FIFO isn't empty
+  // ------------------------------------------------------------------
+  logic push_req;
+  logic pop_req;
+  logic push_fire;
+  logic pop_fire;
+  logic [2:0] fifo_cnt_q;
+  logic [2:0] fifo_cnt_nxt;
+  logic load_bypass;
+  logic [7:0] bypass_q;
+  logic [2:0] wr_addr_q;
+  logic [2:0] wr_addr_nxt;
+  logic [2:0] rd_addr_q;
+  logic [2:0] rd_addr_nxt;
+  logic [2:0] rd_addr_inc;
+  logic sram_re;
+  logic [7:0] sram_rdata;
+  logic head_from_bypass_q;
+  logic head_from_bypass_nxt;
+  logic [2:0] sram_addr;
+
+  assign push_req  = en && push1_pop0;
+  assign pop_req   = en && !push1_pop0;
+  assign push_fire = push_req && !full;
+  assign pop_fire  = pop_req && !empty;
+  always_comb begin : fifo_cnt_next
+    fifo_cnt_nxt = fifo_cnt_q;
+    if (push_fire && !pop_fire) begin
+      fifo_cnt_nxt = 3'(fifo_cnt_q + 3'd1);
+    end else if (pop_fire && !push_fire) begin
+      fifo_cnt_nxt = 3'(fifo_cnt_q - 3'd1);
+    end
+  end
+  assign full = fifo_cnt_q == 3'd5;
+  assign empty = fifo_cnt_q == '0;
+  assign curr_depth = fifo_cnt_q;
+  assign almost_full = fifo_cnt_q >= almost_full_depth;
+  assign almost_empty = fifo_cnt_q <= almost_empty_depth;
+  assign load_bypass = push_fire && empty;
+  assign rd_addr_inc = (rd_addr_q == 3'd4) ? '0 : 3'(rd_addr_q + 3'd1);
+  always_comb begin : addr_next
+    wr_addr_nxt = wr_addr_q;
+    rd_addr_nxt = rd_addr_q;
+    if (push_fire) begin
+      wr_addr_nxt = (wr_addr_q == 3'd4) ? '0 : 3'(wr_addr_q + 3'd1);
+    end
+    if (pop_fire) begin
+      rd_addr_nxt = rd_addr_inc;
+    end
+  end
+  assign sram_re = pop_fire && (fifo_cnt_q > 3'd1);
+  always_comb begin : head_src_next
+    head_from_bypass_nxt = head_from_bypass_q;
+    if (load_bypass) begin
+      head_from_bypass_nxt = 1'b1;
+    end else if (sram_re) begin
+      head_from_bypass_nxt = 1'b0;
+    end
+  end
+  assign pop_data  = head_from_bypass_q ? bypass_q : sram_rdata;
+  assign sram_addr = push_fire ? wr_addr_q : rd_addr_inc;
+
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      fifo_cnt_q <= '0;
+      wr_addr_q <= '0;
+      rd_addr_q <= '0;
+      head_from_bypass_q <= '0;
+    end else begin
+      fifo_cnt_q <= fifo_cnt_nxt;
+      wr_addr_q <= wr_addr_nxt;
+      rd_addr_q <= rd_addr_nxt;
+      head_from_bypass_q <= head_from_bypass_nxt;
+    end
+
+  always_ff @(posedge clk)
+    if (load_bypass) begin
+      bypass_q <= push_data;
+    end
+
+  SFIFO_8_5_true_true_default_1024_false_sram u_sram (
+      .clk(clk),
+      .a_re(sram_re),
+      .a_we(push_fire),
+      .a_addr(sram_addr),
+      .a_data_in(push_data),
+      .a_data_out(sram_rdata)
+  );
+
+endmodule
+
+`endif //!DEF__SFIFO_8_5_true_true_default_1024_false__

@@ -1,0 +1,22 @@
+`ifndef DEF__shift_5_unsigned_right_3__
+`define DEF__shift_5_unsigned_right_3__
+
+module shift_5_unsigned_right_3 (
+    input  logic [4:0] data_in,
+    output logic [4:0] data_out
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 5
+  // isSigned = unsigned
+  // shift_direct = right
+  // shift_val = 3
+  // ------------------------------------------------------------------
+
+  assign data_out = data_in >> 2'd3;
+
+endmodule
+
+`endif //!DEF__shift_5_unsigned_right_3__

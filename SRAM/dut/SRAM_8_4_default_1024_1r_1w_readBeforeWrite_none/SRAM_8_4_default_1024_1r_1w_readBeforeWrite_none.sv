@@ -1,0 +1,47 @@
+`ifndef DEF__SRAM_8_4_default_1024_1r_1w_readBeforeWrite_none__
+`define DEF__SRAM_8_4_default_1024_1r_1w_readBeforeWrite_none__
+
+module SRAM_8_4_default_1024_1r_1w_readBeforeWrite_none (
+    input logic clk,
+    input logic a_re,
+    output logic [7:0] a_data_out,
+    input logic [1:0] a_addr,
+    input logic b_we,
+    input logic [7:0] b_data_in,
+    input logic [1:0] b_addr
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 8n
+  // depth = 4n
+  // macroConfig = default
+  // minMacroBits = 1024n
+  // ports = 1r_1w
+  // readBehavior = readBeforeWrite
+  // writeEnableMask = none
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // mem: memory
+  // a_data_out: memory read data; an SRAM macro's read register has no reset
+  // ------------------------------------------------------------------
+  logic [7:0] mem[0:3];
+
+  always_ff @(posedge clk) begin : mem_write
+    if (b_we) begin
+      mem[b_addr] <= b_data_in;
+    end
+  end
+  always_ff @(posedge clk) begin : a_read
+    if (a_re) begin
+      a_data_out <= mem[a_addr];
+    end
+  end
+
+endmodule
+
+`endif //!DEF__SRAM_8_4_default_1024_1r_1w_readBeforeWrite_none__

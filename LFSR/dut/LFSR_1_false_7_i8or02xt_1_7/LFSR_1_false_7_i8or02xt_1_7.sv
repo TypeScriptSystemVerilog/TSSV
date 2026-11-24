@@ -1,0 +1,36 @@
+`ifndef DEF__LFSR_1_false_7_i8or02xt_1_7__
+`define DEF__LFSR_1_false_7_i8or02xt_1_7__
+
+module LFSR_1_false_7_i8or02xt_1_7 (
+    input logic clk,
+    input logic rst_n,
+    input logic step,
+    output logic [6:0] value
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // advance = 1n
+  // loadable = false
+  // outWidth = 7n
+  // polynomial = x^7 + x^6 + 1
+  // seed = 1n
+  // width = 7n
+  // ------------------------------------------------------------------
+  logic [6:0] state_q;
+  logic [6:0] state_nxt;
+
+  assign state_nxt = {state_q[5:0], state_q[6] ^ state_q[5]};
+  assign value = state_q;
+
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      state_q <= 7'd1;
+    end else if (step) begin
+      state_q <= state_nxt;
+    end
+
+endmodule
+
+`endif //!DEF__LFSR_1_false_7_i8or02xt_1_7__

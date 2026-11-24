@@ -1,0 +1,36 @@
+`ifndef DEF__CDCSynchronizer_3_1__
+`define DEF__CDCSynchronizer_3_1__
+
+module CDCSynchronizer_3_1 (
+    input  logic clk,
+    input  logic rst_n,
+    input  logic d,
+    output logic q
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // stages = 3n
+  // width = 1n
+  // ------------------------------------------------------------------
+  (* ASYNC_REG = "TRUE" *)logic sync_0;
+  (* ASYNC_REG = "TRUE" *)logic sync_1;
+  (* ASYNC_REG = "TRUE" *)logic sync_2;
+
+  assign q = sync_2;
+
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      sync_0 <= '0;
+      sync_1 <= '0;
+      sync_2 <= '0;
+    end else begin
+      sync_0 <= d;
+      sync_1 <= sync_0;
+      sync_2 <= sync_1;
+    end
+
+endmodule
+
+`endif //!DEF__CDCSynchronizer_3_1__

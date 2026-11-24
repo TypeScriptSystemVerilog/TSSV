@@ -1,0 +1,32 @@
+`ifndef DEF__LZC_3__
+`define DEF__LZC_3__
+
+module LZC_3 (
+    input logic [2:0] data_in,
+    output logic [1:0] zero_num,
+    output logic is_zero
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 3
+  // ------------------------------------------------------------------
+  logic [3:0] val4;
+  logic [1:0] cnt;
+  logic [1:0] val2;
+  logic val1;
+
+  assign is_zero = (data_in == '0);
+  assign val4 = {1'd0, data_in};
+  always_comb begin : lz_tree
+    cnt[1] = (val4[3:2] == '0);
+    val2   = cnt[1] ? val4[1:0] : val4[3:2];
+    cnt[0] = (val2[1] == '0);
+    val1   = cnt[0] ? val2[0] : val2[1];
+  end
+  assign zero_num = val1 ? 2'(cnt - 1'd1) : 2'd3;
+
+endmodule
+
+`endif //!DEF__LZC_3__

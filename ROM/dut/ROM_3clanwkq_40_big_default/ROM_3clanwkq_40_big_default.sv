@@ -1,0 +1,45 @@
+`ifndef DEF__ROM_3clanwkq_40_big_default__
+`define DEF__ROM_3clanwkq_40_big_default__
+
+module ROM_3clanwkq_40_big_default (
+    input logic clk,
+    input logic rd_en,
+    input logic [2:0] addr,
+    output logic [39:0] data_out
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // ROMContents = 8 words, hash 3clanwkq, in rom_read
+  // dataWidth = 40
+  // endianness = big
+  // macroConfig = default
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // data_out: ROM read data; a ROM macro's read register has no reset
+  // ------------------------------------------------------------------
+
+  always_ff @(posedge clk) begin : rom_read
+    if (rd_en) begin
+      case (addr)
+        3'd0: data_out <= 40'h1234567800;
+        3'd1: data_out <= 40'h1335577901;
+        3'd2: data_out <= 40'h1436587A02;
+        3'd3: data_out <= 40'h1537597B03;
+        3'd4: data_out <= 40'h16385A7C04;
+        3'd5: data_out <= 40'h17395B7D05;
+        3'd6: data_out <= 40'h183A5C7E06;
+        3'd7: data_out <= 40'h193B5D7F07;
+        default: data_out <= 'x;
+      endcase
+    end
+  end
+
+
+endmodule
+
+`endif //!DEF__ROM_3clanwkq_40_big_default__

@@ -1,0 +1,54 @@
+`ifndef DEF__ROM_24sl4dhm_31_little_default__
+`define DEF__ROM_24sl4dhm_31_little_default__
+
+module ROM_24sl4dhm_31_little_default (
+    input logic clk,
+    input logic rd_en,
+    input logic [4:0] addr,
+    output logic [30:0] data_out
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // ROMContents = 17 words, hash 24sl4dhm, in rom_read
+  // dataWidth = 31
+  // endianness = little
+  // macroConfig = default
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // data_out: ROM read data; a ROM macro's read register has no reset
+  // ------------------------------------------------------------------
+
+  always_ff @(posedge clk) begin : rom_read
+    if (rd_en) begin
+      case (addr)
+        5'd0: data_out <= 31'h00000000;
+        5'd1: data_out <= 31'h00000001;
+        5'd2: data_out <= 31'h00000002;
+        5'd3: data_out <= 31'h00000003;
+        5'd4: data_out <= 31'h00000004;
+        5'd5: data_out <= 31'h00000005;
+        5'd6: data_out <= 31'h00000006;
+        5'd7: data_out <= 31'h00000007;
+        5'd8: data_out <= 31'h00000008;
+        5'd9: data_out <= 31'h00000009;
+        5'd10: data_out <= 31'h0000000A;
+        5'd11: data_out <= 31'h0000000B;
+        5'd12: data_out <= 31'h0000000C;
+        5'd13: data_out <= 31'h0000000D;
+        5'd14: data_out <= 31'h000000FF;
+        5'd15: data_out <= 31'h00000001;
+        5'd16: data_out <= 31'h00000020;
+        default: data_out <= 'x;
+      endcase
+    end
+  end
+
+
+endmodule
+
+`endif //!DEF__ROM_24sl4dhm_31_little_default__

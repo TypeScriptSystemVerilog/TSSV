@@ -1,0 +1,42 @@
+`ifndef DEF__TwoClockRegFile_1026_32_X__
+`define DEF__TwoClockRegFile_1026_32_X__
+
+module TwoClockRegFile_1026_32_X (
+    input logic a_clk,
+    input logic a_we,
+    input logic [4:0] a_addr,
+    input logic [1025:0] a_data_in,
+    input logic b_clk,
+    input logic b_re,
+    input logic [4:0] b_addr,
+    output logic [1025:0] b_data_out
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 1026n
+  // depth = 32n
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // mem: memory
+  // b_data_out: memory read data; a register file macro's read register has no reset
+  // ------------------------------------------------------------------
+  logic [1025:0] mem[0:31];
+
+  always_ff @(posedge a_clk) begin
+    if (a_we) mem[a_addr] <= a_data_in;
+  end
+
+
+  always_ff @(posedge b_clk)
+    if (b_re) begin
+      b_data_out <= mem[b_addr];
+    end
+
+endmodule
+
+`endif //!DEF__TwoClockRegFile_1026_32_X__

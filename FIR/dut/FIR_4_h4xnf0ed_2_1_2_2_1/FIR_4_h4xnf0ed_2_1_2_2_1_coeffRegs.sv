@@ -1,0 +1,72 @@
+`ifndef DEF__FIR_4_h4xnf0ed_2_1_2_2_1_coeffRegs__
+`define DEF__FIR_4_h4xnf0ed_2_1_2_2_1_coeffRegs__
+`ifdef USE_INCLUDES
+`include "memory_bidi_32_32.sv"
+`endif //USE_INCLUDES
+
+module FIR_4_h4xnf0ed_2_1_2_2_1_coeffRegs (
+    input logic clk,
+    input logic rst_b,
+    output logic signed [1:0] COEFF_0,
+    output logic signed [1:0] COEFF_1,
+    memory_bidi_32_32.inward regs
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // busAddressWidth = 32
+  // busInterface = Memory
+  // endianess = little
+  // regDefs = 2 registers, hash p4xry972
+  // ------------------------------------------------------------------
+  logic COEFF_0_matchExpr;
+  logic COEFF_0_rd_hit;
+  logic COEFF_0_wr_hit;
+  logic COEFF_1_matchExpr;
+  logic COEFF_1_rd_hit;
+  logic COEFF_1_wr_hit;
+  logic [31:0] rd_data_nxt;
+  logic [31:0] rd_data_q;
+
+  assign COEFF_0_matchExpr = regs.ADDR == 32'h0;
+  assign COEFF_0_rd_hit = COEFF_0_matchExpr && regs.RE;
+  assign COEFF_0_wr_hit = COEFF_0_matchExpr && regs.WE;
+  assign COEFF_1_matchExpr = regs.ADDR == 32'h4;
+  assign COEFF_1_rd_hit = COEFF_1_matchExpr && regs.RE;
+  assign COEFF_1_wr_hit = COEFF_1_matchExpr && regs.WE;
+  always_comb begin : read_mux
+    rd_data_nxt = '0;
+    if (COEFF_0_rd_hit) begin
+      rd_data_nxt = {30'b0, COEFF_0};
+    end else if (COEFF_1_rd_hit) begin
+      rd_data_nxt = {30'b0, COEFF_1};
+    end
+  end
+  assign regs.READY   = 1'b1;
+  assign regs.DATA_RD = rd_data_q;
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      COEFF_0 <= -2'sd2;
+    end else if (COEFF_0_wr_hit) begin
+      COEFF_0 <= regs.WSTRB[0] ? regs.DATA_WR[1:0] : COEFF_0;
+    end
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      COEFF_1 <= 2'sd1;
+    end else if (COEFF_1_wr_hit) begin
+      COEFF_1 <= regs.WSTRB[0] ? regs.DATA_WR[1:0] : COEFF_1;
+    end
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      rd_data_q <= '0;
+    end else if (regs.RE) begin
+      rd_data_q <= rd_data_nxt;
+    end
+
+endmodule
+
+`endif //!DEF__FIR_4_h4xnf0ed_2_1_2_2_1_coeffRegs__

@@ -1,0 +1,50 @@
+`ifndef DEF__GrayPointer_3_6__
+`define DEF__GrayPointer_3_6__
+`ifdef USE_INCLUDES
+`include "CDCSynchronizer_3_6.sv"
+`endif //USE_INCLUDES
+
+module GrayPointer_3_6 (
+    input logic clk,
+    input logic rst_n,
+    input logic inc,
+    output logic [5:0] bin_ptr,
+    input logic far_clk,
+    input logic far_rst_n,
+    output logic [5:0] far_bin_ptr
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // syncStages = 3n
+  // width = 6n
+  // ------------------------------------------------------------------
+  logic [5:0] bin_ptr_nxt;
+  logic [5:0] gray_q;
+  logic [5:0] gray_far;
+
+  assign bin_ptr_nxt = 6'(bin_ptr + 6'(inc));
+  assign far_bin_ptr = {
+    gray_far[5], ^gray_far[5:4], ^gray_far[5:3], ^gray_far[5:2], ^gray_far[5:1], ^gray_far[5:0]
+  };
+
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      bin_ptr <= '0;
+      gray_q  <= '0;
+    end else begin
+      bin_ptr <= bin_ptr_nxt;
+      gray_q  <= bin_ptr_nxt ^ (bin_ptr_nxt >> 1);
+    end
+
+  CDCSynchronizer_3_6 u_sync (
+      .clk(far_clk),
+      .rst_n(far_rst_n),
+      .d(gray_q),
+      .q(gray_far)
+  );
+
+endmodule
+
+`endif //!DEF__GrayPointer_3_6__

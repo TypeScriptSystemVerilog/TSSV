@@ -1,0 +1,40 @@
+`ifndef DEF__LFSR_2_true_2_lv1bxcz7_3_2__
+`define DEF__LFSR_2_true_2_lv1bxcz7_3_2__
+
+module LFSR_2_true_2_lv1bxcz7_3_2 (
+    input logic clk,
+    input logic rst_n,
+    input logic step,
+    input logic load,
+    input logic [1:0] seed_in,
+    output logic [1:0] value
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // advance = 2n
+  // loadable = true
+  // outWidth = 2n
+  // polynomial = x^2 + x + 1
+  // seed = 3n
+  // width = 2n
+  // ------------------------------------------------------------------
+  logic [1:0] state_q;
+  logic [1:0] cur;
+  logic [1:0] state_nxt;
+
+  assign cur = load ? seed_in : state_q;
+  assign state_nxt = {cur[1] ^ cur[0], cur[1]};
+  assign value = cur;
+
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      state_q <= 2'd3;
+    end else if (step) begin
+      state_q <= state_nxt;
+    end
+
+endmodule
+
+`endif //!DEF__LFSR_2_true_2_lv1bxcz7_3_2__

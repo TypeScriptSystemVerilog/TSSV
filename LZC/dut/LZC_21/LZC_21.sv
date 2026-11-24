@@ -1,0 +1,41 @@
+`ifndef DEF__LZC_21__
+`define DEF__LZC_21__
+
+module LZC_21 (
+    input logic [20:0] data_in,
+    output logic [4:0] zero_num,
+    output logic is_zero
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 21
+  // ------------------------------------------------------------------
+  logic [31:0] val32;
+  logic [4:0] cnt;
+  logic [15:0] val16;
+  logic [7:0] val8;
+  logic [3:0] val4;
+  logic [1:0] val2;
+  logic val1;
+
+  assign is_zero = (data_in == '0);
+  assign val32   = {11'd0, data_in};
+  always_comb begin : lz_tree
+    cnt[4] = (val32[31:16] == '0);
+    val16  = cnt[4] ? val32[15:0] : val32[31:16];
+    cnt[3] = (val16[15:8] == '0);
+    val8   = cnt[3] ? val16[7:0] : val16[15:8];
+    cnt[2] = (val8[7:4] == '0);
+    val4   = cnt[2] ? val8[3:0] : val8[7:4];
+    cnt[1] = (val4[3:2] == '0);
+    val2   = cnt[1] ? val4[1:0] : val4[3:2];
+    cnt[0] = (val2[1] == '0);
+    val1   = cnt[0] ? val2[0] : val2[1];
+  end
+  assign zero_num = val1 ? 5'(cnt - 4'd11) : 5'd21;
+
+endmodule
+
+`endif //!DEF__LZC_21__

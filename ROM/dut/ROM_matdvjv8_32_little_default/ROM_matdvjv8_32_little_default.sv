@@ -1,0 +1,41 @@
+`ifndef DEF__ROM_matdvjv8_32_little_default__
+`define DEF__ROM_matdvjv8_32_little_default__
+
+module ROM_matdvjv8_32_little_default (
+    input logic clk,
+    input logic rd_en,
+    input logic [1:0] addr,
+    output logic [31:0] data_out
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // ROMContents = 4 words, hash matdvjv8, in rom_read
+  // dataWidth = 32
+  // endianness = little
+  // macroConfig = default
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // data_out: ROM read data; a ROM macro's read register has no reset
+  // ------------------------------------------------------------------
+
+  always_ff @(posedge clk) begin : rom_read
+    if (rd_en) begin
+      case (addr)
+        2'd0: data_out <= 32'h03020100;
+        2'd1: data_out <= 32'h07060504;
+        2'd2: data_out <= 32'h0B0A0908;
+        2'd3: data_out <= 32'h0F0E0D0C;
+        default: data_out <= 'x;
+      endcase
+    end
+  end
+
+
+endmodule
+
+`endif //!DEF__ROM_matdvjv8_32_little_default__

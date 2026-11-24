@@ -1,0 +1,53 @@
+`ifndef DEF__AXI4Stream_32_4_0_4__
+`define DEF__AXI4Stream_32_4_0_4__
+
+interface AXI4Stream_32_4_0_4;
+
+  logic ACLK;
+  logic ACLKEN;
+  logic ARESETn;
+  logic TVALID;
+  logic TREADY;
+  logic [31:0] TDATA;
+  logic [3:0] TSTRB;
+  logic [3:0] TKEEP;
+  logic TLAST;
+  logic [7:0] TID;
+  logic [3:0] TDEST;
+  logic TWAKEUP;
+
+
+  modport outward(
+      input ACLK,
+      input ACLKEN,
+      input ARESETn,
+      output TVALID,
+      input TREADY,
+      output TDATA,
+      output TSTRB,
+      output TKEEP,
+      output TLAST,
+      output TID,
+      output TDEST,
+      output TWAKEUP
+  );
+
+  modport inward(
+      input ACLK,
+      input ACLKEN,
+      input ARESETn,
+      input TVALID,
+      output TREADY,
+      input TDATA,
+      input TSTRB,
+      input TKEEP,
+      input TLAST,
+      input TID,
+      input TDEST,
+      input TWAKEUP
+  );
+
+
+endinterface
+
+`endif //!DEF__AXI4Stream_32_4_0_4__

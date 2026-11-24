@@ -1,0 +1,22 @@
+`ifndef DEF__shift_256_unsigned_left_256__
+`define DEF__shift_256_unsigned_left_256__
+
+module shift_256_unsigned_left_256 (
+    input  logic [255:0] data_in,
+    output logic [511:0] data_out
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 256
+  // isSigned = unsigned
+  // shift_direct = left
+  // shift_val = 256
+  // ------------------------------------------------------------------
+
+  assign data_out = {data_in, {256{1'b0}}};
+
+endmodule
+
+`endif //!DEF__shift_256_unsigned_left_256__

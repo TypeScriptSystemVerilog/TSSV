@@ -1,0 +1,105 @@
+`ifndef DEF__LFSR_64_true_32_n70fgnt9_81985529216486895_64__
+`define DEF__LFSR_64_true_32_n70fgnt9_81985529216486895_64__
+
+module LFSR_64_true_32_n70fgnt9_81985529216486895_64 (
+    input logic clk,
+    input logic rst_n,
+    input logic step,
+    input logic load,
+    input logic [63:0] seed_in,
+    output logic [31:0] value
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // advance = 64n
+  // loadable = true
+  // outWidth = 32n
+  // polynomial = x^64 + x^63 + x^61 + x^60 + 1
+  // seed = 81985529216486895n
+  // width = 64n
+  // ------------------------------------------------------------------
+  logic [63:0] state_q;
+  logic [63:0] cur;
+  logic [63:0] state_nxt;
+
+  assign cur = load ? seed_in : state_q;
+  assign state_nxt = {
+    cur[63] ^ cur[62] ^ cur[60] ^ cur[59],
+    cur[62] ^ cur[61] ^ cur[59] ^ cur[58],
+    cur[61] ^ cur[60] ^ cur[58] ^ cur[57],
+    cur[60] ^ cur[59] ^ cur[57] ^ cur[56],
+    cur[59] ^ cur[58] ^ cur[56] ^ cur[55],
+    cur[58] ^ cur[57] ^ cur[55] ^ cur[54],
+    cur[57] ^ cur[56] ^ cur[54] ^ cur[53],
+    cur[56] ^ cur[55] ^ cur[53] ^ cur[52],
+    cur[55] ^ cur[54] ^ cur[52] ^ cur[51],
+    cur[54] ^ cur[53] ^ cur[51] ^ cur[50],
+    cur[53] ^ cur[52] ^ cur[50] ^ cur[49],
+    cur[52] ^ cur[51] ^ cur[49] ^ cur[48],
+    cur[51] ^ cur[50] ^ cur[48] ^ cur[47],
+    cur[50] ^ cur[49] ^ cur[47] ^ cur[46],
+    cur[49] ^ cur[48] ^ cur[46] ^ cur[45],
+    cur[48] ^ cur[47] ^ cur[45] ^ cur[44],
+    cur[47] ^ cur[46] ^ cur[44] ^ cur[43],
+    cur[46] ^ cur[45] ^ cur[43] ^ cur[42],
+    cur[45] ^ cur[44] ^ cur[42] ^ cur[41],
+    cur[44] ^ cur[43] ^ cur[41] ^ cur[40],
+    cur[43] ^ cur[42] ^ cur[40] ^ cur[39],
+    cur[42] ^ cur[41] ^ cur[39] ^ cur[38],
+    cur[41] ^ cur[40] ^ cur[38] ^ cur[37],
+    cur[40] ^ cur[39] ^ cur[37] ^ cur[36],
+    cur[39] ^ cur[38] ^ cur[36] ^ cur[35],
+    cur[38] ^ cur[37] ^ cur[35] ^ cur[34],
+    cur[37] ^ cur[36] ^ cur[34] ^ cur[33],
+    cur[36] ^ cur[35] ^ cur[33] ^ cur[32],
+    cur[35] ^ cur[34] ^ cur[32] ^ cur[31],
+    cur[34] ^ cur[33] ^ cur[31] ^ cur[30],
+    cur[33] ^ cur[32] ^ cur[30] ^ cur[29],
+    cur[32] ^ cur[31] ^ cur[29] ^ cur[28],
+    cur[31] ^ cur[30] ^ cur[28] ^ cur[27],
+    cur[30] ^ cur[29] ^ cur[27] ^ cur[26],
+    cur[29] ^ cur[28] ^ cur[26] ^ cur[25],
+    cur[28] ^ cur[27] ^ cur[25] ^ cur[24],
+    cur[27] ^ cur[26] ^ cur[24] ^ cur[23],
+    cur[26] ^ cur[25] ^ cur[23] ^ cur[22],
+    cur[25] ^ cur[24] ^ cur[22] ^ cur[21],
+    cur[24] ^ cur[23] ^ cur[21] ^ cur[20],
+    cur[23] ^ cur[22] ^ cur[20] ^ cur[19],
+    cur[22] ^ cur[21] ^ cur[19] ^ cur[18],
+    cur[21] ^ cur[20] ^ cur[18] ^ cur[17],
+    cur[20] ^ cur[19] ^ cur[17] ^ cur[16],
+    cur[19] ^ cur[18] ^ cur[16] ^ cur[15],
+    cur[18] ^ cur[17] ^ cur[15] ^ cur[14],
+    cur[17] ^ cur[16] ^ cur[14] ^ cur[13],
+    cur[16] ^ cur[15] ^ cur[13] ^ cur[12],
+    cur[15] ^ cur[14] ^ cur[12] ^ cur[11],
+    cur[14] ^ cur[13] ^ cur[11] ^ cur[10],
+    cur[13] ^ cur[12] ^ cur[10] ^ cur[9],
+    cur[12] ^ cur[11] ^ cur[9] ^ cur[8],
+    cur[11] ^ cur[10] ^ cur[8] ^ cur[7],
+    cur[10] ^ cur[9] ^ cur[7] ^ cur[6],
+    cur[9] ^ cur[8] ^ cur[6] ^ cur[5],
+    cur[8] ^ cur[7] ^ cur[5] ^ cur[4],
+    cur[7] ^ cur[6] ^ cur[4] ^ cur[3],
+    cur[6] ^ cur[5] ^ cur[3] ^ cur[2],
+    cur[5] ^ cur[4] ^ cur[2] ^ cur[1],
+    cur[4] ^ cur[3] ^ cur[1] ^ cur[0],
+    cur[63] ^ cur[62] ^ cur[60] ^ cur[59] ^ cur[3] ^ cur[2] ^ cur[0],
+    cur[63] ^ cur[61] ^ cur[60] ^ cur[58] ^ cur[2] ^ cur[1],
+    cur[62] ^ cur[60] ^ cur[59] ^ cur[57] ^ cur[1] ^ cur[0],
+    cur[63] ^ cur[62] ^ cur[61] ^ cur[60] ^ cur[58] ^ cur[56] ^ cur[0]
+  };
+  assign value = cur[31:0];
+
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      state_q <= 64'd81985529216486895;
+    end else if (step) begin
+      state_q <= state_nxt;
+    end
+
+endmodule
+
+`endif //!DEF__LFSR_64_true_32_n70fgnt9_81985529216486895_64__

@@ -1,0 +1,42 @@
+`ifndef DEF__LZC_64__
+`define DEF__LZC_64__
+
+module LZC_64 (
+    input logic [63:0] data_in,
+    output logic [6:0] zero_num,
+    output logic is_zero
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 64
+  // ------------------------------------------------------------------
+  logic [5:0] cnt;
+  logic [31:0] val32;
+  logic [15:0] val16;
+  logic [7:0] val8;
+  logic [3:0] val4;
+  logic [1:0] val2;
+  logic val1;
+
+  assign is_zero = (data_in == '0);
+  always_comb begin : lz_tree
+    cnt[5] = (data_in[63:32] == '0);
+    val32  = cnt[5] ? data_in[31:0] : data_in[63:32];
+    cnt[4] = (val32[31:16] == '0);
+    val16  = cnt[4] ? val32[15:0] : val32[31:16];
+    cnt[3] = (val16[15:8] == '0);
+    val8   = cnt[3] ? val16[7:0] : val16[15:8];
+    cnt[2] = (val8[7:4] == '0);
+    val4   = cnt[2] ? val8[3:0] : val8[7:4];
+    cnt[1] = (val4[3:2] == '0);
+    val2   = cnt[1] ? val4[1:0] : val4[3:2];
+    cnt[0] = (val2[1] == '0);
+    val1   = cnt[0] ? val2[0] : val2[1];
+  end
+  assign zero_num = val1 ? 7'(cnt) : 7'd64;
+
+endmodule
+
+`endif //!DEF__LZC_64__

@@ -1,0 +1,98 @@
+`ifndef DEF__AFIFO_8_4_X_false_true_2__
+`define DEF__AFIFO_8_4_X_false_true_2__
+`ifdef USE_INCLUDES
+`include "GrayPointer_2_3.sv"
+`include "TwoClockRegFile_8_4_X.sv"
+`endif //USE_INCLUDES
+
+module AFIFO_8_4_X_false_true_2 (
+    input logic wr_clk,
+    input logic wr_rst_n,
+    input logic push_en,
+    input logic [7:0] push_data,
+    output logic full,
+    output logic [2:0] wr_curr_depth,
+    input logic rd_clk,
+    input logic rd_rst_n,
+    input logic pop_en,
+    output logic [7:0] pop_data,
+    output logic empty,
+    output logic [2:0] rd_curr_depth,
+    input logic [2:0] almost_full_depth,
+    output logic almost_full
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // dataWidth = 8n
+  // depth = 4n
+  // inclAlmostEmpty = false
+  // inclAlmostFull = true
+  // syncStages = 2n
+  // ------------------------------------------------------------------
+  logic push_fire;
+  logic pop_fire;
+  logic [2:0] wr_ptr_q;
+  logic [2:0] wr_ptr_rsync;
+  logic [2:0] rd_ptr_q;
+  logic [2:0] rd_ptr_wsync;
+  logic [2:0] rd_ptr_nxt;
+  logic head_vld_nxt;
+  logic head_load;
+  logic [1:0] wr_addr;
+  logic [1:0] rd_addr;
+
+  assign push_fire = push_en && !full;
+  assign wr_curr_depth = 3'(wr_ptr_q - rd_ptr_wsync);
+  assign full = wr_ptr_q == {~rd_ptr_wsync[2], rd_ptr_wsync[1:0]};
+  assign almost_full = wr_curr_depth >= almost_full_depth;
+  assign pop_fire = pop_en && !empty;
+  assign rd_ptr_nxt = 3'(rd_ptr_q + 3'(pop_fire));
+  assign head_vld_nxt = rd_ptr_nxt != wr_ptr_rsync;
+  assign head_load = head_vld_nxt && (pop_fire || empty);
+  assign rd_curr_depth = empty ? '0 : 3'(wr_ptr_rsync - rd_ptr_q);
+  assign wr_addr = wr_ptr_q[1:0];
+  assign rd_addr = rd_ptr_nxt[1:0];
+
+  always_ff @(posedge rd_clk or negedge rd_rst_n)
+    if (!rd_rst_n) begin
+      empty <= 1'd1;
+    end else begin
+      empty <= !head_vld_nxt;
+    end
+
+  GrayPointer_2_3 u_wr_ptr (
+      .clk(wr_clk),
+      .rst_n(wr_rst_n),
+      .inc(push_fire),
+      .bin_ptr(wr_ptr_q),
+      .far_clk(rd_clk),
+      .far_rst_n(rd_rst_n),
+      .far_bin_ptr(wr_ptr_rsync)
+  );
+
+  GrayPointer_2_3 u_rd_ptr (
+      .clk(rd_clk),
+      .rst_n(rd_rst_n),
+      .inc(pop_fire),
+      .bin_ptr(rd_ptr_q),
+      .far_clk(wr_clk),
+      .far_rst_n(wr_rst_n),
+      .far_bin_ptr(rd_ptr_wsync)
+  );
+
+  TwoClockRegFile_8_4_X u_storage (
+      .a_clk(wr_clk),
+      .a_we(push_fire),
+      .a_addr(wr_addr),
+      .a_data_in(push_data),
+      .b_clk(rd_clk),
+      .b_re(head_load),
+      .b_addr(rd_addr),
+      .b_data_out(pop_data)
+  );
+
+endmodule
+
+`endif //!DEF__AFIFO_8_4_X_false_true_2__

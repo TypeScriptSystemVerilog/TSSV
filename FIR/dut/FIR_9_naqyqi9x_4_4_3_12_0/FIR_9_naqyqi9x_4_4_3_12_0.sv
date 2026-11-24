@@ -1,0 +1,122 @@
+`ifndef DEF__FIR_9_naqyqi9x_4_4_3_12_0__
+`define DEF__FIR_9_naqyqi9x_4_4_3_12_0__
+`ifdef USE_INCLUDES
+`include "AXI4Stream_32_4_0_4.sv"
+`include "memory_bidi_32_32.sv"
+`include "FIR_9_naqyqi9x_4_4_3_12_0_coeffRegs.sv"
+`endif //USE_INCLUDES
+
+module FIR_9_naqyqi9x_4_4_3_12_0 (
+    input logic clk,
+    input logic rst_b,
+    AXI4Stream_32_4_0_4.inward s_axis,
+    AXI4Stream_32_4_0_4.outward m_axis,
+    memory_bidi_32_32.inward regs
+);
+
+  // ------------------------------------------------------------------
+  // Parameters
+  // ------------------------------------------------------------------
+  // accumulatorWidth = 9
+  // coefficients = [-2n, 1n, 3n]
+  // coefficientsWidth = 4
+  // inWidth = 4
+  // numTaps = 3
+  // outWidth = 12
+  // rShift = 0
+  // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Reset waivers (SV guide RST-5), checked by writeSystemVerilogFiles()
+  // ------------------------------------------------------------------
+  // sum_q: RST-3: datapath, read only while valid_sum_q is high
+  // data_out_q: RST-3: datapath, read only while valid_out_q is high
+  // ------------------------------------------------------------------
+  logic en;
+  logic s_xfer;
+  logic valid_tap_q;
+  logic valid_sum_q;
+  logic valid_out_q;
+  logic signed [3:0] data_in;
+  logic signed [3:0] tap_0_q;
+  logic signed [3:0] tap_1_q;
+  logic signed [3:0] tap_2_q;
+  logic signed [3:0] coeff_0;
+  logic signed [3:0] coeff_1;
+  logic signed [3:0] coeff_2;
+  logic signed [7:0] prod_0;
+  logic signed [7:0] prod_1;
+  logic signed [7:0] prod_2;
+  logic signed [8:0] sum_nxt;
+  logic signed [8:0] sum_q;
+  logic signed [11:0] saturated;
+  logic signed [11:0] data_out_q;
+
+  assign en = m_axis.TREADY || !valid_out_q;
+  assign s_axis.TREADY = en;
+  assign s_xfer = s_axis.TVALID && en;
+  assign data_in = $signed(s_axis.TDATA[3:0]);
+  // coefficient registers are 4 bits wide, so they don't read these bits of the 32-bit bus
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic regs_unused_bits;
+  /* verilator lint_on UNUSEDSIGNAL */
+  assign regs_unused_bits = ^{regs.DATA_WR[31:4], regs.WSTRB[3:1]};
+  assign prod_0 = tap_0_q * coeff_0;
+  assign prod_1 = tap_1_q * coeff_1;
+  assign prod_2 = tap_2_q * coeff_2;
+  assign sum_nxt = prod_0 + prod_1 + prod_2;
+  assign saturated = 12'(sum_q);
+  assign m_axis.TVALID = valid_out_q;
+  assign m_axis.TDATA = $unsigned(32'(data_out_q));
+  assign m_axis.TLAST = 1'b1;
+  assign m_axis.TSTRB = {4{1'b1}};
+  assign m_axis.TKEEP = {4{1'b1}};
+  assign m_axis.TID = '0;
+  assign m_axis.TDEST = '0;
+  assign m_axis.TWAKEUP = 1'b0;
+  // FIR runs on clk and rst_b and has no clock enable, so it ignores ACLK, ARESETn and ACLKEN on both streams
+  /* verilator lint_off UNUSEDSIGNAL */
+  logic axis_unused_clk;
+  /* verilator lint_on UNUSEDSIGNAL */
+  assign axis_unused_clk = ^{s_axis.ACLK, s_axis.ACLKEN, s_axis.ARESETn, m_axis.ACLK, m_axis.ACLKEN, m_axis.ARESETn};
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      valid_tap_q <= '0;
+      valid_sum_q <= '0;
+      valid_out_q <= '0;
+    end else if (en) begin
+      valid_tap_q <= s_xfer;
+      valid_sum_q <= valid_tap_q;
+      valid_out_q <= valid_sum_q;
+    end
+
+  always_ff @(posedge clk or negedge rst_b)
+    if (!rst_b) begin
+      tap_0_q <= '0;
+      tap_1_q <= '0;
+      tap_2_q <= '0;
+    end else if (s_xfer) begin
+      tap_0_q <= data_in;
+      tap_1_q <= tap_0_q;
+      tap_2_q <= tap_1_q;
+    end
+
+  always_ff @(posedge clk)
+    if (en) begin
+      sum_q <= sum_nxt;
+      data_out_q <= saturated;
+    end
+
+  FIR_9_naqyqi9x_4_4_3_12_0_coeffRegs u_coeff_regs (
+      .clk(clk),
+      .rst_b(rst_b),
+      .regs(regs),
+      .COEFF_0(coeff_0),
+      .COEFF_1(coeff_1),
+      .COEFF_2(coeff_2)
+  );
+
+endmodule
+
+`endif //!DEF__FIR_9_naqyqi9x_4_4_3_12_0__
