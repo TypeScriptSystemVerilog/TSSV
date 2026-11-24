@@ -48,6 +48,9 @@ const FPGA_RAM_STYLES = ['distributed', 'block']
  * @see doc/modules/AFIFO/AFIFO-spec.md
  */
 export class AFIFO extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/AFIFO/AFIFO-spec.md'
+
   declare params: AFIFO_Parameters
   constructor (params: AFIFO_Parameters) {
     super({

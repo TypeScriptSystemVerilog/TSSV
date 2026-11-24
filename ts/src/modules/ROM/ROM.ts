@@ -49,6 +49,9 @@ export interface ROM_Parameters extends TSSVParameters {
  * @see doc/modules/ROM/ROM-spec.md
  */
 export class ROM extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/ROM/ROM-spec.md'
+
   declare params: ROM_Parameters
   declare rcf_path: string // rcf file directory, '' for none
   constructor (params: ROM_Parameters, rcf_path?: string) {

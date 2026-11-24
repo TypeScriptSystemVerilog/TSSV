@@ -62,6 +62,9 @@ export interface SRAM_Parameters extends TSSVParameters {
  * @see doc/modules/SRAM/SRAM-spec.md
  */
 export class SRAM extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/SRAM/SRAM-spec.md'
+
   declare params: SRAM_Parameters
   constructor (params: SRAM_Parameters) {
     super({

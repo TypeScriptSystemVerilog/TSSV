@@ -25,6 +25,9 @@ export interface CDCSynchronizer_Parameters extends TSSVParameters {
  * @see doc/modules/CDCSynchronizer/CDCSynchronizer-spec.md
  */
 export class CDCSynchronizer extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/CDCSynchronizer/CDCSynchronizer-spec.md'
+
   declare params: CDCSynchronizer_Parameters
   constructor (params: CDCSynchronizer_Parameters) {
     super({

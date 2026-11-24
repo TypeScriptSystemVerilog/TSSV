@@ -25,6 +25,9 @@ export interface GrayPointer_Parameters extends TSSVParameters {
  * @see doc/modules/GrayPointer/GrayPointer-spec.md
  */
 export class GrayPointer extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/GrayPointer/GrayPointer-spec.md'
+
   declare params: GrayPointer_Parameters
   constructor (params: GrayPointer_Parameters) {
     super({

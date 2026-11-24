@@ -139,6 +139,9 @@ export interface FIR_Ports extends TSSV.IOSignals {
  * @see doc/modules/FIR/FIR-spec.md
  */
 export class FIR extends TSSV.Module<FIR_ParamsNorm, FIR_Ports> {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/FIR/FIR-spec.md'
+
   declare params: FIR_ParamsNorm
   declare IOs: FIR_Ports
   constructor (paramsIn: FIR_Parameters) {

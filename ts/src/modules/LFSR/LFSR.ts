@@ -55,6 +55,9 @@ export interface LFSR_Parameters extends TSSVParameters {
  * @see doc/modules/LFSR/LFSR-spec.md
  */
 export class LFSR extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/LFSR/LFSR-spec.md'
+
   declare params: LFSR_Parameters
   constructor (params: LFSR_Parameters) {
     // The polynomial in canonical form, worked out first, so that every way of writing it gives the

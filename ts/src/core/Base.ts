@@ -7,6 +7,7 @@ import { expandSVFileList, guardSVImport, importGuard } from './SVFileList.js'
 import { type ModuleTable, type ResetWaiver, TESTBENCH_MARKER, checkModule } from './ModuleCheck.js'
 import { type ContractManifest, type ModulePorts, type PortContract, contractText, resolveContract, wrapperSV } from './PortContract.js'
 import { runVerible } from '../tools/formatters/verible.js'
+import { type Origin, generatedHeader, originOf } from './Origin.js'
 
 export type { ResetWaiver } from './ModuleCheck.js'
 
@@ -128,14 +129,16 @@ function attributePrefix (declName: string, attributes: SVAttributes | undefined
 /**
  * Wraps one generated module's or interface's SV in the include guard that
  * `writeSystemVerilogFiles()` writes, with a `` `include `` of each file in `includes` for
- * `USE_INCLUDES` builds. Only generated SV gets this guard: an imported file gets its own
- * `SVIMPORT__` guard instead (`guardSVImport()`).
+ * `USE_INCLUDES` builds, under the file's header. Only generated SV gets this guard: an imported
+ * file gets its own `SVIMPORT__` guard instead (`guardSVImport()`).
  * @param name the module or interface name; the guard macro is `DEF__<name>__`
  * @param includes the names of the files to include, with their extensions
  * @param sv the definition
+ * @param header the comment lines above the guard, each ending in a newline (`generatedHeader()`);
+ *   none for a port contract's wrapper, which carries its own comment
  * @returns the contents of `<name>.sv`
  */
-function guardSVFile (name: string, includes: string[], sv: string): string {
+function guardSVFile (name: string, includes: string[], sv: string, header = ''): string {
   const guard = `DEF__${name}__`
   const includeBlock = includes.length === 0
     ? ''
@@ -143,7 +146,7 @@ function guardSVFile (name: string, includes: string[], sv: string): string {
   // Drop the blank lines at the start (one or more runs of whitespace ending in a newline), so
   // the definition starts right after the guard, and the whitespace at the end
   const body = sv.replace(/^(\s*\n)+/, '').trimEnd()
-  return `\`ifndef ${guard}\n\`define ${guard}\n${includeBlock}\n${body}\n\n\`endif //!${guard}\n`
+  return `${header}\`ifndef ${guard}\n\`define ${guard}\n${includeBlock}\n${body}\n\n\`endif //!${guard}\n`
 }
 
 /** The direction of a port, or of an interface signal in a modport */
@@ -364,6 +367,13 @@ export class Interface {
   /** each modport's signals and their directions, by modport name */
   modports?: Record<string, Record<string, PortDirection>>
   /**
+   * The path of this class's spec, relative to its repo, for the Spec line in its generated
+   * file's file header. Set it as on a module class ({@link Module.spec}).
+   */
+  static spec?: string
+  /** @internal where this interface came from, for its generated file's file header */
+  readonly origin: Origin
+  /**
    * @param name the base name of the SV interface type
    * @param params the parameters, whose values are appended to `name` to name the type
    * @param role the modport the module sees; omit it for a local bundle
@@ -374,6 +384,7 @@ export class Interface {
     this.params = params
     this.role = role
     this.signals = signals
+    this.origin = originOf(new.target, Interface)
   }
 
   /**
@@ -503,6 +514,19 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   private readonly waivers: ResetWaiver[] = []
 
   /**
+   * The path of this class's spec, relative to its repo: the folder of the `package.json` nearest
+   * the class's source file. A module class sets it once, as
+   * `static spec = 'doc/modules/AFIFO/AFIFO-spec.md'`, and {@link Module.writeSystemVerilogFiles}
+   * names it on the Spec line in the file header of each file the class generates. The spec must
+   * exist.
+   * A class that only inherits a spec from the class it extends gets no Spec line.
+   */
+  static spec?: string
+
+  /** @internal where this module came from, for its generated file's file header */
+  readonly origin: Origin
+
+  /**
      * base constructor
      * @param params parameter value bundle. Without a `name`, the module name is `<ClassName>_`
      * followed by one segment per other key, sorted by key (`doc/framework/concepts.md` §2)
@@ -520,6 +544,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       this.name = this.constructor.name + '_' + keys.map((key) => this.nameSegment(params[key])).join('_')
     }
     this.params.name = this.name
+    this.origin = originOf(new.target, Module)
     this.IOs = IOs
     this.signals = signals
     this.body = body
@@ -2273,10 +2298,14 @@ ${caseAssignments}
    * Writes this module and everything it reaches one definition per file: `<outDir>/<name>.sv`
    * for each module and each interface, each defined once.
    *
-   * Each file sits inside an include guard, `DEF__<name>__` for what it defines, and a module's
-   * file includes the files of the interfaces it uses and the modules it instantiates directly:
+   * Each file starts with its file header, then sits inside an include guard, `DEF__<name>__` for
+   * what it defines. A module's file includes the files of the interfaces it uses and the modules
+   * it instantiates directly:
    *
    * ```systemverilog
+   * // Generated by TSSV. Don't edit this file: change its generator and regenerate.
+   * // Generator: Mid, tssv ts/src/modules/Mid/Mid.ts
+   * // Spec: doc/modules/Mid/Mid-spec.md
    * `ifndef DEF__mid__
    * `define DEF__mid__
    * `ifdef USE_INCLUDES
@@ -2291,9 +2320,15 @@ ${caseAssignments}
    * `endif //!DEF__mid__
    * ```
    *
-   * A module with no interfaces and no submodules, and every interface, has the guard only. The
-   * guard lets a file be reached more than once, from two parents or from the command line as
-   * well, and still define its module once.
+   * A module with no interfaces and no submodules, and every interface, has the file header and
+   * the guard only. The guard lets a file be reached more than once, from two parents or from the
+   * command line as well, and still define its module once.
+   *
+   * The file header traces the file back to the code that built it (`doc/framework/concepts.md`
+   * §7). Its Generator line names the class, the repo its source is in (the `name` in the nearest
+   * `package.json`) and its source file. Its Spec line, when the class names one with
+   * {@link Module.spec}, names the class's spec. It holds no commit hash, date or absolute path,
+   * so every run writes the same file.
    *
    * ```typescript
    * const files = top.writeSystemVerilogFiles('build/rtl')   // leaves first, top last
@@ -2367,6 +2402,8 @@ ${caseAssignments}
    * omitted module that is this module or one it doesn't reach
    * @throws `<module>: <violation>`, or `<module>: <n> SV-guide violations: ...`, for a module whose SV
    * doesn't parse or breaks one of the rules above
+   * @throws `writeSystemVerilogFiles: <name>: the spec of <class>, <path>, isn't in <repo>` for a
+   * class whose {@link Module.spec} doesn't exist
    * @throws `writeSystemVerilogFiles: ... can't name a file and its include guard: ...` for a name
    * that isn't a legal identifier, `writeSystemVerilogFiles: ... and ... would be written to ...`
    * for two names that differ only in case, and `writeSystemVerilogFiles: <file> and <file> would
@@ -2434,12 +2471,12 @@ ${caseAssignments}
         const name = intf.interfaceName()
         if (!seen.has(`interface ${name}`)) {
           seen.add(`interface ${name}`)
-          units.push({ kind: 'interface', name, file: `${name}.sv`, usedBy: m.name, contents: () => guardSVFile(name, [], this.applyFormatter(interfaceSystemVerilog(intf))) })
+          units.push({ kind: 'interface', name, file: `${name}.sv`, usedBy: m.name, contents: () => guardSVFile(name, [], this.applyFormatter(interfaceSystemVerilog(intf)), generatedHeader(name, intf.origin)) })
         }
         if (!interfaceNames.includes(name)) interfaceNames.push(name)
       }
       const includes = [...interfaceNames.map(name => `${name}.sv`), ...submoduleFiles]
-      units.push({ kind: 'module', name: m.name, file: `${m.name}.sv`, usedBy, contents: () => guardSVFile(m.name, includes, m.applyFormatter(m.moduleSystemVerilog())) })
+      units.push({ kind: 'module', name: m.name, file: `${m.name}.sv`, usedBy, contents: () => guardSVFile(m.name, includes, m.applyFormatter(m.moduleSystemVerilog()), generatedHeader(m.name, m.origin)) })
       if (m.contracts.length > 0) manifests.push(m)
     }
     // The modules with port contracts, each of which gets a <name>.contracts.json
