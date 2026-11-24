@@ -21,6 +21,9 @@ export interface LZC_Parameters extends TSSVParameters {
  * @see doc/modules/LZC/LZC-spec.md
  */
 export class LZC extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/LZC/LZC-spec.md'
+
   declare params: LZC_Parameters
   constructor (params: LZC_Parameters) {
     super({

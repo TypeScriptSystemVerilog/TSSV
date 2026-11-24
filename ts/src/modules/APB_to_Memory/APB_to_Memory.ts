@@ -18,6 +18,9 @@ export interface APB_to_Memory_Parameters extends TSSVParameters {
  * @see doc/modules/APB_to_Memory/APB_to_Memory-spec.md
  */
 export class APB_to_Memory extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/APB_to_Memory/APB_to_Memory-spec.md'
+
   declare params: APB_to_Memory_Parameters
 
   constructor (params: APB_to_Memory_Parameters = {}) {

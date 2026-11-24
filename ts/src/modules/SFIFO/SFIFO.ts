@@ -48,6 +48,9 @@ export interface SFIFO_Parameters extends TSSVParameters {
  * @see doc/modules/SFIFO/SFIFO-spec.md
  */
 export class SFIFO extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/SFIFO/SFIFO-spec.md'
+
   declare params: SFIFO_Parameters
   constructor (params: SFIFO_Parameters) {
     super({

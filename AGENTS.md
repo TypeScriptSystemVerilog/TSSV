@@ -182,7 +182,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 5. Add a test in `ts/test/modules/test_<Module>.ts` that instantiates the class and writes each configuration's SV under `sv-examples/<Module>/dut/<instance>/` with `writeSystemVerilogFiles()`. A `dut/` folder holds only the configuration's design, never a testbench: its testbench files go beside it, such as in `sv-examples/<Module>/tb/`. A testbench the testbench generator builds gets its DUT from `buildDut` (doc/framework/testbench.md)
 6. `npx tsc && node out/test/modules/test_<Module>.js` to generate and inspect the SV output
 7. Follow `doc/rtl-style/tssv-style/tssv-coding-style.md` for the TypeScript and `doc/rtl-style/sv-style/sv-coding-style.md` for every SV string you write, especially `addCombAlways()`/`addSequentialAlways()` bodies, and lint the output with `verilator --lint-only -Wall +define+USE_INCLUDES +incdir+<dir> <dir>/<top>.sv`
-8. Write its spec from `doc/templates/module-spec-template.md` at `doc/modules/<Module>/<Module>-spec.md`, and add `@see doc/modules/<Module>/<Module>-spec.md` to the class's JSDoc
+8. Write its spec from `doc/templates/module-spec-template.md` at `doc/modules/<Module>/<Module>-spec.md`, add `@see doc/modules/<Module>/<Module>-spec.md` to the class's JSDoc, and set `static spec = 'doc/modules/<Module>/<Module>-spec.md'` on the class, which names the spec in the file header of each file it generates (`doc/framework/concepts.md` §7)
 
 ## Current Implementation State
 
