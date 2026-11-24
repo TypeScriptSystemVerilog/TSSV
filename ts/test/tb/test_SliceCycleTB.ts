@@ -19,7 +19,7 @@ import { RecordChecker } from 'tssv/lib/tb/RecordChecker'
 import { injectorLayout } from 'tssv/lib/tb/recordStream'
 import { writeConfiguration } from 'tssv/lib/tb/testbenchConfiguration'
 import { generateTestbenches } from 'tssv/lib/tb/testbenchGenerator'
-import { SliceCycleHarness, SLICE_FIELDS, SLICE_LFSR, recordsOf, sliceCycleTable, sliceOrderParameters, sliceOrderTestcase } from './RecordStreamHarness.js'
+import { SliceCycleHarness, SLICE_FIELDS, SLICE_LFSR, recordsOf, sliceCycleTable, sliceOrderParameters, sliceOrderTestcase, streamSliceDut } from './RecordStreamHarness.js'
 import { rmSync } from 'fs'
 
 const OUT = `${TSSV_ROOT}/sv-examples/tb`
@@ -80,6 +80,7 @@ const runs = generateTestbenches({
   testcases: [...TABLE_DEPTH.keys()].map(stages => writeTestcase(stages, stimulus)),
   modes: ['preloaded', 'reloaded'],
   parameters: sliceOrderParameters,
-  harness: build => new SliceCycleHarness(build)
+  harness: build => new SliceCycleHarness(build),
+  buildDut: config => streamSliceDut(config.parameters)
 })
 for (const r of runs) console.log(`${r.mode} ${r.configuration} ${r.testcase}: ${r.top}, run in sv-examples/tb/StreamSlice/SliceCycle/${r.runDir}/`)

@@ -64,6 +64,14 @@ export const SLICE_FIELDS: RecordField[] = [{ name: 'last', width: 1 }, { name: 
 /** The slice examples' LFSR payloads: an LFSR fills `data` from each record's seed */
 export const SLICE_LFSR: RecordLfsr = { fields: ['data'], seed: 0x5eed5eed5eed5eedn }
 
+/**
+ * The DUT of a SliceOrder or SliceCycle configuration: a 33-bit StreamSlice with the configured
+ * stages, named by its parameters. The runners give it to the testbench generator as `buildDut`.
+ */
+export function streamSliceDut (config: SliceOrderParameters): StreamSlice {
+  return new StreamSlice({ name: `StreamSlice_33_${config.stages}`, width: 33, stages: config.stages })
+}
+
 /** A SliceOrder configuration's parameters: the slice's register stages. */
 export interface SliceOrderParameters {
   stages: number
@@ -130,7 +138,7 @@ export class SliceOrderHarness extends Harness {
       clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', valid_rate: 'valid_rate', limit: 'limit', ...this.registerMemories('inj_s_in', injector)
     }, false)
     this.addAssign({ in: new Expr('{s_in_last, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSlice({ name: `StreamSlice_${build.name}`, width: 33, stages: build.config.parameters.stages }), {
+    this.addSubmodule('dut', build.dut ?? streamSliceDut(build.config.parameters), {
       clk: 'clk',
       rst_b: 'rst_b',
       in_valid: 's_in_valid',
@@ -234,7 +242,7 @@ export class SliceCycleHarness extends Harness {
       clk: 'clk', rst_b: 'rst_b', ready: 's_in_ready', valid: 's_in_valid', last: 's_in_last', data: 's_in_data', done: 'inj_done', ...this.registerMemories('inj_s_in', injector)
     }, false)
     this.addAssign({ in: new Expr('{s_in_last, s_in_data}'), out: 's_in_word' })
-    this.addSubmodule('dut', new StreamSlice({ name: `StreamSlice_${build.name}`, width: 33, stages: build.config.parameters.stages }), {
+    this.addSubmodule('dut', build.dut ?? streamSliceDut(build.config.parameters), {
       clk: 'clk',
       rst_b: 'rst_b',
       in_valid: 's_in_valid',

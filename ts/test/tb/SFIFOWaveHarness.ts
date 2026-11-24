@@ -87,6 +87,14 @@ export function sfifoWaveTable (svg: string, config: SFIFOWaveParameters): SFIFO
  *   play ──rst_n, push_en, pop_en, push_data──▶ dut (SFIFO) ──pop_data, empty, full, curr_depth──▶ chk
  *     └──────────────────────── row, fetch, run ─────────────────────────────────────────────────┘
  */
+/**
+ * The DUT of an SFIFOWave configuration: the dual-port SFIFO it describes, named by its parameters.
+ * The runner gives it to the testbench generator as `buildDut`.
+ */
+export function sfifoWaveDut (config: SFIFOWaveParameters): SFIFO {
+  return new SFIFO({ dataWidth: BigInt(config.dataWidth), depth: BigInt(config.depth) })
+}
+
 export class SFIFOWaveHarness extends Harness {
   constructor (build: HarnessBuild<SFIFOWaveParameters>) {
     super({ name: build.name })
@@ -121,7 +129,7 @@ export class SFIFOWaveHarness extends Harness {
     this.addSubmodule('play', play, { ...playerBindings, ...this.registerMemories('play', play) }, false)
     const chk = new VectorChecker({ name: `VectorChecker_${build.name}`, rows: expected.records, lanes: checked, memory: build.mode, depth: expected.depth, file: expected.file })
     this.addSubmodule('chk', chk, { ...checkerBindings, ...this.registerMemories('chk', chk) }, false)
-    this.addSubmodule('dut', new SFIFO({ dataWidth: BigInt(config.dataWidth), depth: BigInt(config.depth) }), dutBindings, false)
+    this.addSubmodule('dut', build.dut ?? sfifoWaveDut(config), dutBindings, false)
     this.finish()
   }
 }

@@ -15,7 +15,7 @@ import { writeManifest, writePatternFile, type PatternObject } from 'tssv/lib/tb
 import { checkerLayout, injectorLayout } from 'tssv/lib/tb/recordStream'
 import { writeConfiguration } from 'tssv/lib/tb/testbenchConfiguration'
 import { generateTestbenches } from 'tssv/lib/tb/testbenchGenerator'
-import { SliceOrderHarness, SLICE_FIELDS, SLICE_LFSR, sliceContinuedTestcase, sliceOrderParameters, sliceOrderTestcase } from './RecordStreamHarness.js'
+import { SliceOrderHarness, SLICE_FIELDS, SLICE_LFSR, sliceContinuedTestcase, sliceOrderParameters, sliceOrderTestcase, streamSliceDut } from './RecordStreamHarness.js'
 import { rmSync } from 'fs'
 
 const OUT = `${TSSV_ROOT}/sv-examples/tb`
@@ -66,6 +66,7 @@ const runs = generateTestbenches({
   testcases,
   modes: ['preloaded', 'reloaded'],
   parameters: sliceOrderParameters,
-  harness: build => new SliceOrderHarness(build)
+  harness: build => new SliceOrderHarness(build),
+  buildDut: config => streamSliceDut(config.parameters)
 })
 for (const r of runs) console.log(`${r.mode} ${r.configuration} ${r.testcase}: ${r.top}, run in sv-examples/tb/StreamSlice/SliceOrder/${r.runDir}/`)

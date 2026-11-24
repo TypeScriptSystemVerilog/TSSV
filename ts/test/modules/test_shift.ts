@@ -40,9 +40,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write a shift's SV under sv-examples/shift/<name>/ and return the path of its own file */
+/** write a shift's SV under sv-examples/shift/dut/<name>/ and return the path of its own file */
 function emit (s: shift): string {
-  return s.writeSystemVerilogFiles(`${OUT}/${s.name}`).at(-1) ?? ''
+  return s.writeSystemVerilogFiles(`${OUT}/dut/${s.name}`).at(-1) ?? ''
 }
 
 /** the spec's IO table for a configuration: "<port>:<width>", sorted */

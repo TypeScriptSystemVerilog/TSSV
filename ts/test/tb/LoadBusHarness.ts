@@ -44,6 +44,14 @@ export function loadBusParameters (raw: Record<string, JsonValue>, where: string
  *      │ done                                                  │ drained
  *      └──▶ inj_done_q ──▶ sync_inj_done (CDCSynchronizer) ──▶ AND ──▶ done
  */
+/**
+ * The DUT of a LoadBus configuration: a 14-bit, 4-deep AFIFO, named by its parameters. The runner
+ * gives it to the testbench generator as `buildDut`.
+ */
+export function loadBusDut (): AFIFO {
+  return new AFIFO({ dataWidth: 14n, depth: 4n })
+}
+
 export class LoadBusHarness extends Harness {
   constructor (build: HarnessBuild<Record<string, never>>) {
     super({
@@ -77,7 +85,7 @@ export class LoadBusHarness extends Harness {
     }, false)
     this.addAssign({ in: new Expr('{wr_src, wr_data}'), out: 'wr_word' })
     this.addAssign({ in: new Expr('!full'), out: 'wr_ready' })
-    this.addSubmodule('dut', new AFIFO({ name: `AFIFO_${build.name}`, dataWidth: 14n, depth: 4n }), {
+    this.addSubmodule('dut', build.dut ?? loadBusDut(), {
       wr_clk: 'clk_wr',
       wr_rst_n: 'rst_b_wr',
       push_en: 'wr_valid',

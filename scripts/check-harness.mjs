@@ -14,23 +14,27 @@
 // the harness is the one file the testbench includes. --harness names harness files directly
 // instead, which is how to see the check fail on a SimTop.
 //
+// A harness in a generated testbench's build folder finds its DUT in the configuration's DUT folder
+// as well, <dir>/dut/<configuration>/, when its runner gave the testbench generator a buildDut
+// (dutDirOf() in doc/rtl-style/tools/verilator.mjs). Its lint and its scan both look there.
+//
 // It finds its own files from where it is, so a project runs it through its link to TSSV:
 //
 // Usage: node scripts/check-harness.mjs <testbench.sv>...                     (in TSSV)
 //        node node_modules/tssv/scripts/check-harness.mjs <testbench.sv>...   (in a project)
 //        ... --harness <harness.sv>...
 import { readFileSync } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { lint } from '../doc/rtl-style/tools/verilator.mjs'
+import { includeDirs, lint, resolveInclude } from '../doc/rtl-style/tools/verilator.mjs'
 import { scanFile, svModules } from '../doc/rtl-style/sv-style/tools/sv-scans.mjs'
 
 const WAIVERS = fileURLToPath(new URL('../doc/rtl-style/sv-style/harness_waivers.vlt', import.meta.url))
 
-// The files `file` includes, by name from its own directory. Matches an include line,
-// `include "<name>", capturing <name>, as lintTops() in verilator.mjs does.
+// The files `file` includes, by name from its include path (resolveInclude() in verilator.mjs).
+// Matches an include line, `include "<name>", capturing <name>, as lintTops() there does.
 function includes (file) {
-  return [...readFileSync(file, 'utf8').matchAll(/^[ \t]*`include[ \t]+"([^"]+)"/gm)].map(m => join(dirname(file), m[1]))
+  return [...readFileSync(file, 'utf8').matchAll(/^[ \t]*`include[ \t]+"([^"]+)"/gm)].map(m => resolveInclude(file, m[1]))
 }
 
 // `top` and every file it reaches through its includes
@@ -64,7 +68,7 @@ for (const input of inputs) {
   const top = basename(harness, '.sv')
   const problems = []
 
-  const { warnings, errors, out } = lint([harness], ['--no-timing', WAIVERS, `-I${dirname(harness)}`, '--top-module', top])
+  const { warnings, errors, out } = lint([harness], ['--no-timing', WAIVERS, ...includeDirs(harness).map(d => `-I${d}`), '--top-module', top])
   if (warnings.length > 0 || errors.length > 0) {
     problems.push(`verilator --lint-only -Wall --no-timing: ${[...errors, ...warnings.map(w => `%Warning-${w}`)].join(', ')}`)
     problems.push(...out.trim().split('\n').map(l => `    ${l}`))

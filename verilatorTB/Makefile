@@ -38,7 +38,7 @@ SFIFO_TB_DIR = $(SFIFO_DIR)/tb
 
 sfifo_sim: tsc
 	cd ..; node out/test/modules/test_SFIFO.js
-	$(call lint_variants,$(SFIFO_DIR)/SFIFO_*/)
+	$(call lint_variants,$(SFIFO_DIR)/dut/SFIFO_*/)
 	mkdir -p obj_dir
 	set -e; while read -r cfg dut; do \
 	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sfifo_$$cfg -o Vtb_SFIFO \
@@ -56,7 +56,7 @@ SRAM_DIR = ../sv-examples/SRAM
 
 sram_sim: tsc
 	cd ..; node out/test/modules/test_SRAM.js
-	$(call lint_variants,$(SRAM_DIR)/SRAM_*/)
+	$(call lint_variants,$(SRAM_DIR)/dut/SRAM_*/)
 	mkdir -p obj_dir
 	set -e; while read -r cfg dut defines; do \
 	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sram_$$cfg -o Vtb_SRAM \
@@ -148,7 +148,7 @@ FIR_DIR = ../sv-examples/FIR
 
 fir_sim: tsc
 	cd ..; node out/test/test_FIR.js
-	set -e; for f in $(FIR_DIR)/*/*_lint_top.sv; do \
+	set -e; for f in $(FIR_DIR)/dut/*/*_lint_top.sv; do \
 	  verilator --lint-only -Wall $(COMMON_WAIVERS) $(SV_INCLUDES) -I$$(dirname $$f) $$f; \
 	  echo "lint -Wall clean: $$f"; \
 	done
@@ -164,12 +164,12 @@ SHIFT_DIR = ../sv-examples/shift
 
 lzc_sim: tsc
 	cd ..; node out/test/modules/test_LZC.js
-	$(call lint_variants,$(LZC_DIR)/LZC_*/)
+	$(call lint_variants,$(LZC_DIR)/dut/LZC_*/)
 	$(call run_configs,lzc,tb_LZC,$(LZC_DIR)/tb,)
 
 shift_sim: tsc
 	cd ..; node out/test/modules/test_shift.js
-	$(call lint_variants,$(SHIFT_DIR)/shift_*/)
+	$(call lint_variants,$(SHIFT_DIR)/dut/shift_*/)
 	$(call run_configs,shift,tb_shift,$(SHIFT_DIR)/tb,)
 
 .PHONY: lzc_sim shift_sim
@@ -183,7 +183,7 @@ TCRF_DIR = ../sv-examples/TwoClockRegFile
 
 twoclockregfile_sim: tsc
 	cd ..; node out/test/modules/test_TwoClockRegFile.js
-	$(call lint_variants,$(TCRF_DIR)/TwoClockRegFile_*/)
+	$(call lint_variants,$(TCRF_DIR)/dut/TwoClockRegFile_*/)
 	mkdir -p obj_dir
 	set -e; while read -r cfg dut; do \
 	  verilator --binary --timing --no-sched-zero-delay --trace-fst -j 0 -Mdir obj_dir/twoclockregfile_$$cfg -o Vtb_TwoClockRegFile \
@@ -215,17 +215,17 @@ endef
 
 cdcsynchronizer_sim: tsc
 	cd ..; node out/test/modules/test_CDCSynchronizer.js
-	$(call lint_variants,$(CDC_DIR)/CDCSynchronizer_*/)
+	$(call lint_variants,$(CDC_DIR)/dut/CDCSynchronizer_*/)
 	$(call run_configs,cdcsynchronizer,tb_CDCSynchronizer,$(CDC_DIR)/tb,)
 
 graypointer_sim: tsc
 	cd ..; node out/test/modules/test_GrayPointer.js
-	$(call lint_variants,$(GP_DIR)/GrayPointer_*/)
+	$(call lint_variants,$(GP_DIR)/dut/GrayPointer_*/)
 	$(call run_configs,graypointer,tb_GrayPointer,$(GP_DIR)/tb,GrayPointer_checks.sv)
 
 afifo_sim: tsc
 	cd ..; node out/test/modules/test_AFIFO.js
-	$(call lint_variants,$(AFIFO_DIR)/AFIFO_*/)
+	$(call lint_variants,$(AFIFO_DIR)/dut/AFIFO_*/)
 	$(call run_configs,afifo,tb_AFIFO,$(AFIFO_DIR)/tb,GrayPointer_checks.sv)
 
 # ROM (TSSV#151): lint every generated variant with -Wall, then build and run a self-checking
@@ -275,7 +275,9 @@ tb_examples_sim: tsc
 # every run: `mode configuration testcase top buildDir runDir`, the folders relative to the index.
 # For each index, this checks each harness (scripts/check-harness.mjs) and builds each top once,
 # into obj_dir/<DUT>/<testbench>/<top>/, then runs every line from its run folder, so a reloaded
-# build runs once per testcase. A failed run exits nonzero, as in tb_examples_sim.
+# build runs once per testcase. A build also puts the configuration's DUT folder,
+# <DUT>/<testbench>/dut/<configuration>/, on the include path when it exists: the runner gave the
+# generator a buildDut. A failed run exits nonzero, as in tb_examples_sim.
 TB_REGRESSION_RUNNERS = test_SliceOrderTB test_SliceCycleTB test_SFIFOWaveTB test_loadBusTB
 
 tb_regression_sim: tsc
@@ -285,7 +287,8 @@ tb_regression_sim: tsc
 	  while read -r mode cfg tc top build run; do \
 	    case "$$built" in *" $$top "*) ;; *) \
 	      (cd .. && node scripts/check-harness.mjs $${d#../}/$$build/$$top.sv) < /dev/null; \
-	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build $$d/$$build/$$top.sv \
+	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build \
+	        $$([ -d $$d/dut/$$cfg ] && echo -I$$d/dut/$$cfg) $$d/$$build/$$top.sv \
 	        > $$o/$$top.build.log 2>&1 < /dev/null || { cat $$o/$$top.build.log; exit 1; }; \
 	      built="$$built$$top ";; \
 	    esac; \

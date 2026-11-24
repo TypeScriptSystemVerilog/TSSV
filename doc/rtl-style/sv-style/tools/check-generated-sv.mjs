@@ -5,7 +5,8 @@
 // everything under sv-examples/. Every finding fails.
 //
 // Lint groups files as scripts/lint-sv.sh does, with USE_INCLUDES defined and the unit's
-// directory on the include path. Each file Module.writeSystemVerilogFiles() writes includes the
+// directory on the include path, and its DUT folder if it is a generated testbench's build folder
+// (includeDirs() in ../../tools/verilator.mjs). Each file Module.writeSystemVerilogFiles() writes includes the
 // files it needs, and so does SV a test script writes by hand to instantiate a design (a lint
 // wrapper for a module with interface ports, a testbench: ts/test/models/guardSV.ts). So each
 // .sv that no other file in its directory includes is a top, linted on its own, and its lint
@@ -26,7 +27,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
-import { lint, lintTops, requirePinnedVerilator } from '../../tools/verilator.mjs'
+import { includeDirs, lint, lintTops, requirePinnedVerilator } from '../../tools/verilator.mjs'
 import { scanFile } from './sv-scans.mjs'
 
 const OUT = 'sv-examples'
@@ -75,7 +76,7 @@ for (const filelist of filelists) {
   units.push({ label: filelist, files: [], flags: [`+incdir+${dirname(filelist)}`, '-F', filelist] })
 }
 for (const file of lintTops(svFiles).filter((f) => !grouped.has(f))) {
-  units.push({ label: file, files: [file], flags: [`+incdir+${dirname(file)}`] })
+  units.push({ label: file, files: [file], flags: includeDirs(file).map((d) => `+incdir+${d}`) })
 }
 
 const seen = new Set() // a file in two units reports the same warning twice

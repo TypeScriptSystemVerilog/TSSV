@@ -83,7 +83,7 @@ None: the module holds no state.
 ## Test Plan
 
 **Test script:** `ts/test/modules/test_shift.ts`
-**Output:** `sv-examples/shift/<name>/`
+**Output:** `sv-examples/shift/dut/<name>/`
 
 The script generates every structural configuration:
 

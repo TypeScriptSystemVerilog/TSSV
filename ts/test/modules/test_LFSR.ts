@@ -1,6 +1,6 @@
 /**
  * Checks of LFSR (ts/src/modules/LFSR/), its polynomials and its TypeScript model that need no
- * simulation, and the SV of every structural configuration, under sv-examples/LFSR/. tb_LFSR
+ * simulation, and the SV of every structural configuration, under sv-examples/LFSR/dut/. tb_LFSR
  * (ts/test/tb/test_tbExamples.ts) checks the RTL against the model, cycle by cycle.
  *
  *   - the two forms of a polynomial mean the same thing and make the same module, and each kind of
@@ -388,7 +388,7 @@ for (const config of CONFIGS) {
   void test(`${lfsr.name} has the spec's ports, and writes its SV`, () => {
     const width = Number(config.width)
     assert.deepEqual(ports(lfsr), specPorts(width, Number(config.outWidth ?? config.width), config.loadable === true))
-    lfsr.writeSystemVerilogFiles(`${OUT}/${lfsr.name}`)
+    lfsr.writeSystemVerilogFiles(`${OUT}/dut/${lfsr.name}`)
   })
 }
 

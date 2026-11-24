@@ -820,7 +820,7 @@ import { SFIFO } from 'tssv/lib/modules/SFIFO'
 
 for (const simultPushPop of [true, false]) {
   const fifo = new SFIFO({ dataWidth: 8n, depth: 4n, simultPushPop })
-  fifo.writeSystemVerilogFiles(`sv-examples/SFIFO/${fifo.name}`)
+  fifo.writeSystemVerilogFiles(`sv-examples/SFIFO/dut/${fifo.name}`)
 }
 ```
 

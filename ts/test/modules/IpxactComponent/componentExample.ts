@@ -1,5 +1,5 @@
 // Wraps three sample components with IpXactComponent, and writes each under
-// sv-examples/IpXactComponent/<component>/ with writeSystemVerilogFiles(), one definition per file:
+// sv-examples/IpXactComponent/dut/<component>/ with writeSystemVerilogFiles(), one definition per file:
 // - <component>.sv: the wrapper, with each bus interface as a port
 // - <interface>.sv: the interface those ports use
 // - the sample's SystemVerilog file, under its own name, copied untouched inside its
@@ -38,7 +38,7 @@ const samples = [
 
 for (const { tied, ...params } of samples) {
   const component = new IpXactComponent(params)
-  const dir = `${OUT}/${component.name}`
+  const dir = `${OUT}/dut/${component.name}`
   const files = writeLintWrapped(component, dir, GENERATOR)
   console.log(`wrote ${[...files, `${dir}/${component.name}_lint_top.sv`].join(', ')}`)
   // Each of them is tied to 0

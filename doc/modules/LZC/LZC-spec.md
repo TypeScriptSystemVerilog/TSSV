@@ -93,7 +93,7 @@ Let *P* be the smallest power of 2 that is at least `dataWidth`, and *L* = log<s
 ## Test Plan
 
 **Test script:** `ts/test/modules/test_LZC.ts`
-**Output:** `sv-examples/LZC/LZC_<dataWidth>/`
+**Output:** `sv-examples/LZC/dut/LZC_<dataWidth>/`
 
 The script generates every structural configuration:
 

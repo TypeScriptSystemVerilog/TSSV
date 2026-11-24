@@ -41,9 +41,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write a register file's SV under sv-examples/TwoClockRegFile/<name>/ and return its own file's text and path */
+/** write a register file's SV under sv-examples/TwoClockRegFile/dut/<name>/ and return its own file's text and path */
 function emit (rf: TwoClockRegFile): { sv: string, path: string } {
-  const path = rf.writeSystemVerilogFiles(`${OUT}/${rf.name}`).at(-1) ?? ''
+  const path = rf.writeSystemVerilogFiles(`${OUT}/dut/${rf.name}`).at(-1) ?? ''
   return { sv: readFileSync(path, 'utf8'), path }
 }
 

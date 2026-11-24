@@ -463,7 +463,7 @@ TSSV's core.
 ## Test Plan
 
 **Test script:** `ts/test/modules/test_LFSR.ts`
-**Output:** `sv-examples/LFSR/<name>/`
+**Output:** `sv-examples/LFSR/dut/<name>/`
 
 | Test case | Inputs | Expected output | Notes |
 |---|---|---|---|

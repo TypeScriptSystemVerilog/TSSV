@@ -48,9 +48,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write an SRAM's SV under sv-examples/SRAM/<name>/ and return the path of its own file */
+/** write an SRAM's SV under sv-examples/SRAM/dut/<name>/ and return the path of its own file */
 function emit (mem: SRAM): string {
-  return mem.writeSystemVerilogFiles(`${OUT}/${mem.name}`).at(-1) ?? ''
+  return mem.writeSystemVerilogFiles(`${OUT}/dut/${mem.name}`).at(-1) ?? ''
 }
 
 type Ports = SRAM_Parameters['ports']

@@ -40,9 +40,9 @@ function expectThrow (label: string, fn: () => unknown, message: string): void {
   }
 }
 
-/** write an LZC's SV under sv-examples/LZC/<name>/ and return its own file's text and path */
+/** write an LZC's SV under sv-examples/LZC/dut/<name>/ and return its own file's text and path */
 function emit (lzc: LZC): { sv: string, path: string } {
-  const path = lzc.writeSystemVerilogFiles(`${OUT}/${lzc.name}`).at(-1) ?? ''
+  const path = lzc.writeSystemVerilogFiles(`${OUT}/dut/${lzc.name}`).at(-1) ?? ''
   return { sv: readFileSync(path, 'utf8'), path }
 }
 

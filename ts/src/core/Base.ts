@@ -2323,6 +2323,14 @@ ${caseAssignments}
    * `outDir` that this call doesn't write are left in place. Every file is generated before
    * any is written, so a call that throws writes nothing.
    *
+   * `options.omit` names modules written somewhere else, such as a testbench's DUT, which the
+   * testbench generator writes once per configuration to a folder of its own
+   * (`tssv/lib/tb/testbenchGenerator`). An omitted module is still included by the module that
+   * instantiates it, but neither it nor anything below it is written here, unless another
+   * module that is written instantiates that too. A build then puts the other folder on the
+   * include path as well. Each omitted module must be one this module reaches, and can't be this
+   * module itself.
+   *
    * Each module it writes is checked against the SV guide first: `verible-verilog-syntax`
    * parses the module's SV, and every always block in it is checked, whether a builder or raw
    * SV ({@link addBody}) wrote it. A syntax error or a broken rule throws, and the error lists
@@ -2352,9 +2360,11 @@ ${caseAssignments}
    *   it. A sync reset doesn't count. Each waiver must name such a flop. A module marked as a
    *   testbench (`markTestbench()`, `tssv/lib/tb/testbench`) is exempt.
    * @param outDir the directory to write to, created if it doesn't exist
+   * @param options `omit`: modules written somewhere else, included but not written here
    * @returns the paths written, each after every file it includes, so this module's is last
    * @throws `writeSystemVerilogFiles: <name> was imported with addSystemVerilogSubmodule(), ...`
-   * when called on an imported module
+   * when called on an imported module, and `writeSystemVerilogFiles: <top> can't omit ...` for an
+   * omitted module that is this module or one it doesn't reach
    * @throws `<module>: <violation>`, or `<module>: <n> SV-guide violations: ...`, for a module whose SV
    * doesn't parse or breaks one of the rules above
    * @throws `writeSystemVerilogFiles: ... can't name a file and its include guard: ...` for a name
@@ -2368,11 +2378,15 @@ ${caseAssignments}
    * @throws the formatter's diagnostic, if it fails and `failOnFormatError` is true (the default)
    * @group Output and utilities
    */
-  writeSystemVerilogFiles (outDir: string): string[] {
+  writeSystemVerilogFiles (outDir: string, options: { omit?: Module[] } = {}): string[] {
     if (this.importedFiles !== undefined) {
       throw Error(`writeSystemVerilogFiles: ${this.name} was imported with addSystemVerilogSubmodule(), so ` +
         'it has no generated SV to write. Write the module that instantiates it')
     }
+    // Modules written somewhere else: included by their parents, but not written here
+    const omit = new Set(options.omit ?? [])
+    if (omit.has(this)) throw Error(`writeSystemVerilogFiles: ${this.name} can't omit itself`)
+    const omitted = new Set<Module>()
     // A generated module or interface, written to `<name>.sv` inside its DEF guard, or an imported
     // file, named by its path and written under its own name inside its SVIMPORT guard
     interface Unit { kind: 'module' | 'interface' | 'imported file', name: string, file: string, usedBy?: string, contents: () => string }
@@ -2405,7 +2419,10 @@ ${caseAssignments}
       const submoduleFiles: string[] = []
       for (const { module } of Object.values(m.submodules)) {
         let files = [`${module.name}.sv`]
-        if (module.importedFiles === undefined) {
+        if (omit.has(module)) {
+          omitted.add(module)
+          if (module.importedFiles !== undefined) files = module.importedFiles.map(({ path }) => basename(path))
+        } else if (module.importedFiles === undefined) {
           visit(module, m.name)
         } else {
           files = importFiles(module, m.name)
@@ -2428,6 +2445,11 @@ ${caseAssignments}
     // The modules with port contracts, each of which gets a <name>.contracts.json
     const manifests: Module[] = []
     visit(this)
+    const unreached = [...omit].filter(m => !omitted.has(m)).map(m => m.name)
+    if (unreached.length > 0) {
+      throw Error(`writeSystemVerilogFiles: ${this.name} can't omit ${unreached.join(', ')}: it doesn't instantiate ` +
+        `${unreached.length === 1 ? 'it' : 'them'}, directly or through a submodule`)
+    }
 
     const describe = (u: Unit): string =>
       `${u.kind} ${u.name} (${u.usedBy === undefined ? 'the top module' : `used by ${u.usedBy}`})`

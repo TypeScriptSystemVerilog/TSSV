@@ -18,7 +18,7 @@ import { writeConfiguration } from 'tssv/lib/tb/testbenchConfiguration'
 import { generateTestbenches } from 'tssv/lib/tb/testbenchGenerator'
 import { VectorPlayer } from 'tssv/lib/tb/VectorPlayer'
 import { VectorChecker } from 'tssv/lib/tb/VectorChecker'
-import { SFIFOWaveHarness, sfifoWaveParameters, sfifoWaveTable, type SFIFOWaveParameters } from './SFIFOWaveHarness.js'
+import { SFIFOWaveHarness, sfifoWaveDut, sfifoWaveParameters, sfifoWaveTable, type SFIFOWaveParameters } from './SFIFOWaveHarness.js'
 import { rmSync } from 'fs'
 
 const OUT = `${TSSV_ROOT}/sv-examples/tb`
@@ -61,6 +61,7 @@ const runs = generateTestbenches({
   testcases: [`${dir}/dual_port.json`],
   modes: ['preloaded', 'reloaded'],
   parameters: sfifoWaveParameters,
-  harness: build => new SFIFOWaveHarness(build)
+  harness: build => new SFIFOWaveHarness(build),
+  buildDut: config => sfifoWaveDut(config.parameters)
 })
 for (const r of runs) console.log(`${r.mode} ${r.configuration} ${r.testcase}: ${r.top}, run in sv-examples/tb/SFIFO/SFIFOWave/${r.runDir}/`)

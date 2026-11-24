@@ -14,7 +14,7 @@ import { writeManifest, writePatternFile, type PatternObject } from 'tssv/lib/tb
 import { checkerLayout, injectorLayout } from 'tssv/lib/tb/recordStream'
 import { writeConfiguration } from 'tssv/lib/tb/testbenchConfiguration'
 import { generateTestbenches } from 'tssv/lib/tb/testbenchGenerator'
-import { LoadBusHarness, LOAD_BUS_FIELDS, LOAD_BUS_SOURCES, loadBusParameters, loadBusTestcase } from './LoadBusHarness.js'
+import { LoadBusHarness, LOAD_BUS_FIELDS, LOAD_BUS_SOURCES, loadBusDut, loadBusParameters, loadBusTestcase } from './LoadBusHarness.js'
 import { rmSync } from 'fs'
 
 const OUT = `${TSSV_ROOT}/sv-examples/tb`
@@ -59,6 +59,7 @@ const runs = generateTestbenches({
   ],
   modes: ['reloaded'],
   parameters: loadBusParameters,
-  harness: build => new LoadBusHarness(build)
+  harness: build => new LoadBusHarness(build),
+  buildDut: () => loadBusDut()
 })
 for (const r of runs) console.log(`${r.mode} ${r.configuration} ${r.testcase}: ${r.top}, run in sv-examples/tb/AFIFO/LoadBus/${r.runDir}/`)

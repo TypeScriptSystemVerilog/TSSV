@@ -2024,7 +2024,7 @@ for its register map.
 ##### writeSystemVerilogFiles()
 
 ```ts
-writeSystemVerilogFiles(outDir): string[];
+writeSystemVerilogFiles(outDir, options?): string[];
 ```
 
 Writes this module and everything it reaches one definition per file: `<outDir>/<name>.sv`
@@ -2080,6 +2080,14 @@ Two different modules with the same name are still written as one (#122). Files 
 `outDir` that this call doesn't write are left in place. Every file is generated before
 any is written, so a call that throws writes nothing.
 
+`options.omit` names modules written somewhere else, such as a testbench's DUT, which the
+testbench generator writes once per configuration to a folder of its own
+(`tssv/lib/tb/testbenchGenerator`). An omitted module is still included by the module that
+instantiates it, but neither it nor anything below it is written here, unless another
+module that is written instantiates that too. A build then puts the other folder on the
+include path as well. Each omitted module must be one this module reaches, and can't be this
+module itself.
+
 Each module it writes is checked against the SV guide first: `verible-verilog-syntax`
 parses the module's SV, and every always block in it is checked, whether a builder or raw
 SV ([addBody](#addbody)) wrote it. A syntax error or a broken rule throws, and the error lists
@@ -2114,6 +2122,8 @@ are constants. The rules:
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `outDir` | `string` | the directory to write to, created if it doesn't exist |
+| `options` | \{ `omit?`: [`Module`](#module)\<[`TSSVParameters`](#tssvparameters), [`IOSignals`](#iosignals)\>[]; \} | `omit`: modules written somewhere else, included but not written here |
+| `options.omit?` | [`Module`](#module)\<[`TSSVParameters`](#tssvparameters), [`IOSignals`](#iosignals)\>[] | - |
 
 ###### Returns
 
@@ -2124,7 +2134,8 @@ the paths written, each after every file it includes, so this module's is last
 ###### Throws
 
 `writeSystemVerilogFiles: <name> was imported with addSystemVerilogSubmodule(), ...`
-when called on an imported module
+when called on an imported module, and `writeSystemVerilogFiles: <top> can't omit ...` for an
+omitted module that is this module or one it doesn't reach
 
 ###### Throws
 
