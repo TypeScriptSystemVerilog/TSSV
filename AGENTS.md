@@ -63,6 +63,7 @@ folder, `ts/src/modules/<Module>/`, however many files it holds.
 | `doc/rtl-style/sv-style/sv-coding-style.md` | SV guide: rules for the SystemVerilog a module emits (`COMB`, `SEQ`, `RST`, `LATCH`, `WIDTH`, `SYN`, `LINT` rule IDs) |
 | `doc/rtl-style/tssv-style/tssv-coding-style.md` | TSSV guide: rules for the TypeScript that generates it: parameters and widths, module structure, builder choice, naming, tests (`PARAM`, `MOD`, `BUILD`, `IDENT`, `TEST` rule IDs) |
 | `doc/ideas/body-formatting-spike-spec.md`, `doc/ideas/body-formatting-spike-implementation-plan.md` | Why and how `addBody()` and the Verible formatter were added (implemented) |
+| `doc/ideas/scoped-views-spike.md` | Scoped views (#109, proposal): RTL that only some builds compile, under `` `ifdef ``. The API (`inView`, `views`, `defineView`), the emission rule for each open point, the null view and how a build picks it up, the alternatives, and the Task that lands it |
 | `doc/process/issue-workflow.md` | Issue-driven workflow: Issue Types, templates, branch/commit/PR conventions, AC gating, the merge method, stacked PRs |
 | `README.md` | Machine setup (agent-first; pinned Node/Verible/Verilator), quick-start demo, roadmap |
 | `CONTRIBUTING.md` | The license (Apache-2.0) and the DCO sign-off every commit needs, including the rule for commits an agent writes |
