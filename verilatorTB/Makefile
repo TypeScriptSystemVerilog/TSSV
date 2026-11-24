@@ -11,6 +11,14 @@ COMMON_WAIVERS = ../doc/rtl-style/sv-style/common_waivers.vlt
 # puts the top file's directory on the include path, so naming the top file brings in the rest.
 SV_INCLUDES = +define+USE_INCLUDES
 
+# Every model's C++ compiles at SIM_OPT, which goes to make as OPT_FAST and OPT_GLOBAL (Verilator's
+# verilated.mk). The simulations take about a second in all, and -O0 compiles several times faster
+# than Verilator's default, -Os. Each --binary build passes them with SIM_MAKEFLAGS, after -j 0, one
+# compile per core. The quotes keep a SIM_OPT of several flags together: verilator hands them to
+# make through a shell. The run target's make takes them on its command line.
+SIM_OPT ?= -O0
+SIM_MAKEFLAGS = -MAKEFLAGS "OPT_FAST='$(SIM_OPT)'" -MAKEFLAGS "OPT_GLOBAL='$(SIM_OPT)'"
+
 # $(call lint_variants,<variant dirs>): lint each variant's top file, <variant>/<variant>.sv, with
 # -Wall. Its lint reaches every file it includes.
 define lint_variants
@@ -27,7 +35,8 @@ run: obj_dir/$(TOP_MODULE)
 # The common waivers here too: generated SV writes + and - without operand casts (WIDTH-3)
 obj_dir/$(TOP_MODULE): $(VERILOG_FILE) sim_main.cpp
 	verilator --cc $(COMMON_WAIVERS) $(SV_INCLUDES) -I$(dir $(VERILOG_FILE)) $(if $(filter %.f,$(VERILOG_FILE)),-F )$(VERILOG_FILE) --exe --trace  sim_main.cpp -CFLAGS -DTOP_MODULE=$(TOP_MODULE)
-	make -C obj_dir TOP_MODULE=$(TOP_MODULE) -j -f $(TOP_MODULE).mk $(TOP_MODULE) 
+	make -C obj_dir TOP_MODULE=$(TOP_MODULE) -j $(shell nproc) OPT_FAST='$(SIM_OPT)' OPT_GLOBAL='$(SIM_OPT)' \
+	    -f $(TOP_MODULE).mk $(TOP_MODULE)
 
 # Show-ahead synchronous FIFO: lint every generated variant with -Wall, through its top file,
 # then build and run a self-checking testbench once per configuration test_SFIFO.js lists in
@@ -41,7 +50,7 @@ sfifo_sim: tsc
 	$(call lint_variants,$(SFIFO_DIR)/dut/SFIFO_*/)
 	mkdir -p obj_dir
 	set -e; while read -r cfg dut; do \
-	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sfifo_$$cfg -o Vtb_SFIFO \
+	  verilator --binary --timing --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/sfifo_$$cfg -o Vtb_SFIFO \
 	    -DCFG_$$cfg -I$(SFIFO_TB_DIR) $(SV_INCLUDES) -I$$(dirname ../$$dut) tb_SFIFO.sv ../$$dut > obj_dir/sfifo_$$cfg.build.log 2>&1 \
 	    || { cat obj_dir/sfifo_$$cfg.build.log; exit 1; }; \
 	  (cd obj_dir/sfifo_$$cfg && ./Vtb_SFIFO); \
@@ -59,13 +68,13 @@ sram_sim: tsc
 	$(call lint_variants,$(SRAM_DIR)/dut/SRAM_*/)
 	mkdir -p obj_dir
 	set -e; while read -r cfg dut defines; do \
-	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/sram_$$cfg -o Vtb_SRAM \
+	  verilator --binary --timing --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/sram_$$cfg -o Vtb_SRAM \
 	    -DCFG_$$cfg $$defines -I$(SRAM_DIR)/tb $(SV_INCLUDES) -I$$(dirname ../$$dut) tb_SRAM.sv ../$$dut > obj_dir/sram_$$cfg.build.log 2>&1 \
 	    || { cat obj_dir/sram_$$cfg.build.log; exit 1; }; \
 	  (cd obj_dir/sram_$$cfg && ./Vtb_SRAM); \
 	done < $(SRAM_DIR)/tb/configs.txt
 	set -e; while read -r check cfg dut mode assertion; do \
-	  verilator --binary --timing -j 0 -Mdir obj_dir/sram_assert_$$check -o Vtb_SRAM \
+	  verilator --binary --timing -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/sram_assert_$$check -o Vtb_SRAM \
 	    -DCFG_$$cfg -DCHECK_ASSERT=$$mode -I$(SRAM_DIR)/tb $(SV_INCLUDES) -I$$(dirname ../$$dut) tb_SRAM.sv ../$$dut \
 	    > obj_dir/sram_assert_$$check.build.log 2>&1 || { cat obj_dir/sram_assert_$$check.build.log; exit 1; }; \
 	  if (cd obj_dir/sram_assert_$$check && ./Vtb_SRAM) > obj_dir/sram_assert_$$check.log 2>&1; then \
@@ -88,7 +97,7 @@ regblock_read_sim: tsc
 	set -e; for b in regblock_read32 regblock_read64; do \
 	  verilator --lint-only -Wall $(COMMON_WAIVERS) regblock_read_waivers.vlt $(SV_INCLUDES) -I$(REGBLOCK_DIR) $(REGBLOCK_DIR)/$${b}_lint_top.sv; \
 	  echo "lint -Wall clean: $$b"; \
-	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/$$b -o Vtb_$$b $(SV_INCLUDES) -I$(REGBLOCK_DIR) $(REGBLOCK_DIR)/tb_$$b.sv \
+	  verilator --binary --timing --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/$$b -o Vtb_$$b $(SV_INCLUDES) -I$(REGBLOCK_DIR) $(REGBLOCK_DIR)/tb_$$b.sv \
 	    > obj_dir/$$b.build.log 2>&1 || { cat obj_dir/$$b.build.log; exit 1; }; \
 	  (cd obj_dir/$$b && ./Vtb_$$b); \
 	done
@@ -104,7 +113,7 @@ regblock_types_sim: tsc
 	set -e; for b in regblock_types32 regblock_types64; do \
 	  verilator --lint-only -Wall $(COMMON_WAIVERS) regblock_types_waivers.vlt $(SV_INCLUDES) -I$(TYPES_DIR) $(TYPES_DIR)/$${b}_lint_top.sv; \
 	  echo "lint -Wall clean: $$b"; \
-	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/$$b -o Vtb_$$b $(SV_INCLUDES) -I$(TYPES_DIR) $(TYPES_DIR)/tb_$$b.sv \
+	  verilator --binary --timing --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/$$b -o Vtb_$$b $(SV_INCLUDES) -I$(TYPES_DIR) $(TYPES_DIR)/tb_$$b.sv \
 	    > obj_dir/$$b.build.log 2>&1 || { cat obj_dir/$$b.build.log; exit 1; }; \
 	  (cd obj_dir/$$b && ./Vtb_$$b); \
 	done
@@ -119,7 +128,7 @@ registers_sim: tsc
 	verilator --lint-only -Wall $(COMMON_WAIVERS) $(SV_INCLUDES) -I$(REGISTERS_DIR) $(REGISTERS_DIR)/testRegBlock_lint_top.sv
 	@echo "lint -Wall clean: testRegBlock"
 	mkdir -p obj_dir
-	verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/testRegBlock -o Vtb_testRegBlock $(SV_INCLUDES) -I$(REGISTERS_DIR) $(REGISTERS_DIR)/tb_testRegBlock.sv \
+	verilator --binary --timing --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/testRegBlock -o Vtb_testRegBlock $(SV_INCLUDES) -I$(REGISTERS_DIR) $(REGISTERS_DIR)/tb_testRegBlock.sv \
 	  > obj_dir/testRegBlock.build.log 2>&1 || { cat obj_dir/testRegBlock.build.log; exit 1; }
 	cd obj_dir/testRegBlock && ./Vtb_testRegBlock
 
@@ -135,7 +144,7 @@ apb_to_memory_sim: tsc
 	verilator --lint-only -Wall $(COMMON_WAIVERS) $(SV_INCLUDES) -I$(APB_DIR) $(APB_DIR)/apb_regblock_lint_top.sv
 	@echo "lint -Wall clean: apb_regblock"
 	mkdir -p obj_dir
-	verilator --binary --timing -j 0 -Mdir obj_dir/apb_to_memory -o Vtb_APB_to_Memory -F $(APB_DIR)/tb_APB_to_Memory.f \
+	verilator --binary --timing -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/apb_to_memory -o Vtb_APB_to_Memory -F $(APB_DIR)/tb_APB_to_Memory.f \
 	  > obj_dir/apb_to_memory.build.log 2>&1 || { cat obj_dir/apb_to_memory.build.log; exit 1; }
 	cd obj_dir/apb_to_memory && ./Vtb_APB_to_Memory
 
@@ -186,7 +195,7 @@ twoclockregfile_sim: tsc
 	$(call lint_variants,$(TCRF_DIR)/dut/TwoClockRegFile_*/)
 	mkdir -p obj_dir
 	set -e; while read -r cfg dut; do \
-	  verilator --binary --timing --no-sched-zero-delay --trace-fst -j 0 -Mdir obj_dir/twoclockregfile_$$cfg -o Vtb_TwoClockRegFile \
+	  verilator --binary --timing --no-sched-zero-delay --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/twoclockregfile_$$cfg -o Vtb_TwoClockRegFile \
 	    -DCFG_$$cfg -I$(TCRF_DIR)/tb $(SV_INCLUDES) -I$$(dirname ../$$dut) tb_TwoClockRegFile.sv ../$$dut > obj_dir/twoclockregfile_$$cfg.build.log 2>&1 \
 	    || { cat obj_dir/twoclockregfile_$$cfg.build.log; exit 1; }; \
 	  (cd obj_dir/twoclockregfile_$$cfg && ./Vtb_TwoClockRegFile); \
@@ -201,7 +210,7 @@ twoclockregfile_sim: tsc
 CDC_DIR   = ../sv-examples/CDCSynchronizer
 GP_DIR    = ../sv-examples/GrayPointer
 AFIFO_DIR = ../sv-examples/AFIFO
-CDC_SIM   = verilator --binary --timing --no-sched-zero-delay --trace-fst --coverage-user -j 0
+CDC_SIM   = verilator --binary --timing --no-sched-zero-delay --trace-fst --coverage-user -j 0 $(SIM_MAKEFLAGS)
 
 # $(call run_configs,<name>,<tb>,<tb dir>,<extra sources>): build and run <tb> per configuration
 define run_configs
@@ -239,7 +248,7 @@ rom_sim: tsc
 	set -e; while read -r cfg dut; do \
 	  verilator --lint-only -Wall $(COMMON_WAIVERS) $(SV_INCLUDES) -I$$(dirname ../$$dut) ../$$dut; \
 	  echo "lint -Wall clean: $$dut"; \
-	  verilator --binary --timing --trace-fst -j 0 -Mdir obj_dir/rom_$$cfg -o Vtb_ROM \
+	  verilator --binary --timing --trace-fst -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/rom_$$cfg -o Vtb_ROM \
 	    -DCFG_$$cfg -I$(ROM_DIR)/tb $(SV_INCLUDES) -I$$(dirname ../$$dut) tb_ROM.sv ../$$dut > obj_dir/rom_$$cfg.build.log 2>&1 \
 	    || { cat obj_dir/rom_$$cfg.build.log; exit 1; }; \
 	  (cd obj_dir/rom_$$cfg && ./Vtb_ROM); \
@@ -262,7 +271,7 @@ tb_examples_sim: tsc
 	cd ..; node scripts/check-harness.mjs $(foreach tb,$(TB_EXAMPLES),sv-examples/tb/$(tb)/$(tb).sv)
 	mkdir -p obj_dir
 	set -e; for tb in $(TB_EXAMPLES); do \
-	  verilator --binary --timing -j 0 -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(TB_EXAMPLES_DIR)/$$tb $(TB_EXAMPLES_DIR)/$$tb/$$tb.sv \
+	  verilator --binary --timing -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(TB_EXAMPLES_DIR)/$$tb $(TB_EXAMPLES_DIR)/$$tb/$$tb.sv \
 	    > obj_dir/$$tb.build.log 2>&1 || { cat obj_dir/$$tb.build.log; exit 1; }; \
 	  (cd $(TB_EXAMPLES_DIR)/$$tb && $(CURDIR)/obj_dir/$$tb/V$$tb); \
 	done
@@ -287,7 +296,7 @@ tb_regression_sim: tsc
 	  while read -r mode cfg tc top build run; do \
 	    case "$$built" in *" $$top "*) ;; *) \
 	      (cd .. && node scripts/check-harness.mjs $${d#../}/$$build/$$top.sv) < /dev/null; \
-	      verilator --binary --timing -j 0 -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build \
+	      verilator --binary --timing -j 0 $(SIM_MAKEFLAGS) -Mdir $$o/$$top -o V$$top $(SV_INCLUDES) -I$$d/$$build \
 	        $$([ -d $$d/dut/$$cfg ] && echo -I$$d/dut/$$cfg) $$d/$$build/$$top.sv \
 	        > $$o/$$top.build.log 2>&1 < /dev/null || { cat $$o/$$top.build.log; exit 1; }; \
 	      built="$$built$$top ";; \
@@ -309,7 +318,7 @@ pattern_memory_sim: tsc
 	cd ..; node out/test/tb/test_PatternMemory.js
 	mkdir -p obj_dir
 	set -e; for tb in $(PATTERN_MEMORY_TBS); do \
-	  verilator --binary --timing -j 0 -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(PATTERN_MEMORY_DIR)/$$tb $(PATTERN_MEMORY_DIR)/$$tb/$$tb.sv \
+	  verilator --binary --timing -j 0 $(SIM_MAKEFLAGS) -Mdir obj_dir/$$tb -o V$$tb $(SV_INCLUDES) -I$(PATTERN_MEMORY_DIR)/$$tb $(PATTERN_MEMORY_DIR)/$$tb/$$tb.sv \
 	    > obj_dir/$$tb.build.log 2>&1 || { cat obj_dir/$$tb.build.log; exit 1; }; \
 	  (cd $(PATTERN_MEMORY_DIR) && $(CURDIR)/obj_dir/$$tb/V$$tb); \
 	done
