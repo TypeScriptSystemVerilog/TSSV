@@ -7,6 +7,9 @@ import { expandSVFileList, guardSVImport, importGuard } from './SVFileList.js'
 import { type ModuleTable, type ResetWaiver, TESTBENCH_MARKER, checkModule } from './ModuleCheck.js'
 import { type ContractManifest, type ModulePorts, type PortContract, contractText, resolveContract, wrapperSV } from './PortContract.js'
 import { runVerible } from '../tools/formatters/verible.js'
+import { type ViewCondition, type ViewGroup, type ViewOptions, ViewScope, branchDefines, checkViewName, conditionLinted, defineView, describeCondition, isSelected, wrapInConditions } from './View.js'
+
+export { type ViewCondition, type ViewOptions } from './View.js'
 
 export type { ResetWaiver } from './ModuleCheck.js'
 
@@ -131,15 +134,19 @@ function attributePrefix (declName: string, attributes: SVAttributes | undefined
  * `USE_INCLUDES` builds. Only generated SV gets this guard: an imported file gets its own
  * `SVIMPORT__` guard instead (`guardSVImport()`).
  * @param name the module or interface name; the guard macro is `DEF__<name>__`
- * @param includes the names of the files to include, with their extensions
+ * @param includes the names of the files to include, with their extensions; one reached only
+ *   through a view carries the conditions it is included under
  * @param sv the definition
  * @returns the contents of `<name>.sv`
  */
-function guardSVFile (name: string, includes: string[], sv: string): string {
+function guardSVFile (name: string, includes: Array<string | { file: string, under: ViewCondition[] }>, sv: string): string {
   const guard = `DEF__${name}__`
+  // A file reached only through a view is included under that view's conditions
+  const include = (i: string | { file: string, under: ViewCondition[] }): string =>
+    typeof i === 'string' ? `\`include "${i}"` : wrapInConditions(i.under, `\`include "${i.file}"`)
   const includeBlock = includes.length === 0
     ? ''
-    : ['`ifdef USE_INCLUDES', ...includes.map(i => `\`include "${i}"`), '`endif //USE_INCLUDES', ''].join('\n')
+    : ['`ifdef USE_INCLUDES', ...includes.map(include), '`endif //USE_INCLUDES', ''].join('\n')
   // Drop the blank lines at the start (one or more runs of whitespace ending in a newline), so
   // the definition starts right after the guard, and the whitespace at the end
   const body = sv.replace(/^(\s*\n)+/, '').trimEnd()
@@ -566,6 +573,109 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     Module.formatterConfig = config
   }
 
+  /**
+   * Declares how a view's RTL is checked, for every module. A view that is never declared is
+   * linted. A simulation-only view sets `lint: false`: the modules reached only through it are
+   * written without the SV-guide check, and the per-view checks leave it out.
+   * @param name the view's macro
+   * @param options how the view's RTL is checked
+   * @group Views
+   */
+  static defineView (name: string, options: ViewOptions): void {
+    defineView(name, options)
+  }
+
+  /**
+   * Builds RTL that is compiled only when one of `views` is defined. Every add* call made inside
+   * `build` is tagged with the view, and emission wraps what it wrote in `` `ifdef `` (several
+   * views: `` `ifdef `` / `` `elsif ``, with the RTL repeated). Calls nest: an `inView()` inside
+   * another needs both. A signal declared inside a view can be used only inside it.
+   * @param views the macros, any one of which selects the RTL
+   * @param build the add* calls to make in the view
+   * @throws `view <name> is not a legal macro name`, or `inView: no views` for an empty list
+   * @group Views
+   */
+  inView (views: string[], build: () => void): void {
+    if (views.length === 0) throw Error('inView: no views')
+    views.forEach(checkViewName)
+    this.openViewGroup([{ condition: { anyOf: [...views] }, build }])
+  }
+
+  /**
+   * Builds RTL for several views, one of which is compiled: `` `ifdef A `` / `` `elsif B `` /
+   * `` `else ``. Each key but `default` is a view's macro; `default` is built for a build that
+   * defines none of them, so it can tie off what the other branches drive.
+   * @param branches the add* calls for each view, and for `default`
+   * @throws `views: no views` without a branch other than `default`
+   * @group Views
+   */
+  views (branches: Record<string, () => void>): void {
+    const named = Object.keys(branches).filter(k => k !== 'default')
+    if (named.length === 0) throw Error('views: no views')
+    named.forEach(checkViewName)
+    const list: Array<{ condition: ViewCondition, build: () => void }> =
+      named.map(v => ({ condition: { anyOf: [v] }, build: branches[v] }))
+    const fallback = branches.default
+    if (fallback !== undefined) list.push({ condition: { noneOf: named }, build: fallback })
+    this.openViewGroup(list)
+  }
+
+  /**
+   * The conditions of the view scope the next add* call goes in, outermost first; empty at the
+   * module's top level. Framework code reads it to tag what it records, such as a check that
+   * exists only in a simulation-only view.
+   * @group Views
+   */
+  get activeViews (): readonly ViewCondition[] {
+    return this.currentView?.path() ?? []
+  }
+
+  /**
+   * Opts this module into a null view: a stub with the same ports and include guard, which
+   * {@link writeSystemVerilogFiles} writes to `options.nullViewDir` when it is given. A build that
+   * reads the stub first, or finds it first on `+incdir+`, uses it in place of the module and
+   * reads nothing below it.
+   * @param options `ties`: the value each output is tied to, by port name; the default is 0
+   * @throws `<module>: null view: ...` for a tie that names no output port
+   * @group Views
+   */
+  setNullView (options: { ties?: Record<string, bigint> } = {}): void {
+    for (const port of Object.keys(options.ties ?? {})) {
+      if (this.IOs[port]?.direction !== 'output') throw Error(`${this.name}: null view: ${port} is not an output port`)
+    }
+    this.nullView = { ties: { ...options.ties } }
+  }
+
+  // Opens one view group in the current scope, and runs each branch's build inside its own scope
+  private openViewGroup (list: Array<{ condition: ViewCondition, build: () => void }>): void {
+    const parent = this.currentView
+    const group: ViewGroup = { branches: [] }
+    ;(parent?.groups ?? this.viewGroups).push(group)
+    for (const { condition, build } of list) {
+      const scope = new ViewScope(parent, condition)
+      group.branches.push(scope)
+      this.currentView = scope
+      try {
+        build()
+      } finally {
+        this.currentView = parent
+      }
+    }
+  }
+
+  // Throws unless an item tagged with `scope` can be used from the current scope
+  private checkVisible (what: string, scope: ViewScope | undefined, caller?: string): void {
+    if (scope === undefined || (this.currentView?.isWithin(scope) ?? false)) return
+    throw Error(`${this.name}: ${what} is declared in view ${scope.path().map(describeCondition).join(' and ')}, ` +
+      `so it can't be used ${this.currentView === undefined ? 'outside it' : 'in view ' + describeCondition(this.currentView.condition)}` +
+      (caller !== undefined ? ` (${caller})` : ''))
+  }
+
+  // Records that `name` was declared in the current scope
+  private tagSignal (name: string): void {
+    if (this.currentView !== undefined) this.signalViews.set(name, this.currentView)
+  }
+
   /** @internal */
   protected bindingRules = {
     input: ['input', 'wire', 'reg', 'const logic', 'logic', 'enum'],
@@ -597,6 +707,10 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     instanceName: string,
     _interface: Interface): Interface {
     if (this.interfaces[instanceName]) throw Error(`${instanceName} interface already exists`)
+    if (this.currentView !== undefined) {
+      if (_interface.role) throw Error(`${this.name}: interface port ${instanceName} can't be declared in a view: ports are the same in every view`)
+      this.interfaceViews.set(instanceName, this.currentView)
+    }
     this.interfaces[instanceName] = _interface
     return _interface
   }
@@ -660,6 +774,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
    * @group Signals and ports
    */
   addNoCombinationalPathContract (from: string, to: string): void {
+    if (this.currentView !== undefined) throw Error(`${this.name}: a port contract can't be declared in a view: ports are the same in every view`)
     const contract = { from, to }
     resolveContract(this.name, this.ports(), contract)
     if (this.contracts.some(c => c.from === from && c.to === to)) {
@@ -767,6 +882,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       bindings
     }
     this.submodules[instanceName] = thisModule
+    if (this.currentView !== undefined) this.submoduleViews.set(instanceName, this.currentView)
     if (autoBind) {
       for (const thisPort in submodule.IOs) {
         if (!thisModule.bindings[thisPort]) {
@@ -872,6 +988,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
         const boundName = bindings[port].toString()
         const thisInt = this.interfaces[boundName]
         if (thisInt === undefined) throw Error(`${port}: interface '${boundName}' not found in ${this.name}`)
+        this.checkVisible(`interface ${boundName}`, this.interfaceViews.get(boundName), 'addSubmodule()')
         // An interface's SV type is its name plus its parameter values, so two instances of the
         // same class with different parameters (widths, or a parameter that selects the signal
         // set) are different SV types and cannot be connected.
@@ -1030,6 +1147,11 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
   protected findSignal (sig: Sig | string | bigint, throwOnFalse: boolean = false, caller: ((...args: any[]) => any) | string | null = null, throwOnArray?: boolean): Signal | IOSignal {
     const sigString = (typeof sig === 'bigint') ? this.bigintToSigName(sig) : sig.toString()
     const thisSig = this.IOs[sigString] || this.signals[sigString]
+    const callerName = typeof caller === 'function' ? `${caller.name}()` : caller ?? undefined
+
+    if (thisSig && this.IOs[sigString] === undefined) {
+      this.checkVisible(`signal ${sigString}`, this.signalViews.get(sigString), callerName)
+    }
 
     if (!thisSig) {
       const sigParts = sigString.split('.')
@@ -1040,6 +1162,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
         if (interfaceObj) {
           const interfaceSignal = interfaceObj.signals[signalName]
           if (interfaceSignal) {
+            this.checkVisible(`interface ${interfaceName}`, this.interfaceViews.get(interfaceName), callerName)
             return interfaceSignal
           }
         }
@@ -1089,8 +1212,13 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
      * @group Signals and ports
      */
   addSignal (name: string, signal: Signal): Sig {
-    if (this.findSignal(name)) throw Error(`${name} signal already exists`)
+    // Names are unique across every view, so this looks a name up without the view check
+    const [ifName, member] = name.split('.')
+    if (this.IOs[name] || this.signals[name] || (member !== undefined && this.interfaces[ifName]?.signals[member])) {
+      throw Error(`${name} signal already exists`)
+    }
     this.signals[name] = signal
+    this.tagSignal(name)
     return new Sig(name)
   }
 
@@ -1145,6 +1273,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
         // q describes a different net from d, so it doesn't inherit d's attributes
         const { attributes: _dAttributes, ...dDef } = dSig
         this.signals[qName] = { ...dDef, type: 'logic' }
+        this.tagSignal(qName)
       }
     }
     if (io.q) {
@@ -1258,6 +1387,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     }
     if (this.waivers.some(w => w.register === name)) throw Error(`${this.name}: reset waiver for ${name} is already declared`)
     this.waivers.push({ register: name, reason })
+    if (this.currentView !== undefined) this.waiverViews.set(name, this.currentView)
   }
 
   /**
@@ -1750,6 +1880,7 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
       result = `${nameMap[op].name}_${a.auto}x${b.auto}`
       width = naturalWidth
       this.signals[result] = { type: 'logic', isSigned: signed, width }
+      this.tagSignal(result)
     }
 
     // Plain `a op b`, with no operand cast to the result's width (WIDTH-3). In a signed
@@ -1870,11 +2001,30 @@ export class Module<P extends TSSVParameters = TSSVParameters, IO extends IOSign
     const resolvedWidth = (width === undefined) ? minWidth : width
     if (value < 0) isSigned = true
     if (resolvedWidth < minWidth) throw Error(`width:${resolvedWidth} is insufficient for value: ${value}`)
-    if (name === undefined) {
-      name = this.bigintToSigName(value, isSigned, resolvedWidth)
+    const autoNamed = name === undefined
+    name ??= this.bigintToSigName(value, isSigned, resolvedWidth)
+    const scope = this.signalViews.get(name)
+    if (this.signals[name] !== undefined && scope !== undefined && !(this.currentView?.isWithin(scope) ?? false)) {
+      // A constant is shared by name, and this one was declared in a view this scope can't see
+      if (this.currentView === undefined || scope.isWithin(this.currentView)) {
+        // This scope encloses that view: the constant moves out to here, and is used wherever it's compiled
+        if (this.currentView === undefined) this.signalViews.delete(name)
+        else this.signalViews.set(name, this.currentView)
+      } else if (autoNamed) {
+        // A view beside it: a copy of its own, which is used wherever it's compiled
+        const base = name
+        for (let k = 2; ; k++) {
+          name = `${base}_v${k}`
+          const copy = this.signalViews.get(name)
+          if (this.signals[name] === undefined || (copy !== undefined && (this.currentView?.isWithin(copy) ?? false))) break
+        }
+      } else {
+        this.checkVisible(`signal ${name}`, scope, 'addConstSignal()')
+      }
     }
     if (this.signals[name] === undefined) {
       this.signals[name] = { type: 'const logic', value, isSigned, width: resolvedWidth }
+      this.tagSignal(name)
     }
     return new Sig(name)
   }
@@ -2378,7 +2528,7 @@ ${caseAssignments}
    * @throws the formatter's diagnostic, if it fails and `failOnFormatError` is true (the default)
    * @group Output and utilities
    */
-  writeSystemVerilogFiles (outDir: string, options: { omit?: Module[] } = {}): string[] {
+  writeSystemVerilogFiles (outDir: string, options: { omit?: Module[], nullViewDir?: string } = {}): string[] {
     if (this.importedFiles !== undefined) {
       throw Error(`writeSystemVerilogFiles: ${this.name} was imported with addSystemVerilogSubmodule(), so ` +
         'it has no generated SV to write. Write the module that instantiates it')
@@ -2413,11 +2563,29 @@ ${caseAssignments}
     })
     // Post-order, so each file lands after everything it includes. A local interface bundle's
     // type is usually defined first by the submodule port it connects, which carries modports.
+    // The modules some linted RTL reaches: the top, and down through instances that aren't only in
+    // views with lint off. The others are written without the SV-guide check.
+    const linted = new Set<string>()
+    const markLinted = (m: Module): void => {
+      if (linted.has(m.name)) return
+      linted.add(m.name)
+      for (const [inst, { module }] of Object.entries(m.submodules)) {
+        if ((m.submoduleViews.get(inst)?.path() ?? []).every(conditionLinted)) markLinted(module)
+      }
+    }
+    markLinted(this)
+    // The modules with a null view, each of which also gets <nullViewDir>/<name>.sv
+    const nullViews: Module[] = []
     const visit = (m: Module, usedBy?: string): void => {
       if (seen.has(`module ${m.name}`)) return
       seen.add(`module ${m.name}`)
+      if (m.nullView !== undefined) nullViews.push(m)
       const submoduleFiles: string[] = []
-      for (const { module } of Object.values(m.submodules)) {
+      // A file reached only through views is included under the conditions of each view that
+      // reaches it; one reached from the top level, unconditionally
+      const conditional = new Map<string, ViewCondition[][]>()
+      const unconditional = new Set<string>()
+      for (const [inst, { module }] of Object.entries(m.submodules)) {
         let files = [`${module.name}.sv`]
         if (omit.has(module)) {
           omitted.add(module)
@@ -2428,6 +2596,11 @@ ${caseAssignments}
           files = importFiles(module, m.name)
         }
         for (const file of files) if (!submoduleFiles.includes(file)) submoduleFiles.push(file)
+        const scope = m.submoduleViews.get(inst)
+        for (const file of files) {
+          if (scope === undefined) unconditional.add(file)
+          else conditional.set(file, [...(conditional.get(file) ?? []), scope.path()])
+        }
       }
       const interfaceNames: string[] = []
       for (const intf of Object.values(m.interfaces)) {
@@ -2438,8 +2611,13 @@ ${caseAssignments}
         }
         if (!interfaceNames.includes(name)) interfaceNames.push(name)
       }
-      const includes = [...interfaceNames.map(name => `${name}.sv`), ...submoduleFiles]
-      units.push({ kind: 'module', name: m.name, file: `${m.name}.sv`, usedBy, contents: () => guardSVFile(m.name, includes, m.applyFormatter(m.moduleSystemVerilog())) })
+      const includes: Array<string | { file: string, under: ViewCondition[] }> = interfaceNames.map(name => `${name}.sv`)
+      for (const file of submoduleFiles) {
+        if (unconditional.has(file)) includes.push(file)
+        else for (const under of conditional.get(file) ?? []) includes.push({ file, under })
+      }
+      const check = linted.has(m.name)
+      units.push({ kind: 'module', name: m.name, file: `${m.name}.sv`, usedBy, contents: () => guardSVFile(m.name, includes, m.applyFormatter(m.moduleSystemVerilog(check))) })
       if (m.contracts.length > 0) manifests.push(m)
     }
     // The modules with port contracts, each of which gets a <name>.contracts.json
@@ -2472,10 +2650,53 @@ ${caseAssignments}
     // Generate everything before writing anything, so a failure leaves no partial output
     const files = units.map(u => ({ path: join(outDir, u.file), sv: u.contents() }))
     const contractFiles = manifests.map(m => ({ path: join(outDir, `${m.name}.contracts.json`), json: JSON.stringify(m.contractManifest(), null, 2) + '\n' }))
+    const nullViewDir = options.nullViewDir
+    const nullFiles = nullViewDir === undefined
+      ? []
+      : nullViews.map(m => ({ path: join(nullViewDir, `${m.name}.sv`), sv: guardSVFile(m.name, [], m.applyFormatter(m.nullViewSystemVerilog())) }))
     mkdirSync(outDir, { recursive: true })
     for (const { path, sv } of files) writeFileSync(path, sv)
     for (const { path, json } of contractFiles) writeFileSync(path, json)
+    if (nullViewDir !== undefined && nullFiles.length > 0) mkdirSync(nullViewDir, { recursive: true })
+    for (const { path, sv } of nullFiles) writeFileSync(path, sv)
     return files.map(f => f.path)
+  }
+
+  /**
+   * This module's null view, `module <name> ... endmodule`, unformatted, after checking it: the
+   * same ports, each output tied to its {@link setNullView} value, and the inputs gathered into
+   * one `unused_inputs` net, which Verilator's unused check skips by its name.
+   */
+  private nullViewSystemVerilog (): string {
+    const ties = this.nullView?.ties ?? {}
+    const ports = Object.entries(this.IOs)
+    if (Object.values(this.interfaces).some(i => i.role)) {
+      throw Error(`${this.name}: null view: interface ports aren't supported yet`)
+    }
+    const header = ports.map(([key, io]) => {
+      if (io.isArray) throw Error(`${key}: Array IOs not supported`)
+      const range = (io.width ?? 0) > 1 ? `[${Number(io.width) - 1}:0]` : ''
+      return `${io.direction} ${io.type ?? 'logic'}${io.isSigned ? ' signed' : ''} ${range} ${key}`
+    })
+    const literal = (io: IOSignal, value: bigint): string => value === 0n
+      ? "'0"
+      : `${value < 0n ? '-' : ''}${io.width ?? 1}'${io.isSigned ? 's' : ''}d${value < 0n ? -value : value}`
+    const assigns = ports.filter(([, io]) => io.direction === 'output')
+      .map(([key, io]) => `   assign ${key} = ${literal(io, ties[key] ?? 0n)};`)
+    const inputs = ports.filter(([, io]) => io.direction !== 'output').map(([key]) => key)
+    const sink = inputs.length === 0
+      ? []
+      : ['   logic unused_inputs;', `   assign unused_inputs = &{1'b0, ${inputs.join(', ')}, 1'b0};`]
+    const sv = `module ${this.name}
+   (
+   ${header.join(',\n   ')}
+   );
+   // Null view of ${this.name}: outputs tied off, inputs unused, nothing below it
+${[...sink, ...assigns].join('\n')}
+endmodule
+`
+    checkModule({ name: this.name, signals: { ...this.IOs }, interfaces: [], resetBindings: [], resetWaivers: [], testbench: false }, sv)
+    return sv
   }
 
   /**
@@ -2483,7 +2704,7 @@ ${caseAssignments}
    * against the SV guide. It instantiates its submodules and uses its interfaces but defines
    * neither: `writeSystemVerilogFiles()` writes those to files of their own.
    */
-  private moduleSystemVerilog (): string {
+  private moduleSystemVerilog (check = true): string {
     // assemble TSSVParameters
     const paramsArray: string[] = []
     if (this.params) {
@@ -2537,14 +2758,14 @@ ${caseAssignments}
         } else {
           throw Error(`${thisInterface.name} has role/modport inconsistency`)
         }
-      } else {
+      } else if (!this.interfaceViews.has(key)) {
         signalArray.push(`${thisInterface.interfaceName()} ${key}()`)
       }
     })
     const IOString: string = `   ${IOArray.join(',\n   ')}`
 
     // construct signal list
-    Object.keys(this.signals).forEach((key) => {
+    const declaration = (key: string): string | undefined => {
       const thisSignal = this.signals[key]
       if (thisSignal) {
         let rangeString = ''
@@ -2567,51 +2788,58 @@ ${caseAssignments}
             valueString = ` = ${value.toString()}`
           }
         }
-        signalArray.push(`${attributePrefix(`${this.name}.${key}`, thisSignal.attributes)}${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`)
+        return `${attributePrefix(`${this.name}.${key}`, thisSignal.attributes)}${thisSignal.type || 'logic'}${signString} ${rangeString} ${key}${arrayString}${valueString}`
       }
-    })
+      return undefined
+    }
+    for (const key of Object.keys(this.signals)) {
+      const line = this.signalViews.has(key) ? undefined : declaration(key)
+      if (line !== undefined) signalArray.push(line)
+    }
     let signalString: string = `   ${signalArray.join(';\n   ')}`
     if (signalArray.length > 0) signalString += ';'
 
-    let generatedBody = ''
-    for (const sensitivity in this.registerBlocks) {
-      for (const resetCondition in this.registerBlocks[sensitivity]) {
-        for (const enable in this.registerBlocks[sensitivity][resetCondition]) {
-          const regs = this.registerBlocks[sensitivity][resetCondition][enable]
-          let resetString = '   '
-          if (resetCondition !== '#NONE#') {
-            const resetAssignments: string[] = []
-            Object.keys(regs).forEach((key) => {
-              const reg = regs[key]
-              // console.log(reg)
-              // '0 for zero; otherwise a literal sized to the register (WIDTH-1). An unsized
-              // literal is a 32-bit integer, so a wider value gets a WIDTH warning.
-              const resetVal = reg.resetVal ?? 0n
-              const qSig = this.findSignal(key, false)
-              const sign = qSig?.isSigned === true ? 's' : ''
-              const resetLiteral = resetVal === 0n
-                ? "'0"
-                : `${resetVal < 0n ? '-' : ''}${qSig?.width ?? 1}'${sign}d${resetVal < 0n ? -resetVal : resetVal}`
-              resetAssignments.push(`           ${key} <= ${resetLiteral};`)
-            })
-            resetString =
+    // one always_ff per clock, reset and enable
+    const registers = (blocks: typeof this.rootRegisterBlocks): string => {
+      let generatedBody = ''
+      for (const sensitivity in blocks) {
+        for (const resetCondition in blocks[sensitivity]) {
+          for (const enable in blocks[sensitivity][resetCondition]) {
+            const regs = blocks[sensitivity][resetCondition][enable]
+            let resetString = '   '
+            if (resetCondition !== '#NONE#') {
+              const resetAssignments: string[] = []
+              Object.keys(regs).forEach((key) => {
+                const reg = regs[key]
+                // console.log(reg)
+                // '0 for zero; otherwise a literal sized to the register (WIDTH-1). An unsized
+                // literal is a 32-bit integer, so a wider value gets a WIDTH warning.
+                const resetVal = reg.resetVal ?? 0n
+                const qSig = this.findSignal(key, false)
+                const sign = qSig?.isSigned === true ? 's' : ''
+                const resetLiteral = resetVal === 0n
+                  ? "'0"
+                  : `${resetVal < 0n ? '-' : ''}${qSig?.width ?? 1}'${sign}d${resetVal < 0n ? -resetVal : resetVal}`
+                resetAssignments.push(`           ${key} <= ${resetLiteral};`)
+              })
+              resetString =
 `     if(${resetCondition})
         begin
 ${resetAssignments.join('\n')}
         end
       else `
-          }
+            }
 
-          const enableString = (enable === '#NONE#') ? '' : `if(${enable})`
+            const enableString = (enable === '#NONE#') ? '' : `if(${enable})`
 
-          const functionalAssigments: string[] = []
-          Object.keys(regs).forEach((key) => {
-            const reg = regs[key]
-            // console.log(reg)
-            functionalAssigments.push(`           ${key} <= ${reg.d};`)
-          })
+            const functionalAssigments: string[] = []
+            Object.keys(regs).forEach((key) => {
+              const reg = regs[key]
+              // console.log(reg)
+              functionalAssigments.push(`           ${key} <= ${reg.d};`)
+            })
 
-          generatedBody +=
+            generatedBody +=
 `
    always_ff ${sensitivity}
 ${resetString}${enableString}
@@ -2619,11 +2847,14 @@ ${resetString}${enableString}
 ${functionalAssigments.join('\n')}
         end
 `
+          }
         }
       }
+      return generatedBody
     }
 
-    for (const moduleInstance in this.submodules) {
+    // one submodule instance
+    const instance = (moduleInstance: string): string => {
       const thisSubmodule = this.submodules[moduleInstance]
       let paramsBind = ''
       const bindingsArray: string[] = []
@@ -2646,14 +2877,53 @@ ${functionalAssigments.join('\n')}
       if (vParamsArray.length > 0) {
         paramsBind = `#(${vParamsArray.join(',')}) `
       }
-      generatedBody +=
-`
+      return `
     ${thisSubmodule.module.name} ${paramsBind}${moduleInstance}
       (
 ${bindingsArray.join(',\n')}
       );
 `
     }
+
+    let generatedBody = registers(this.rootRegisterBlocks)
+    for (const moduleInstance in this.submodules) {
+      if (!this.submoduleViews.has(moduleInstance)) generatedBody += instance(moduleInstance)
+    }
+
+    // Each view group, after the top level's RTL: `ifdef / `elsif / `else, one branch per view,
+    // each with its own declarations, body, registers, instances and nested groups
+    const scopeText = (scope: ViewScope): string => {
+      this.currentView = scope
+      try {
+        const own = (views: Map<string, ViewScope>, keys: string[]): string[] => keys.filter(k => views.get(k) === scope)
+        const decls = [
+          ...own(this.interfaceViews, Object.keys(this.interfaces)).map(k => `${this.interfaces[k].interfaceName()} ${k}()`),
+          ...own(this.signalViews, Object.keys(this.signals)).flatMap(k => declaration(k) ?? [])
+        ]
+        return [
+          decls.length > 0 ? `   ${decls.join(';\n   ')};\n` : '',
+          scope.body,
+          registers(scope.registerBlocks),
+          ...own(this.submoduleViews, Object.keys(this.submodules)).map(instance),
+          groupsText(scope.groups)
+        ].join('')
+      } finally {
+        this.currentView = undefined
+      }
+    }
+    const groupsText = (groups: readonly ViewGroup[]): string => groups.map(group => {
+      const lines: string[] = []
+      for (const branch of group.branches) {
+        const text = scopeText(branch)
+        if ('anyOf' in branch.condition) {
+          for (const v of branch.condition.anyOf) lines.push(`\`${lines.length === 0 ? 'ifdef' : 'elsif'} ${v}`, text)
+        } else {
+          lines.push('`else', text)
+        }
+      }
+      return `\n${lines.join('\n')}\n\`endif\n`
+    }).join('')
+    const viewText = groupsText(this.viewGroups)
 
     // returns s with a guaranteed trailing newline, or '' if s is blank
     const opt = (s: string): string => {
@@ -2667,38 +2937,82 @@ ${bindingsArray.join(',\n')}
 ${IOString}
    );
 ${opt(this.formatParametersAsVerilogComment(this.params))}${opt(this.formatPortContractsAsVerilogComment())}${opt(this.formatResetWaiversAsVerilogComment())}${opt(signalString)}
-${opt(this.body)}${opt(generatedBody)}
+${opt(this.rootBody)}${opt(generatedBody)}${opt(viewText)}
 endmodule
 `
 
-    // the SV guide's rules, on this module's SV; each submodule checked its own
-    const resetBindings: ModuleTable['resetBindings'] = []
-    for (const instance in this.submodules) {
-      const { module, bindings } = this.submodules[instance]
-      for (const port in bindings) {
-        if (module.IOs[port]?.isReset) resetBindings.push({ instance, port, binding: bindings[port].toString() })
+    // the SV guide's rules, on this module's SV; each submodule checked its own. A module with views
+    // is checked once per set of defines that selects a linted branch, each time seeing only the
+    // RTL, instances and waivers that set compiles.
+    const checkWith = (defineList: readonly string[]): void => {
+      const defines = new Set(defineList)
+      const resetBindings: ModuleTable['resetBindings'] = []
+      for (const instance in this.submodules) {
+        if (!isSelected(this.submoduleViews.get(instance), defines)) continue
+        const { module, bindings } = this.submodules[instance]
+        for (const port in bindings) {
+          if (module.IOs[port]?.isReset) resetBindings.push({ instance, port, binding: bindings[port].toString() })
+        }
+      }
+      const src = defineList.map(d => `\`define ${d}\n`).join('') + moduleString
+      try {
+        checkModule({
+          name: this.name,
+          signals: { ...this.IOs, ...this.signals },
+          interfaces: Object.keys(this.interfaces),
+          resetBindings,
+          resetWaivers: this.resetWaivers.filter(w => isSelected(this.waiverViews.get(w.register), defines)),
+          testbench: moduleString.split('\n').some(line => line.trim() === TESTBENCH_MARKER)
+        }, src)
+      } catch (e) {
+        if (defineList.length === 0 || !(e instanceof Error)) throw e
+        throw Error(`${e.message} (with ${defineList.join(', ')} defined)`)
       }
     }
-    checkModule({
-      name: this.name,
-      signals: { ...this.IOs, ...this.signals },
-      interfaces: Object.keys(this.interfaces),
-      resetBindings,
-      resetWaivers: this.resetWaivers,
-      testbench: moduleString.split('\n').some(line => line.trim() === TESTBENCH_MARKER)
-    }, moduleString)
+    if (check) {
+      checkWith([])
+      for (const defines of branchDefines(this.viewGroups)) checkWith(defines)
+    }
 
     return moduleString
   }
 
-  private body: string
+  // The body text of the module's top level; a view scope keeps its own
+  private rootBody = ''
+  // The body builders append to the body of the scope they are called in
+  private get body (): string {
+    return this.currentView?.body ?? this.rootBody
+  }
+
+  private set body (text: string) {
+    if (this.currentView !== undefined) this.currentView.body = text
+    else this.rootBody = text
+  }
+
   /**
    * set by addSystemVerilogSubmodule() on the module it imports: the files it read, untouched
    * @internal
    */
   protected importedFiles?: ReadonlyArray<{ path: string, text: string }>
-  /** @internal */
-  protected registerBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
+  // The registers of the module's top level; a view scope keeps its own
+  private readonly rootRegisterBlocks: Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> = {}
+  /** the registers of the scope add* calls go in: registers in different views never share a block @internal */
+  protected get registerBlocks (): Record<string, Record<string, Record<string, Record<string, { d: string, resetVal?: bigint }>>>> {
+    return this.currentView?.registerBlocks ?? this.rootRegisterBlocks
+  }
+
+  // The view scope add* calls go in, or undefined at the module's top level
+  private currentView: ViewScope | undefined = undefined
+  // The view groups opened at the module's top level, in call order
+  private readonly viewGroups: ViewGroup[] = []
+  // The scope each signal, submodule instance, local interface bundle and reset waiver declared
+  // inside a view belongs to; anything not listed is at the top level
+  private readonly signalViews = new Map<string, ViewScope>()
+  private readonly submoduleViews = new Map<string, ViewScope>()
+  private readonly interfaceViews = new Map<string, ViewScope>()
+  private readonly waiverViews = new Map<string, ViewScope>()
+  // Set by setNullView(): the module's null view, written by writeSystemVerilogFiles()
+  private nullView?: { ties: Record<string, bigint> }
 
   /** @internal */
   protected verilogParams: Record<string, boolean>
