@@ -45,6 +45,9 @@ interface IpXactComponent_ModuleParameters extends TSSVParameters {
  * @see doc/modules/IpXactComponent/IpXactComponent-spec.md
  */
 export class IpXactComponent extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/IpXactComponent/IpXactComponent-spec.md'
+
   declare params: IpXactComponent_ModuleParameters
   // The paths as given, for messages, the parameter comment and the import of the SV file
   private readonly svFilePath: string

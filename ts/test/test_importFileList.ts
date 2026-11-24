@@ -111,7 +111,9 @@ for (const name of imports) {
       `\`ifndef ${guard}\n\`define ${guard}\n${source}${source.endsWith('\n') ? '' : '\n'}\`endif //!${guard}\n`)
 }
 const topFile = readFileSync(`${OUT}/${top.name}.sv`, 'utf8')
-check('the generated file has the DEF guard', topFile.startsWith(`\`ifndef DEF__${top.name}__\n`))
+// The file header's comment lines come first (concepts.md §7), then the guard
+check('the generated file has the DEF guard, under its file header',
+  topFile.replace(/^(?:\/\/[^\n]*\n)+/, '').startsWith(`\`ifndef DEF__${top.name}__\n`))
 // The file each whole line `include "<file>" names, captured: everything between the quotes. 'g'
 // finds every one, and 'm' makes ^ and $ match at each line's ends.
 const included = [...topFile.matchAll(/^`include "([^"]+)"$/gm)].map(m => m[1])

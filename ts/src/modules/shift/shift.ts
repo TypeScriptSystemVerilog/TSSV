@@ -33,6 +33,9 @@ export interface shift_Parameters extends TSSVParameters {
  * @see doc/modules/shift/shift-spec.md
  */
 export class shift extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/shift/shift-spec.md'
+
   declare params: shift_Parameters
   constructor (params: shift_Parameters) {
     super({

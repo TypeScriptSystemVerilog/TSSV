@@ -30,6 +30,9 @@ const FPGA_RAM_STYLES = ['distributed', 'block']
  * @see doc/modules/TwoClockRegFile/TwoClockRegFile-spec.md
  */
 export class TwoClockRegFile extends Module {
+  /** this module's spec, named in the file header of each file it generates */
+  static spec = 'doc/modules/TwoClockRegFile/TwoClockRegFile-spec.md'
+
   declare params: TwoClockRegFile_Parameters
   constructor (params: TwoClockRegFile_Parameters) {
     super({
