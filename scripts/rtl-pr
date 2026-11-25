@@ -191,7 +191,7 @@ describe() {
     --max-chars 55000 "$base_c" "$at" >"$RUN/changes.md" 2>"$RUN/changes.err"
   nfiles=$(git -C "$SV" diff --name-only --no-renames "$base_c" "$at" | wc -l)
   {
-    echo "**The DUT RTL that $gref generates,** for review here. \`scripts/rtl-pr\` made this PR. It closes no issue: its generator PR, $gref, does."
+    echo "**The DUT RTL that $gref generates,** for review here. \`scripts/rtl-pr\` made this PR. It closes no issue: its generator PR$([ "$G" = 0 ] || echo ", $gref,") does."
     echo
     echo "- **Generated from** \`$branch\` at $(short HEAD) by \`scripts/gen-sv --clean\`. Every test script passed."
     echo "- **Compared with** \`$rtlbase\` at $(short "$base_c"), which was generated from $(short "$M")."
