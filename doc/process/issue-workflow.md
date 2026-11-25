@@ -152,8 +152,9 @@ against the same issue). PR body must reference the issue with a GitHub closing 
 | **Issue body** | Problem statement, context, links to relevant source/specs, and the Acceptance Criteria checklist. Written once at scoping time; edited later only to refine scope, not to log progress — **with one narrow exception**: the `Links` field (below). |
 | **Issue comments** | The running log: "started branch X", investigation notes, decisions/deviations made mid-implementation. This is where an agent narrates *why* something changed from the original plan. |
 | **Commit messages** | One atomic, technical description per commit of *what changed and why*, using the template in §6. Commit type is about the nature of the diff, independent of the issue's Issue Type — a `Task` issue can still contain `fix` or `test` commits. |
-| **PR description** | Summary of the overall change, the `Closes #N` link, the Acceptance Criteria checklist copied from the issue with boxes checked only against verified evidence (§7), the test plan (commands actually run), what the change does to the generated SV ([below](#showing-the-generated-sv)), and any deviations from the issue's original scope. |
-| **PR comments** | The generated-SV evidence: one comment per example or module, linked from the description ([below](#showing-the-generated-sv)). |
+| **PR description** | Summary of the overall change, the `Closes #N` link, the Acceptance Criteria checklist copied from the issue with boxes checked only against verified evidence (§7), the test plan (commands actually run), the RTL PR that shows what the change does to the generated DUT RTL ([below](#showing-the-generated-sv)), and any deviations from the issue's original scope. |
+| **PR comments** | Review discussion, and the generated SV that no RTL PR shows: a generation helper's example calls, for one ([below](#showing-the-generated-sv)). |
+| **RTL PR** | The generated DUT RTL of a PR that changes it, from `rtl/<N>` into `rtl/main`, made by `scripts/rtl-pr` ([below](#showing-the-generated-sv)). |
 
 **Backfilling the `Links` field.** Every template except `epic.yml` starts with a `Links`
 field (`- Branch: _(none yet)_` / `- PR: _(none yet)_`) so the issue stays a self-contained
@@ -175,37 +176,122 @@ you're writing back.
 
 ### Showing the generated SV
 
-`sv-examples/` is git-ignored, so a PR that changes what TSSV generates shows its TypeScript
-diff but not the SystemVerilog that comes out of it. Reviewing that diff alone means guessing
-at the SV, or checking out both branches and regenerating it. The author shows it instead.
-tssv-noc's `doc/process/issue-workflow.md` §6 has the same rules for tssv-noc PRs; keep the two
-in step.
+A PR that changes what TSSV generates shows its TypeScript diff, but not the SystemVerilog that
+comes out of it. The *RTL PR* shows that SystemVerilog, with the whole of GitHub's review: new
+modules in full, context around each change, line comments and approval. tssv-noc's
+`doc/process/issue-workflow.md` §6 has the same rules for tssv-noc PRs; keep the two in step.
 
-**What to show** depends on the change:
+**Where the generated RTL lives.** In each checkout, `sv-examples/` is a git worktree on an
+orphan branch (README.md, "Setup"): the main checkout's is on `rtl/main`, and an issue
+worktree's is on `rtl/<N>`. `rtl/main` holds the DUT RTL generated from `main`: every file under
+a `dut/` folder, which is all that the branch's `.gitignore` lets in. Generated testbench files
+and test data stay on disk and out of git. Each commit on `rtl/main` records the `main` commit
+it was generated from in a `Generated-from:` trailer.
+
+**The RTL PR.** A PR that changes generated DUT RTL (the *generator PR*) gets a companion PR from
+`rtl/<N>` into `rtl/main`. After pushing the generator PR's branch and opening the PR, run
+`scripts/rtl-pr` in the issue worktree. Run it again after each push that changes generated RTL.
+
+```bash
+scripts/rtl-pr --dry-run     # what it would commit, and the RTL PR's description; no branch or PR needed
+scripts/rtl-pr               # commit, push, and open or update the RTL PR
+```
+
+It takes under a minute, most of it in running every test script. It:
+
+1. **Checks where `rtl/main` stands.** It refuses if the branch lacks the `main` commit that
+   `rtl/main` was generated from: merge `origin/main` first. A generator PR stacked on another
+   issue's branch is compared with that issue's `rtl/<P>` instead, when it has one.
+2. **Regenerates `sv-examples/` from scratch** with `scripts/gen-sv --clean`, which deletes every
+   file under a `dut/` folder first, so a configuration that the change removes shows as deleted.
+   It refuses if a test script fails. Then `scripts/check-rtl.mjs` checks the files it would
+   commit:
+   - they are exactly the files under `dut/` folders;
+   - every `` `include `` resolves to a committed file;
+   - every DUT folder declares a module.
+3. **Commits them to `rtl/<N>` and pushes.** The commit is signed off with your git identity, as
+   [`CONTRIBUTING.md`](../../CONTRIBUTING.md) asks. It merges in `rtl/main` first if it has moved.
+   If the files are the same as `rtl/<N>`'s head, it makes no commit, so an approval there still
+   holds.
+4. **Opens the RTL PR, or updates its description.** On opening, it requests the generator PR's
+   reviewers and links the RTL PR on the generator PR. After a new commit, it asks for a review
+   again from those who asked for changes, and from those whose approval no longer holds (below).
+   If the change no longer touches generated DUT RTL, it closes an open RTL PR.
+
+The RTL PR's description lists the *distinct changes*, made by `scripts/rtl-changes.mjs`. A
+generator change usually repeats across every configuration that uses the changed class, so the
+list shows each kind of change once:
+- it groups changed files by the class named in their file header's Generator line;
+- within a class, it groups files by the lines their diff removes and adds, counting changes
+  that differ only in numbers, such as a width, as one;
+- each row shows one example file's lines, with a link to that file;
+- DUT folders added, deleted or moved whole are listed by folder.
+
+GitHub's Files tab shows at most 300 files of a PR; past that, the list is what reviewers read.
+
+**Rules for RTL PRs:**
+- **An RTL PR closes no issue.** Its generator PR closes the issue, so the closing-keyword rule
+  in §4 and the PR template don't apply to it.
+- **Reviewers approve the RTL PR, and the generator PR waits for that approval.** The required
+  check "Generated RTL reviewed" enforces it (below).
+- **An approval holds while the RTL PR's own change stays the same** (Adam, 2026-11-24). A
+  commit's *own change* is its diff against its merge base with `rtl/main` in the files under
+  `dut/` folders, without line numbers or context; `scripts/rtl-own-change` prints a fingerprint
+  of it. So merging in `rtl/main`, or regenerating after another PR's RTL has landed, keeps an
+  approval. A regeneration that changes the RTL PR's own change needs a new one. `rtl/main`'s
+  ruleset doesn't dismiss approvals on a push; the check compares the fingerprints instead.
+- **Nobody merges an RTL PR, or commits to `rtl/main`, by hand.** Agents never push to it. CI
+  lands the RTL after the generator PR merges (below).
+- **The generator PR's description** names its RTL PR in the **Generated SV** section, or says
+  "No change to generated DUT RTL". `scripts/rtl-pr` prints which.
+
+**The "Generated RTL reviewed" check** (`.github/workflows/rtl-reviewed.yml`, a required check on
+`main`) runs on every PR, docs-only ones too: a required check that a path filter skips never
+reports. It regenerates the DUT RTL from the PR's merge commit, and `scripts/rtl-reviewed`
+decides:
+- **It passes** when the regenerated DUT files are the same as `rtl/main`'s, because the PR
+  changes no DUT RTL.
+- **It also passes** when the RTL PR from `rtl/<N>` holds exactly those files at its head, and
+  someone's approval holds by the rule above, with no request for changes since.
+- **Otherwise it fails** and says what's missing: an RTL PR (run `scripts/rtl-pr`), an RTL PR
+  that matches (run it again), or an approval.
+
+`rtl/main` has two workflows of its own, because GitHub reads an RTL PR's workflows from
+`rtl/main`. Their sources are in `.github/rtl-branch/` on `main`, and CI copies them to
+`rtl/main`:
+- `rtl-approved.yml` re-runs the generator PR's check whenever a review on its RTL PR is
+  submitted or dismissed, since an approval doesn't run the generator PR's checks;
+- `dco.yml` is the `dco` check for RTL PRs. It runs `main`'s `scripts/check-dco.sh`.
+
+**CI keeps `rtl/main` current** (`.github/workflows/rtl-main.yml`, logic in
+`scripts/rtl-update`). It pushes with a deploy key, which `rtl/main`'s ruleset lets through.
+- **After each push to `main`,** it regenerates. If the merged PR's RTL PR makes the same own
+  change, its approval holds and every commit in it is signed off, CI merges it: the merge commit
+  has the regenerated files and the RTL PR's head as its second parent, so GitHub marks the RTL
+  PR merged. Otherwise CI commits the regenerated files and closes the RTL PR with a note saying
+  why. RTL PRs stacked on the merged one move onto `rtl/main`.
+- **It commits only when every test script and `scripts/check-rtl.mjs` pass.** Otherwise
+  `rtl/main` stays as it is, and the run posts to Slack through `scripts/notify`.
+  `gh workflow run rtl-main.yml` catches `rtl/main` up by hand, once the cause is fixed: it
+  regenerates `main`'s head and commits only if something changed. Started with `--ref` on
+  another branch, it runs that branch's scripts as a dry run, which tries a change to the
+  workflow before it merges.
+- **Its commits carry no sign-off** (Adam, 2026-11-25). They are generated from signed-off commits
+  on `main` and pushed directly, so no `dco` check sees them. `CONTRIBUTING.md` says so.
+
+Every commit CI makes carries a `Generated-from:` trailer, so `git log -1 origin/rtl/main` always
+says what `rtl/main` was generated from.
+
+**What the RTL PR doesn't show:**
 
 | The PR… | Show |
 |---|---|
-| changes an existing generation API helper (an `add*` method in `ts/src/core/Base.ts`) | The SV an example call emits, before and after the change. A change that affects more than one mode or option of the helper needs an example for each mode that changes. |
-| adds a generation API | Enough example calls, each with the SV it emits, to show how the API behaves, including each mode or option that changes the output. |
-| changes an existing module (`ts/src/modules/*`) | The diff of the module's generated SV, if it is about 100 changed lines or fewer. Larger than that: the `scripts/gen-sv` command (below) for the reviewer to run, and which generated files and parameter sets to read. The key hunks can still go inline. |
-| changes no generated SV | One line in the description: "No change to generated SV." Check it with `scripts/gen-sv --base` (below) rather than assume it. |
+| changes or adds a generation helper or API (an `add*` method in `ts/src/core/Base.ts`) in a mode or option that no DUT uses | Enough example calls, each with the SV it emits, to show how it behaves, before and after for a change. Post them as PR comments, with the SV inside a `<details>` block, and link each one from the **Generated SV** section. The `ts/test/test_add*.ts` scripts are a ready source of example calls. |
+| changes `AXI4XBar` | Its test needs Docker, so `scripts/test-skips.sh` skips it and `rtl/main` has no AXI4XBar files. Post the diff from `scripts/gen-sv --base` with that test named (below), run where Docker is available, as a PR comment. |
+| changes generated testbench files (harnesses, testbench components) | Nothing is required. When it helps review, post the diff from `scripts/gen-sv --base` (below) as a PR comment. |
 
-"Changed lines" means lines added plus lines removed in the diff, as `scripts/gen-sv` counts
-them. A module's test usually generates several parameter sets, and one change often
-repeats in each of them. When it does, show one set, list the others it applies to, and count
-that one set against the threshold. The `ts/test/test_add*.ts` scripts are a ready source of
-example calls for a helper.
-
-**Where it goes:** in PR comments, not the description. Post one comment per example or per
-module, with its SV inside a `<details>` block: a `diff` fence for before/after, a
-`systemverilog` fence for new output. Then list those comments in the description's
-**Generated SV** section, one link each (a comment's link is its timestamp). This keeps the
-description readable, and gives each example a comment that collapses on its own and that
-review feedback can link to. The comments only exist once the PR does, so open the PR, post
-them, then edit the description to add the links.
-
-**Generating the SV: `scripts/gen-sv`.** It regenerates `sv-examples/`, and with `--base`
-diffs it against another branch or commit:
+**`scripts/gen-sv`** regenerates `sv-examples/`, and with `--base` diffs everything the tests write
+against another branch or commit, testbench files included. tssv-noc has the same script.
 
 ```bash
 git fetch origin
@@ -214,22 +300,14 @@ scripts/gen-sv --base origin/main ts/test/modules/test_SFIFO.ts   # just the tes
 scripts/gen-sv ts/test/test_addMux.ts                  # no --base: regenerate only
 ```
 
-With `--base`, it builds the base in a scratch worktree outside the repo tree (under
-`$TMPDIR`), runs the same tests on both sides, and compares only the files those tests wrote.
-The base is the merge base of the ref and your `HEAD`, as GitHub compares a PR, so commits that
-landed on `main` after you branched don't show up as changes.
-The head side is your checkout as it stands, uncommitted changes included. It prints each
-changed file with its changed-line count, the total, and any files added or removed, and saves
-the full unified diff (added files included whole) to a file whose path it prints: that file is
-where the snippets to post come from. It exits 0 when nothing differs, which is the check behind
-"No change to generated SV", and 1 when something does. `--keep` keeps the base worktree for a
-closer look; `scripts/gen-sv --help` has the details.
-
-With no tests named it runs every script under `ts/test/` except those
-`scripts/test-skips.sh` lists, which takes about 15 s. `test_AXI4XBar` is one of those, since it
-needs Docker, so a change to `AXI4XBar` needs that test named and run where Docker is available.
-For a module diff too large to post, give the reviewer the `scripts/gen-sv --base …` line with
-the tests to name, and say which files to read.
+With `--base`, it builds the base in a scratch worktree outside the repo tree (under `$TMPDIR`),
+runs the same tests on both sides, and compares only the files those tests wrote. The base is the
+merge base of the ref and your `HEAD`, as GitHub compares a PR, so commits that landed on `main`
+after you branched don't show up as changes. The head side is your checkout as it stands,
+uncommitted changes included. It prints each changed file with its changed-line count, and saves
+the full unified diff to a file whose path it prints. It exits 0 when nothing differs and 1 when
+something does. With no tests named, it runs every script under `ts/test/` except those
+`scripts/test-skips.sh` lists. `scripts/gen-sv --help` has the details.
 
 ## 6. Commit message template
 
@@ -323,7 +401,9 @@ still holds its commits, so decide by hand what to do with them.
 Start the body with the merge order, for example `**Stacked on #<parent-PR>**: merge that
 first.` Keep `Closes #<N>` in the body as usual. GitHub acts on it only when the PR merges
 into `main`, which it will once everything below it has merged ("Merge from the bottom up",
-below). To show what the PR does to the generated SV (§5), diff against the parent:
+below). `scripts/rtl-pr` compares a stacked PR's RTL with its parent's `rtl/<P>` and opens its RTL
+PR into `rtl/<P>`; CI moves it onto `rtl/main` when the parent's RTL lands (§5, "Showing the
+generated SV"). To diff testbench files against the parent, use
 `scripts/gen-sv --base origin/<parent-branch>`.
 
 No `pull_request` trigger under `.github/workflows/` filters on the base branch, so CI runs

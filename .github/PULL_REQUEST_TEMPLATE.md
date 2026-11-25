@@ -4,7 +4,7 @@ See doc/process/issue-workflow.md for the full spec. In short:
 - The Acceptance Criteria checklist below must be copied verbatim from that issue.
 - Check a box only after verifying it against actual output (a test run, a lint pass,
   a diff review) — never speculatively. Don't merge with any box still unchecked.
-- If it changes generated SV, show that SV in PR comments and link them under Generated SV.
+- If it changes generated DUT RTL, run scripts/rtl-pr and name its RTL PR under Generated SV.
 - Every commit needs a DCO sign-off (`git commit -s`); the `dco` check enforces it.
   See CONTRIBUTING.md.
 -->
@@ -31,14 +31,14 @@ Closes #
 
 <!--
 See doc/process/issue-workflow.md §5, "Showing the generated SV".
-scripts/gen-sv --base origin/main [test ...] regenerates the SV on both sides and diffs it.
-If this PR changes generated SystemVerilog, post the evidence as PR comments, one per example
-or module with the SV inside <details>, and link each one here:
-- A changed add* helper: the SV for an example call, before and after, for each mode that changes.
-- A new generation API: example calls and the SV each emits.
-- A changed module: the generated-SV diff if it is about 100 changed lines or fewer; otherwise
-  the scripts/gen-sv line for the reviewer to run, and which files to read.
-If it changes none (scripts/gen-sv --base exits 0), replace this with "No change to generated SV."
+If this PR changes generated DUT RTL, run scripts/rtl-pr after pushing; it opens the RTL PR.
+Name it here: "RTL PR: #<n>". Reviewers approve it, and the "Generated RTL reviewed" check
+waits for that approval.
+If it changes none, replace this with "No change to generated DUT RTL." scripts/rtl-pr
+prints which.
+For SV that no RTL PR shows (a generation helper's mode that no DUT uses, AXI4XBar, or
+testbench files when they help review), post it as PR comments with the SV inside
+<details>, and link each one here.
 -->
 
 ## Notes
