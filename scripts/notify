@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Post an alert to Slack through a webhook, so it reaches a person's phone.
+
+TSSV's rtl-main workflow posts its failures with it. tssv-noc has the same script, and its
+doc/process/setup-guide.md §11 sets up the webhook. The message comes from a Slack app, not
+from you, so Slack notifies you; it never notifies you of your own posts.
+
+    scripts/notify --to U0123ABCDEF "TSSV rtl/main update failed" \\
+        https://github.com/TypeScriptSystemVerilog/TSSV/actions/runs/1
+    scripts/notify --dry-run --to U0123ABCDEF "..."
+        prints the message instead of sending it
+
+The webhook URL works like a password. It lives in ~/.claude/tssv-slack-webhook, or the
+file that $TSSV_SLACK_WEBHOOK_FILE names, never in the repo, and this script never
+prints it.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+DEFAULT_FILE = "~/.claude/tssv-slack-webhook"
+WEBHOOK = re.compile(r"https://hooks\.slack\.com/services/[A-Za-z0-9/]+")
+MEMBER_ID = re.compile(r"[UW][A-Z0-9]{6,}")
+
+
+def slack_escape(text):
+    """Slack reads <, > and & as markup; these are the escapes it documents."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def main():
+    p = argparse.ArgumentParser(
+        description="Alert a run's owner on their phone, through a Slack webhook.",
+        epilog="Exit status: 0 sent, 1 Slack refused it or couldn't be reached, 2 no webhook configured.")
+    p.add_argument("text", nargs="+", help="the message: one line, and a link to what needs deciding")
+    p.add_argument("--to", action="append", default=[], metavar="MEMBER_ID",
+                   help="Slack member ID to @-mention (profile, then More, then Copy member ID); repeat for several")
+    p.add_argument("--dry-run", action="store_true", help="print the message instead of sending it")
+    args = p.parse_args()
+    for m in args.to:
+        if not MEMBER_ID.fullmatch(m):
+            p.error(f"not a Slack member ID: {m!r}")
+    text = " ".join([f"<@{m}>" for m in args.to] + [slack_escape(" ".join(args.text))])
+    if args.dry_run:
+        print(text)
+        return 0
+
+    path = Path(os.environ.get("TSSV_SLACK_WEBHOOK_FILE", DEFAULT_FILE)).expanduser()
+    try:
+        url = path.read_text().strip()
+    except OSError as e:
+        print(f"notify: can't read the webhook URL from {path}: {e.strerror}. See tssv-noc's doc/process/setup-guide.md §11.", file=sys.stderr)
+        return 2
+    if not WEBHOOK.fullmatch(url):
+        print(f"notify: {path} doesn't hold a Slack webhook URL. See tssv-noc's doc/process/setup-guide.md §11.", file=sys.stderr)
+        return 2
+
+    request = urllib.request.Request(url, json.dumps({"text": text}).encode(), {"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            answer = response.read().decode(errors="replace")
+    except urllib.error.HTTPError as e:
+        # Slack names the problem in the body: invalid_token, no_service, channel_not_found...
+        print(f"notify: Slack refused the message: HTTP {e.code}, {e.read().decode(errors='replace')}", file=sys.stderr)
+        return 1
+    except (urllib.error.URLError, TimeoutError) as e:
+        print(f"notify: couldn't reach Slack: {getattr(e, 'reason', e)}", file=sys.stderr)
+        return 1
+    if answer != "ok":
+        print(f"notify: Slack answered {answer!r} instead of ok", file=sys.stderr)
+        return 1
+    print("Sent.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

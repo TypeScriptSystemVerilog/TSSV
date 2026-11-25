@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# The decision of the "Generated RTL reviewed" check (.github/workflows/rtl-reviewed.yml;
+# doc/process/issue-workflow.md §5, "Showing the generated SV"): may this generator PR merge, as
+# far as its generated DUT RTL goes?
+#
+# tssv-noc has a script of the same name; keep the two in step. tssv-noc's also chooses the TSSV
+# commit to build with.
+
+set -Eeuo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/rtl-reviewed <generator PR number>
+
+Run it after regenerating sv-examples/ for the generator PR (scripts/gen-sv --clean
+on its merge commit), with sv-examples/ a checkout of this repo on any rtl branch. It passes (exit 0) when either:
+  - the regenerated DUT files are the same as rtl/main's (or, for a PR stacked on
+    another issue's branch, that issue's rtl/<P>): the PR changes no DUT RTL; or
+  - the open RTL PR from rtl/<N> holds exactly the regenerated DUT files at its
+    head, and someone approved a commit whose own change has the head's
+    fingerprint (scripts/rtl-own-change), with no request for changes since.
+Otherwise it fails (exit 1) and says what is missing. It writes the same to
+$GITHUB_STEP_SUMMARY when that is set. Exit 2 on an error.
+EOF
+}
+
+die() { echo "rtl-reviewed: $*" >&2; exit 2; }
+trap 'echo "rtl-reviewed: failed at line $LINENO" >&2; exit 2' ERR
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+esac
+case "${1:-}" in
+  ''|*[!0-9]*) usage >&2; exit 2 ;;
+esac
+pr=$1
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "run this inside the TSSV repo"
+cd "$ROOT"
+SV=$ROOT/sv-examples
+# shellcheck source=scripts/rtl-lib.sh
+source "$ROOT/scripts/rtl-lib.sh"
+[ -d "$SV" ] && git -C "$SV" rev-parse -q --verify HEAD >/dev/null || die "sv-examples/ isn't a checkout of an rtl branch"
+REPO=${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}
+
+# verdict <exit status> <headline> [details]: print it, add it to the job summary, and exit
+verdict() {
+  local status=$1 head=$2 more=${3:-}
+  echo "$head"
+  echo "$more"
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    { echo "### $([ "$status" = 0 ] && echo Passed || echo Failed): $head"; echo; [ -z "$more" ] || echo "$more"; } >>"$GITHUB_STEP_SUMMARY"
+  fi
+  exit "$status"
+}
+
+IFS=$'\t' read -r head_ref base_ref < <(gh pr view "$pr" --repo "$REPO" --json headRefName,baseRefName \
+  --jq '[.headRefName, .baseRefName] | @tsv')
+n=$(rtl_issue_of "$head_ref")
+git -C "$SV" fetch -q --no-tags origin '+refs/heads/rtl/*:refs/remotes/origin/rtl/*'
+
+rtlbase=rtl/main
+p=$(rtl_issue_of "$base_ref")
+if [ "$base_ref" != main ] && [ -n "$p" ] && git -C "$SV" rev-parse -q --verify "origin/rtl/$p" >/dev/null; then
+  rtlbase=rtl/$p
+fi
+
+listing() { sed 's/^/    /' | head -10; }
+rtl_json=""
+[ -z "$n" ] || rtl_json=$(gh pr list --repo "$REPO" --head "rtl/$n" --state open --json number,headRefOid \
+                            --jq '.[0] | select(. != null) | "\(.number) \(.headRefOid)"')
+R="" rtl_head=""
+if [ -n "$rtl_json" ]; then
+  read -r R rtl_head <<<"$rtl_json"
+  git -C "$SV" fetch -q --no-tags origin "+refs/pull/$R/head:refs/remotes/origin/rtl-pr/$R" 2>/dev/null || true
+fi
+
+tree=$(rtl_tree "$SV")
+changed=$(git -C "$SV" diff --name-only "origin/$rtlbase" "$tree" -- "$RTL_DUT" | wc -l)
+if [ "$changed" = 0 ]; then
+  verdict 0 "#$pr changes no generated DUT RTL" "Its regenerated DUT files are the same as \`$rtlbase\`'s."
+fi
+
+if [ -z "$rtl_json" ]; then
+  read -r M < <(rtl_provenance "$SV" "origin/$rtlbase") || true
+  verdict 1 "#$pr changes $changed generated DUT files, and has no open RTL PR" \
+"Run \`scripts/rtl-pr\` in its worktree to open one (\`rtl/${n:-<N>}\` into \`rtl/main\`). The files that differ from \`$rtlbase\`, the first ten:
+
+$(git -C "$SV" diff --name-status "origin/$rtlbase" "$tree" -- "$RTL_DUT" | listing)
+
+If this PR shouldn't change any generated RTL, \`$rtlbase\` may be behind \`$base_ref\`: it was generated from ${M:0:7}. After a merge, the \`rtl-main\` workflow brings \`rtl/main\` up to date; if its last run failed, its Slack alert says why."
+fi
+
+if ! git -C "$SV" diff --quiet "$rtl_head" "$tree" -- "$RTL_DUT"; then
+  verdict 1 "RTL PR #$R doesn't hold what #$pr generates" \
+"Its head, ${rtl_head:0:7}, differs from the regenerated DUT files in $(git -C "$SV" diff --name-only "$rtl_head" "$tree" -- "$RTL_DUT" | wc -l) files. Run \`scripts/rtl-pr\` in #$pr's worktree, after merging \`origin/$base_ref\` if it asks. The first ten:
+
+$(git -C "$SV" diff --name-status "$rtl_head" "$tree" -- "$RTL_DUT" | listing)"
+fi
+
+if why=$(rtl_approval "$SV" "origin/$rtlbase" "$REPO" "$R" "$rtl_head"); then
+  verdict 0 "RTL PR #$R holds what #$pr generates, and its approval holds" "RTL PR #$R at ${rtl_head:0:7}: $why."
+fi
+verdict 1 "RTL PR #$R holds what #$pr generates, but its approval doesn't hold" \
+  "RTL PR #$R at ${rtl_head:0:7}: $why. This check runs again when the RTL PR is approved."

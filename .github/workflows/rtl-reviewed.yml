@@ -1,0 +1,87 @@
+name: rtl-reviewed
+
+# The "Generated RTL reviewed" check (doc/process/issue-workflow.md §5, "Showing the generated
+# SV"). It regenerates the DUT RTL from the PR's merge commit and passes when the PR changes none,
+# or when its RTL PR holds exactly that RTL and its approval holds. scripts/rtl-reviewed makes the
+# decision; this workflow sets up the checkout it needs. tssv-noc has a workflow of the same name.
+#
+# No paths filter, unlike test.yml: a required check whose workflow a filter skips never reports,
+# and the PR waits for it. A docs-only PR still regenerates, which also catches a moved spec file
+# (the file header's Spec line names it, and a missing one throws).
+#
+# It runs on every pull_request event, and on workflow_dispatch with the PR's number, which the
+# rtl-approved workflow on rtl/main uses to run it again after an RTL PR is approved. A dispatched
+# run's check lands on the head of the branch it was dispatched on: the generator PR's head.
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: The generator PR's number
+        required: true
+
+concurrency:
+  group: rtl-reviewed-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  packages: read
+
+# A container job runs its steps under sh unless told otherwise
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  reviewed:
+    name: Generated RTL reviewed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # The CI image, as in test.yml: the same Verible formats the generated SV as when rtl/main was
+    # generated, so the files compare byte for byte.
+    container:
+      image: ghcr.io/typescriptsystemverilog/tssv-ci:v1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR: ${{ github.event.pull_request.number || inputs.pr }}
+
+    steps:
+      # The image has no gh, which scripts/rtl-reviewed reads the PRs with
+      - name: Install gh
+        run: |
+          curl -fsSL https://github.com/cli/cli/releases/download/v2.62.0/gh_2.62.0_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local --strip-components=1
+          gh --version
+
+      - name: Checkout TSSV at the PR's merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/merge', inputs.pr) || '' }}
+
+      # sv-examples/ is a worktree on rtl/main, as in a developer's checkout. The rtl branches'
+      # history comes too: the approval check compares commits on them.
+      - name: Put sv-examples/ on rtl/main
+        run: |
+          git config --global --add safe.directory '*'
+          git fetch -q --no-tags origin '+refs/heads/rtl/*:refs/remotes/origin/rtl/*'
+          git worktree add -q --detach sv-examples origin/rtl/main
+
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Regenerate the DUT RTL
+        run: scripts/gen-sv --clean
+
+      - name: Generated RTL reviewed
+        run: scripts/rtl-reviewed "$PR"

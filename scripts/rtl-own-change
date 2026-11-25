@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Print a fingerprint of an rtl branch commit's own change: its diff against its merge base with
+# rtl/main in the files under dut/ folders, with no context lines, line numbers or blob IDs. Two
+# commits with the same fingerprint make the same change to the generated DUT RTL, whatever
+# rtl/main they sit on. Files outside dut/ folders, such as .github/, don't count.
+#
+# An RTL PR's approval holds while its head's own change has the approved commit's fingerprint
+# (doc/process/issue-workflow.md §5, "Rules for RTL PRs"), as tssv-noc's rule for its main
+# (TypeScriptSystemVerilog/tssv-noc#332) keeps an approval when a branch only takes in main.
+# scripts/rtl-pr and the "Generated RTL reviewed" check both use this.
+#
+# Usage: scripts/rtl-own-change [--dir <sv-examples>] [--base <ref>] <commit>
+#   --dir   the rtl worktree, or any checkout of the repo (default: sv-examples)
+#   --base  the branch the change goes into (default: origin/rtl/main)
+# Prints the fingerprint, or "none" when the commit makes no change of its own.
+#
+# tssv-noc has a script of the same name; keep the two in step.
+
+set -euo pipefail
+
+dir=sv-examples base=origin/rtl/main commit=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dir)  dir=$2; shift 2 ;;
+    --base) base=$2; shift 2 ;;
+    -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)      [ -z "$commit" ] || { echo "rtl-own-change: one commit only" >&2; exit 2; }; commit=$1; shift ;;
+  esac
+done
+[ -n "$commit" ] || { echo "rtl-own-change: give a commit" >&2; exit 2; }
+
+mb=$(git -C "$dir" merge-base "$base" "$commit") \
+  || { echo "rtl-own-change: $commit and $base have no common ancestor" >&2; exit 2; }
+own=$(git -C "$dir" diff -U0 --no-renames --no-color --no-ext-diff "$mb" "$commit" -- ':(glob)**/dut/**' \
+        | sed -e '/^index /d' -e 's/^@@ .* @@.*$/@@/')
+if [ -z "$own" ]; then echo none; else sha1sum <<<"$own" | cut -c1-40; fi
