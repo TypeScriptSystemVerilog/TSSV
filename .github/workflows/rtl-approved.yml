@@ -1,0 +1,46 @@
+name: rtl-approved
+
+# Runs on rtl/main, not main: scripts/rtl-update copies this file from main's .github/rtl-branch/
+# to rtl/main's .github/workflows/. GitHub reads a PR's workflows from its merge commit, and an RTL
+# PR's merge commit is on rtl/main. (doc/process/issue-workflow.md §5, "Showing the generated SV")
+#
+# An approval on an RTL PR doesn't run its generator PR's checks, so "Generated RTL reviewed"
+# would keep its earlier failure. When a review on an RTL PR is submitted or dismissed, this
+# finds the generator PR for rtl/<N>, the open PR whose branch is named after issue N, and re-runs
+# its latest rtl-reviewed run. If there is none to re-run, it starts one with workflow_dispatch.
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  actions: write
+  pull-requests: read
+
+jobs:
+  rerun:
+    if: startsWith(github.event.pull_request.head.ref, 'rtl/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      RTL_BRANCH: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Re-run the generator PR's "Generated RTL reviewed" check
+        run: |
+          n=${RTL_BRANCH#rtl/}
+          gen=$(gh pr list --repo "$REPO" --state open --json number,headRefName,headRefOid \
+                  --jq ".[] | select(.headRefName | test(\"^[a-z]+/$n-\")) | \"\(.number) \(.headRefName) \(.headRefOid)\"" | head -1)
+          if [ -z "$gen" ]; then
+            echo "No open generator PR for $RTL_BRANCH"
+            exit 0
+          fi
+          read -r num ref sha <<<"$gen"
+          run=$(gh run list --repo "$REPO" --workflow rtl-reviewed.yml --commit "$sha" --limit 1 \
+                  --json databaseId,status --jq '.[0] | select(. != null and .status == "completed") | .databaseId')
+          if [ -n "$run" ] && gh run rerun "$run" --repo "$REPO"; then
+            echo "Re-ran run $run of rtl-reviewed for #$num"
+          else
+            gh workflow run rtl-reviewed.yml --repo "$REPO" --ref "$ref" -f pr="$num"
+            echo "Started rtl-reviewed for #$num on $ref"
+          fi
