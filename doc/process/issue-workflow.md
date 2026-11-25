@@ -360,8 +360,8 @@ running it, never its own.
   `Closes #N`, or a missing Acceptance Criteria section.
 - Merging is the human's call. An agent opens the PR, verifies and checks off AC, then
   waits for approval — it doesn't merge on its own even when its token could.
-- Merge with **Create a merge commit**, not squash or rebase. The `main` ruleset already
-  refuses a squash merge. A merge commit keeps each commit as it was reviewed, and a PR
+- Merge with **Create a merge commit**, not squash or rebase. The `main` rulesets allow only
+  that. A merge commit keeps each commit as it was reviewed, and a PR
   stacked on this one keeps showing only its own commits (§8).
 
 ## 8. Stacked PRs
@@ -447,8 +447,8 @@ What the stack adds, per GitHub's documentation:
 
 - Each PR shows a stack icon with its layer number, and the merge box shows a map of the whole
   stack with every PR's status.
-- The `main` ruleset applies to every PR in the stack: one approving review and the `dco`
-  check. CI that runs for PRs against `main` runs for every PR in the stack.
+- The `main` rulesets apply to every PR in the stack: one approving review, and the `dco` and
+  "Generated RTL reviewed" checks. CI that runs for PRs against `main` runs for every PR in the stack.
 - When a PR in the stack merges, GitHub changes the base of the PRs above it to `main` and
   rebases their branches. Fetch before you work on an upper branch again ("When a lower
   branch changes during review", below).
@@ -516,9 +516,9 @@ Each other child does one of these:
 
 In a GitHub stack, GitHub rebases the PRs above for you whichever merge method was used, so
 skip this subsection. Outside a stack, either method puts new commits on `main` in place of
-the parent's. The `main` ruleset refuses a squash merge but allows a rebase merge. The PR above
-still holds the parent's original commits, so once its base is `main` it shows them again as
-its own. Move only your own commits onto `main`, from your branch:
+the parent's. The `main` rulesets allow only a merge commit, but an organization admin can
+bypass them. The PR above still holds the parent's original commits, so once its base is `main`
+it shows them again as its own. Move only your own commits onto `main`, from your branch:
 
 ```bash
 git fetch origin
