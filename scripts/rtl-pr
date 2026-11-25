@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+# Open or update this issue's RTL PR: the generated DUT RTL of its branch, committed on rtl/<N>
+# and proposed into rtl/main for review. doc/process/issue-workflow.md §5 ("The RTL PR") says
+# when a PR needs one; run this after each push that changes generated RTL.
+#
+# tssv-noc has a script of the same name; keep the two in step. tssv-noc's also records the TSSV
+# commit it generated with. This one signs off its commits, as CONTRIBUTING.md asks.
+
+set -Eeuo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/rtl-pr [--dry-run]
+
+Run it in an issue worktree, on the issue's branch (<type>/<N>-<slug>), after pushing
+the branch and opening its PR (the generator PR). sv-examples/ must be the nested
+worktree on rtl/<N> (README.md, "Setup").
+
+  1. Reads the main commit that rtl/main was generated from, from the
+     Generated-from: trailer of its head, or of the last commit that has one. A
+     generator PR stacked on another issue's branch is compared with that issue's
+     rtl/<P> instead, when it exists. Refuses if this branch lacks that commit.
+  2. Regenerates sv-examples/ from scratch with scripts/gen-sv --clean (every
+     test script), and refuses if a test script fails. Then runs
+     scripts/check-rtl.mjs on the files it would commit, and refuses if a check
+     fails.
+  3. Commits the files to rtl/<N>, merging in rtl/main if it has moved, and
+     pushes. The commit is signed off with your git identity, which is its author. Only the files under dut/ folders come from the regeneration; the
+     rest, .github/ included, is rtl/main's. No commit when the files are the
+     same as rtl/<N>'s head, so an approval there still holds.
+  4. Opens the RTL PR from rtl/<N> into rtl/main, or updates its description,
+     with the distinct changes from scripts/rtl-changes.mjs. When it opens one,
+     it requests the generator PR's reviewers and links it on the generator PR.
+     After a new commit, it asks again for a review from those who asked for
+     changes, and from those whose approval no longer covers the RTL PR's own
+     change (scripts/rtl-own-change): taking in rtl/main keeps an approval.
+     If the files are the same as rtl/main's, it closes an open RTL PR instead.
+
+  --dry-run   Steps 1 and 2, then print the description; commit, push and open
+              nothing. A branch need not be pushed or have a PR.
+
+Exit status: 0 done or no change, 1 refused (the message says why), 2 error.
+EOF
+}
+
+die()    { echo "rtl-pr: $*" >&2; exit 2; }
+refuse() { echo "rtl-pr: $*" >&2; exit 1; }
+note()   { echo "rtl-pr: $*" >&2; }
+trap 'echo "rtl-pr: failed at line $LINENO" >&2; exit 2' ERR
+
+dry=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run)  dry=1; shift ;;
+    -h|--help)  usage; exit 0 ;;
+    *)          usage >&2; exit 2 ;;
+  esac
+done
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "run this inside the TSSV repo"
+cd "$ROOT"
+SV=$ROOT/sv-examples
+RTL_DUT=':(glob)**/dut/**'   # the generated DUT files, as in scripts/rtl-lib.sh
+command -v gh >/dev/null || die "gh not found"
+short() { git -C "${2:-$ROOT}" rev-parse --short "$1"; }
+
+# --- where we are ---------------------------------------------------------------
+
+branch=$(git symbolic-ref -q --short HEAD) || die "HEAD is detached: check out the issue's branch"
+n=$(sed -n 's#^[^/]*/\([0-9]\+\)-.*#\1#p' <<<"$branch")
+[ -n "$n" ] || die "$branch isn't named after an issue (<type>/<N>-<slug>)"
+[ -e "$SV/.git" ] && [ -z "$(git -C "$SV" rev-parse --show-prefix 2>/dev/null)" ] \
+  || die "sv-examples/ isn't a worktree on an rtl branch: see README.md, \"Setup\""
+rtl=$(git -C "$SV" symbolic-ref -q --short HEAD) || die "sv-examples/ is on a detached HEAD, not rtl/$n"
+[ "$rtl" = "rtl/$n" ] || die "sv-examples/ is on $rtl, not rtl/$n"
+
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  [ $dry = 1 ] || refuse "this checkout has uncommitted changes: the RTL must come from a commit, so commit and push first"
+  note "this checkout has uncommitted changes; the dry run includes them"
+fi
+if [ $dry = 0 ]; then
+  upstream=$(git rev-parse -q --verify '@{u}' 2>/dev/null) || refuse "$branch has no upstream: push it and open its PR first"
+  [ "$upstream" = "$(git rev-parse HEAD)" ] || refuse "$branch differs from its upstream: push it first"
+fi
+
+echo "Fetching"
+git fetch -q origin
+
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner) || die "gh can't read this repo"
+gen_json=$(gh pr view "$branch" --json number,title,url,state,baseRefName,author,reviewRequests,latestReviews 2>/dev/null || true)
+if [ -z "$gen_json" ] || [ "$(jq -r .state <<<"$gen_json")" != OPEN ]; then
+  [ $dry = 1 ] || refuse "$branch has no open PR: open the generator PR first"
+  gen_json='{"number":0,"title":"","baseRefName":"main","reviewRequests":[],"latestReviews":[],"author":{"login":""}}'
+fi
+G=$(jq -r .number <<<"$gen_json")
+gref="#$G"
+[ "$G" != 0 ] || gref="the generator PR"
+gen_base=$(jq -r .baseRefName <<<"$gen_json")
+
+# The rtl branch to compare with: the stacked parent's rtl/<P> when there is one
+rtlbase=rtl/main
+if [ "$gen_base" != main ]; then
+  p=$(sed -n 's#^[^/]*/\([0-9]\+\)-.*#\1#p' <<<"$gen_base")
+  if [ -n "$p" ] && git rev-parse -q --verify "origin/rtl/$p" >/dev/null; then rtlbase=rtl/$p; fi
+fi
+git rev-parse -q --verify "origin/$rtlbase" >/dev/null || die "origin has no $rtlbase"
+
+# --- step 1: where rtl/main stands ------------------------------------------------------
+
+# The main commit the base was generated from: its head's trailer, or, after a merge made by
+# hand, the last commit that has one
+M=$(git log --format='%(trailers:key=Generated-from,valueonly,separator=%x2C)' "origin/$rtlbase" \
+      | awk 'NF == 1 { print; exit }')
+[ -n "$M" ] || die "origin/$rtlbase records no Generated-from: commit"
+base_c=$(git rev-parse "origin/$rtlbase")
+echo "Comparing with $rtlbase at $(short "$base_c"): generated from $(short "$M")"
+
+git cat-file -e "$M^{commit}" 2>/dev/null && git merge-base --is-ancestor "$M" HEAD \
+  || refuse "$branch lacks $(short "$M" 2>/dev/null || echo "$M"), the commit $rtlbase was generated from. Merge origin/$gen_base first, so the RTL PR shows only this branch's change."
+
+# rtl/<N> on origin may be ahead of this worktree, if it was pushed from elsewhere
+if git rev-parse -q --verify "origin/rtl/$n" >/dev/null; then
+  remote=$(git rev-parse "origin/rtl/$n")
+  if ! git -C "$SV" merge-base --is-ancestor "$remote" HEAD; then
+    git -C "$SV" merge-base --is-ancestor HEAD "$remote" \
+      || refuse "rtl/$n and origin/rtl/$n have diverged; reconcile them by hand"
+    note "moving rtl/$n up to origin/rtl/$n"
+    git -C "$SV" reset -q "$remote"
+  fi
+fi
+moved=0
+git -C "$SV" merge-base --is-ancestor "origin/$rtlbase" HEAD || moved=1
+
+# --- step 2: regenerate and check ----------------------------------------------------
+
+RUN=$(mktemp -d "${TMPDIR:-/tmp}/rtl-pr.XXXXXX")
+keep_run=0
+trap '[ $keep_run = 1 ] || rm -rf "$RUN"' EXIT
+
+echo "Regenerating with scripts/gen-sv --clean (every test script; a few minutes)"
+if ! scripts/gen-sv --clean >"$RUN/gen-sv.log" 2>&1; then
+  keep_run=1
+  grep -E '^  (FAIL|ABSENT) ' "$RUN/gen-sv.log" >&2 || tail -20 "$RUN/gen-sv.log" >&2
+  refuse "a test script failed, so there's no RTL to commit (log: $RUN/gen-sv.log)"
+fi
+if ! node scripts/check-rtl.mjs "$SV" >"$RUN/check-rtl.log" 2>&1; then
+  keep_run=1
+  cat "$RUN/check-rtl.log" >&2
+  refuse "scripts/check-rtl.mjs failed on the files rtl/$n would commit"
+fi
+sed 's/^/  /' "$RUN/check-rtl.log"
+
+# The tree to commit, built in a scratch index: rtlbase's tree with the regenerated DUT files in
+# place of its own. Everything else, .github/ included, comes from rtlbase, not from the worktree:
+# an rtl/<N> made before rtl/main's workflows last changed would otherwise drop them, and GitHub
+# reads an RTL PR's workflows from its merge commit.
+export GIT_INDEX_FILE=$RUN/index
+git -C "$SV" read-tree "origin/$rtlbase"
+git -C "$SV" add -A -- "$RTL_DUT"
+tree=$(git -C "$SV" write-tree)
+unset GIT_INDEX_FILE
+
+base_tree=$(git rev-parse "origin/$rtlbase^{tree}")
+head_tree=$(git -C "$SV" rev-parse 'HEAD^{tree}')
+rtl_json=$(gh pr list --head "rtl/$n" --state open --json number,url,id,baseRefName,title --jq '.[0] // empty')
+R=$( [ -n "$rtl_json" ] && jq -r .number <<<"$rtl_json" || true)
+
+if [ "$tree" = "$base_tree" ]; then
+  echo "No change to generated DUT RTL: the files are the same as $rtlbase's"
+  if [ -n "$R" ] && [ $dry = 0 ]; then
+    gh pr close "$R" --comment "#$G no longer changes generated DUT RTL, as of $(short HEAD). \`scripts/rtl-pr\` closed this PR."
+    echo "Closed the RTL PR, #$R"
+  fi
+  exit 0
+fi
+
+# --- the description ------------------------------------------------------------------
+
+H=$(git rev-parse HEAD)
+gen_title=$(jq -r .title <<<"$gen_json" | sed -E 's/^[a-z]+(\([^)]*\))?!?: *//')
+if git cat-file -e origin/main:.github/workflows/rtl-main.yml 2>/dev/null; then
+  landing="CI merges it into \`rtl/main\` after $gref merges."
+else
+  landing="after $gref merges, its author merges this PR into \`rtl/main\`."
+fi
+
+# describe <head commit or tree>: the PR description for that head
+describe() {
+  local at=$1 nfiles
+  node scripts/rtl-changes.mjs --dir "$SV" --url "https://github.com/$REPO/blob" \
+    --max-chars 55000 "$base_c" "$at" >"$RUN/changes.md" 2>"$RUN/changes.err"
+  nfiles=$(git -C "$SV" diff --name-only --no-renames "$base_c" "$at" | wc -l)
+  {
+    echo "**The DUT RTL that $gref generates,** for review here. \`scripts/rtl-pr\` made this PR. It closes no issue: its generator PR$([ "$G" = 0 ] || echo ", $gref,") does."
+    echo
+    echo "- **Generated from** \`$branch\` at $(short HEAD) by \`scripts/gen-sv --clean\`. Every test script passed."
+    echo "- **Compared with** \`$rtlbase\` at $(short "$base_c"), which was generated from $(short "$M")."
+    echo "- **To review:** read the distinct changes below, open files for detail, and approve once the RTL is right. Don't merge: $landing"
+    if [ "$nfiles" -gt 300 ]; then
+      echo "- **GitHub's Files tab shows only 300 of the $nfiles changed files,** so line comments reach only those. Comment on the PR about the rest."
+    fi
+    echo
+    echo "## Distinct changes"
+    echo
+    cat "$RUN/changes.md"
+    echo
+    echo "## Checks"
+    echo
+    echo "\`scripts/check-rtl.mjs\` on the committed files:"
+    sed -n 's/^check-rtl: ok: /- /p' "$RUN/check-rtl.log"
+  } >"$RUN/body.md"
+}
+
+if [ $dry = 1 ]; then
+  describe "$tree"
+  echo
+  cat "$RUN/body.md"
+  echo
+  echo "Dry run: committed, pushed and opened nothing. $(cat "$RUN/changes.err")"
+  exit 0
+fi
+
+# --- step 3: commit and push ----------------------------------------------------------
+
+new_commit=0
+if [ "$tree" != "$head_tree" ] || [ $moved = 1 ]; then
+  # Signed off by its author, the person running this (CONTRIBUTING.md), so the dco check passes
+  me_ident=$(git -C "$SV" var GIT_AUTHOR_IDENT | sed -E 's/ [0-9]+ [-+][0-9]{4}$//')
+  {
+    echo "Generated DUT RTL from ${branch%%-*} $(short HEAD)"
+    echo
+    echo "Generated-from: $H"
+    echo "Signed-off-by: $me_ident"
+  } >"$RUN/msg"
+  parents=(-p HEAD)
+  [ $moved = 0 ] || parents+=(-p "origin/$rtlbase")
+  c=$(git -C "$SV" commit-tree "$tree" "${parents[@]}" -F "$RUN/msg")
+  git -C "$SV" reset -q "$c"
+  # The DUT files on disk are the commit's; this brings .github/ and the rest up to it too
+  git -C "$SV" checkout -q -- .
+  new_commit=1
+  echo "Committed $(short "$c") on rtl/$n$( [ $moved = 0 ] || echo ", merging in $rtlbase")"
+else
+  echo "The files are the same as rtl/$n's head, $(short HEAD "$SV"): no new commit"
+fi
+git -C "$SV" push -q -u origin "rtl/$n"
+rtl_head=$(git -C "$SV" rev-parse HEAD)
+
+# --- step 4: open or update the RTL PR ------------------------------------------------------
+
+describe "$rtl_head"
+title="RTL for #$G: $gen_title"
+if [ -z "$R" ]; then
+  me=$(gh api user -q .login)
+  mapfile -t reviewers < <(jq -r --arg me "$me" '[.reviewRequests[].login?, .latestReviews[].author.login]
+      | map(select(. != null and . != $me)) | unique | .[]' <<<"$gen_json")
+  args=(--base "$rtlbase" --head "rtl/$n" --title "$title" --body-file "$RUN/body.md" --assignee @me)
+  for r in "${reviewers[@]}"; do args+=(--reviewer "$r"); done
+  url=$(gh pr create "${args[@]}")
+  R=${url##*/}
+  gh pr comment "$G" --body "RTL PR: #$R, the DUT RTL this PR generates. Approve it there; this PR waits for that approval." >/dev/null
+  echo "Opened the RTL PR: $url"
+else
+  id=$(jq -r .id <<<"$rtl_json")
+  gh api graphql -f query='mutation($id:ID!,$t:String!,$b:String!,$base:String!){
+      updatePullRequest(input:{pullRequestId:$id,title:$t,body:$b,baseRefName:$base}){pullRequest{url}}}' \
+    -f id="$id" -f t="$title" -F b=@"$RUN/body.md" -f base="$rtlbase" --jq .data.updatePullRequest.pullRequest.url
+  if [ $new_commit = 1 ]; then
+    # An approval holds while the RTL PR's own change is the one approved (scripts/rtl-own-change).
+    # Ask again those whose approval no longer covers it, and those who asked for changes.
+    head_own=$(scripts/rtl-own-change --dir "$SV" --base "origin/$rtlbase" "$rtl_head")
+    while read -r who state at; do
+      if [ "$state" = APPROVED ] && git -C "$SV" cat-file -e "$at^{commit}" 2>/dev/null \
+         && [ "$(scripts/rtl-own-change --dir "$SV" --base "origin/$rtlbase" "$at")" = "$head_own" ]; then
+        echo "$who's approval at $(short "$at" "$SV") still holds: the RTL PR's own change is the same"
+        continue
+      fi
+      gh api -X POST "repos/$REPO/pulls/$R/requested_reviewers" -f "reviewers[]=$who" >/dev/null \
+        && echo "Requested a review again from $who"
+    done < <(gh api "repos/$REPO/pulls/$R/reviews" --paginate \
+               --jq '.[] | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED") | "\(.user.login) \(.state) \(.commit_id)"' \
+             | awk '{ last[$1] = $0 } END { for (u in last) print last[u] }')
+  fi
+  echo "Updated the RTL PR, #$R"
+fi
+cat "$RUN/changes.err" >&2

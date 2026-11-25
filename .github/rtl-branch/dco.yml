@@ -1,0 +1,37 @@
+name: dco
+
+# Runs on rtl/main, not main: scripts/rtl-update copies this file from main's .github/rtl-branch/
+# to rtl/main's .github/workflows/. GitHub reads a PR's workflows from its merge commit, and an RTL
+# PR's merge commit is on rtl/main. (doc/process/issue-workflow.md §5, "Showing the generated SV")
+#
+# The dco check of main's .github/workflows/dco.yml, for PRs into rtl/main and rtl/<N>: it fails
+# an RTL PR if any of its commits lacks a DCO sign-off (CONTRIBUTING.md). scripts/rtl-pr signs off
+# the commits it makes. rtl/main holds only generated files, so the check runs main's
+# scripts/check-dco.sh. CI's own commits on rtl/main carry no sign-off; they are on the base
+# branch, so the check never sees them.
+on:
+  pull_request:
+
+concurrency:
+  group: dco-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dco:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      # fetch-depth 0 fetches every branch, so origin/<base> and origin/main exist.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check every commit is signed off
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git show origin/main:scripts/check-dco.sh >"$RUNNER_TEMP/check-dco.sh"
+          bash "$RUNNER_TEMP/check-dco.sh" "origin/$BASE_REF" HEAD

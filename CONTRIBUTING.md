@@ -39,6 +39,16 @@ answer for the change as if they had written it. An agent never signs off as its
 anyone other than the person running it. A `Co-Authored-By:` line that names an agent is
 attribution only.
 
+### Generated commits on `rtl/main`
+
+The `rtl/main` branch holds the SystemVerilog generated from `main`
+([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv) §5).
+`scripts/rtl-pr` makes an RTL PR's commits and signs them off with the identity of the person who
+runs it, like any other commit, and the `dco` check runs on RTL PRs too. The commits that CI makes
+on `rtl/main` itself carry no sign-off. A workflow, not a person, generates them from signed-off
+commits on `main`, and pushes them directly, so no `dco` check sees them. CI merges an RTL PR only
+when every commit in it is signed off; otherwise it commits the generated files itself.
+
 ## Developer Certificate of Origin
 
 From <https://developercertificate.org/>:

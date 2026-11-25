@@ -10,7 +10,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/gen-sv [--base <ref>] [--keep] [test ...]
+Usage: scripts/gen-sv [--base <ref>] [--keep] [--clean] [test ...]
 
   test ...        Test scripts to run, as ts/test/....ts or out/test/....js
                   paths. None: every test under ts/test/, less the ones
@@ -33,6 +33,11 @@ Usage: scripts/gen-sv [--base <ref>] [--keep] [test ...]
       Exits 0 if nothing differs, 1 if something does, 2 on an error.
 
   --keep          Keep the scratch worktree instead of removing it on exit.
+  --clean         First delete every file under a dut/ folder in this checkout's
+                  sv-examples/, and nothing else, so a DUT file that no test
+                  writes any more is gone rather than left over. scripts/rtl-pr
+                  runs every test this way, so a configuration that a change
+                  removes shows as deleted on the rtl branch.
 EOF
 }
 
@@ -47,12 +52,13 @@ cd "$ROOT"
 # examples record the absolute paths of their inputs.
 IGNORE='// [A-Za-z]*Path = /'
 
-base="" keep=0 tests=()
+base="" keep=0 clean=0 tests=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --base)   [ $# -ge 2 ] || die "--base needs a branch or commit"; base=$2; shift 2 ;;
     --base=*) base=${1#--base=}; shift ;;
     --keep)   keep=1; shift ;;
+    --clean)  clean=1; shift ;;
     -h|--help) usage; exit 0 ;;
     -*)       usage >&2; exit 2 ;;
     *)        tests+=("$1"); shift ;;
@@ -124,6 +130,15 @@ gen() {
   return $failed
 }
 
+# Delete the files under dut/ folders in sv-examples/, and empty folders left under them. The
+# rtl branch's .gitignore and the worktree's .git file aren't under a dut/ folder.
+clean_dut() {
+  [ "$clean" = 1 ] && [ -d sv-examples ] || return 0
+  echo "Deleting the files under dut/ folders in sv-examples/"
+  find sv-examples -path '*/dut/*' \( -type f -o -type l \) -delete
+  find sv-examples -depth -path '*/dut/*' -type d -empty -delete
+}
+
 build_head() {
   echo "Building this checkout"
   npx tsc || die "build failed"
@@ -131,6 +146,7 @@ build_head() {
 
 if [ -z "$base" ]; then
   build_head
+  clean_dut
   echo "Running ${#tests[@]} test script(s)"
   status=0
   gen "$ROOT" head || status=1

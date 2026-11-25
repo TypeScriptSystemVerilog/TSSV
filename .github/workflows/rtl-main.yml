@@ -1,0 +1,119 @@
+name: rtl-main
+
+# Keeps rtl/main in step with main (doc/process/issue-workflow.md §5, "Showing the generated SV").
+# scripts/rtl-update makes each change; this workflow sets up the checkout it needs and alerts on
+# failure. tssv-noc has a workflow of the same name, which also follows TSSV's main.
+#
+#   push to main         scripts/rtl-update --merged: regenerate; land the merged PR's RTL PR, or
+#                        commit the files and close it; move RTL PRs stacked on it onto rtl/main.
+#   workflow_dispatch    scripts/rtl-update --catch-up: regenerate main's head, and commit only if
+#                        something changed. For catching up by hand after a failed run.
+#
+# A dispatch on a branch other than main runs that branch's scripts as a dry run: it decides and
+# prints, but pushes nothing. That tries a change to this workflow before it merges.
+#
+# It pushes to rtl/main with the RTL_MAIN_DEPLOY_KEY deploy key. The rtl-main-2 ruleset lets
+# deploy keys bypass its pull-request rule; GITHUB_TOKEN can't be a bypass actor. Its commits carry
+# no sign-off: they are generated from signed-off commits on main (CONTRIBUTING.md).
+#
+# A run commits only when every test script passes and scripts/check-rtl.mjs passes. Otherwise the
+# notify job posts to Slack through scripts/notify, and rtl/main stays as it was.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One run at a time, in order: each builds on the rtl/main the one before left
+concurrency:
+  group: rtl-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  packages: read
+
+# A container job runs its steps under sh unless told otherwise, and the steps use bash
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ghcr.io/typescriptsystemverilog/tssv-ci:v1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      # The image has neither ssh, which the deploy key needs, nor gh
+      - name: Install ssh and gh
+        run: |
+          apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends openssh-client >/dev/null
+          curl -fsSL https://github.com/cli/cli/releases/download/v2.62.0/gh_2.62.0_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local --strip-components=1
+
+      - name: Checkout TSSV
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.sha || github.ref }}
+
+      - name: Checkout rtl/main as sv-examples, with the deploy key
+        uses: actions/checkout@v4
+        with:
+          path: sv-examples
+          ref: rtl/main
+          fetch-depth: 0
+          ssh-key: ${{ secrets.RTL_MAIN_DEPLOY_KEY }}
+
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Update rtl/main
+        run: |
+          git config --global --add safe.directory '*'
+          git -C sv-examples config user.name 'github-actions[bot]'
+          git -C sv-examples config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          dry=""
+          [ "${{ github.ref }}" = refs/heads/main ] || dry=--dry-run
+          if [ "${{ github.event_name }}" = push ]; then
+            scripts/rtl-update --merged "${{ github.sha }}" $dry | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            scripts/rtl-update --catch-up $dry | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+  notify:
+    needs: update
+    if: failure()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout scripts/notify
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/notify
+          sparse-checkout-cone-mode: false
+
+      - name: Post to Slack
+        env:
+          WEBHOOK: ${{ secrets.TSSV_SLACK_WEBHOOK }}
+          TO: ${{ vars.RTL_NOTIFY_SLACK_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MAIN: ${{ github.sha }}
+        run: |
+          umask 077
+          printf '%s\n' "$WEBHOOK" >"$RUNNER_TEMP/webhook"
+          export TSSV_SLACK_WEBHOOK_FILE=$RUNNER_TEMP/webhook
+          python3 scripts/notify ${TO:+--to "$TO"} \
+            "TSSV rtl/main update failed (main ${MAIN:0:7}); rtl/main stays as it was" "$RUN_URL"

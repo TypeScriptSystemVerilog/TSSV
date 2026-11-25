@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+# Keep rtl/main in step with main: the logic of .github/workflows/rtl-main.yml
+# (doc/process/issue-workflow.md §5, "Showing the generated SV").
+#
+# tssv-noc has a script of the same name; keep the two in step. tssv-noc's also follows TSSV's
+# main (--tssv) and chooses the TSSV to build with (--pick-tssv). TSSV builds itself, so this one
+# has neither.
+#
+# Its commits carry no sign-off. They are generated from signed-off commits on main and pushed
+# directly, so no dco check sees them (CONTRIBUTING.md).
+
+set -Eeuo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/rtl-update (--merged <main commit> | --catch-up) [--dry-run]
+
+Run it in a checkout of main whose sv-examples/ is a checkout of this repo on
+rtl/main, up to date with origin and able to push. The rtl-main workflow sets that
+up.
+
+  --merged <commit>  After a push to main, with this checkout at <commit>.
+                     Regenerates. If the merged PR's RTL PR makes the same own
+                     change (scripts/rtl-own-change) and its approval holds, merges
+                     it into rtl/main with the regenerated files. Otherwise commits
+                     them, and closes the RTL PR with a note saying why. Then moves
+                     the RTL PRs stacked on it to rtl/main.
+  --catch-up         Regenerates main's head, and commits only if something
+                     changed. For catching rtl/main up by hand, after a failed run.
+  --dry-run          Decide and print; commit, push and change no PR.
+
+Both first copy .github/rtl-branch/*.yml to rtl/main's .github/workflows/, and
+commit if that changes anything. Every commit carries a Generated-from: trailer.
+
+Exit status: 0 done, 1 a test script or check failed (nothing pushed), 2 error.
+EOF
+}
+
+die()  { echo "rtl-update: $*" >&2; exit 2; }
+fail() { echo "rtl-update: $*" >&2; exit 1; }
+trap 'echo "rtl-update: failed at line $LINENO" >&2; exit 2' ERR
+
+mode="" merged="" dry=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --merged)   [ $# -ge 2 ] || die "--merged needs a commit"; mode=merged merged=$2; shift 2 ;;
+    --catch-up) mode=catch-up; shift ;;
+    --dry-run)  dry=1; shift ;;
+    -h|--help)  usage; exit 0 ;;
+    *)          usage >&2; exit 2 ;;
+  esac
+done
+[ -n "$mode" ] || { usage >&2; exit 2; }
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || die "run this inside the TSSV repo"
+cd "$ROOT"
+SV=$ROOT/sv-examples
+# shellcheck source=scripts/rtl-lib.sh
+source "$ROOT/scripts/rtl-lib.sh"
+REPO=${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}
+short() { git -C "${2:-$ROOT}" rev-parse --short "$1"; }
+
+git -C "$SV" fetch -q --no-tags origin '+refs/heads/rtl/*:refs/remotes/origin/rtl/*'
+[ "$(git -C "$SV" rev-parse HEAD)" = "$(git -C "$SV" rev-parse origin/rtl/main)" ] \
+  || die "sv-examples/ isn't at origin/rtl/main"
+read -r M < <(rtl_provenance "$SV" HEAD) || true
+[ -n "${M:-}" ] || die "rtl/main records no Generated-from: commit"
+H=$(git rev-parse HEAD)
+if [ "$mode" = merged ]; then
+  [ "$(git rev-parse "$merged^{commit}")" = "$H" ] || die "this checkout isn't at $merged"
+  # The merged PR, and its RTL PR if one is open
+  read -r G head_ref < <(gh api "repos/$REPO/commits/$H/pulls" \
+    --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0] | select(. != null) | "\(.number) \(.head.ref)"') || true
+  n=$(rtl_issue_of "${head_ref:-}")
+  rtl_json=""
+  [ -z "$n" ] || rtl_json=$(gh pr list --repo "$REPO" --head "rtl/$n" --base rtl/main --state open \
+                              --json number,headRefOid --jq '.[0] | select(. != null) | "\(.number) \(.headRefOid)"')
+  read -r R rtl_head <<<"${rtl_json:-}" || true
+  # The head is on origin/rtl/<n> already; the PR ref covers a head pushed elsewhere
+  [ -z "${R:-}" ] || git -C "$SV" fetch -q --no-tags origin "+refs/pull/$R/head:refs/remotes/origin/rtl-pr/$R" 2>/dev/null || true
+fi
+echo "rtl/main at $(short HEAD "$SV"): generated from $(short "$M")"
+
+RUN=$(mktemp -d "${TMPDIR:-/tmp}/rtl-update.XXXXXX")
+# A dry run's commits are local only; put sv-examples/ back on origin/rtl/main afterwards
+trap 'rm -rf "$RUN"; [ $dry = 0 ] || git -C "$SV" reset -q --hard origin/rtl/main' EXIT
+
+# commit_rtl <message file> <tree> <parent>...: make the commit and move sv-examples/ onto it
+commit_rtl() {
+  local msg=$1 tree=$2 c ps=()
+  shift 2
+  for p in "$@"; do ps+=(-p "$p"); done
+  c=$(git -C "$SV" commit-tree "$tree" "${ps[@]}" -F "$msg")
+  git -C "$SV" reset -q --hard "$c"
+  echo "$c"
+}
+
+# --- the rtl branch's own workflows ------------------------------------------------------
+
+mkdir -p "$SV/.github/workflows"
+cp .github/rtl-branch/*.yml "$SV/.github/workflows/"
+if [ -n "$(git -C "$SV" status --porcelain -- .github)" ]; then
+  git -C "$SV" add -A -- .github
+  printf 'Sync rtl/main'"'"'s workflows from main %s\n\nFrom .github/rtl-branch/ on main.\n' "$(short HEAD)" >"$RUN/sync"
+  c=$(commit_rtl "$RUN/sync" "$(git -C "$SV" write-tree)" HEAD)
+  echo "Committed $(short "$c" "$SV"): rtl/main's workflows, from main's .github/rtl-branch/"
+fi
+
+# --- regenerate ------------------------------------------------------------------------
+
+echo "Regenerating with scripts/gen-sv --clean"
+if ! scripts/gen-sv --clean >"$RUN/gen-sv.log" 2>&1; then
+  grep -E '^  (FAIL|ABSENT) ' "$RUN/gen-sv.log" >&2 || tail -20 "$RUN/gen-sv.log" >&2
+  fail "a test script failed with main $(short HEAD), so rtl/main stays as it is"
+fi
+node scripts/check-rtl.mjs "$SV" >"$RUN/check-rtl.log" 2>&1 \
+  || { cat "$RUN/check-rtl.log" >&2; fail "scripts/check-rtl.mjs failed, so rtl/main stays as it is"; }
+sed 's/^/  /' "$RUN/check-rtl.log"
+tree=$(rtl_tree "$SV")
+base=$(git -C "$SV" rev-parse HEAD)
+nfiles=$(git -C "$SV" diff --name-only "$base" "$tree" -- "$RTL_DUT" | wc -l)
+unchanged=0
+[ "$nfiles" != 0 ] || [ "$tree" != "$(git -C "$SV" rev-parse "$base^{tree}")" ] || unchanged=1
+
+trailers() { printf '\nGenerated-from: %s\n' "$H"; }
+push() {
+  if [ $dry = 1 ]; then
+    echo "Dry run: would push $(short HEAD "$SV") to rtl/main"
+    git -C "$SV" log --format='  %h %s%n%b' -1
+    return
+  fi
+  git -C "$SV" push -q origin HEAD:refs/heads/rtl/main
+  echo "Pushed $(short HEAD "$SV") to rtl/main"
+}
+pr_close() {  # <PR> <comment>
+  if [ $dry = 1 ]; then echo "Dry run: would close #$1: $2"; else gh pr close "$1" --repo "$REPO" --comment "$2" >/dev/null && echo "Closed #$1"; fi
+}
+
+# --- catching up by hand -----------------------------------------------------------------
+
+if [ "$mode" = catch-up ]; then
+  if [ $unchanged = 1 ]; then
+    echo "The regenerated files are the same as rtl/main's"
+    # A sync of rtl/main's workflows above still has to land
+    [ "$base" = "$(git -C "$SV" rev-parse origin/rtl/main)" ] || push
+    exit 0
+  fi
+  { echo "Generated DUT RTL from main $(short "$H")"; echo
+    echo "$nfiles DUT files change. Regenerated by hand (the rtl-main workflow, run by hand), to catch up with main."
+    trailers; } >"$RUN/msg"
+  c=$(commit_rtl "$RUN/msg" "$tree" "$base")
+  echo "Committed $(short "$c" "$SV"): caught up, $nfiles DUT files changed"
+  push
+  exit 0
+fi
+
+# --- after a push to main -----------------------------------------------------------
+
+what=${G:+#$G}
+what=${what:-a push to main that no PR made}
+
+if [ $unchanged = 1 ]; then
+  echo "$what changed no generated DUT RTL"
+  # A sync of rtl/main's workflows above still has to land
+  [ "$base" = "$(git -C "$SV" rev-parse origin/rtl/main)" ] || push
+  [ -z "${R:-}" ] || pr_close "$R" "$what merged without changing generated DUT RTL, so there's nothing to land. \`scripts/rtl-update\` closed this PR."
+else
+  probe=$(git -C "$SV" commit-tree "$tree" -p "$base" -m probe)
+  own=$(rtl_fingerprint "$SV" "$base" "$probe")
+  why=""
+  if [ -z "${R:-}" ]; then
+    why="$what had no open RTL PR."
+  elif [ "$(rtl_fingerprint "$SV" "$base" "$rtl_head")" != "$own" ]; then
+    why="Its RTL PR, #$R, made a different change at ${rtl_head:0:7}, so this commit replaces it."
+  elif ! approval=$(rtl_approval "$SV" "$base" "$REPO" "$R" "$rtl_head"); then
+    why="Its RTL PR, #$R, made the same change, but its approval doesn't hold: $approval."
+  elif ! (cd "$SV" && bash "$ROOT/scripts/check-dco.sh" "$base" "$rtl_head") >"$RUN/dco.log" 2>&1; then
+    # A merge would bring its commits into rtl/main, so each must be signed off (CONTRIBUTING.md)
+    why="Its RTL PR, #$R, made the same change, but not every commit in it is signed off."
+  fi
+  if [ -z "$why" ]; then
+    { echo "Merge pull request #$R from rtl/$n"; echo
+      echo "RTL for #$G, generated from main $(short "$H"): $nfiles DUT files."
+      echo "$approval."; trailers; } >"$RUN/msg"
+    c=$(commit_rtl "$RUN/msg" "$tree" "$base" "$rtl_head")
+    echo "Merged RTL PR #$R as $(short "$c" "$SV")"
+    push
+  else
+    { echo "Generated DUT RTL from main $(short "$H")"; echo
+      echo "$nfiles DUT files change. $why"; trailers; } >"$RUN/msg"
+    c=$(commit_rtl "$RUN/msg" "$tree" "$base")
+    echo "Committed $(short "$c" "$SV"): $why"
+    push
+    [ -z "${R:-}" ] || pr_close "$R" "$what merged, and \`rtl/main\` now holds its RTL as $(short "$c" "$SV"). $why \`scripts/rtl-update\` closed this PR."
+  fi
+fi
+
+# RTL PRs stacked on this one move to rtl/main, as their generator PRs move to main
+if [ -n "$n" ]; then
+  while read -r sn sid; do
+    [ -n "$sn" ] || continue
+    if [ $dry = 1 ]; then echo "Dry run: would move RTL PR #$sn onto rtl/main"; continue; fi
+    gh api graphql -f query='mutation($id:ID!){updatePullRequest(input:{pullRequestId:$id,baseRefName:"rtl/main"}){pullRequest{number}}}' \
+      -f id="$sid" >/dev/null
+    gh pr comment "$sn" --repo "$REPO" --body "Moved onto \`rtl/main\`: the RTL PR it was stacked on has landed. Run \`scripts/rtl-pr\` once its generator PR is on \`main\`." >/dev/null
+    echo "Moved RTL PR #$sn onto rtl/main"
+  done < <(gh pr list --repo "$REPO" --base "rtl/$n" --state open --json number,id --jq '.[] | "\(.number) \(.id)"')
+fi

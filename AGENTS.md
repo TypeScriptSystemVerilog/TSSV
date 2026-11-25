@@ -31,7 +31,7 @@ doc/tools/            CLI tool docs
 doc/ideas/            Design notes and spike specs, each marked with its status
 doc/rtl-style/        Style guides for the emitted SV and for the TypeScript, with their checks
 doc/process/          Repo process specs (issue-workflow.md)
-scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base), test-skips.sh (tests runAllTests.sh and gen-sv skip), the testbench checks check-harness.mjs and check-test-structure.mjs, and check-port-contracts.mjs, which checks the port contracts modules declare; a project runs all three through its link to TSSV
+scripts/              Helper scripts, among them gen-sv (regenerate SV and diff it against a base), rtl-pr (open an issue's RTL PR) and the other rtl-* scripts behind the "Generated RTL reviewed" check and the rtl-main job, test-skips.sh (tests runAllTests.sh and gen-sv skip), the testbench checks check-harness.mjs and check-test-structure.mjs, and check-port-contracts.mjs, which checks the port contracts modules declare; a project runs all three through its link to TSSV
 ci/image/             CI toolchain image (tssv-ci): Dockerfile, VERSION tag, smoke test
 .github/              Issue forms, PR template, commit template, workflows (test.yml, ci-image.yml, docs-reference.yml, dco.yml)
 ```
@@ -120,9 +120,10 @@ is the authoritative spec; this section is the operating procedure an agent foll
 5. **Open the PR** with `gh pr create` (`--base <parent-branch>` for a stacked PR),
    following `.github/PULL_REQUEST_TEMPLATE.md`: body has `Closes #<issue-number>`,
    reproduces the Acceptance Criteria checklist from the issue, and states the test plan
-   (commands actually run). If the PR changes generated SV, post that SV as PR comments and
-   link them from the description; if not, say so (`doc/process/issue-workflow.md` §5,
-   "Showing the generated SV"). Backfill the PR into the issue's `Links` field.
+   (commands actually run). If the PR changes generated DUT RTL, run `scripts/rtl-pr`, which
+   opens its RTL PR, and name that PR in the description; if not, say so
+   (`doc/process/issue-workflow.md` §5, "Showing the generated SV"). Backfill the PR into the
+   issue's `Links` field.
 6. **Verify AC before checking any box.** Run the build/tests/lint the checklist calls for
    (`npx tsc`, `node out/test/test_<Name>.js`, `bash runAllTests.sh`, `npx eslint .`,
    `npm run check:docs`, `verilator --lint-only ...`), confirm the actual output, then check
@@ -208,7 +209,7 @@ Builder methods add logic inside the constructor. Nothing is emitted until `writ
 - **Using the register helpers**: read `doc/framework/registers.md` (including its "Current limitations"), then `ts/src/core/Registers.ts`
 - **Running a single test**: `npx tsc && node out/test/test_<Name>.js` — output lands in `sv-examples/`. Most module tests are under `out/test/modules/` (FIR's and APB_to_Memory's are not)
 - **Running all tests**: `bash runAllTests.sh`. It exits nonzero if any script fails, and skips the scripts that need tools outside the pinned toolchain (listed with the reason in `scripts/test-skips.sh`)
-- **Seeing what a change does to the generated SV**: `scripts/gen-sv --base origin/main [test ...]` regenerates `sv-examples/` here and on the base, and diffs the two; without `--base` it only regenerates. A PR that changes generated SV shows it ([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv) §5)
+- **Seeing what a change does to the generated SV**: `scripts/gen-sv --base origin/main [test ...]` regenerates `sv-examples/` here and on the base, and diffs the two; without `--base` it only regenerates. A PR that changes generated DUT RTL shows it in an RTL PR, which `scripts/rtl-pr` opens; `sv-examples/` is a worktree on the `rtl/main` branch, or `rtl/<N>` in an issue worktree ([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv) §5)
 - **CI**: `.github/workflows/test.yml` runs on every PR and every push to `main`, except changes that only touch Markdown or `doc/` (but `doc/modules/` and `doc/rtl-style/` changes do run it, because the tests read them). The toolchain is the `tssv-ci` image from `ci/image/`; bump its tag in both workflows that use it (`test.yml`, and `docs-reference.yml`'s `examples` job) after publishing a new one. Add a new self-checking `verilatorTB/` target to `test.yml` as its own step
 - **Prerequisite — Verible**: `verible-verilog-format` and `verible-verilog-syntax` must be on `PATH` (see README.md). Generated SV is Verible-formatted by default and generation fails without it; `addSystemVerilogSubmodule()` parses imported SV headers, and `writeSystemVerilogFiles()` parses each module it emits to check it against the SV guide (`ts/src/core/ModuleCheck.ts`), with `verible-verilog-syntax`
 - **Linting generated SV**: `verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/<dir> sv-examples/<dir>/<top>.sv` for one design; `npm run lint:sv` (`scripts/lint-sv.sh`) for everything the test scripts wrote, after `bash runAllTests.sh`. Test scripts write SV with `writeSystemVerilogFiles()`, and each file includes the files it needs under `USE_INCLUDES`, so the scripts lint each file that no other file in its directory includes, and its lint reaches the rest. SV a test writes by hand to instantiate a design includes it the same way (`guardSV`, `ts/test/models/guardSV.ts`): a testbench, or the `lintWrapper` a module with interface ports needs as its lint top. A testbench outside `sv-examples/`, such as `verilatorTB/tb_APB_to_Memory.sv`, is tied to the design by a `<top>.f` filelist (`ts/test/models/lintFilelist.ts`). A file imported with `addSystemVerilogSubmodule()` is copied in inside its `SVIMPORT__` guard and is linted through its parent, but isn't generated SV. `npm run check:generated-sv` runs `-Wall` and the SV guide's scans on the same files, and fails on any finding ([`doc/rtl-style/sv-style/README.md`](doc/rtl-style/sv-style/README.md#generated-sv)). Mark a generated testbench with `markTestbench()` (`ts/src/tb/testbench.ts`) so SYN-1 skips it

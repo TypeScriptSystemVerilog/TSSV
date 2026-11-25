@@ -242,7 +242,35 @@ cat sv-examples/FIR/myFIR3/myFIR3.sv
 verilator --lint-only +define+USE_INCLUDES +incdir+sv-examples/FIR/myFIR3 sv-examples/FIR/myFIR3/myFIR3_lint_top.sv
 ```
 
-If all of these succeed, setup is done.
+If all of these succeed, the tools work.
+
+#### 5. Put `sv-examples/` on `rtl/main`
+
+The DUT RTL generated from `main` lives on an orphan branch, `rtl/main`, and a PR that changes it
+is reviewed in an RTL PR ([`doc/process/issue-workflow.md`](doc/process/issue-workflow.md#showing-the-generated-sv)
+§5). Make `sv-examples/` a git worktree on that branch, once:
+
+```bash
+cd ~/TSSV
+git fetch origin
+rm -rf sv-examples        # holds only generated files
+git worktree add sv-examples rtl/main   # a local rtl/main that tracks origin's
+```
+
+Tests write `sv-examples/` as before. The branch's `.gitignore` tracks only the files under
+`dut/` folders, so `git -C sv-examples status` shows whether the DUTs you generate differ from
+`rtl/main`'s. `git -C sv-examples pull --ff-only` brings your copy up to date. Don't commit to
+`rtl/main`: it changes only through RTL PRs and CI.
+
+An issue's worktree gets its own rtl branch, `rtl/<N>`, from `rtl/main`, which
+`scripts/rtl-pr` commits to:
+
+```bash
+git worktree add -b <type>/<N>-<slug> ../TSSV-<N> origin/main
+git worktree add -b rtl/<N> --no-track ../TSSV-<N>/sv-examples origin/rtl/main
+```
+
+Setup is done.
 
 ### Run ESLint
 Run ESLint for code quality checks beyond TypeScript's type checking.
